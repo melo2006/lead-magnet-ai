@@ -1,15 +1,20 @@
-import { useState } from "react";
+import { useState, useCallback } from "react";
 import { motion } from "framer-motion";
-import { Rocket, ArrowRight, Globe, Phone, User, Building2, Loader2, CheckCircle } from "lucide-react";
+import { Rocket, ArrowRight, Globe, Phone, User, Building2, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import ScanningAnimation from "./ScanningAnimation";
+import DemoResults from "./DemoResults";
+
+type ViewState = "form" | "scanning" | "results";
 
 const LeadCaptureSection = () => {
   const { toast } = useToast();
+  const [viewState, setViewState] = useState<ViewState>("form");
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [isSubmitted, setIsSubmitted] = useState(false);
+  const [scanData, setScanData] = useState<any>(null);
   const [formData, setFormData] = useState({
     name: "",
     business: "",
@@ -37,39 +42,72 @@ const LeadCaptureSection = () => {
 
       if (error) throw error;
 
-      setIsSubmitted(true);
-      toast({ title: "🎉 Demo request submitted!", description: "Scanning your website now..." });
+      // Show scanning animation
+      setViewState("scanning");
 
-      // Trigger website scan in background
-      supabase.functions.invoke("scan-website", {
+      // Trigger website scan
+      const scanResult = await supabase.functions.invoke("scan-website", {
         body: { leadId: lead.id, websiteUrl: formData.website },
-      }).then((res) => {
-        if (res.error) console.error("Scan error:", res.error);
-        else console.log("Scan completed:", res.data);
       });
+
+      if (scanResult.error) {
+        console.error("Scan error:", scanResult.error);
+      } else {
+        console.log("Scan completed:", scanResult.data);
+      }
+
+      // Fetch the full lead data with scan results
+      const { data: updatedLead } = await supabase
+        .from("leads")
+        .select("*")
+        .eq("id", lead.id)
+        .single();
+
+      if (updatedLead) {
+        setScanData({
+          fullName: updatedLead.full_name,
+          websiteUrl: updatedLead.website_url,
+          screenshot: updatedLead.website_screenshot,
+          title: updatedLead.website_title,
+          description: updatedLead.website_description,
+          colors: updatedLead.brand_colors,
+          logo: updatedLead.brand_logo,
+        });
+      }
     } catch (err) {
       console.error("Error submitting lead:", err);
       toast({ title: "Something went wrong", description: "Please try again.", variant: "destructive" });
+      setViewState("form");
     } finally {
       setIsSubmitting(false);
     }
   };
 
-  if (isSubmitted) {
+  const handleScanComplete = useCallback(() => {
+    setViewState("results");
+  }, []);
+
+  const handleBack = () => {
+    setViewState("form");
+    setFormData({ name: "", business: "", website: "", phone: "" });
+    setScanData(null);
+  };
+
+  if (viewState === "scanning") {
     return (
       <section id="demo-form" className="py-12 sm:py-16 relative">
         <div className="container mx-auto px-4 sm:px-6 relative z-10">
-          <motion.div
-            initial={{ opacity: 0, scale: 0.9 }}
-            animate={{ opacity: 1, scale: 1 }}
-            className="max-w-xl mx-auto text-center rounded-2xl border border-primary/30 bg-card p-8 sm:p-12 glow-border"
-          >
-            <CheckCircle className="w-16 h-16 text-primary mx-auto mb-4" />
-            <h2 className="text-2xl sm:text-3xl font-bold mb-3">You're In! 🚀</h2>
-            <p className="text-muted-foreground text-lg">
-              We're building your personalized AI demo right now. You'll receive it shortly.
-            </p>
-          </motion.div>
+          <ScanningAnimation websiteUrl={formData.website} onComplete={handleScanComplete} />
+        </div>
+      </section>
+    );
+  }
+
+  if (viewState === "results" && scanData) {
+    return (
+      <section id="demo-form" className="py-12 sm:py-16 relative">
+        <div className="container mx-auto px-4 sm:px-6 relative z-10">
+          <DemoResults leadData={scanData} onBack={handleBack} />
         </div>
       </section>
     );
