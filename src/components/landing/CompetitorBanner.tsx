@@ -20,7 +20,7 @@ const CompetitorBanner = () => {
             While You Read This, Your Competitor Just Answered a Call
             <span className="text-destructive"> You Missed</span>
           </h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-6 mt-10">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4 sm:gap-6 mt-10">
             {[
               { stat: "67%", text: "of customers hang up if they can't reach a real person" },
               { stat: "85%", text: "of missed calls never call back" },
