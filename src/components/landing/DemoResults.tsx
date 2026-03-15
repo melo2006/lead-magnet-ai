@@ -83,7 +83,7 @@ const DemoResults = ({ leadData, onBack }: DemoResultsProps) => {
             {leadData.screenshot ? (
               <div className="relative">
                 <img
-                  src={`data:image/png;base64,${leadData.screenshot}`}
+                  src={leadData.screenshot.startsWith("http") ? leadData.screenshot : `data:image/png;base64,${leadData.screenshot}`}
                   alt="AI-enhanced website preview"
                   className="w-full rounded-lg border border-border"
                 />
