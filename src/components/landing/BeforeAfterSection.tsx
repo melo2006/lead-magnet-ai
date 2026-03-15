@@ -66,7 +66,7 @@ const BeforeAfterSection = () => {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="relative flex-1 max-w-[180px] sm:max-w-[260px]"
+            className="relative flex-1 max-w-[200px] sm:max-w-[290px]"
           >
             <div className="absolute -inset-2 rounded-3xl bg-primary/10 blur-xl" />
             <div className="relative">
