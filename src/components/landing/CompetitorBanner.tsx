@@ -3,7 +3,7 @@ import { AlertTriangle } from "lucide-react";
 
 const CompetitorBanner = () => {
   return (
-    <section className="py-16 relative overflow-hidden">
+    <section className="py-10 sm:py-14 relative overflow-hidden">
       <div className="absolute inset-0 bg-gradient-to-r from-destructive/5 via-background to-destructive/5" />
       <div className="container mx-auto px-4 sm:px-6 relative z-10">
         <motion.div

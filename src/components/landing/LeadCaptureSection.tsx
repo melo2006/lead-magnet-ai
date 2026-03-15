@@ -19,7 +19,7 @@ const LeadCaptureSection = () => {
   };
 
   return (
-    <section id="demo-form" className="py-20 relative">
+    <section id="demo-form" className="py-12 sm:py-16 relative">
       <div className="absolute inset-0">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-primary/5 blur-[150px]" />
       </div>
@@ -50,8 +50,9 @@ const LeadCaptureSection = () => {
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
             onSubmit={handleSubmit}
-            className="rounded-2xl border border-border bg-card p-6 sm:p-8 space-y-5 glow-border"
+            className="rounded-2xl border border-border bg-card p-6 sm:p-8 glow-border"
           >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground flex items-center gap-2">
                 <User className="w-4 h-4 text-muted-foreground" /> Your Name
@@ -74,6 +75,8 @@ const LeadCaptureSection = () => {
                 className="bg-secondary border-border"
               />
             </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground flex items-center gap-2">
                 <Globe className="w-4 h-4 text-muted-foreground" /> Website URL
@@ -87,7 +90,7 @@ const LeadCaptureSection = () => {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                <Phone className="w-4 h-4 text-muted-foreground" /> Cell Phone (for warm transfer demo)
+                <Phone className="w-4 h-4 text-muted-foreground" /> Cell Phone
               </label>
               <Input
                 type="tel"
@@ -96,6 +99,7 @@ const LeadCaptureSection = () => {
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 className="bg-secondary border-border"
               />
+            </div>
             </div>
             <Button
               type="submit"

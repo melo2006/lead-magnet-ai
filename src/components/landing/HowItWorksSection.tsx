@@ -30,7 +30,7 @@ const steps = [
 
 const HowItWorksSection = () => {
   return (
-    <section className="py-20 relative">
+    <section className="py-12 sm:py-16 relative">
       <div className="container mx-auto px-4 sm:px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
@@ -46,7 +46,7 @@ const HowItWorksSection = () => {
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-8 max-w-6xl mx-auto">
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto">
           {steps.map((step, i) => (
             <motion.div
               key={step.title}
