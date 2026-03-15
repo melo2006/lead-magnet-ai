@@ -27,18 +27,26 @@ const LeadCaptureSection = () => {
 
     setIsSubmitting(true);
     try {
-      const { error } = await supabase.from("leads").insert({
+      const { data: lead, error } = await supabase.from("leads").insert({
         full_name: formData.name,
         email: formData.business || "not-provided",
         website_url: formData.website,
         phone: formData.phone,
         niche: "realtors",
-      });
+      }).select("id").single();
 
       if (error) throw error;
 
       setIsSubmitted(true);
-      toast({ title: "🎉 Demo request submitted!", description: "We'll have your personalized demo ready shortly." });
+      toast({ title: "🎉 Demo request submitted!", description: "Scanning your website now..." });
+
+      // Trigger website scan in background
+      supabase.functions.invoke("scan-website", {
+        body: { leadId: lead.id, websiteUrl: formData.website },
+      }).then((res) => {
+        if (res.error) console.error("Scan error:", res.error);
+        else console.log("Scan completed:", res.data);
+      });
     } catch (err) {
       console.error("Error submitting lead:", err);
       toast({ title: "Something went wrong", description: "Please try again.", variant: "destructive" });
