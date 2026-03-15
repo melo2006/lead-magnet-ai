@@ -1,1 +1,4 @@
 project_id = "gvlmpywrrovbncdhklfq"
+
+[functions.scan-website]
+verify_jwt = false
