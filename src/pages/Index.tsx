@@ -9,6 +9,7 @@ import FeaturesSection from "@/components/landing/FeaturesSection";
 import TestimonialSection from "@/components/landing/TestimonialSection";
 import LeadCaptureSection from "@/components/landing/LeadCaptureSection";
 import Footer from "@/components/landing/Footer";
+import BeforeAfterSection from "@/components/landing/BeforeAfterSection";
 
 const Index = () => {
   const [selectedNiche, setSelectedNiche] = useState(niches[0]);
@@ -22,6 +23,7 @@ const Index = () => {
       <NicheSelector selected={selectedNiche} onSelect={setSelectedNiche} />
       <HeroSection niche={selectedNiche} onGetDemo={scrollToDemo} />
       <StatsSection niche={selectedNiche} />
+      <BeforeAfterSection />
       <CompetitorBanner />
       <HowItWorksSection />
       <FeaturesSection />
