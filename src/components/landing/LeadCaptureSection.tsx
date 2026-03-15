@@ -29,7 +29,7 @@ const LeadCaptureSection = () => {
     try {
       const { error } = await supabase.from("leads").insert({
         full_name: formData.name,
-        email: formData.business, // using business field for now
+        email: formData.business || "not-provided",
         website_url: formData.website,
         phone: formData.phone,
         niche: "realtors",
