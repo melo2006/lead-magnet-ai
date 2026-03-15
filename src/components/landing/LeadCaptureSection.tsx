@@ -75,6 +75,8 @@ const LeadCaptureSection = () => {
                 className="bg-secondary border-border"
               />
             </div>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground flex items-center gap-2">
                 <Globe className="w-4 h-4 text-muted-foreground" /> Website URL
