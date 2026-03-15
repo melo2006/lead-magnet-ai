@@ -1,12 +1,33 @@
-// Update this page (the content is just a fallback if you fail to update the page)
+import { useState } from "react";
+import { niches } from "@/data/nicheData";
+import NicheSelector from "@/components/landing/NicheSelector";
+import HeroSection from "@/components/landing/HeroSection";
+import StatsSection from "@/components/landing/StatsSection";
+import CompetitorBanner from "@/components/landing/CompetitorBanner";
+import HowItWorksSection from "@/components/landing/HowItWorksSection";
+import FeaturesSection from "@/components/landing/FeaturesSection";
+import TestimonialSection from "@/components/landing/TestimonialSection";
+import LeadCaptureSection from "@/components/landing/LeadCaptureSection";
+import Footer from "@/components/landing/Footer";
 
 const Index = () => {
+  const [selectedNiche, setSelectedNiche] = useState(niches[0]);
+
+  const scrollToDemo = () => {
+    document.getElementById("demo-form")?.scrollIntoView({ behavior: "smooth" });
+  };
+
   return (
-    <div className="flex min-h-screen items-center justify-center bg-background">
-      <div className="text-center">
-        <h1 className="mb-4 text-4xl font-bold">Welcome to Your Blank App</h1>
-        <p className="text-xl text-muted-foreground">Start building your amazing project here!</p>
-      </div>
+    <div className="min-h-screen bg-background">
+      <NicheSelector selected={selectedNiche} onSelect={setSelectedNiche} />
+      <HeroSection niche={selectedNiche} onGetDemo={scrollToDemo} />
+      <StatsSection niche={selectedNiche} />
+      <CompetitorBanner />
+      <HowItWorksSection />
+      <FeaturesSection />
+      <TestimonialSection niche={selectedNiche} />
+      <LeadCaptureSection />
+      <Footer />
     </div>
   );
 };
