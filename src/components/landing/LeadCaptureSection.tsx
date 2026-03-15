@@ -50,8 +50,9 @@ const LeadCaptureSection = () => {
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
             onSubmit={handleSubmit}
-            className="rounded-2xl border border-border bg-card p-6 sm:p-8 space-y-5 glow-border"
+            className="rounded-2xl border border-border bg-card p-6 sm:p-8 glow-border"
           >
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground flex items-center gap-2">
                 <User className="w-4 h-4 text-muted-foreground" /> Your Name
