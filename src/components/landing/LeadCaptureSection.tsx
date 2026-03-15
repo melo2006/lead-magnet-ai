@@ -90,7 +90,7 @@ const LeadCaptureSection = () => {
             </div>
             <div className="space-y-2">
               <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                <Phone className="w-4 h-4 text-muted-foreground" /> Cell Phone (for warm transfer demo)
+                <Phone className="w-4 h-4 text-muted-foreground" /> Cell Phone
               </label>
               <Input
                 type="tel"
@@ -99,6 +99,7 @@ const LeadCaptureSection = () => {
                 onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
                 className="bg-secondary border-border"
               />
+            </div>
             </div>
             <Button
               type="submit"

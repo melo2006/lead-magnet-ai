@@ -8,7 +8,7 @@ interface TestimonialSectionProps {
 
 const TestimonialSection = ({ niche }: TestimonialSectionProps) => {
   return (
-    <section className="py-20 relative">
+    <section className="py-12 sm:py-16 relative">
       <div className="container mx-auto px-4 sm:px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
