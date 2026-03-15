@@ -16,36 +16,60 @@ export type Database = {
     Tables: {
       leads: {
         Row: {
+          brand_colors: Json | null
+          brand_fonts: Json | null
+          brand_logo: string | null
           created_at: string
           email: string
           full_name: string
           id: string
           niche: string
           phone: string | null
+          scan_status: string
           status: string
           updated_at: string
+          website_content: string | null
+          website_description: string | null
+          website_screenshot: string | null
+          website_title: string | null
           website_url: string
         }
         Insert: {
+          brand_colors?: Json | null
+          brand_fonts?: Json | null
+          brand_logo?: string | null
           created_at?: string
           email: string
           full_name: string
           id?: string
           niche?: string
           phone?: string | null
+          scan_status?: string
           status?: string
           updated_at?: string
+          website_content?: string | null
+          website_description?: string | null
+          website_screenshot?: string | null
+          website_title?: string | null
           website_url: string
         }
         Update: {
+          brand_colors?: Json | null
+          brand_fonts?: Json | null
+          brand_logo?: string | null
           created_at?: string
           email?: string
           full_name?: string
           id?: string
           niche?: string
           phone?: string | null
+          scan_status?: string
           status?: string
           updated_at?: string
+          website_content?: string | null
+          website_description?: string | null
+          website_screenshot?: string | null
+          website_title?: string | null
           website_url?: string
         }
         Relationships: []
