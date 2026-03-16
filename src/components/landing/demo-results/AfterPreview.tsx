@@ -37,6 +37,11 @@ const AfterPreview = ({ leadData }: AfterPreviewProps) => {
     borderColor: tint(accentColor, 0.22),
   };
 
+  const glassPanelStyle: CSSProperties = {
+    backgroundColor: tint(textColor, 0.06),
+    borderColor: tint(textColor, 0.1),
+  };
+
   const primaryButtonStyle: CSSProperties = {
     background: `linear-gradient(135deg, ${tint(primaryColor, 0.26)}, ${tint(accentColor, 0.22)})`,
     borderColor: tint(primaryColor, 0.35),
@@ -64,16 +69,17 @@ const AfterPreview = ({ leadData }: AfterPreviewProps) => {
       <div className="overflow-hidden rounded-[1.5rem] border border-border p-3 sm:p-4" style={shellStyle}>
         <div className="rounded-[1.25rem] border px-4 py-3 backdrop-blur" style={softPrimaryStyle}>
           <div className="flex flex-wrap items-center justify-between gap-3">
-            <div className="flex items-center gap-3 min-w-0">
+            <div className="min-w-0 flex items-center gap-3">
               {logoSrc ? (
                 <img
                   src={logoSrc}
                   alt={`${siteName} logo`}
-                  className="h-10 w-10 rounded-xl border border-white/10 bg-white/10 object-contain p-1"
+                  className="h-10 w-10 rounded-xl border object-contain p-1"
+                  style={glassPanelStyle}
                   loading="lazy"
                 />
               ) : (
-                <div className="flex h-10 w-10 items-center justify-center rounded-xl border border-white/10 bg-white/10">
+                <div className="flex h-10 w-10 items-center justify-center rounded-xl border" style={glassPanelStyle}>
                   <Sparkles className="h-5 w-5" />
                 </div>
               )}
@@ -138,7 +144,7 @@ const AfterPreview = ({ leadData }: AfterPreviewProps) => {
               </div>
               <div className="grid gap-3 sm:grid-cols-2 xl:grid-cols-1">
                 {menuItems.slice(0, 4).map((item, index) => (
-                  <div key={item} className="rounded-2xl border border-white/10 bg-white/5 p-4">
+                  <div key={item} className="rounded-2xl border p-4" style={glassPanelStyle}>
                     <p className="text-xs font-semibold uppercase tracking-[0.16em]" style={{ color: tint(textColor, 0.64) }}>
                       Collection {index + 1}
                     </p>
@@ -182,7 +188,7 @@ const AfterPreview = ({ leadData }: AfterPreviewProps) => {
             </div>
             <div className="flex flex-wrap gap-2">
               {neighborhoodHighlights.map((item) => (
-                <span key={item} className="rounded-full border border-white/10 bg-white/5 px-3 py-1.5 text-xs font-medium">
+                <span key={item} className="rounded-full border px-3 py-1.5 text-xs font-medium" style={glassPanelStyle}>
                   {item}
                 </span>
               ))}
