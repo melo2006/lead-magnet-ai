@@ -1,0 +1,166 @@
+export type DemoBrandColors = Record<string, string | undefined>;
+
+export interface DemoLeadData {
+  fullName: string;
+  websiteUrl: string;
+  screenshot?: string;
+  title?: string;
+  description?: string;
+  websiteContent?: string;
+  colors?: DemoBrandColors;
+  logo?: string;
+}
+
+const GENERIC_NAV_LABELS = new Set([
+  "home",
+  "about",
+  "contact",
+  "blog",
+  "our team",
+  "team",
+  "all listings",
+]);
+
+const cleanText = (value: string) =>
+  value
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
+    .replace(/[*_`>#|]/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+export const getImageSrc = (value?: string) => {
+  if (!value || typeof value !== "string") return null;
+  if (value.startsWith("http") || value.startsWith("data:")) return value;
+  return `data:image/png;base64,${value}`;
+};
+
+export const normalizeWebsiteUrl = (websiteUrl: string) => {
+  try {
+    return websiteUrl.startsWith("http") ? websiteUrl : `https://${websiteUrl}`;
+  } catch {
+    return websiteUrl;
+  }
+};
+
+export const getSiteName = (websiteUrl: string, title?: string) => {
+  if (title?.trim()) return title.trim();
+
+  try {
+    return new URL(normalizeWebsiteUrl(websiteUrl)).hostname.replace(/^www\./, "");
+  } catch {
+    return websiteUrl;
+  }
+};
+
+export const hexToHslChannels = (value?: string) => {
+  if (!value || typeof value !== "string") return null;
+
+  if (value.startsWith("hsl(")) {
+    return value.replace(/^hsl\(/, "").replace(/\)$/, "").replaceAll(",", " ");
+  }
+
+  if (!value.startsWith("#")) return null;
+
+  const hex = value.replace("#", "");
+  const normalized =
+    hex.length === 3 ? hex.split("").map((char) => `${char}${char}`).join("") : hex;
+
+  if (normalized.length !== 6) return null;
+
+  const r = parseInt(normalized.slice(0, 2), 16) / 255;
+  const g = parseInt(normalized.slice(2, 4), 16) / 255;
+  const b = parseInt(normalized.slice(4, 6), 16) / 255;
+
+  const max = Math.max(r, g, b);
+  const min = Math.min(r, g, b);
+  const lightness = (max + min) / 2;
+  const delta = max - min;
+
+  if (delta === 0) {
+    return `0 0% ${Math.round(lightness * 100)}%`;
+  }
+
+  const saturation =
+    lightness > 0.5 ? delta / (2 - max - min) : delta / (max + min);
+
+  let hue = 0;
+  switch (max) {
+    case r:
+      hue = (g - b) / delta + (g < b ? 6 : 0);
+      break;
+    case g:
+      hue = (b - r) / delta + 2;
+      break;
+    default:
+      hue = (r - g) / delta + 4;
+  }
+
+  hue /= 6;
+
+  return `${Math.round(hue * 360)} ${Math.round(saturation * 100)}% ${Math.round(lightness * 100)}%`;
+};
+
+export const getThemeColor = (value: string | undefined, fallback: string) =>
+  hexToHslChannels(value) ?? fallback;
+
+export const extractNavigationLabels = (content?: string, limit = 4) => {
+  if (!content) return [];
+
+  const labels = Array.from(content.matchAll(/\[([^\]]+)\]\([^)]*\)/g))
+    .map((match) => cleanText(match[1]))
+    .filter((label) => label.length > 2)
+    .filter((label) => !GENERIC_NAV_LABELS.has(label.toLowerCase()));
+
+  return Array.from(new Set(labels)).slice(0, limit);
+};
+
+export const extractHeadings = (content?: string, limit = 3) => {
+  if (!content) return [];
+
+  const headings = Array.from(content.matchAll(/^#{1,3}\s+(.+)$/gm))
+    .map((match) => cleanText(match[1]))
+    .filter((heading) => heading.length > 3)
+    .filter((heading) => !/welcome|about|areas serviced/i.test(heading));
+
+  return Array.from(new Set(headings)).slice(0, limit);
+};
+
+export const extractBulletItems = (content?: string, limit = 6) => {
+  if (!content) return [];
+
+  const bullets = Array.from(content.matchAll(/^\s*-\s+(.+)$/gm))
+    .map((match) => cleanText(match[1]))
+    .filter((item) => item.length > 2);
+
+  return Array.from(new Set(bullets)).slice(0, limit);
+};
+
+export const buildModernHeadline = ({
+  siteName,
+  title,
+}: {
+  siteName: string;
+  title?: string;
+}) => {
+  const cleanedTitle = cleanText(title ?? "").split(/[-|]/)[0]?.trim();
+
+  if (cleanedTitle && cleanedTitle.length <= 42) {
+    return `${cleanedTitle}, redesigned for modern buyers`;
+  }
+
+  return `${siteName} redesigned for modern buyers`;
+};
+
+export const buildSupportingCopy = ({
+  description,
+  siteName,
+}: {
+  description?: string;
+  siteName: string;
+}) => {
+  const cleanedDescription = cleanText(description ?? "");
+
+  if (cleanedDescription) return cleanedDescription;
+
+  return `A cleaner, faster, more premium experience for ${siteName} with stronger trust signals, better listing discovery, and built-in AI lead capture.`;
+};
