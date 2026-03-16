@@ -228,6 +228,20 @@ const BeforeAfterSection = ({ niche }: BeforeAfterSectionProps) => {
             <div className="absolute -inset-2 rounded-3xl bg-primary/10 blur-xl" />
             <div className="relative">
               <img src={assets.newLaptop} alt={`Modern AI-powered ${niche.label} website on a laptop`} className="w-full h-auto rounded-xl" />
+              {/* AI Chat icon - bottom left */}
+              <div className="absolute bottom-6 sm:bottom-8 left-3 sm:left-5 flex flex-col items-center gap-0.5">
+                <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-full bg-[hsl(262,83%,58%)] shadow-lg shadow-[hsl(262,83%,58%)]/40 flex items-center justify-center">
+                  <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                </div>
+                <span className="text-[7px] sm:text-[9px] font-bold text-white drop-shadow-md">AI Chat</span>
+              </div>
+              {/* Voice AI icon - bottom right */}
+              <div className="absolute bottom-6 sm:bottom-8 right-3 sm:right-5 flex flex-col items-center gap-0.5">
+                <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-full bg-[hsl(142,71%,45%)] shadow-lg shadow-[hsl(142,71%,45%)]/40 flex items-center justify-center">
+                  <Mic className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+                </div>
+                <span className="text-[7px] sm:text-[9px] font-bold text-white drop-shadow-md">Voice AI</span>
+              </div>
               <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-primary text-[10px] sm:text-sm font-semibold whitespace-nowrap">
                 Desktop — With SignalAgent ✨
               </div>
