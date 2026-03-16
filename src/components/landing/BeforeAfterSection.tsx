@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowRight } from "lucide-react";
+import { ArrowRight, MessageSquare, Mic } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { NicheData } from "@/data/nicheData";
 
