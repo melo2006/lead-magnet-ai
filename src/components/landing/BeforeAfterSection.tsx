@@ -91,6 +91,39 @@ const nicheAssets: Record<string, NicheAssets> = {
   },
 };
 
+interface DeviceAiBadgesProps {
+  device: "phone" | "laptop";
+}
+
+const DeviceAiBadges = ({ device }: DeviceAiBadgesProps) => {
+  const screenBounds =
+    device === "phone"
+      ? "absolute inset-x-[24%] top-[7%] bottom-[8%]"
+      : "absolute inset-x-[13%] top-[6%] bottom-[33%]";
+
+  return (
+    <div className={`${screenBounds} pointer-events-none`}>
+      <div className="absolute bottom-[10%] left-[8%] flex flex-col items-center gap-0.5">
+        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[hsl(262,83%,58%)] shadow-lg shadow-[hsl(262,83%,58%)]/40 sm:h-10 sm:w-10">
+          <MessageSquare className="h-3.5 w-3.5 text-white sm:h-4.5 sm:w-4.5" />
+        </div>
+        <span className="text-[7px] font-bold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] sm:text-[9px]">
+          AI Chat
+        </span>
+      </div>
+
+      <div className="absolute bottom-[10%] right-[8%] flex flex-col items-center gap-0.5">
+        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[hsl(142,71%,45%)] shadow-lg shadow-[hsl(142,71%,45%)]/40 sm:h-10 sm:w-10">
+          <Mic className="h-3.5 w-3.5 text-white sm:h-4.5 sm:w-4.5" />
+        </div>
+        <span className="text-[7px] font-bold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] sm:text-[9px]">
+          Voice AI
+        </span>
+      </div>
+    </div>
+  );
+};
+
 interface BeforeAfterSectionProps {
   niche: NicheData;
 }
@@ -165,20 +198,7 @@ const BeforeAfterSection = ({ niche }: BeforeAfterSectionProps) => {
             <div className="absolute -inset-2 rounded-3xl bg-primary/10 blur-xl" />
             <div className="relative overflow-hidden rounded-2xl">
               <img src={assets.newPhone} alt={`Modern AI-powered ${niche.label} website`} className="w-full h-auto" />
-              {/* AI Chat icon - bottom left, inside device */}
-              <div className="absolute bottom-[12%] left-[8%] flex flex-col items-center gap-0.5">
-                <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-[hsl(262,83%,58%)] shadow-lg shadow-[hsl(262,83%,58%)]/40 flex items-center justify-center">
-                  <MessageSquare className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 text-white" />
-                </div>
-                <span className="text-[6px] sm:text-[8px] font-bold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]">AI Chat</span>
-              </div>
-              {/* Voice AI icon - bottom right, inside device */}
-              <div className="absolute bottom-[12%] right-[8%] flex flex-col items-center gap-0.5">
-                <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-[hsl(142,71%,45%)] shadow-lg shadow-[hsl(142,71%,45%)]/40 flex items-center justify-center">
-                  <Mic className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 text-white" />
-                </div>
-                <span className="text-[6px] sm:text-[8px] font-bold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]">Voice AI</span>
-              </div>
+              <DeviceAiBadges device="phone" />
             </div>
             <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-primary text-[10px] sm:text-sm font-semibold whitespace-nowrap">
               {assets.afterLabel}
@@ -228,20 +248,7 @@ const BeforeAfterSection = ({ niche }: BeforeAfterSectionProps) => {
             <div className="absolute -inset-2 rounded-3xl bg-primary/10 blur-xl" />
             <div className="relative overflow-hidden rounded-xl">
               <img src={assets.newLaptop} alt={`Modern AI-powered ${niche.label} website on a laptop`} className="w-full h-auto" />
-              {/* AI Chat icon - bottom left, inside device */}
-              <div className="absolute bottom-[14%] left-[10%] flex flex-col items-center gap-0.5">
-                <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-[hsl(262,83%,58%)] shadow-lg shadow-[hsl(262,83%,58%)]/40 flex items-center justify-center">
-                  <MessageSquare className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 text-white" />
-                </div>
-                <span className="text-[6px] sm:text-[8px] font-bold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]">AI Chat</span>
-              </div>
-              {/* Voice AI icon - bottom right, inside device */}
-              <div className="absolute bottom-[14%] right-[10%] flex flex-col items-center gap-0.5">
-                <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-[hsl(142,71%,45%)] shadow-lg shadow-[hsl(142,71%,45%)]/40 flex items-center justify-center">
-                  <Mic className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 text-white" />
-                </div>
-                <span className="text-[6px] sm:text-[8px] font-bold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]">Voice AI</span>
-              </div>
+              <DeviceAiBadges device="laptop" />
             </div>
             <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-primary text-[10px] sm:text-sm font-semibold whitespace-nowrap">
               Desktop — With SignalAgent ✨
