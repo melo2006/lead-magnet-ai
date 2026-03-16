@@ -56,7 +56,7 @@ export const hexToHslChannels = (value?: string) => {
   if (!value || typeof value !== "string") return null;
 
   if (value.startsWith("hsl(")) {
-    return value.replace(/^hsl\(/, "").replace(/\)$/, "").replaceAll(",", " ");
+    return value.replace(/^hsl\(/, "").replace(/\)$/, "").replace(/,/g, " ");
   }
 
   if (!value.startsWith("#")) return null;

@@ -64,15 +64,16 @@ const LeadCaptureSection = () => {
         .single();
 
       if (updatedLead) {
-        setScanData({
-          fullName: updatedLead.full_name,
-          websiteUrl: updatedLead.website_url,
-          screenshot: updatedLead.website_screenshot,
-          title: updatedLead.website_title,
-          description: updatedLead.website_description,
-          colors: updatedLead.brand_colors,
-          logo: updatedLead.brand_logo,
-        });
+          setScanData({
+            fullName: updatedLead.full_name,
+            websiteUrl: updatedLead.website_url,
+            screenshot: updatedLead.website_screenshot,
+            title: updatedLead.website_title,
+            description: updatedLead.website_description,
+            websiteContent: updatedLead.website_content,
+            colors: updatedLead.brand_colors,
+            logo: updatedLead.brand_logo,
+          });
       }
     } catch (err) {
       console.error("Error submitting lead:", err);
