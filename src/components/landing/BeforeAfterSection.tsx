@@ -163,25 +163,25 @@ const BeforeAfterSection = ({ niche }: BeforeAfterSectionProps) => {
             className="relative flex-1 max-w-[200px] sm:max-w-[290px]"
           >
             <div className="absolute -inset-2 rounded-3xl bg-primary/10 blur-xl" />
-            <div className="relative">
-              <img src={assets.newPhone} alt={`Modern AI-powered ${niche.label} website`} className="w-full h-auto rounded-2xl" />
-              {/* AI Chat icon - bottom left */}
-              <div className="absolute bottom-6 sm:bottom-8 left-2 sm:left-3 flex flex-col items-center gap-0.5">
-                <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-full bg-[hsl(262,83%,58%)] shadow-lg shadow-[hsl(262,83%,58%)]/40 flex items-center justify-center">
-                  <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+            <div className="relative overflow-hidden rounded-2xl">
+              <img src={assets.newPhone} alt={`Modern AI-powered ${niche.label} website`} className="w-full h-auto" />
+              {/* AI Chat icon - bottom left, inside device */}
+              <div className="absolute bottom-[12%] left-[8%] flex flex-col items-center gap-0.5">
+                <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-[hsl(262,83%,58%)] shadow-lg shadow-[hsl(262,83%,58%)]/40 flex items-center justify-center">
+                  <MessageSquare className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 text-white" />
                 </div>
-                <span className="text-[7px] sm:text-[9px] font-bold text-white drop-shadow-md">AI Chat</span>
+                <span className="text-[6px] sm:text-[8px] font-bold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]">AI Chat</span>
               </div>
-              {/* Voice AI icon - bottom right */}
-              <div className="absolute bottom-6 sm:bottom-8 right-2 sm:right-3 flex flex-col items-center gap-0.5">
-                <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-full bg-[hsl(142,71%,45%)] shadow-lg shadow-[hsl(142,71%,45%)]/40 flex items-center justify-center">
-                  <Mic className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+              {/* Voice AI icon - bottom right, inside device */}
+              <div className="absolute bottom-[12%] right-[8%] flex flex-col items-center gap-0.5">
+                <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-[hsl(142,71%,45%)] shadow-lg shadow-[hsl(142,71%,45%)]/40 flex items-center justify-center">
+                  <Mic className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 text-white" />
                 </div>
-                <span className="text-[7px] sm:text-[9px] font-bold text-white drop-shadow-md">Voice AI</span>
+                <span className="text-[6px] sm:text-[8px] font-bold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]">Voice AI</span>
               </div>
-              <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-primary text-[10px] sm:text-sm font-semibold whitespace-nowrap">
-                {assets.afterLabel}
-              </div>
+            </div>
+            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-primary text-[10px] sm:text-sm font-semibold whitespace-nowrap">
+              {assets.afterLabel}
             </div>
           </motion.div>
         </div>
@@ -226,25 +226,25 @@ const BeforeAfterSection = ({ niche }: BeforeAfterSectionProps) => {
             className="relative flex-1 max-w-[260px] sm:max-w-[380px]"
           >
             <div className="absolute -inset-2 rounded-3xl bg-primary/10 blur-xl" />
-            <div className="relative">
-              <img src={assets.newLaptop} alt={`Modern AI-powered ${niche.label} website on a laptop`} className="w-full h-auto rounded-xl" />
-              {/* AI Chat icon - bottom left */}
-              <div className="absolute bottom-6 sm:bottom-8 left-3 sm:left-5 flex flex-col items-center gap-0.5">
-                <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-full bg-[hsl(262,83%,58%)] shadow-lg shadow-[hsl(262,83%,58%)]/40 flex items-center justify-center">
-                  <MessageSquare className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+            <div className="relative overflow-hidden rounded-xl">
+              <img src={assets.newLaptop} alt={`Modern AI-powered ${niche.label} website on a laptop`} className="w-full h-auto" />
+              {/* AI Chat icon - bottom left, inside device */}
+              <div className="absolute bottom-[14%] left-[10%] flex flex-col items-center gap-0.5">
+                <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-[hsl(262,83%,58%)] shadow-lg shadow-[hsl(262,83%,58%)]/40 flex items-center justify-center">
+                  <MessageSquare className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 text-white" />
                 </div>
-                <span className="text-[7px] sm:text-[9px] font-bold text-white drop-shadow-md">AI Chat</span>
+                <span className="text-[6px] sm:text-[8px] font-bold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]">AI Chat</span>
               </div>
-              {/* Voice AI icon - bottom right */}
-              <div className="absolute bottom-6 sm:bottom-8 right-3 sm:right-5 flex flex-col items-center gap-0.5">
-                <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-full bg-[hsl(142,71%,45%)] shadow-lg shadow-[hsl(142,71%,45%)]/40 flex items-center justify-center">
-                  <Mic className="w-4 h-4 sm:w-5 sm:h-5 text-white" />
+              {/* Voice AI icon - bottom right, inside device */}
+              <div className="absolute bottom-[14%] right-[10%] flex flex-col items-center gap-0.5">
+                <div className="w-7 h-7 sm:w-10 sm:h-10 rounded-full bg-[hsl(142,71%,45%)] shadow-lg shadow-[hsl(142,71%,45%)]/40 flex items-center justify-center">
+                  <Mic className="w-3.5 h-3.5 sm:w-4.5 sm:h-4.5 text-white" />
                 </div>
-                <span className="text-[7px] sm:text-[9px] font-bold text-white drop-shadow-md">Voice AI</span>
+                <span className="text-[6px] sm:text-[8px] font-bold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)]">Voice AI</span>
               </div>
-              <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-primary text-[10px] sm:text-sm font-semibold whitespace-nowrap">
-                Desktop — With SignalAgent ✨
-              </div>
+            </div>
+            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-primary text-[10px] sm:text-sm font-semibold whitespace-nowrap">
+              Desktop — With SignalAgent ✨
             </div>
           </motion.div>
         </div>
