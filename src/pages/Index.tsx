@@ -23,7 +23,7 @@ const Index = () => {
       <NicheSelector selected={selectedNiche} onSelect={setSelectedNiche} />
       <HeroSection niche={selectedNiche} onGetDemo={scrollToDemo} />
       <StatsSection niche={selectedNiche} />
-      <BeforeAfterSection />
+      <BeforeAfterSection niche={selectedNiche} />
       <CompetitorBanner />
       <HowItWorksSection />
       <FeaturesSection />
