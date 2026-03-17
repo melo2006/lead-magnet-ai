@@ -151,7 +151,7 @@ const AfterPreview = ({ leadData }: AfterPreviewProps) => {
                     </p>
                     <p className="mt-2 text-lg font-semibold">{item}</p>
                     <p className="mt-1 text-sm" style={{ color: tint(textColor, 0.74) }}>
-                      Designed to surface key inventory faster and feel more premium.
+                      Designed to surface key content faster and feel more premium.
                     </p>
                   </div>
                 ))}
