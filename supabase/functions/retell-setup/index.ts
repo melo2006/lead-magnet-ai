@@ -98,6 +98,10 @@ This is a demo for the business owner to experience how their customers will int
                 prompt: 'The phone number of the business owner to transfer the call to.',
                 dynamic_variable: 'owner_phone',
               },
+              transfer_option: {
+                type: 'warm_transfer',
+                show_transferee_as_caller: false,
+              },
             },
           ],
         }),
