@@ -239,7 +239,7 @@ const LeadCaptureSection = () => {
                   <User className="w-4 h-4 text-muted-foreground" /> Your Name
                 </label>
                 <Input
-                  placeholder="Tony Miller"
+                  placeholder="Ron Melo"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="bg-secondary border-border"

@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 const RETELL_AGENT_ID = "agent_ea256ca8441689051b9aa2b183";
+const DEFAULT_OWNER_NAME = "Ron Melo";
 
 interface VoiceAgentWidgetProps {
   businessName: string;
@@ -35,6 +36,7 @@ const VoiceAgentWidget = ({
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const callIdRef = useRef<string | null>(null);
   const summaryQueuedRef = useRef(false);
+  const resolvedOwnerName = ownerName || DEFAULT_OWNER_NAME;
 
   const clearTimer = useCallback(() => {
     if (timerRef.current) {
@@ -55,7 +57,7 @@ const VoiceAgentWidget = ({
           action: "email-call-summary",
           callId,
           businessName,
-          ownerName,
+          ownerName: resolvedOwnerName,
           ownerEmail,
           ownerPhone: ownerPhone || "",
           websiteUrl,
@@ -63,16 +65,34 @@ const VoiceAgentWidget = ({
       });
 
       if (error || !data?.success) {
-        throw new Error(error?.message || data?.error || "We couldn't email the call recap yet.");
+        throw new Error(error?.message || data?.error || "We couldn't finish the call recap yet.");
       }
 
-      toast({
-        title: data.appointmentRequested
-          ? "Appointment request captured"
+      const headline = data.appointmentRequested
+        ? "Appointment confirmed"
+        : data.transferRequested
+          ? "Live handoff requested"
           : data.callbackRequested
             ? "Callback request captured"
-            : "Call summary sent",
-        description: `A transcript and AI summary were emailed to ${ownerEmail}.`,
+            : "Call summary sent";
+
+      const detailLine = data.appointmentScheduledFor
+        ? `Confirmed for ${data.appointmentScheduledFor}.`
+        : data.transferRequested
+          ? `Aspen marked this for an immediate handoff to ${resolvedOwnerName}.`
+          : data.callbackRequested
+            ? `${resolvedOwnerName} now has the callback request details.`
+            : null;
+
+      const deliveryLine = data.emailWarning
+        ? data.emailWarning
+        : Array.isArray(data.emailDeliveredTo) && data.emailDeliveredTo.length > 0
+          ? `Recap sent to ${data.emailDeliveredTo.join(", ")}.`
+          : `Recap prepared for ${ownerEmail}.`;
+
+      toast({
+        title: headline,
+        description: [detailLine, deliveryLine].filter(Boolean).join(" "),
       });
     } catch (err) {
       console.error("Failed to email call summary:", err);
@@ -83,7 +103,7 @@ const VoiceAgentWidget = ({
         variant: "destructive",
       });
     }
-  }, [businessName, ownerEmail, ownerName, ownerPhone, toast, websiteUrl]);
+  }, [businessName, ownerEmail, ownerPhone, resolvedOwnerName, toast, websiteUrl]);
 
   useEffect(() => {
     return () => {
@@ -109,7 +129,7 @@ const VoiceAgentWidget = ({
           agentId: RETELL_AGENT_ID,
           businessName,
           businessNiche,
-          ownerName,
+          ownerName: resolvedOwnerName,
           ownerEmail: ownerEmail || "",
           ownerPhone: ownerPhone || "",
           websiteUrl,
@@ -174,7 +194,7 @@ const VoiceAgentWidget = ({
       setCallStatus("idle");
       clearTimer();
     }
-  }, [businessInfo, businessName, businessNiche, clearTimer, ownerEmail, ownerName, ownerPhone, toast, websiteUrl]);
+  }, [businessInfo, businessName, businessNiche, clearTimer, ownerEmail, ownerPhone, resolvedOwnerName, toast, websiteUrl]);
 
   const endCall = useCallback(() => {
     setCallStatus("ending");
@@ -205,8 +225,8 @@ const VoiceAgentWidget = ({
 
   const helperCopy =
     callStatus === "active"
-      ? `Ask about ${businessName || "the business"}, request a callback, or ask to book an appointment.`
-      : `Browser demos can't live-transfer to a phone, so Aspen sends ${ownerName || "the owner"} a callback or appointment request after the call.`;
+      ? `Ask about ${businessName || "the business"}, request a live handoff to ${resolvedOwnerName}, or confirm a 15-minute appointment.`
+      : `Aspen can answer questions, offer a live handoff to ${resolvedOwnerName}, and confirm a 15-minute appointment.`;
 
   return (
     <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
