@@ -454,11 +454,49 @@ Deno.serve(async (req) => {
 
       console.log('Call summary email sent:', emailResult?.id || 'no-id');
 
+      // If appointment was requested, create a Google Calendar event
+      let calendarEventId: string | null = null;
+      if (aiSummary.appointmentRequested) {
+        try {
+          // Schedule for next business day at 10 AM ET by default
+          const now = new Date();
+          const nextDay = new Date(now);
+          nextDay.setDate(nextDay.getDate() + 1);
+          // Skip weekends
+          while (nextDay.getDay() === 0 || nextDay.getDay() === 6) {
+            nextDay.setDate(nextDay.getDate() + 1);
+          }
+          const startTime = new Date(nextDay);
+          startTime.setHours(10, 0, 0, 0);
+          const endTime = new Date(startTime);
+          endTime.setMinutes(endTime.getMinutes() + 30);
+
+          const formatISO = (d: Date) => d.toISOString().replace('Z', '');
+
+          const calEvent = await createCalendarEvent({
+            calendarId: ownerEmail, // books on the owner's calendar (they must share with the service account)
+            summary: `Aspen Demo Follow-up: ${ownerName} — ${businessName}`,
+            description: `Auto-booked by Aspen AI after a demo call.\n\nSummary: ${aiSummary.summary}\nNext step: ${aiSummary.nextStep}\n\nPhone: ${ownerPhone || 'Not provided'}\nEmail: ${ownerEmail}\nWebsite: ${websiteUrl}`,
+            startTime: formatISO(startTime),
+            endTime: formatISO(endTime),
+            attendeeEmail: ownerEmail,
+            timeZone: 'America/New_York',
+          });
+
+          calendarEventId = calEvent?.id || null;
+          console.log('Calendar event created:', calendarEventId);
+        } catch (calErr) {
+          console.error('Failed to create calendar event (non-fatal):', calErr);
+          // Non-fatal — the email was already sent
+        }
+      }
+
       return jsonResponse({
         success: true,
         callbackRequested: aiSummary.callbackRequested,
         appointmentRequested: aiSummary.appointmentRequested,
         emailId: emailResult?.id ?? null,
+        calendarEventId,
       });
     }
 
