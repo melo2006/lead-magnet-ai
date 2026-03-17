@@ -147,10 +147,10 @@ export const buildModernHeadline = ({
   const cleanedTitle = cleanText(title ?? "").split(/[-|]/)[0]?.trim();
 
   if (cleanedTitle && cleanedTitle.length <= 42) {
-    return `${cleanedTitle}, redesigned for modern buyers`;
+    return `${cleanedTitle}, reimagined`;
   }
 
-  return `${siteName} redesigned for modern buyers`;
+  return `${siteName}, reimagined for the modern web`;
 };
 
 export const buildSupportingCopy = ({
