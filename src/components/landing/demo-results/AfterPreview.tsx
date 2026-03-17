@@ -87,7 +87,7 @@ const AfterPreview = ({ leadData }: AfterPreviewProps) => {
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold">{siteName}</p>
                 <p className="text-xs" style={{ color: tint(textColor, 0.72) }}>
-                  Premium real estate experience
+                  Modern AI-powered experience
                 </p>
               </div>
             </div>
