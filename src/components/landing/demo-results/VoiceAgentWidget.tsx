@@ -4,7 +4,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-const RETELL_AGENT_ID = "agent_daa7ecec6d8eda6735108b78ce";
+const RETELL_AGENT_ID = "agent_ea256ca8441689051b9aa2b183";
 
 interface VoiceAgentWidgetProps {
   businessName: string;
