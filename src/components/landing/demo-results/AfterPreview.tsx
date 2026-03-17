@@ -49,9 +49,9 @@ const AfterPreview = ({ leadData }: AfterPreviewProps) => {
     boxShadow: `0 14px 30px -20px ${tint(primaryColor, 0.9)}`,
   };
 
-  const serviceHighlights = headings.length > 0 ? headings : ["Featured listings", "Local expertise", "Faster lead response"];
-  const neighborhoodHighlights = locations.length > 0 ? locations : ["Waterfront homes", "Condos", "Luxury listings", "Relocations"];
-  const menuItems = navigationLabels.length > 0 ? navigationLabels : ["Listings", "Neighborhoods", "Buy", "Sell"];
+  const serviceHighlights = headings.length > 0 ? headings : ["Core Services", "Customer Experience", "Easy Booking"];
+  const neighborhoodHighlights = locations.length > 0 ? locations : ["Featured Service", "Popular Choice", "Premium Package", "New Clients"];
+  const menuItems = navigationLabels.length > 0 ? navigationLabels : ["Services", "About", "Book Now", "Contact"];
 
   return (
     <div className="rounded-[1.75rem] border border-primary/20 bg-card p-4 sm:p-5">
