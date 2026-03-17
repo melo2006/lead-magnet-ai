@@ -116,7 +116,32 @@ This is a demo for the business owner to experience how their customers will int
 
     console.log('Created LLM:', llm.llm_id);
 
-    // Step 4: Create the Aspen voice agent
+    // Step 4: List voices and find a cheerful American female voice
+    console.log('Listing available voices...');
+    const voices = await retellFetch('/list-voices', apiKey);
+    
+    // Find a good American female voice - prefer young/cheerful
+    let selectedVoice = voices.find((v: any) => 
+      v.accent?.toLowerCase()?.includes('american') && 
+      v.gender?.toLowerCase() === 'female' &&
+      v.age?.toLowerCase() === 'young'
+    );
+    
+    if (!selectedVoice) {
+      selectedVoice = voices.find((v: any) => 
+        v.accent?.toLowerCase()?.includes('american') && 
+        v.gender?.toLowerCase() === 'female'
+      );
+    }
+    
+    if (!selectedVoice && voices.length > 0) {
+      selectedVoice = voices[0];
+    }
+    
+    const voiceId = selectedVoice?.voice_id || voices[0]?.voice_id;
+    console.log('Selected voice:', voiceId, selectedVoice?.voice_name);
+
+    // Step 5: Create the Aspen voice agent
     console.log('Creating Aspen voice agent...');
     const aspenAgent = await retellFetch('/create-agent', apiKey, {
       method: 'POST',
@@ -126,8 +151,7 @@ This is a demo for the business owner to experience how their customers will int
           type: 'retell-llm',
           llm_id: llm.llm_id,
         },
-        voice_id: '11labs-Aria',
-        voice_model: 'eleven_turbo_v2',
+        voice_id: voiceId,
         language: 'en-US',
         opt_out_sensitive_data_storage: false,
         responsiveness: 0.6,
