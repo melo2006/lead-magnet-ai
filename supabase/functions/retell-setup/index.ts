@@ -94,9 +94,8 @@ This is a demo for the business owner to experience how their customers will int
               name: 'transfer_to_owner',
               description: 'Transfer the call to the business owner when the caller requests to speak with a human or wants to be connected to the owner.',
               transfer_destination: {
-                type: 'dynamic',
-                prompt: 'The phone number of the business owner to transfer the call to.',
-                dynamic_variable: 'owner_phone',
+                type: 'inferred',
+                prompt: 'Transfer to the business owner phone number which is {{owner_phone}}.',
               },
               transfer_option: {
                 type: 'warm_transfer',
