@@ -91,9 +91,18 @@ This is a demo for the business owner to experience how their customers will int
             },
             {
               type: 'transfer_call',
-              name: 'transfer_call',
+              name: 'transfer_to_owner',
               description: 'Transfer the call to the business owner when the caller requests to speak with a human or wants to be connected to the owner.',
-              number: '{{owner_phone}}',
+              transfer_destination: {
+                type: 'dynamic',
+                description: 'The phone number of the business owner to transfer to.',
+                dynamic_variable: 'owner_phone',
+              },
+              transfer_option: {
+                type: 'warm_transfer',
+                show_transferee_as_caller: false,
+                warm_transfer_prompt: 'Hi {{owner_name}}, I have a potential customer on the line who has been chatting with me about your business {{business_name}}. They would like to speak with you directly. Let me connect you now.',
+              },
             },
           ],
         }),
