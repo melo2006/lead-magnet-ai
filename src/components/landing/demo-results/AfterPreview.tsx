@@ -170,7 +170,7 @@ const AfterPreview = ({ leadData }: AfterPreviewProps) => {
               </div>
               <VoiceAgentWidget
                 businessName={siteName}
-                businessNiche={leadData.colors?.primary ? "medspa" : "general"}
+                businessNiche={leadData.niche || "general"}
                 ownerName={leadData.fullName}
                 ownerPhone={leadData.phone}
                 websiteUrl={leadData.websiteUrl}

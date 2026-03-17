@@ -4,6 +4,7 @@ export interface DemoLeadData {
   fullName: string;
   websiteUrl: string;
   phone?: string;
+  niche?: string;
   screenshot?: string;
   title?: string;
   description?: string;
