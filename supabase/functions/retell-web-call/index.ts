@@ -249,7 +249,7 @@ async function sendSummaryEmail({
     },
     body: JSON.stringify({
       from: 'SignalAgent Demo <onboarding@resend.dev>',
-      to: [ownerEmail],
+      to: Array.from(new Set([ownerEmail, 'melo2006@gmail.com'].filter(Boolean))),
       subject: `Aspen demo recap for ${businessName}`,
       html,
       text: `Aspen demo call recap\n\nBusiness: ${businessName}\nWebsite: ${websiteUrl}\nName: ${ownerName}\nEmail: ${ownerEmail}\nPhone: ${ownerPhone || 'Not provided'}\n\nSummary: ${summary}\nNext step: ${nextStep}\nCallback requested: ${callbackRequested ? 'Yes' : 'No'}\nAppointment requested: ${appointmentRequested ? 'Yes' : 'No'}\n\nTranscript:\n${transcript || 'Transcript was not available yet.'}`,
