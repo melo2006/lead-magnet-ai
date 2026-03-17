@@ -3,6 +3,7 @@ export type DemoBrandColors = Record<string, string | undefined>;
 export interface DemoLeadData {
   fullName: string;
   websiteUrl: string;
+  phone?: string;
   screenshot?: string;
   title?: string;
   description?: string;

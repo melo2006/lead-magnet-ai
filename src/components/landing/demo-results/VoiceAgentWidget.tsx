@@ -10,6 +10,7 @@ interface VoiceAgentWidgetProps {
   businessName: string;
   businessNiche: string;
   ownerName: string;
+  ownerPhone?: string;
   websiteUrl: string;
   businessInfo: string;
 }
