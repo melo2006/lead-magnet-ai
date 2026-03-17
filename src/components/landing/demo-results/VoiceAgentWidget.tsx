@@ -133,7 +133,7 @@ const VoiceAgentWidget = ({
           ownerEmail: ownerEmail || "",
           ownerPhone: ownerPhone || "",
           websiteUrl,
-          businessInfo: businessInfo?.substring(0, 3000) || "",
+          businessInfo: businessInfo?.substring(0, 6000) || "",
         },
       });
 

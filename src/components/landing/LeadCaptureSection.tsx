@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import type { NicheData } from "@/data/nicheData";
 import ScanningAnimation from "./ScanningAnimation";
 import DemoResults from "./DemoResults";
 import type { DemoLeadData } from "./demo-results/demoResultsUtils";
@@ -29,7 +30,11 @@ const leadFormSchema = z.object({
   secondaryUrl: z.string().trim().max(255, "URL is too long").optional().or(z.literal("")),
 });
 
-const LeadCaptureSection = () => {
+interface LeadCaptureSectionProps {
+  selectedNiche: NicheData;
+}
+
+const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
   const { toast } = useToast();
   const [viewState, setViewState] = useState<ViewState>("form");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -101,12 +106,11 @@ const LeadCaptureSection = () => {
         website_url: parsed.data.website,
         phone: parsed.data.phone || null,
         secondary_url: parsed.data.secondaryUrl || null,
-        niche: "realtors",
+        niche: selectedNiche.id,
       }).select("id").single();
 
       if (error) throw error;
 
-      // Upload files in parallel with scan start
       let filePaths: string[] = [];
       if (files.length > 0) {
         filePaths = await uploadFiles(lead.id);
@@ -123,6 +127,7 @@ const LeadCaptureSection = () => {
           websiteUrl: parsed.data.website,
           secondaryUrl: parsed.data.secondaryUrl || null,
           uploadedFiles: filePaths,
+          initialNiche: selectedNiche.id,
         },
       });
 
@@ -151,7 +156,7 @@ const LeadCaptureSection = () => {
           email: updatedLead.email,
           websiteUrl: updatedLead.website_url,
           phone: updatedLead.phone || parsed.data.phone,
-          niche: updatedLead.niche || "realtors",
+          niche: updatedLead.niche || selectedNiche.id,
           screenshot: updatedLead.website_screenshot,
           title: updatedLead.website_title,
           description: updatedLead.website_description,
@@ -288,7 +293,6 @@ const LeadCaptureSection = () => {
               </div>
             </div>
 
-            {/* Secondary URL */}
             <div className="mb-4 space-y-2">
               <label className="text-sm font-medium text-foreground flex items-center gap-2">
                 <Link2 className="w-4 h-4 text-muted-foreground" /> Additional URL <span className="text-xs text-muted-foreground">(optional — vendor site, partner page, etc.)</span>
@@ -301,7 +305,6 @@ const LeadCaptureSection = () => {
               />
             </div>
 
-            {/* File Upload */}
             <div className="mb-6 space-y-2">
               <label className="text-sm font-medium text-foreground flex items-center gap-2">
                 <Upload className="w-4 h-4 text-muted-foreground" /> Upload Documents <span className="text-xs text-muted-foreground">(optional — PDF, TXT, Word — up to 3 files)</span>
