@@ -116,7 +116,7 @@ const AfterPreview = ({ leadData }: AfterPreviewProps) => {
 
             <div className="mt-5 flex flex-wrap gap-3">
               <div className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold" style={primaryButtonStyle}>
-                Explore listings
+                Explore services
                 <ArrowRight className="h-4 w-4" />
               </div>
               <div className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold" style={softAccentStyle}>
