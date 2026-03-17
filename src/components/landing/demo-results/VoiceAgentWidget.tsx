@@ -114,7 +114,7 @@ const VoiceAgentWidget = ({
       });
       setCallStatus("idle");
     }
-  }, [businessName, businessNiche, ownerName, websiteUrl, businessInfo, toast]);
+  }, [businessName, businessNiche, ownerName, ownerPhone, websiteUrl, businessInfo, toast]);
 
   const endCall = useCallback(() => {
     setCallStatus("ending");
