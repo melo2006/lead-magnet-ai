@@ -1,6 +1,7 @@
 import { ArrowRight, Bot, MapPin, MessageSquare, Mic, Sparkles } from "lucide-react";
 import type { CSSProperties } from "react";
 import { DemoLeadData, buildModernHeadline, buildSupportingCopy, extractBulletItems, extractHeadings, extractNavigationLabels, getImageSrc, getSiteName, getThemeColor } from "./demoResultsUtils";
+import VoiceAgentWidget from "./VoiceAgentWidget";
 
 interface AfterPreviewProps {
   leadData: DemoLeadData;
