@@ -52,6 +52,7 @@ const VoiceAgentWidget = ({
           businessName,
           businessNiche,
           ownerName,
+          ownerPhone: ownerPhone || "",
           websiteUrl,
           businessInfo: businessInfo?.substring(0, 3000) || "",
         },
