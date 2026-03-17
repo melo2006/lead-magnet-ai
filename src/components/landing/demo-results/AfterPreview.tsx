@@ -130,7 +130,7 @@ const AfterPreview = ({ leadData }: AfterPreviewProps) => {
                 <div key={item} className="rounded-2xl border p-3" style={softAccentStyle}>
                   <p className="text-sm font-semibold">{item}</p>
                   <p className="mt-1 text-xs" style={{ color: tint(textColor, 0.7) }}>
-                    Cleaner layout with better hierarchy and faster buyer paths.
+                    Cleaner layout with better hierarchy and faster customer engagement.
                   </p>
                 </div>
               ))}
