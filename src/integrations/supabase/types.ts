@@ -26,8 +26,10 @@ export type Database = {
           niche: string
           phone: string | null
           scan_status: string
+          secondary_url: string | null
           status: string
           updated_at: string
+          uploaded_files: Json | null
           website_content: string | null
           website_description: string | null
           website_screenshot: string | null
@@ -45,8 +47,10 @@ export type Database = {
           niche?: string
           phone?: string | null
           scan_status?: string
+          secondary_url?: string | null
           status?: string
           updated_at?: string
+          uploaded_files?: Json | null
           website_content?: string | null
           website_description?: string | null
           website_screenshot?: string | null
@@ -64,8 +68,10 @@ export type Database = {
           niche?: string
           phone?: string | null
           scan_status?: string
+          secondary_url?: string | null
           status?: string
           updated_at?: string
+          uploaded_files?: Json | null
           website_content?: string | null
           website_description?: string | null
           website_screenshot?: string | null
