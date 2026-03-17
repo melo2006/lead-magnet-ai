@@ -26,7 +26,7 @@ Deno.serve(async (req) => {
       });
     }
 
-    console.log('Creating web call for agent:', agentId, 'niche:', businessNiche);
+    console.log('Creating web call for agent:', agentId, 'niche:', businessNiche, 'transferPhone:', ownerPhone);
 
     // Create a web call with dynamic variables for the niche
     const response = await fetch(`${RETELL_BASE}/v2/create-web-call`, {
@@ -43,6 +43,7 @@ Deno.serve(async (req) => {
           owner_name: ownerName || 'the business owner',
           website_url: websiteUrl || '',
           business_info: (businessInfo || 'A professional business offering quality services.').substring(0, 3000),
+          owner_phone: ownerPhone || '',
         },
         metadata: {
           niche: businessNiche,

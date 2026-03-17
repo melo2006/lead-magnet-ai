@@ -67,6 +67,8 @@ const LeadCaptureSection = () => {
           setScanData({
             fullName: updatedLead.full_name,
             websiteUrl: updatedLead.website_url,
+            phone: updatedLead.phone || formData.phone,
+            niche: updatedLead.niche || "realtors",
             screenshot: updatedLead.website_screenshot,
             title: updatedLead.website_title,
             description: updatedLead.website_description,

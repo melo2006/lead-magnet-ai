@@ -49,9 +49,9 @@ const AfterPreview = ({ leadData }: AfterPreviewProps) => {
     boxShadow: `0 14px 30px -20px ${tint(primaryColor, 0.9)}`,
   };
 
-  const serviceHighlights = headings.length > 0 ? headings : ["Featured listings", "Local expertise", "Faster lead response"];
-  const neighborhoodHighlights = locations.length > 0 ? locations : ["Waterfront homes", "Condos", "Luxury listings", "Relocations"];
-  const menuItems = navigationLabels.length > 0 ? navigationLabels : ["Listings", "Neighborhoods", "Buy", "Sell"];
+  const serviceHighlights = headings.length > 0 ? headings : ["Core Services", "Customer Experience", "Easy Booking"];
+  const neighborhoodHighlights = locations.length > 0 ? locations : ["Featured Service", "Popular Choice", "Premium Package", "New Clients"];
+  const menuItems = navigationLabels.length > 0 ? navigationLabels : ["Services", "About", "Book Now", "Contact"];
 
   return (
     <div className="rounded-[1.75rem] border border-primary/20 bg-card p-4 sm:p-5">
@@ -87,7 +87,7 @@ const AfterPreview = ({ leadData }: AfterPreviewProps) => {
               <div className="min-w-0">
                 <p className="truncate text-sm font-semibold">{siteName}</p>
                 <p className="text-xs" style={{ color: tint(textColor, 0.72) }}>
-                  Premium real estate experience
+                  Modern AI-powered experience
                 </p>
               </div>
             </div>
@@ -116,7 +116,7 @@ const AfterPreview = ({ leadData }: AfterPreviewProps) => {
 
             <div className="mt-5 flex flex-wrap gap-3">
               <div className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold" style={primaryButtonStyle}>
-                Explore listings
+                Explore services
                 <ArrowRight className="h-4 w-4" />
               </div>
               <div className="inline-flex items-center gap-2 rounded-full border px-4 py-2 text-sm font-semibold" style={softAccentStyle}>
@@ -130,7 +130,7 @@ const AfterPreview = ({ leadData }: AfterPreviewProps) => {
                 <div key={item} className="rounded-2xl border p-3" style={softAccentStyle}>
                   <p className="text-sm font-semibold">{item}</p>
                   <p className="mt-1 text-xs" style={{ color: tint(textColor, 0.7) }}>
-                    Cleaner layout with better hierarchy and faster buyer paths.
+                    Cleaner layout with better hierarchy and faster customer engagement.
                   </p>
                 </div>
               ))}
@@ -151,7 +151,7 @@ const AfterPreview = ({ leadData }: AfterPreviewProps) => {
                     </p>
                     <p className="mt-2 text-lg font-semibold">{item}</p>
                     <p className="mt-1 text-sm" style={{ color: tint(textColor, 0.74) }}>
-                      Designed to surface key inventory faster and feel more premium.
+                      Designed to surface key content faster and feel more premium.
                     </p>
                   </div>
                 ))}
@@ -170,8 +170,9 @@ const AfterPreview = ({ leadData }: AfterPreviewProps) => {
               </div>
               <VoiceAgentWidget
                 businessName={siteName}
-                businessNiche="realtors"
+                businessNiche={leadData.niche || "general"}
                 ownerName={leadData.fullName}
+                ownerPhone={leadData.phone}
                 websiteUrl={leadData.websiteUrl}
                 businessInfo={leadData.websiteContent || leadData.description || ""}
               />
@@ -197,8 +198,8 @@ const AfterPreview = ({ leadData }: AfterPreviewProps) => {
           <div className="rounded-[1.5rem] border p-4" style={softPrimaryStyle}>
             <p className="text-sm font-semibold">Why this feels modern</p>
             <ul className="mt-3 space-y-2 text-sm" style={{ color: tint(textColor, 0.76) }}>
-              <li>• Stronger hero section instead of a dated brochure layout</li>
-              <li>• Clear listing paths and better mobile-first structure</li>
+              <li>• Stronger hero section with clear value proposition</li>
+              <li>• Better mobile-first structure and navigation</li>
               <li>• Brand colors integrated into the whole page system</li>
             </ul>
           </div>

@@ -4,12 +4,13 @@ import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
-const RETELL_AGENT_ID = "agent_daa7ecec6d8eda6735108b78ce";
+const RETELL_AGENT_ID = "agent_ea256ca8441689051b9aa2b183";
 
 interface VoiceAgentWidgetProps {
   businessName: string;
   businessNiche: string;
   ownerName: string;
+  ownerPhone?: string;
   websiteUrl: string;
   businessInfo: string;
 }
@@ -20,6 +21,7 @@ const VoiceAgentWidget = ({
   businessName,
   businessNiche,
   ownerName,
+  ownerPhone,
   websiteUrl,
   businessInfo,
 }: VoiceAgentWidgetProps) => {
@@ -50,6 +52,7 @@ const VoiceAgentWidget = ({
           businessName,
           businessNiche,
           ownerName,
+          ownerPhone: ownerPhone || "",
           websiteUrl,
           businessInfo: businessInfo?.substring(0, 3000) || "",
         },
@@ -111,7 +114,7 @@ const VoiceAgentWidget = ({
       });
       setCallStatus("idle");
     }
-  }, [businessName, businessNiche, ownerName, websiteUrl, businessInfo, toast]);
+  }, [businessName, businessNiche, ownerName, ownerPhone, websiteUrl, businessInfo, toast]);
 
   const endCall = useCallback(() => {
     setCallStatus("ending");

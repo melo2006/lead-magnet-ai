@@ -34,43 +34,20 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Step 1: List all agents to find "Taylor" and get phone number
-    console.log('Listing existing agents...');
-    const agents = await retellFetch('/list-agents', apiKey);
-    console.log(`Found ${agents.length} agents`);
+    const body = await req.json().catch(() => ({}));
+    const action = body.action || 'setup';
 
-    const taylorAgent = agents.find((a: any) =>
-      a.agent_name?.toLowerCase().includes('taylor')
-    );
+    // Action: update-llm - patches the existing LLM with transfer_call tool
+    if (action === 'update-llm') {
+      const llmId = body.llm_id;
+      if (!llmId) throw new Error('llm_id is required');
 
-    // Step 2: List phone numbers to find Taylor's number
-    console.log('Listing phone numbers...');
-    const phoneNumbers = await retellFetch('/list-phone-numbers', apiKey);
-    console.log(`Found ${phoneNumbers.length} phone numbers`);
+      console.log('Updating LLM with transfer_call tool:', llmId);
 
-    let demoPhoneNumber = null;
-    if (taylorAgent) {
-      console.log(`Found Taylor agent: ${taylorAgent.agent_id}`);
-      // Find phone number bound to Taylor
-      demoPhoneNumber = phoneNumbers.find((p: any) =>
-        p.inbound_agent_id === taylorAgent.agent_id
-      );
-    }
-
-    if (!demoPhoneNumber && phoneNumbers.length > 0) {
-      // Use first available phone number
-      demoPhoneNumber = phoneNumbers[0];
-    }
-
-    console.log('Demo phone number:', demoPhoneNumber?.phone_number || 'none found');
-
-    // Step 3: Create Retell LLM with dynamic niche prompt
-    console.log('Creating Retell LLM for Aspen...');
-    const llm = await retellFetch('/create-retell-llm', apiKey, {
-      method: 'POST',
-      body: JSON.stringify({
-        model: 'gpt-4o',
-        general_prompt: `You are Aspen, a friendly, professional AI assistant for a business. You work for the company whose website the prospect just visited.
+      const updatedLlm = await retellFetch(`/update-retell-llm/${llmId}`, apiKey, {
+        method: 'PATCH',
+        body: JSON.stringify({
+          general_prompt: `You are Aspen, a friendly, professional AI assistant for a business. You work for the company whose website the prospect just visited.
 
 IMPORTANT DYNAMIC VARIABLES:
 - The business name is: {{business_name}}
@@ -78,6 +55,7 @@ IMPORTANT DYNAMIC VARIABLES:
 - The business owner's name is: {{owner_name}}
 - The business website is: {{website_url}}
 - Key information about the business: {{business_info}}
+- The owner's phone number for transfer: {{owner_phone}}
 
 YOUR ROLE:
 You are the AI receptionist and assistant for this business. You answer calls cheerfully, help customers with questions, schedule appointments, and provide information about the business services.
@@ -98,91 +76,55 @@ Based on {{business_niche}}, adapt your language:
 - "marine": Talk about boat maintenance, engine service, haul-outs, winterization
 
 WARM TRANSFER:
-When the caller seems satisfied or wants to speak with a human:
-1. Say: "I'd love to connect you directly with {{owner_name}}. Let me transfer you now."
-2. Perform a warm transfer to the owner's phone.
+When the caller wants to speak with a human, or asks to be transferred, or seems ready to take the next step:
+1. Say: "Absolutely! Let me connect you with {{owner_name}} right now. One moment please."
+2. IMMEDIATELY use the transfer_call tool to transfer the call to {{owner_phone}}.
+3. Do NOT ask for permission again after the caller already requested transfer. Just do it.
 
 DEMO CONTEXT:
 This is a demo for the business owner to experience how their customers will interact with the AI. Be impressive. Show the value immediately. Answer questions about their business using the scraped content.`,
-        general_tools: [
-          {
-            type: 'end_call',
-            name: 'end_call',
-            description: 'End the call when the conversation is complete or the caller says goodbye.',
-          },
-        ],
-      }),
-    });
+          general_tools: [
+            {
+              type: 'end_call',
+              name: 'end_call',
+              description: 'End the call when the conversation is complete or the caller says goodbye.',
+            },
+            {
+              type: 'transfer_call',
+              name: 'transfer_to_owner',
+              description: 'Transfer the call to the business owner when the caller requests to speak with a human or wants to be connected to the owner.',
+              transfer_destination: {
+                type: 'inferred',
+                prompt: 'Transfer to the business owner phone number which is {{owner_phone}}.',
+              },
+              transfer_option: {
+                type: 'warm_transfer',
+                show_transferee_as_caller: false,
+              },
+            },
+          ],
+        }),
+      });
 
-    console.log('Created LLM:', llm.llm_id);
+      console.log('LLM updated successfully');
 
-    // Step 4: List voices and find a cheerful American female voice
-    console.log('Listing available voices...');
-    const voices = await retellFetch('/list-voices', apiKey);
-    
-    // Find a good American female voice - prefer young/cheerful
-    let selectedVoice = voices.find((v: any) => 
-      v.accent?.toLowerCase()?.includes('american') && 
-      v.gender?.toLowerCase() === 'female' &&
-      v.age?.toLowerCase() === 'young'
-    );
-    
-    if (!selectedVoice) {
-      selectedVoice = voices.find((v: any) => 
-        v.accent?.toLowerCase()?.includes('american') && 
-        v.gender?.toLowerCase() === 'female'
-      );
+      return new Response(JSON.stringify({ success: true, llm: updatedLlm }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
     }
-    
-    if (!selectedVoice && voices.length > 0) {
-      selectedVoice = voices[0];
-    }
-    
-    const voiceId = selectedVoice?.voice_id || voices[0]?.voice_id;
-    console.log('Selected voice:', voiceId, selectedVoice?.voice_name);
 
-    // Step 5: Create the Aspen voice agent
-    console.log('Creating Aspen voice agent...');
-    const aspenAgent = await retellFetch('/create-agent', apiKey, {
-      method: 'POST',
-      body: JSON.stringify({
-        agent_name: 'Aspen - SignalAgent Demo',
-        response_engine: {
-          type: 'retell-llm',
-          llm_id: llm.llm_id,
-        },
-        voice_id: voiceId,
-        language: 'en-US',
-        opt_out_sensitive_data_storage: false,
-        responsiveness: 0.6,
-        interruption_sensitivity: 0.7,
-        enable_backchannel: true,
-        backchannel_frequency: 0.5,
-        reminder_trigger_ms: 10000,
-        reminder_max_count: 2,
-        ambient_sound: 'coffee-shop',
-        ambient_sound_volume: 0.3,
-      }),
-    });
-
-    console.log('Created Aspen agent:', aspenAgent.agent_id);
+    // Default action: full setup (kept for reference)
+    console.log('Listing existing agents...');
+    const agents = await retellFetch('/list-agents', apiKey);
+    console.log(`Found ${agents.length} agents`);
 
     return new Response(JSON.stringify({
       success: true,
-      agent: {
-        agent_id: aspenAgent.agent_id,
-        agent_name: aspenAgent.agent_name,
-        llm_id: llm.llm_id,
-      },
-      phoneNumber: demoPhoneNumber ? {
-        phone_number: demoPhoneNumber.phone_number,
-        phone_number_pretty: demoPhoneNumber.phone_number_pretty,
-        nickname: demoPhoneNumber.nickname,
-      } : null,
-      taylor: taylorAgent ? {
-        agent_id: taylorAgent.agent_id,
-        agent_name: taylorAgent.agent_name,
-      } : null,
+      agents: agents.map((a: any) => ({
+        agent_id: a.agent_id,
+        agent_name: a.agent_name,
+        llm_id: a.response_engine?.llm_id,
+      })),
     }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });

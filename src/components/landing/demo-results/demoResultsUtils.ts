@@ -3,6 +3,8 @@ export type DemoBrandColors = Record<string, string | undefined>;
 export interface DemoLeadData {
   fullName: string;
   websiteUrl: string;
+  phone?: string;
+  niche?: string;
   screenshot?: string;
   title?: string;
   description?: string;
@@ -145,10 +147,10 @@ export const buildModernHeadline = ({
   const cleanedTitle = cleanText(title ?? "").split(/[-|]/)[0]?.trim();
 
   if (cleanedTitle && cleanedTitle.length <= 42) {
-    return `${cleanedTitle}, redesigned for modern buyers`;
+    return `${cleanedTitle}, reimagined`;
   }
 
-  return `${siteName} redesigned for modern buyers`;
+  return `${siteName}, reimagined for the modern web`;
 };
 
 export const buildSupportingCopy = ({
@@ -162,5 +164,5 @@ export const buildSupportingCopy = ({
 
   if (cleanedDescription) return cleanedDescription;
 
-  return `A cleaner, faster, more premium experience for ${siteName} with stronger trust signals, better listing discovery, and built-in AI lead capture.`;
+  return `A cleaner, faster, more premium experience for ${siteName} with stronger trust signals, better service discovery, and built-in AI lead capture.`;
 };
