@@ -1,4 +1,4 @@
-import { ArrowRight, Bot, MapPin, MessageSquare, Mic, Sparkles } from "lucide-react";
+import { ArrowRight, Bot, MapPin, MessageSquare, Sparkles } from "lucide-react";
 import type { CSSProperties } from "react";
 import { DemoLeadData, buildModernHeadline, buildSupportingCopy, extractBulletItems, extractHeadings, extractNavigationLabels, getImageSrc, getSiteName, getThemeColor } from "./demoResultsUtils";
 import VoiceAgentWidget from "./VoiceAgentWidget";
@@ -62,7 +62,7 @@ const AfterPreview = ({ leadData }: AfterPreviewProps) => {
         <div>
           <h3 className="text-2xl font-bold text-foreground">A real redesign direction for this brand</h3>
           <p className="mt-1 text-sm text-muted-foreground">
-            Built from the scraped logo, colors, title, and page content — not just two floating icons.
+            Built from the scraped logo, colors, title, and page content — plus a live AI callback flow instead of a fake transfer.
           </p>
         </div>
       </div>
@@ -162,16 +162,17 @@ const AfterPreview = ({ leadData }: AfterPreviewProps) => {
               <div className="rounded-[1.5rem] border p-4" style={softPrimaryStyle}>
                 <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
                   <MessageSquare className="h-4 w-4" />
-                  AI chat capture
+                  AI lead handoff
                 </div>
                 <p className="text-sm" style={{ color: tint(textColor, 0.76) }}>
-                  Answers buyer questions, qualifies leads, and books follow-up instantly.
+                  Answers questions, captures callback or appointment intent, and emails the full recap to the owner.
                 </p>
               </div>
               <VoiceAgentWidget
                 businessName={siteName}
                 businessNiche={leadData.niche || "general"}
                 ownerName={leadData.fullName}
+                ownerEmail={leadData.email}
                 ownerPhone={leadData.phone}
                 websiteUrl={leadData.websiteUrl}
                 businessInfo={leadData.websiteContent || leadData.description || ""}

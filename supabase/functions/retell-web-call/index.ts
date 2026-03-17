@@ -4,6 +4,265 @@ const corsHeaders = {
 };
 
 const RETELL_BASE = 'https://api.retellai.com';
+const LOVABLE_AI_BASE = 'https://ai.gateway.lovable.dev/v1/chat/completions';
+const RESEND_BASE = 'https://api.resend.com/emails';
+
+const jsonResponse = (body: Record<string, unknown>, status = 200) =>
+  new Response(JSON.stringify(body), {
+    status,
+    headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+  });
+
+const delay = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
+const normalizePhoneNumber = (value?: string) => {
+  if (!value) return '';
+
+  const digits = value.replace(/\D/g, '');
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith('1')) return `+${digits}`;
+  if (value.trim().startsWith('+')) return value.trim();
+  return value.trim();
+};
+
+const escapeHtml = (value: string) =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+async function retellFetch(path: string, apiKey: string, options: RequestInit = {}) {
+  const res = await fetch(`${RETELL_BASE}${path}`, {
+    ...options,
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+      ...options.headers,
+    },
+  });
+
+  const data = await res.json().catch(() => null);
+  if (!res.ok) {
+    throw new Error(`Retell API error [${res.status}]: ${JSON.stringify(data)}`);
+  }
+
+  return data;
+}
+
+const getTranscriptText = (callData: any) => {
+  if (!callData) return '';
+
+  if (typeof callData.transcript === 'string') {
+    return callData.transcript.trim();
+  }
+
+  const transcriptCandidates = [
+    callData.transcript,
+    callData.transcript_object,
+    callData.transcript_with_tool_calls,
+    callData.transcript_with_tool_calls_without_pii,
+  ].filter(Array.isArray);
+
+  for (const transcript of transcriptCandidates) {
+    const flattened = transcript
+      .map((entry: any) => {
+        const speaker = entry?.role || entry?.speaker || entry?.name || 'Speaker';
+        const text = entry?.content || entry?.text || entry?.transcript || entry?.message || entry?.result;
+        if (!text || typeof text !== 'string') return '';
+        return `${speaker}: ${text}`;
+      })
+      .filter(Boolean)
+      .join('\n');
+
+    if (flattened.trim()) return flattened.trim();
+  }
+
+  return '';
+};
+
+const parseJsonContent = (value: string) => {
+  const cleaned = value
+    .trim()
+    .replace(/^```json\s*/i, '')
+    .replace(/^```\s*/i, '')
+    .replace(/```$/i, '')
+    .trim();
+
+  return JSON.parse(cleaned);
+};
+
+async function summarizeTranscript({
+  transcript,
+  businessName,
+  ownerName,
+  ownerPhone,
+  ownerEmail,
+  lovableApiKey,
+  existingSummary,
+}: {
+  transcript: string;
+  businessName: string;
+  ownerName: string;
+  ownerPhone: string;
+  ownerEmail: string;
+  lovableApiKey?: string;
+  existingSummary?: string;
+}) {
+  const fallbackFlags = {
+    callbackRequested: /callback|call me|call back|speak with|human|owner|transfer/i.test(transcript),
+    appointmentRequested: /appointment|book|schedule|consultation|meeting/i.test(transcript),
+  };
+
+  if (!lovableApiKey) {
+    return {
+      summary: existingSummary || 'Call completed. AI summary is unavailable because LOVABLE_API_KEY is not configured.',
+      nextStep: fallbackFlags.appointmentRequested
+        ? 'Follow up with an appointment option.'
+        : fallbackFlags.callbackRequested
+          ? 'Call the lead back directly.'
+          : 'Review the transcript and follow up if needed.',
+      ...fallbackFlags,
+      keyPoints: [],
+    };
+  }
+
+  const response = await fetch(LOVABLE_AI_BASE, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${lovableApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      model: 'google/gemini-2.5-flash',
+      temperature: 0.2,
+      response_format: { type: 'json_object' },
+      messages: [
+        {
+          role: 'system',
+          content:
+            'You summarize demo call transcripts for business owners. Return strict JSON with these keys only: summary (string), nextStep (string), callbackRequested (boolean), appointmentRequested (boolean), keyPoints (array of up to 4 short strings). Be concise and practical.',
+        },
+        {
+          role: 'user',
+          content: `Business: ${businessName}\nOwner: ${ownerName}\nEmail on file: ${ownerEmail}\nPhone on file: ${ownerPhone || 'not provided'}\n\nTranscript:\n${transcript}`,
+        },
+      ],
+    }),
+  });
+
+  const completion = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(`AI summary failed [${response.status}]: ${JSON.stringify(completion)}`);
+  }
+
+  const content = completion?.choices?.[0]?.message?.content;
+  if (typeof content !== 'string') {
+    throw new Error('AI summary response was empty');
+  }
+
+  const parsed = parseJsonContent(content);
+
+  return {
+    summary: parsed.summary || existingSummary || 'Call completed.',
+    nextStep:
+      parsed.nextStep ||
+      (fallbackFlags.appointmentRequested
+        ? 'Follow up with an appointment option.'
+        : fallbackFlags.callbackRequested
+          ? 'Call the lead back directly.'
+          : 'Review the transcript and follow up if needed.'),
+    callbackRequested: Boolean(parsed.callbackRequested ?? fallbackFlags.callbackRequested),
+    appointmentRequested: Boolean(parsed.appointmentRequested ?? fallbackFlags.appointmentRequested),
+    keyPoints: Array.isArray(parsed.keyPoints) ? parsed.keyPoints.slice(0, 4) : [],
+  };
+}
+
+async function sendSummaryEmail({
+  resendApiKey,
+  ownerName,
+  ownerEmail,
+  ownerPhone,
+  businessName,
+  websiteUrl,
+  transcript,
+  summary,
+  nextStep,
+  callbackRequested,
+  appointmentRequested,
+  keyPoints,
+  callDurationSeconds,
+}: {
+  resendApiKey: string;
+  ownerName: string;
+  ownerEmail: string;
+  ownerPhone: string;
+  businessName: string;
+  websiteUrl: string;
+  transcript: string;
+  summary: string;
+  nextStep: string;
+  callbackRequested: boolean;
+  appointmentRequested: boolean;
+  keyPoints: string[];
+  callDurationSeconds?: number;
+}) {
+  const pointsHtml = keyPoints.length
+    ? `<ul>${keyPoints.map((point) => `<li>${escapeHtml(point)}</li>`).join('')}</ul>`
+    : '<p>No additional highlights were extracted.</p>';
+
+  const html = `
+    <div style="font-family: Arial, sans-serif; max-width: 760px; margin: 0 auto; color: #0f172a;">
+      <h1 style="font-size: 24px; margin-bottom: 8px;">Aspen demo call recap</h1>
+      <p style="margin-top: 0; color: #475569;">${escapeHtml(businessName)} · ${escapeHtml(websiteUrl)}</p>
+
+      <div style="border: 1px solid #cbd5e1; border-radius: 12px; padding: 16px; margin: 20px 0; background: #f8fafc;">
+        <h2 style="font-size: 18px; margin: 0 0 8px;">Lead details</h2>
+        <p style="margin: 4px 0;"><strong>Name:</strong> ${escapeHtml(ownerName)}</p>
+        <p style="margin: 4px 0;"><strong>Email:</strong> ${escapeHtml(ownerEmail)}</p>
+        <p style="margin: 4px 0;"><strong>Phone:</strong> ${escapeHtml(ownerPhone || 'Not provided')}</p>
+        <p style="margin: 4px 0;"><strong>Call length:</strong> ${callDurationSeconds ? `${callDurationSeconds}s` : 'Unavailable'}</p>
+      </div>
+
+      <div style="border: 1px solid #cbd5e1; border-radius: 12px; padding: 16px; margin: 20px 0;">
+        <h2 style="font-size: 18px; margin: 0 0 8px;">AI summary</h2>
+        <p style="margin: 0 0 12px;">${escapeHtml(summary)}</p>
+        <p style="margin: 0 0 12px;"><strong>Next step:</strong> ${escapeHtml(nextStep)}</p>
+        <p style="margin: 0 0 8px;"><strong>Callback requested:</strong> ${callbackRequested ? 'Yes' : 'No'}</p>
+        <p style="margin: 0 0 8px;"><strong>Appointment requested:</strong> ${appointmentRequested ? 'Yes' : 'No'}</p>
+        <div><strong>Key points:</strong>${pointsHtml}</div>
+      </div>
+
+      <div style="border: 1px solid #cbd5e1; border-radius: 12px; padding: 16px; margin: 20px 0;">
+        <h2 style="font-size: 18px; margin: 0 0 8px;">Transcript</h2>
+        <pre style="white-space: pre-wrap; word-break: break-word; font-family: Arial, sans-serif; line-height: 1.6; margin: 0;">${escapeHtml(transcript || 'Transcript was not available yet.')}</pre>
+      </div>
+    </div>
+  `;
+
+  const res = await fetch(RESEND_BASE, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${resendApiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      from: 'SignalAgent Demo <onboarding@resend.dev>',
+      to: [ownerEmail],
+      subject: `Aspen demo recap for ${businessName}`,
+      html,
+      text: `Aspen demo call recap\n\nBusiness: ${businessName}\nWebsite: ${websiteUrl}\nName: ${ownerName}\nEmail: ${ownerEmail}\nPhone: ${ownerPhone || 'Not provided'}\n\nSummary: ${summary}\nNext step: ${nextStep}\nCallback requested: ${callbackRequested ? 'Yes' : 'No'}\nAppointment requested: ${appointmentRequested ? 'Yes' : 'No'}\n\nTranscript:\n${transcript || 'Transcript was not available yet.'}`,
+    }),
+  });
+
+  const data = await res.json().catch(() => null);
+  if (!res.ok) {
+    throw new Error(`Resend email failed [${res.status}]: ${JSON.stringify(data)}`);
+  }
+
+  return data;
+}
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -11,28 +270,104 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const apiKey = Deno.env.get('RETELL_API_KEY');
-    if (!apiKey) {
-      return new Response(JSON.stringify({ error: 'RETELL_API_KEY not configured' }), {
-        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+    const retellApiKey = Deno.env.get('RETELL_API_KEY');
+    if (!retellApiKey) {
+      return jsonResponse({ error: 'RETELL_API_KEY not configured' }, 500);
+    }
+
+    const body = await req.json().catch(() => ({}));
+    const action = body.action || 'create-web-call';
+
+    if (action === 'email-call-summary') {
+      const resendApiKey = Deno.env.get('RESEND_API_KEY');
+      if (!resendApiKey) {
+        return jsonResponse({ error: 'RESEND_API_KEY not configured' }, 500);
+      }
+
+      const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+      const callId = typeof body.callId === 'string' ? body.callId : '';
+      const ownerEmail = typeof body.ownerEmail === 'string' ? body.ownerEmail.trim() : '';
+      const ownerName = typeof body.ownerName === 'string' ? body.ownerName.trim() : 'Business Owner';
+      const ownerPhone = typeof body.ownerPhone === 'string' ? body.ownerPhone.trim() : '';
+      const businessName = typeof body.businessName === 'string' ? body.businessName.trim() : 'Demo Business';
+      const websiteUrl = typeof body.websiteUrl === 'string' ? body.websiteUrl.trim() : '';
+
+      if (!callId || !ownerEmail) {
+        return jsonResponse({ error: 'callId and ownerEmail are required' }, 400);
+      }
+
+      console.log('Preparing call summary email for call:', callId);
+
+      let callData: any = null;
+      let transcript = '';
+
+      for (let attempt = 0; attempt < 6; attempt += 1) {
+        callData = await retellFetch(`/v2/get-call/${callId}`, retellApiKey, { method: 'GET' });
+        transcript = getTranscriptText(callData);
+        if (transcript) break;
+        await delay(2500);
+      }
+
+      const aiSummary = await summarizeTranscript({
+        transcript,
+        businessName,
+        ownerName,
+        ownerPhone,
+        ownerEmail,
+        lovableApiKey: lovableApiKey || undefined,
+        existingSummary: callData?.call_analysis?.call_summary || callData?.call_analysis?.summary,
+      });
+
+      const emailResult = await sendSummaryEmail({
+        resendApiKey,
+        ownerName,
+        ownerEmail,
+        ownerPhone,
+        businessName,
+        websiteUrl,
+        transcript,
+        summary: aiSummary.summary,
+        nextStep: aiSummary.nextStep,
+        callbackRequested: aiSummary.callbackRequested,
+        appointmentRequested: aiSummary.appointmentRequested,
+        keyPoints: aiSummary.keyPoints,
+        callDurationSeconds:
+          typeof callData?.duration_ms === 'number' ? Math.round(callData.duration_ms / 1000) : undefined,
+      });
+
+      console.log('Call summary email sent:', emailResult?.id || 'no-id');
+
+      return jsonResponse({
+        success: true,
+        callbackRequested: aiSummary.callbackRequested,
+        appointmentRequested: aiSummary.appointmentRequested,
+        emailId: emailResult?.id ?? null,
       });
     }
 
-    const { agentId, businessName, businessNiche, ownerName, websiteUrl, businessInfo, ownerPhone } = await req.json();
+    const {
+      agentId,
+      businessName,
+      businessNiche,
+      ownerName,
+      ownerEmail,
+      websiteUrl,
+      businessInfo,
+      ownerPhone,
+    } = body;
 
     if (!agentId) {
-      return new Response(JSON.stringify({ error: 'agentId is required' }), {
-        status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return jsonResponse({ error: 'agentId is required' }, 400);
     }
 
-    console.log('Creating web call for agent:', agentId, 'niche:', businessNiche, 'transferPhone:', ownerPhone);
+    const normalizedOwnerPhone = normalizePhoneNumber(ownerPhone);
 
-    // Create a web call with dynamic variables for the niche
+    console.log('Creating web call for agent:', agentId, 'niche:', businessNiche, 'callbackPhone:', normalizedOwnerPhone);
+
     const response = await fetch(`${RETELL_BASE}/v2/create-web-call`, {
       method: 'POST',
       headers: {
-        'Authorization': `Bearer ${apiKey}`,
+        'Authorization': `Bearer ${retellApiKey}`,
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
@@ -41,41 +376,40 @@ Deno.serve(async (req) => {
           business_name: businessName || 'Demo Business',
           business_niche: businessNiche || 'general',
           owner_name: ownerName || 'the business owner',
+          owner_email: ownerEmail || '',
           website_url: websiteUrl || '',
           business_info: (businessInfo || 'A professional business offering quality services.').substring(0, 3000),
-          owner_phone: ownerPhone || '',
+          owner_phone: normalizedOwnerPhone || '',
         },
         metadata: {
-          niche: businessNiche,
-          owner_name: ownerName,
+          niche: businessNiche || 'general',
+          owner_name: ownerName || '',
+          owner_email: ownerEmail || '',
+          owner_phone: normalizedOwnerPhone || '',
+          business_name: businessName || 'Demo Business',
+          website_url: websiteUrl || '',
         },
       }),
     });
 
-    const data = await response.json();
+    const data = await response.json().catch(() => null);
 
     if (!response.ok) {
       console.error('Retell web call error:', data);
-      return new Response(JSON.stringify({ error: data.error_message || 'Failed to create web call' }), {
-        status: response.status, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      });
+      return jsonResponse({ error: data?.error_message || 'Failed to create web call' }, response.status);
     }
 
     console.log('Web call created:', data.call_id);
 
-    return new Response(JSON.stringify({
+    return jsonResponse({
       success: true,
       access_token: data.access_token,
       call_id: data.call_id,
-    }), {
-      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   } catch (error) {
     console.error('Error in retell-web-call:', error);
-    return new Response(JSON.stringify({
+    return jsonResponse({
       error: error instanceof Error ? error.message : 'Unknown error',
-    }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-    });
+    }, 500);
   }
 });

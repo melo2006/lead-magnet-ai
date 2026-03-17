@@ -11,10 +11,10 @@ async function retellFetch(path: string, apiKey: string, options: RequestInit = 
     headers: {
       'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
-      ...(options.headers || {}),
+      ...options.headers,
     },
   });
-  const data = await res.json();
+  const data = await res.json().catch(() => null);
   if (!res.ok) {
     throw new Error(`Retell API error [${res.status}]: ${JSON.stringify(data)}`);
   }
@@ -30,19 +30,19 @@ Deno.serve(async (req) => {
     const apiKey = Deno.env.get('RETELL_API_KEY');
     if (!apiKey) {
       return new Response(JSON.stringify({ error: 'RETELL_API_KEY not configured' }), {
-        status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        status: 500,
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     const body = await req.json().catch(() => ({}));
     const action = body.action || 'setup';
 
-    // Action: update-llm - patches the existing LLM with transfer_call tool
     if (action === 'update-llm') {
       const llmId = body.llm_id;
       if (!llmId) throw new Error('llm_id is required');
 
-      console.log('Updating LLM with transfer_call tool:', llmId);
+      console.log('Updating LLM for web demo escalation flow:', llmId);
 
       const updatedLlm = await retellFetch(`/update-retell-llm/${llmId}`, apiKey, {
         method: 'PATCH',
@@ -53,12 +53,13 @@ IMPORTANT DYNAMIC VARIABLES:
 - The business name is: {{business_name}}
 - The business niche/industry is: {{business_niche}}
 - The business owner's name is: {{owner_name}}
+- The business owner's email is: {{owner_email}}
 - The business website is: {{website_url}}
 - Key information about the business: {{business_info}}
-- The owner's phone number for transfer: {{owner_phone}}
+- The owner's callback phone number is: {{owner_phone}}
 
 YOUR ROLE:
-You are the AI receptionist and assistant for this business. You answer calls cheerfully, help customers with questions, schedule appointments, and provide information about the business services.
+You are the AI receptionist and assistant for this business. You answer questions cheerfully, explain services clearly, and help interested callers request a callback or appointment.
 
 PERSONALITY:
 - Warm, inviting, and professional
@@ -75,11 +76,13 @@ Based on {{business_niche}}, adapt your language:
 - "veterinary": Talk about pet appointments, vaccinations, emergencies, wellness visits
 - "marine": Talk about boat maintenance, engine service, haul-outs, winterization
 
-WARM TRANSFER:
-When the caller wants to speak with a human, or asks to be transferred, or seems ready to take the next step:
-1. Say: "Absolutely! Let me connect you with {{owner_name}} right now. One moment please."
-2. IMMEDIATELY use the transfer_call tool to transfer the call to {{owner_phone}}.
-3. Do NOT ask for permission again after the caller already requested transfer. Just do it.
+WEB DEMO ESCALATION RULE:
+This demo happens in a browser voice session, so you cannot directly transfer the caller to a real phone line.
+- Never say you are transferring the call live.
+- Never say the line is ringing or that the owner is on the other line.
+- If the caller wants a human, a callback, or an appointment, explain that you will send {{owner_name}} an immediate callback or scheduling request right after the demo call.
+- If the caller mentions timing preferences, capture the preferred day or time window conversationally.
+- If the caller wants a callback, reassure them that {{owner_name}} will receive the request with their contact info and a transcript of the conversation.
 
 DEMO CONTEXT:
 This is a demo for the business owner to experience how their customers will interact with the AI. Be impressive. Show the value immediately. Answer questions about their business using the scraped content.`,
@@ -88,19 +91,6 @@ This is a demo for the business owner to experience how their customers will int
               type: 'end_call',
               name: 'end_call',
               description: 'End the call when the conversation is complete or the caller says goodbye.',
-            },
-            {
-              type: 'transfer_call',
-              name: 'transfer_to_owner',
-              description: 'Transfer the call to the business owner when the caller requests to speak with a human or wants to be connected to the owner.',
-              transfer_destination: {
-                type: 'inferred',
-                prompt: 'Transfer to the business owner phone number which is {{owner_phone}}.',
-              },
-              transfer_option: {
-                type: 'warm_transfer',
-                show_transferee_as_caller: false,
-              },
             },
           ],
         }),
@@ -113,7 +103,6 @@ This is a demo for the business owner to experience how their customers will int
       });
     }
 
-    // Default action: full setup (kept for reference)
     console.log('Listing existing agents...');
     const agents = await retellFetch('/list-agents', apiKey);
     console.log(`Found ${agents.length} agents`);
@@ -133,7 +122,8 @@ This is a demo for the business owner to experience how their customers will int
     return new Response(JSON.stringify({
       error: error instanceof Error ? error.message : 'Unknown error',
     }), {
-      status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      status: 500,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' },
     });
   }
 });
