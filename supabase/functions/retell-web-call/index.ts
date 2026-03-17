@@ -469,7 +469,7 @@ Deno.serve(async (req) => {
           const startTime = new Date(nextDay);
           startTime.setHours(10, 0, 0, 0);
           const endTime = new Date(startTime);
-          endTime.setMinutes(endTime.getMinutes() + 30);
+          endTime.setMinutes(endTime.getMinutes() + 15);
 
           const formatISO = (d: Date) => d.toISOString().replace('Z', '');
 
