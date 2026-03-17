@@ -75,6 +75,13 @@ const LeadCaptureSection = () => {
         .single();
 
       if (updatedLead) {
+        const normalizedColors =
+          updatedLead.brand_colors &&
+          typeof updatedLead.brand_colors === "object" &&
+          !Array.isArray(updatedLead.brand_colors)
+            ? (updatedLead.brand_colors as Record<string, string | undefined>)
+            : undefined;
+
         setScanData({
           fullName: updatedLead.full_name,
           email: updatedLead.email,
@@ -85,7 +92,7 @@ const LeadCaptureSection = () => {
           title: updatedLead.website_title,
           description: updatedLead.website_description,
           websiteContent: updatedLead.website_content,
-          colors: updatedLead.brand_colors,
+          colors: normalizedColors,
           logo: updatedLead.brand_logo,
         });
       }

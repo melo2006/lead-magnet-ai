@@ -39,7 +39,7 @@ async function retellFetch(path: string, apiKey: string, options: RequestInit = 
     headers: {
       'Authorization': `Bearer ${apiKey}`,
       'Content-Type': 'application/json',
-      ...(options.headers || {}),
+      ...options.headers,
     },
   });
 
