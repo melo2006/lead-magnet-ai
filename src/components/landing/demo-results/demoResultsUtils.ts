@@ -164,5 +164,5 @@ export const buildSupportingCopy = ({
 
   if (cleanedDescription) return cleanedDescription;
 
-  return `A cleaner, faster, more premium experience for ${siteName} with stronger trust signals, better listing discovery, and built-in AI lead capture.`;
+  return `A cleaner, faster, more premium experience for ${siteName} with stronger trust signals, better service discovery, and built-in AI lead capture.`;
 };
