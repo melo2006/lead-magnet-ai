@@ -106,9 +106,9 @@ DEMO CONTEXT:
 This is a demo for the business owner to experience how their customers will interact with the AI. Be impressive. Show the value immediately. Answer questions about their business using the scraped content.`,
         general_tools: [
           {
-            type: 'transfer_call',
-            name: 'transfer_to_owner',
-            description: 'Transfer the call to the business owner when the caller wants to speak with a human or the conversation is wrapping up.',
+            type: 'end_call',
+            name: 'end_call',
+            description: 'End the call when the conversation is complete or the caller says goodbye.',
           },
         ],
       }),
