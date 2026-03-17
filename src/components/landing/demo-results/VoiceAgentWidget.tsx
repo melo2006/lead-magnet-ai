@@ -21,6 +21,7 @@ const VoiceAgentWidget = ({
   businessName,
   businessNiche,
   ownerName,
+  ownerPhone,
   websiteUrl,
   businessInfo,
 }: VoiceAgentWidgetProps) => {
