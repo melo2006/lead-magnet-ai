@@ -1,6 +1,7 @@
 import { ArrowRight, Bot, MapPin, MessageSquare, Mic, Sparkles } from "lucide-react";
 import type { CSSProperties } from "react";
 import { DemoLeadData, buildModernHeadline, buildSupportingCopy, extractBulletItems, extractHeadings, extractNavigationLabels, getImageSrc, getSiteName, getThemeColor } from "./demoResultsUtils";
+import VoiceAgentWidget from "./VoiceAgentWidget";
 
 interface AfterPreviewProps {
   leadData: DemoLeadData;
@@ -167,15 +168,13 @@ const AfterPreview = ({ leadData }: AfterPreviewProps) => {
                   Answers buyer questions, qualifies leads, and books follow-up instantly.
                 </p>
               </div>
-              <div className="rounded-[1.5rem] border p-4" style={softPrimaryStyle}>
-                <div className="mb-2 flex items-center gap-2 text-sm font-semibold">
-                  <Mic className="h-4 w-4" />
-                  Voice assistant
-                </div>
-                <p className="text-sm" style={{ color: tint(textColor, 0.76) }}>
-                  Adds call capture and after-hours coverage without cluttering the UI.
-                </p>
-              </div>
+              <VoiceAgentWidget
+                businessName={siteName}
+                businessNiche="realtors"
+                ownerName={leadData.fullName}
+                websiteUrl={leadData.websiteUrl}
+                businessInfo={leadData.websiteContent || leadData.description || ""}
+              />
             </div>
           </div>
         </div>
