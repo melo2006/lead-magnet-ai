@@ -1,6 +1,6 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
 import { motion } from "framer-motion";
-import { Rocket, ArrowRight, Globe, Phone, User, Loader2, Mail } from "lucide-react";
+import { Rocket, ArrowRight, Globe, Phone, User, Loader2, Mail, Upload, X, FileText, Link2 } from "lucide-react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,11 +12,21 @@ import type { DemoLeadData } from "./demo-results/demoResultsUtils";
 
 type ViewState = "form" | "scanning" | "results";
 
+const MAX_FILES = 3;
+const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
+const ALLOWED_TYPES = [
+  "application/pdf",
+  "text/plain",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+];
+
 const leadFormSchema = z.object({
   name: z.string().trim().min(1, "Please enter your name").max(100, "Name is too long"),
   email: z.string().trim().email("Please enter a valid email address").max(255, "Email is too long"),
   website: z.string().trim().min(1, "Please enter your website URL").max(255, "Website URL is too long"),
   phone: z.string().trim().max(30, "Phone number is too long").optional().or(z.literal("")),
+  secondaryUrl: z.string().trim().max(255, "URL is too long").optional().or(z.literal("")),
 });
 
 const LeadCaptureSection = () => {
@@ -24,12 +34,51 @@ const LeadCaptureSection = () => {
   const [viewState, setViewState] = useState<ViewState>("form");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [scanData, setScanData] = useState<DemoLeadData | null>(null);
+  const [files, setFiles] = useState<File[]>([]);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     name: "",
     email: "",
     website: "",
     phone: "",
+    secondaryUrl: "",
   });
+
+  const handleFileAdd = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const newFiles = Array.from(e.target.files || []);
+    const valid = newFiles.filter((f) => {
+      if (!ALLOWED_TYPES.includes(f.type)) {
+        toast({ title: "Invalid file type", description: `${f.name} is not a PDF, TXT, or Word document.`, variant: "destructive" });
+        return false;
+      }
+      if (f.size > MAX_FILE_SIZE) {
+        toast({ title: "File too large", description: `${f.name} exceeds 20MB.`, variant: "destructive" });
+        return false;
+      }
+      return true;
+    });
+    setFiles((prev) => [...prev, ...valid].slice(0, MAX_FILES));
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const removeFile = (index: number) => {
+    setFiles((prev) => prev.filter((_, i) => i !== index));
+  };
+
+  const uploadFiles = async (leadId: string) => {
+    const paths: string[] = [];
+    for (const file of files) {
+      const ext = file.name.split(".").pop() || "bin";
+      const filePath = `${leadId}/${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabase.storage.from("lead-uploads").upload(filePath, file);
+      if (error) {
+        console.error("File upload error:", error);
+        continue;
+      }
+      paths.push(filePath);
+    }
+    return paths;
+  };
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -51,15 +100,30 @@ const LeadCaptureSection = () => {
         email: parsed.data.email,
         website_url: parsed.data.website,
         phone: parsed.data.phone || null,
+        secondary_url: parsed.data.secondaryUrl || null,
         niche: "realtors",
       }).select("id").single();
 
       if (error) throw error;
 
+      // Upload files in parallel with scan start
+      let filePaths: string[] = [];
+      if (files.length > 0) {
+        filePaths = await uploadFiles(lead.id);
+        if (filePaths.length > 0) {
+          await supabase.from("leads").update({ uploaded_files: filePaths }).eq("id", lead.id);
+        }
+      }
+
       setViewState("scanning");
 
       const scanResult = await supabase.functions.invoke("scan-website", {
-        body: { leadId: lead.id, websiteUrl: parsed.data.website },
+        body: {
+          leadId: lead.id,
+          websiteUrl: parsed.data.website,
+          secondaryUrl: parsed.data.secondaryUrl || null,
+          uploadedFiles: filePaths,
+        },
       });
 
       if (scanResult.error) {
@@ -111,7 +175,8 @@ const LeadCaptureSection = () => {
 
   const handleBack = () => {
     setViewState("form");
-    setFormData({ name: "", email: "", website: "", phone: "" });
+    setFormData({ name: "", email: "", website: "", phone: "", secondaryUrl: "" });
+    setFiles([]);
     setScanData(null);
   };
 
@@ -195,10 +260,11 @@ const LeadCaptureSection = () => {
                 />
               </div>
             </div>
+
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                  <Globe className="w-4 h-4 text-muted-foreground" /> Website URL
+                  <Globe className="w-4 h-4 text-muted-foreground" /> Website URL <span className="text-destructive">*</span>
                 </label>
                 <Input
                   placeholder="https://yourwebsite.com"
@@ -221,6 +287,73 @@ const LeadCaptureSection = () => {
                 />
               </div>
             </div>
+
+            {/* Secondary URL */}
+            <div className="mb-4 space-y-2">
+              <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                <Link2 className="w-4 h-4 text-muted-foreground" /> Additional URL <span className="text-xs text-muted-foreground">(optional — vendor site, partner page, etc.)</span>
+              </label>
+              <Input
+                placeholder="https://vendor-or-partner-site.com"
+                value={formData.secondaryUrl}
+                onChange={(e) => setFormData({ ...formData, secondaryUrl: e.target.value })}
+                className="bg-secondary border-border"
+              />
+            </div>
+
+            {/* File Upload */}
+            <div className="mb-6 space-y-2">
+              <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                <Upload className="w-4 h-4 text-muted-foreground" /> Upload Documents <span className="text-xs text-muted-foreground">(optional — PDF, TXT, Word — up to 3 files)</span>
+              </label>
+              <div
+                className="rounded-xl border-2 border-dashed border-border bg-secondary/50 p-4 text-center cursor-pointer hover:border-primary/40 transition-colors"
+                onClick={() => fileInputRef.current?.click()}
+                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                onDrop={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                  const dt = e.dataTransfer;
+                  if (dt?.files) {
+                    const fakeEvent = { target: { files: dt.files } } as React.ChangeEvent<HTMLInputElement>;
+                    handleFileAdd(fakeEvent);
+                  }
+                }}
+              >
+                <input
+                  ref={fileInputRef}
+                  type="file"
+                  className="hidden"
+                  accept=".pdf,.txt,.doc,.docx"
+                  multiple
+                  onChange={handleFileAdd}
+                />
+                {files.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">
+                    Drag & drop files here, or <span className="text-primary font-medium">click to browse</span>
+                  </p>
+                ) : (
+                  <p className="text-xs text-muted-foreground mb-2">
+                    {files.length}/{MAX_FILES} files selected — click to add more
+                  </p>
+                )}
+              </div>
+              {files.length > 0 && (
+                <div className="space-y-1">
+                  {files.map((file, i) => (
+                    <div key={i} className="flex items-center gap-2 rounded-lg bg-secondary px-3 py-2 text-sm">
+                      <FileText className="h-4 w-4 text-muted-foreground shrink-0" />
+                      <span className="truncate flex-1 text-foreground">{file.name}</span>
+                      <span className="text-xs text-muted-foreground shrink-0">{(file.size / 1024).toFixed(0)}KB</span>
+                      <button type="button" onClick={() => removeFile(i)} className="text-muted-foreground hover:text-destructive">
+                        <X className="h-4 w-4" />
+                      </button>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
             <Button
               type="submit"
               size="lg"
