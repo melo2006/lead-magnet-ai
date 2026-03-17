@@ -198,8 +198,8 @@ const AfterPreview = ({ leadData }: AfterPreviewProps) => {
           <div className="rounded-[1.5rem] border p-4" style={softPrimaryStyle}>
             <p className="text-sm font-semibold">Why this feels modern</p>
             <ul className="mt-3 space-y-2 text-sm" style={{ color: tint(textColor, 0.76) }}>
-              <li>• Stronger hero section instead of a dated brochure layout</li>
-              <li>• Clear listing paths and better mobile-first structure</li>
+              <li>• Stronger hero section with clear value proposition</li>
+              <li>• Better mobile-first structure and navigation</li>
               <li>• Brand colors integrated into the whole page system</li>
             </ul>
           </div>
