@@ -24,12 +24,29 @@ const GENERIC_NAV_LABELS = new Set([
   "all listings",
 ]);
 
+const STRUCTURED_PREFIX = /^(service|trust|faq|benefit|proof|detail|summary|business name|service area|detected niche|tone|call goal)\s*:\s*/i;
+
 const cleanText = (value: string) =>
   value
     .replace(/\[([^\]]+)\]\([^)]*\)/g, "$1")
     .replace(/[*_`>#|]/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+
+const unique = (items: string[]) => Array.from(new Set(items.filter(Boolean)));
+
+const stripStructuredPrefix = (value: string) => cleanText(value).replace(STRUCTURED_PREFIX, "").trim();
+
+const extractStructuredBullets = (content: string | undefined, labels: string[], limit: number) => {
+  if (!content) return [];
+
+  const pattern = new RegExp(`^\\s*-\\s*(?:${labels.join("|")})\\s*:\\s*(.+)$`, "gim");
+  return unique(
+    Array.from(content.matchAll(pattern))
+      .map((match) => stripStructuredPrefix(match[0]))
+      .filter((item) => item.length > 2),
+  ).slice(0, limit);
+};
 
 export const getImageSrc = (value?: string) => {
   if (!value || typeof value !== "string") return null;
@@ -114,28 +131,32 @@ export const extractNavigationLabels = (content?: string, limit = 4) => {
     .filter((label) => label.length > 2)
     .filter((label) => !GENERIC_NAV_LABELS.has(label.toLowerCase()));
 
-  return Array.from(new Set(labels)).slice(0, limit);
+  return unique(labels).slice(0, limit);
 };
 
 export const extractHeadings = (content?: string, limit = 3) => {
+  const structuredServices = extractStructuredBullets(content, ["service", "offering", "specialty"], limit);
+  if (structuredServices.length > 0) return structuredServices;
   if (!content) return [];
 
   const headings = Array.from(content.matchAll(/^#{1,3}\s+(.+)$/gm))
     .map((match) => cleanText(match[1]))
     .filter((heading) => heading.length > 3)
-    .filter((heading) => !/welcome|about|areas serviced/i.test(heading));
+    .filter((heading) => !/welcome|about|areas serviced|business knowledge|business profile|source content/i.test(heading));
 
-  return Array.from(new Set(headings)).slice(0, limit);
+  return unique(headings).slice(0, limit);
 };
 
 export const extractBulletItems = (content?: string, limit = 6) => {
+  const structuredBullets = extractStructuredBullets(content, ["trust", "benefit", "proof", "detail", "faq"], limit);
+  if (structuredBullets.length > 0) return structuredBullets;
   if (!content) return [];
 
   const bullets = Array.from(content.matchAll(/^\s*-\s+(.+)$/gm))
-    .map((match) => cleanText(match[1]))
+    .map((match) => stripStructuredPrefix(match[1]))
     .filter((item) => item.length > 2);
 
-  return Array.from(new Set(bullets)).slice(0, limit);
+  return unique(bullets).slice(0, limit);
 };
 
 export const buildModernHeadline = ({

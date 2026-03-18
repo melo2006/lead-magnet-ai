@@ -5,18 +5,273 @@ const corsHeaders = {
 
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
+const FIRECRAWL_BASE = 'https://api.firecrawl.dev/v1';
+const LOVABLE_AI_BASE = 'https://ai.gateway.lovable.dev/v1/chat/completions';
+const ALLOWED_NICHES = ['realtors', 'medspa', 'autodetail', 'veterinary', 'marine', 'general'] as const;
+type AllowedNiche = (typeof ALLOWED_NICHES)[number];
+
+const normalizeUrl = (value: string) => {
+  const trimmed = value.trim();
+  return trimmed.startsWith('http://') || trimmed.startsWith('https://') ? trimmed : `https://${trimmed}`;
+};
+
+const unwrapFirecrawlPayload = (payload: any) => payload?.data?.data ?? payload?.data ?? payload ?? {};
+
+const cleanText = (value?: string | null) => (typeof value === 'string' ? value.replace(/\s+/g, ' ').trim() : '');
+
+const truncate = (value: string, max: number) => value.slice(0, max);
+
+const unique = (items: string[]) => Array.from(new Set(items.filter(Boolean)));
+
+const parseJsonContent = (value: string) => {
+  const cleaned = value
+    .trim()
+    .replace(/^```json\s*/i, '')
+    .replace(/^```\s*/i, '')
+    .replace(/```$/i, '')
+    .trim();
+
+  return JSON.parse(cleaned);
+};
+
+const getHost = (value: string) => {
+  try {
+    return new URL(value).hostname.replace(/^www\./, '');
+  } catch {
+    return '';
+  }
+};
+
+const mapDetectedNiche = (value?: string | null, fallback?: string | null): AllowedNiche => {
+  const normalized = cleanText(value).toLowerCase();
+  const candidate = normalized || cleanText(fallback).toLowerCase();
+
+  if (/realtor|real estate|property/.test(candidate)) return 'realtors';
+  if (/medspa|med spa|aesthetic|injectable|botox|facial|skin/.test(candidate)) return 'medspa';
+  if (/detail|detailing|ceramic|paint correction|car wash|vehicle/.test(candidate)) return 'autodetail';
+  if (/vet|veterinar|animal hospital|pet clinic|pet care/.test(candidate)) return 'veterinary';
+  if (/marine|boat|yacht|dock|outboard|inboard|haul/.test(candidate)) return 'marine';
+  return 'general';
+};
+
+const inferNicheFromKeywords = (value: string, fallback?: string | null): AllowedNiche => mapDetectedNiche(value, fallback);
+
+const pickRelevantLinks = (links: string[], rootUrl: string) => {
+  const rootHost = getHost(rootUrl);
+  const excluded = /(privacy|terms|login|signin|signup|cart|checkout|wp-admin|feed|tag\/|category\/|author\/)/i;
+  const preferred = /(about|service|services|treatment|package|pricing|faq|contact|location|locations|team|gallery|reviews|testimonial|book|appointment|schedule|quote|estimate)/i;
+
+  return unique(
+    links
+      .map((link) => cleanText(link))
+      .filter(Boolean)
+      .filter((link) => /^https?:\/\//i.test(link))
+      .filter((link) => getHost(link) === rootHost)
+      .filter((link) => !excluded.test(link))
+      .sort((a, b) => Number(preferred.test(b)) - Number(preferred.test(a))),
+  )
+    .filter((link) => link !== rootUrl)
+    .slice(0, 6);
+};
+
+async function firecrawlRequest(path: string, apiKey: string, body: Record<string, unknown>) {
+  const response = await fetch(`${FIRECRAWL_BASE}${path}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${apiKey}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify(body),
+  });
+
+  const data = await response.json().catch(() => null);
+  if (!response.ok) {
+    throw new Error(`Firecrawl error [${response.status}]: ${JSON.stringify(data)}`);
+  }
+
+  return data;
+}
+
+async function scrapeMarkdownPage(url: string, apiKey: string) {
+  const response = await firecrawlRequest('/scrape', apiKey, {
+    url,
+    formats: ['markdown', 'summary'],
+    onlyMainContent: true,
+    waitFor: 2500,
+  });
+
+  const data = unwrapFirecrawlPayload(response);
+  const markdown = cleanText(data.markdown);
+  const summary = cleanText(data.summary);
+  const title = cleanText(data.metadata?.title);
+
+  return {
+    url,
+    title,
+    summary,
+    markdown: truncate(markdown, 6000),
+  };
+}
+
+async function analyzeBusinessProfile({
+  lovableApiKey,
+  websiteUrl,
+  initialNiche,
+  title,
+  description,
+  homepageMarkdown,
+  combinedContent,
+}: {
+  lovableApiKey?: string | null;
+  websiteUrl: string;
+  initialNiche?: string | null;
+  title?: string | null;
+  description?: string | null;
+  homepageMarkdown: string;
+  combinedContent: string;
+}) {
+  const fallbackNiche = inferNicheFromKeywords(`${title ?? ''}\n${description ?? ''}\n${combinedContent}`, initialNiche);
+  const fallbackName = cleanText(title) || getHost(websiteUrl) || 'This business';
+  const fallbackSummary = cleanText(description) || `Modern, clearer positioning for ${fallbackName}.`;
+
+  if (!lovableApiKey) {
+    return {
+      businessName: fallbackName,
+      detectedNiche: fallbackNiche,
+      summary: fallbackSummary,
+      serviceArea: '',
+      serviceHighlights: [],
+      trustSignals: [],
+      faqs: [],
+      toneKeywords: ['friendly', 'helpful', 'clear'],
+      audience: '',
+      callGoals: ['Answer questions clearly', 'Guide the caller to the next step'],
+    };
+  }
+
+  const source = truncate(
+    [
+      `Website URL: ${websiteUrl}`,
+      title ? `Title: ${title}` : '',
+      description ? `Description: ${description}` : '',
+      homepageMarkdown ? `Homepage content:\n${homepageMarkdown}` : '',
+      combinedContent ? `Additional website content:\n${combinedContent}` : '',
+      initialNiche ? `Initial niche hint from the form: ${initialNiche}` : '',
+    ].filter(Boolean).join('\n\n'),
+    18000,
+  );
+
+  try {
+    const response = await fetch(LOVABLE_AI_BASE, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${lovableApiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify({
+        model: 'google/gemini-2.5-flash',
+        temperature: 0.2,
+        response_format: { type: 'json_object' },
+        messages: [
+          {
+            role: 'system',
+            content:
+              'Extract a business profile from website content. Return strict JSON with these keys only: businessName (string), detectedNiche (string), summary (string), serviceArea (string), serviceHighlights (array of up to 6 short strings), trustSignals (array of up to 6 short strings), faqs (array of up to 4 short strings), toneKeywords (array of up to 5 short strings), audience (string), callGoals (array of up to 4 short strings). detectedNiche must be one of: realtors, medspa, autodetail, veterinary, marine, general. Use the form niche only as a weak hint. If the website contradicts it, override it. Never default to realtors unless the content clearly indicates real estate.',
+          },
+          {
+            role: 'user',
+            content: source,
+          },
+        ],
+      }),
+    });
+
+    const completion = await response.json().catch(() => null);
+    if (!response.ok) {
+      throw new Error(`AI profile failed [${response.status}]: ${JSON.stringify(completion)}`);
+    }
+
+    const content = completion?.choices?.[0]?.message?.content;
+    if (typeof content !== 'string') throw new Error('AI profile response was empty');
+
+    const parsed = parseJsonContent(content);
+
+    return {
+      businessName: cleanText(parsed.businessName) || fallbackName,
+      detectedNiche: mapDetectedNiche(parsed.detectedNiche, fallbackNiche),
+      summary: cleanText(parsed.summary) || fallbackSummary,
+      serviceArea: cleanText(parsed.serviceArea),
+      serviceHighlights: Array.isArray(parsed.serviceHighlights) ? unique(parsed.serviceHighlights.map((item: string) => cleanText(item))).slice(0, 6) : [],
+      trustSignals: Array.isArray(parsed.trustSignals) ? unique(parsed.trustSignals.map((item: string) => cleanText(item))).slice(0, 6) : [],
+      faqs: Array.isArray(parsed.faqs) ? unique(parsed.faqs.map((item: string) => cleanText(item))).slice(0, 4) : [],
+      toneKeywords: Array.isArray(parsed.toneKeywords) ? unique(parsed.toneKeywords.map((item: string) => cleanText(item))).slice(0, 5) : ['friendly', 'helpful', 'clear'],
+      audience: cleanText(parsed.audience),
+      callGoals: Array.isArray(parsed.callGoals) ? unique(parsed.callGoals.map((item: string) => cleanText(item))).slice(0, 4) : ['Answer questions clearly', 'Guide the caller to the next step'],
+    };
+  } catch (error) {
+    console.warn('AI business profile failed, using fallback:', error);
+    return {
+      businessName: fallbackName,
+      detectedNiche: fallbackNiche,
+      summary: fallbackSummary,
+      serviceArea: '',
+      serviceHighlights: [],
+      trustSignals: [],
+      faqs: [],
+      toneKeywords: ['friendly', 'helpful', 'clear'],
+      audience: '',
+      callGoals: ['Answer questions clearly', 'Guide the caller to the next step'],
+    };
+  }
+}
+
+const buildStructuredKnowledge = ({
+  websiteUrl,
+  profile,
+  homepageSummary,
+  pageSummaries,
+}: {
+  websiteUrl: string;
+  profile: Awaited<ReturnType<typeof analyzeBusinessProfile>>;
+  homepageSummary: string;
+  pageSummaries: string[];
+}) => {
+  const sections = [
+    `BUSINESS NAME: ${profile.businessName}`,
+    `DETECTED NICHE: ${profile.detectedNiche}`,
+    profile.serviceArea ? `SERVICE AREA: ${profile.serviceArea}` : '',
+    `SUMMARY: ${profile.summary}`,
+    homepageSummary ? `HOMEPAGE SUMMARY: ${homepageSummary}` : '',
+    profile.audience ? `AUDIENCE: ${profile.audience}` : '',
+    `WEBSITE: ${websiteUrl}`,
+    '',
+    ...profile.serviceHighlights.map((item) => `- Service: ${item}`),
+    ...profile.trustSignals.map((item) => `- Trust: ${item}`),
+    ...profile.faqs.map((item) => `- FAQ: ${item}`),
+    ...profile.callGoals.map((item) => `- Call Goal: ${item}`),
+    ...profile.toneKeywords.map((item) => `- Tone: ${item}`),
+    ...pageSummaries.map((item) => `- Detail: ${item}`),
+  ];
+
+  return sections.filter(Boolean).join('\n');
+};
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
 
+  let leadId = '';
+  let supabase: ReturnType<typeof createClient> | null = null;
+
   try {
-    const { leadId, websiteUrl, secondaryUrl, uploadedFiles } = await req.json();
+    const { leadId: incomingLeadId, websiteUrl, secondaryUrl, uploadedFiles, initialNiche } = await req.json();
+    leadId = incomingLeadId;
 
     if (!leadId || !websiteUrl) {
       return new Response(
         JSON.stringify({ success: false, error: 'leadId and websiteUrl are required' }),
-        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 400, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
@@ -25,187 +280,142 @@ Deno.serve(async (req) => {
       console.error('FIRECRAWL_API_KEY not configured');
       return new Response(
         JSON.stringify({ success: false, error: 'Firecrawl not configured' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
-    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const supabaseUrl = Deno.env.get('SUPABASE_URL');
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+
+    if (!supabaseUrl || !supabaseServiceKey) {
+      return new Response(
+        JSON.stringify({ success: false, error: 'Backend configuration is incomplete' }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+
+    supabase = createClient(supabaseUrl, supabaseServiceKey);
 
     await supabase.from('leads').update({ scan_status: 'scanning' }).eq('id', leadId);
 
-    let formattedUrl = websiteUrl.trim();
-    if (!formattedUrl.startsWith('http://') && !formattedUrl.startsWith('https://')) {
-      formattedUrl = `https://${formattedUrl}`;
-    }
-
+    const formattedUrl = normalizeUrl(websiteUrl);
     console.log('Scanning website:', formattedUrl);
 
-    // Step 1: Scrape homepage for branding + screenshot
-    const scrapeResponse = await fetch('https://api.firecrawl.dev/v1/scrape', {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${firecrawlKey}`,
-        'Content-Type': 'application/json',
-      },
-      body: JSON.stringify({
-        url: formattedUrl,
-        formats: ['markdown', 'screenshot', 'branding'],
-        waitFor: 3000,
-      }),
+    const homepageResponse = await firecrawlRequest('/scrape', firecrawlKey, {
+      url: formattedUrl,
+      formats: ['markdown', 'screenshot', 'branding', 'links', 'summary'],
+      onlyMainContent: false,
+      waitFor: 3500,
     });
 
-    const scrapeData = await scrapeResponse.json();
+    const homepage = unwrapFirecrawlPayload(homepageResponse);
+    const homepageMarkdown = cleanText(homepage.markdown);
+    const homepageSummary = cleanText(homepage.summary);
+    const branding = homepage.branding || {};
+    const metadata = homepage.metadata || {};
 
-    if (!scrapeResponse.ok) {
-      console.error('Firecrawl scrape error:', scrapeData);
-      await supabase.from('leads').update({ scan_status: 'failed' }).eq('id', leadId);
-      return new Response(
-        JSON.stringify({ success: false, error: scrapeData.error || 'Scrape failed' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-      );
+    const linkPool = new Set<string>();
+    if (Array.isArray(homepage.links)) {
+      homepage.links.forEach((link: string) => linkPool.add(cleanText(link)));
     }
 
-    const data = scrapeData.data || scrapeData;
-    const branding = data.branding || {};
-    const metadata = data.metadata || {};
-    const homepageMarkdown = data.markdown || '';
-
-    // Step 2: Deep crawl all pages for knowledge base (up to 20 pages)
-    let deepContent = '';
     try {
-      console.log('Starting deep crawl for:', formattedUrl);
-      const crawlResponse = await fetch('https://api.firecrawl.dev/v1/crawl', {
-        method: 'POST',
-        headers: {
-          'Authorization': `Bearer ${firecrawlKey}`,
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          url: formattedUrl,
-          limit: 20,
-          maxDepth: 3,
-          scrapeOptions: { formats: ['markdown'] },
-        }),
+      const mapResponse = await firecrawlRequest('/map', firecrawlKey, {
+        url: formattedUrl,
+        limit: 30,
+        includeSubdomains: false,
       });
-
-      const crawlData = await crawlResponse.json();
-
-      if (crawlResponse.ok && crawlData.success) {
-        // Crawl returns an async job — poll for results
-        const crawlId = crawlData.id;
-        if (crawlId) {
-          console.log('Crawl job started:', crawlId);
-          // Poll up to 60 seconds
-          for (let i = 0; i < 12; i++) {
-            await new Promise((r) => setTimeout(r, 5000));
-            const statusRes = await fetch(`https://api.firecrawl.dev/v1/crawl/${crawlId}`, {
-              headers: { 'Authorization': `Bearer ${firecrawlKey}` },
-            });
-            const statusData = await statusRes.json();
-
-            if (statusData.status === 'completed' && Array.isArray(statusData.data)) {
-              deepContent = statusData.data
-                .map((page: any) => {
-                  const md = page.markdown || '';
-                  const url = page.metadata?.sourceURL || '';
-                  return url ? `--- Page: ${url} ---\n${md}` : md;
-                })
-                .join('\n\n')
-                .substring(0, 50000);
-              console.log(`Crawl completed: ${statusData.data.length} pages`);
-              break;
-            }
-
-            if (statusData.status === 'failed') {
-              console.warn('Crawl failed, using homepage only');
-              break;
-            }
-          }
-        }
-      } else {
-        console.warn('Crawl initiation failed, using homepage only');
-      }
-    } catch (crawlErr) {
-      console.warn('Deep crawl error, continuing with homepage:', crawlErr);
+      const links = Array.isArray(mapResponse.links) ? mapResponse.links : [];
+      links.forEach((link: string) => linkPool.add(cleanText(link)));
+    } catch (mapError) {
+      console.warn('Firecrawl map failed, continuing with homepage links only:', mapError);
     }
 
-    // Step 3: Crawl secondary URL if provided
+    const candidateLinks = pickRelevantLinks(Array.from(linkPool), formattedUrl);
+    console.log('Relevant links selected:', candidateLinks.length);
+
+    const pageResults = await Promise.allSettled(candidateLinks.map((link) => scrapeMarkdownPage(link, firecrawlKey)));
+    const successfulPages = pageResults
+      .filter((result): result is PromiseFulfilledResult<Awaited<ReturnType<typeof scrapeMarkdownPage>>> => result.status === 'fulfilled')
+      .map((result) => result.value)
+      .filter((page) => page.markdown || page.summary);
+
     let secondaryContent = '';
     if (secondaryUrl && typeof secondaryUrl === 'string' && secondaryUrl.trim()) {
       try {
-        let formattedSecondary = secondaryUrl.trim();
-        if (!formattedSecondary.startsWith('http://') && !formattedSecondary.startsWith('https://')) {
-          formattedSecondary = `https://${formattedSecondary}`;
-        }
-        console.log('Scraping secondary URL:', formattedSecondary);
-
-        const secResponse = await fetch('https://api.firecrawl.dev/v1/scrape', {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${firecrawlKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            url: formattedSecondary,
-            formats: ['markdown'],
-            onlyMainContent: true,
-          }),
-        });
-
-        const secData = await secResponse.json();
-        if (secResponse.ok) {
-          secondaryContent = (secData.data?.markdown || secData.markdown || '').substring(0, 10000);
-          console.log('Secondary URL scraped successfully');
-        }
-      } catch (secErr) {
-        console.warn('Secondary URL scrape error:', secErr);
+        const secondary = await scrapeMarkdownPage(normalizeUrl(secondaryUrl), firecrawlKey);
+        secondaryContent = secondary.markdown;
+      } catch (secondaryError) {
+        console.warn('Secondary URL scrape error:', secondaryError);
       }
     }
 
-    // Step 4: Read uploaded files content
     let filesContent = '';
     if (Array.isArray(uploadedFiles) && uploadedFiles.length > 0) {
       for (const filePath of uploadedFiles) {
         try {
-          const { data: fileData, error: fileErr } = await supabase.storage
-            .from('lead-uploads')
-            .download(filePath);
+          const { data: fileData, error: fileErr } = await supabase.storage.from('lead-uploads').download(filePath);
           if (fileErr || !fileData) continue;
 
-          // Only extract text from text-based files
           const ext = filePath.split('.').pop()?.toLowerCase();
           if (ext === 'txt' || ext === 'md') {
             const text = await fileData.text();
-            filesContent += `\n--- Uploaded file: ${filePath} ---\n${text.substring(0, 10000)}\n`;
+            filesContent += `\n--- Uploaded file: ${filePath} ---\n${truncate(text, 10000)}\n`;
           } else {
-            // For PDF/Word, we note the file exists but can't easily parse in Deno
-            filesContent += `\n--- Uploaded file: ${filePath} (binary document — content available for AI processing) ---\n`;
+            filesContent += `\n--- Uploaded file: ${filePath} (document provided for business context) ---\n`;
           }
-        } catch (fErr) {
-          console.warn('File read error:', fErr);
+        } catch (fileError) {
+          console.warn('File read error:', fileError);
         }
       }
     }
 
-    // Combine all content for the knowledge base
-    const fullContent = [
-      homepageMarkdown,
-      deepContent ? `\n\n=== ADDITIONAL PAGES ===\n${deepContent}` : '',
-      secondaryContent ? `\n\n=== SECONDARY WEBSITE ===\n${secondaryContent}` : '',
-      filesContent ? `\n\n=== UPLOADED DOCUMENTS ===\n${filesContent}` : '',
-    ].join('').substring(0, 60000); // Cap at 60K chars
+    const combinedPageContent = successfulPages
+      .map((page) => [page.title ? `## ${page.title}` : '', page.summary ? `Summary: ${page.summary}` : '', page.markdown].filter(Boolean).join('\n'))
+      .join('\n\n')
+      .slice(0, 30000);
 
-    // Update lead with all scraped data
+    const profile = await analyzeBusinessProfile({
+      lovableApiKey,
+      websiteUrl: formattedUrl,
+      initialNiche,
+      title: cleanText(metadata.title),
+      description: cleanText(metadata.description),
+      homepageMarkdown,
+      combinedContent: [homepageMarkdown, combinedPageContent, secondaryContent, filesContent].filter(Boolean).join('\n\n'),
+    });
+
+    const structuredKnowledge = buildStructuredKnowledge({
+      websiteUrl: formattedUrl,
+      profile,
+      homepageSummary,
+      pageSummaries: successfulPages.map((page) => page.summary).filter(Boolean).slice(0, 6),
+    });
+
+    const fullContent = truncate(
+      [
+        structuredKnowledge,
+        homepageMarkdown ? `\n\n=== HOMEPAGE CONTENT ===\n${homepageMarkdown}` : '',
+        combinedPageContent ? `\n\n=== ADDITIONAL WEBSITE CONTENT ===\n${combinedPageContent}` : '',
+        secondaryContent ? `\n\n=== SECONDARY WEBSITE ===\n${secondaryContent}` : '',
+        filesContent ? `\n\n=== UPLOADED DOCUMENTS ===\n${filesContent}` : '',
+      ].join(''),
+      60000,
+    );
+
+    const title = cleanText(metadata.title) || profile.businessName || getHost(formattedUrl);
+    const description = cleanText(metadata.description) || profile.summary;
+
     const updateResult = await supabase.from('leads').update({
+      niche: profile.detectedNiche,
       brand_colors: branding.colors || null,
       brand_logo: branding.images?.logo || branding.logo || null,
       brand_fonts: branding.fonts || branding.typography || null,
-      website_screenshot: data.screenshot || null,
+      website_screenshot: homepage.screenshot || null,
       website_content: fullContent || null,
-      website_title: metadata.title || null,
-      website_description: metadata.description || null,
+      website_title: title || null,
+      website_description: description || null,
       scan_status: 'completed',
     }).eq('id', leadId);
 
@@ -213,7 +423,7 @@ Deno.serve(async (req) => {
       console.error('Error updating lead:', updateResult.error);
       return new Response(
         JSON.stringify({ success: false, error: 'Failed to save scan results' }),
-        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
@@ -222,21 +432,27 @@ Deno.serve(async (req) => {
       JSON.stringify({
         success: true,
         data: {
-          title: metadata.title,
-          description: metadata.description,
+          title,
+          description,
           colors: branding.colors,
           logo: branding.images?.logo || branding.logo,
-          screenshot: data.screenshot ? true : false,
-          pagesScraped: deepContent ? 'multiple' : 'homepage-only',
+          screenshot: Boolean(homepage.screenshot),
+          pagesScraped: successfulPages.length + 1,
+          detectedNiche: profile.detectedNiche,
         },
       }),
-      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   } catch (error) {
     console.error('Error in scan-website:', error);
+
+    if (supabase && leadId) {
+      await supabase.from('leads').update({ scan_status: 'failed' }).eq('id', leadId);
+    }
+
     return new Response(
       JSON.stringify({ success: false, error: error instanceof Error ? error.message : 'Unknown error' }),
-      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
     );
   }
 });

@@ -719,7 +719,7 @@ Deno.serve(async (req) => {
           owner_name: resolvedOwnerName,
           owner_email: ownerEmail || '',
           website_url: websiteUrl || '',
-          business_info: (businessInfo || 'A professional business offering quality services.').substring(0, 3000),
+          business_info: (businessInfo || 'A professional business offering quality services.').substring(0, 6000),
           owner_phone: normalizedOwnerPhone || '',
         },
         metadata: {

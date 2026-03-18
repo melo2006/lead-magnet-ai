@@ -28,7 +28,7 @@ const Index = () => {
       <HowItWorksSection />
       <FeaturesSection />
       <TestimonialSection niche={selectedNiche} />
-      <LeadCaptureSection />
+      <LeadCaptureSection selectedNiche={selectedNiche} />
       <Footer />
     </div>
   );
