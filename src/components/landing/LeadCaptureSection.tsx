@@ -36,6 +36,7 @@ interface LeadCaptureSectionProps {
 
 const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [viewState, setViewState] = useState<ViewState>("form");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [scanData, setScanData] = useState<DemoLeadData | null>(null);
