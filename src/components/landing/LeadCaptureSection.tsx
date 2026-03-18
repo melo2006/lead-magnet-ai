@@ -176,31 +176,17 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
   };
 
   const handleScanComplete = useCallback(() => {
-    setViewState("results");
-  }, []);
-
-  const handleBack = () => {
+    if (scanData) {
+      navigate("/demo", { state: { leadData: scanData } });
+    }
     setViewState("form");
-    setFormData({ name: "", email: "", website: "", phone: "", secondaryUrl: "" });
-    setFiles([]);
-    setScanData(null);
-  };
+  }, [scanData, navigate]);
 
   if (viewState === "scanning") {
     return (
       <section id="demo-form" className="py-12 sm:py-16 relative">
         <div className="container mx-auto px-4 sm:px-6 relative z-10">
           <ScanningAnimation websiteUrl={formData.website} onComplete={handleScanComplete} />
-        </div>
-      </section>
-    );
-  }
-
-  if (viewState === "results" && scanData) {
-    return (
-      <section id="demo-form" className="py-12 sm:py-16 relative">
-        <div className="container mx-auto px-4 sm:px-6 relative z-10">
-          <DemoResults leadData={scanData} onBack={handleBack} />
         </div>
       </section>
     );
