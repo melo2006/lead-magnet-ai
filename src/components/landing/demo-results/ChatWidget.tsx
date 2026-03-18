@@ -14,7 +14,7 @@ interface Message {
   content: string;
 }
 
-const ChatWidget = ({ businessName, businessNiche, websiteUrl, businessInfo }: ChatWidgetProps) => {
+const ChatWidget = ({ businessName, businessNiche: _niche, websiteUrl: _url, businessInfo: _info }: ChatWidgetProps) => {
   const [isOpen, setIsOpen] = useState(false);
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
