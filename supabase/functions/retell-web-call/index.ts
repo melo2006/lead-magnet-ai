@@ -763,6 +763,8 @@ Deno.serve(async (req) => {
           website_url: websiteUrl || '',
           business_info: (businessInfo || 'A professional business offering quality services.').substring(0, 6000),
           owner_phone: normalizedOwnerPhone || '',
+          caller_name: callerName || '',
+          caller_email: callerEmail || '',
         },
         metadata: {
           niche: businessNiche || 'general',
