@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { Mic, MicOff, Phone, PhoneOff, Loader2 } from "lucide-react";
+import { Mic, MicOff, Phone, PhoneOff, Loader2, X } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -15,6 +15,9 @@ interface VoiceAgentWidgetProps {
   ownerPhone?: string;
   websiteUrl: string;
   businessInfo: string;
+  callerName?: string;
+  callerEmail?: string;
+  onClose?: () => void;
 }
 
 type CallStatus = "idle" | "connecting" | "active" | "ending";
@@ -27,6 +30,9 @@ const VoiceAgentWidget = ({
   ownerPhone,
   websiteUrl,
   businessInfo,
+  callerName,
+  callerEmail,
+  onClose,
 }: VoiceAgentWidgetProps) => {
   const { toast } = useToast();
   const [callStatus, setCallStatus] = useState<CallStatus>("idle");
@@ -48,7 +54,6 @@ const VoiceAgentWidget = ({
   const queueCallSummary = useCallback(async () => {
     const callId = callIdRef.current;
     if (!callId || summaryQueuedRef.current || !ownerEmail) return;
-
     summaryQueuedRef.current = true;
 
     try {
@@ -65,7 +70,7 @@ const VoiceAgentWidget = ({
       });
 
       if (error || !data?.success) {
-        throw new Error(error?.message || data?.error || "We couldn't finish the call recap yet.");
+        throw new Error(error?.message || data?.error || "Couldn't finish the call recap.");
       }
 
       const headline = data.appointmentRequested
@@ -99,7 +104,7 @@ const VoiceAgentWidget = ({
       summaryQueuedRef.current = false;
       toast({
         title: "Call recap failed",
-        description: err instanceof Error ? err.message : "We couldn't send the recap email yet.",
+        description: err instanceof Error ? err.message : "Couldn't send the recap email.",
         variant: "destructive",
       });
     }
@@ -109,11 +114,7 @@ const VoiceAgentWidget = ({
     return () => {
       clearTimer();
       if (retellClientRef.current) {
-        try {
-          retellClientRef.current.stopCall();
-        } catch {
-          // noop
-        }
+        try { retellClientRef.current.stopCall(); } catch { /* noop */ }
       }
     };
   }, [clearTimer]);
@@ -134,6 +135,8 @@ const VoiceAgentWidget = ({
           ownerPhone: ownerPhone || "",
           websiteUrl,
           businessInfo: businessInfo?.substring(0, 6000) || "",
+          callerName: callerName || "",
+          callerEmail: callerEmail || "",
         },
       });
 
@@ -142,25 +145,19 @@ const VoiceAgentWidget = ({
       }
 
       callIdRef.current = data.call_id;
-
       const { RetellWebClient } = await import("retell-client-js-sdk");
-
       const retellClient = new RetellWebClient();
       retellClientRef.current = retellClient;
 
       retellClient.on("call_started", () => {
-        console.log("Retell call started");
         setCallStatus("active");
         setDuration(0);
         setIsMuted(false);
         clearTimer();
-        timerRef.current = setInterval(() => {
-          setDuration((prev) => prev + 1);
-        }, 1000);
+        timerRef.current = setInterval(() => setDuration((prev) => prev + 1), 1000);
       });
 
       retellClient.on("call_ended", () => {
-        console.log("Retell call ended");
         setCallStatus("idle");
         setIsMuted(false);
         clearTimer();
@@ -172,41 +169,22 @@ const VoiceAgentWidget = ({
         clearTimer();
         setIsMuted(false);
         setCallStatus("idle");
-        toast({
-          title: "Call error",
-          description: "Something went wrong with the voice call.",
-          variant: "destructive",
-        });
+        toast({ title: "Call error", description: "Something went wrong.", variant: "destructive" });
       });
 
-      await retellClient.startCall({
-        accessToken: data.access_token,
-        sampleRate: 24000,
-        emitRawAudioSamples: false,
-      });
+      await retellClient.startCall({ accessToken: data.access_token, sampleRate: 24000, emitRawAudioSamples: false });
     } catch (err) {
       console.error("Failed to start call:", err);
-      toast({
-        title: "Could not start call",
-        description: err instanceof Error ? err.message : "Please try again.",
-        variant: "destructive",
-      });
+      toast({ title: "Could not start call", description: err instanceof Error ? err.message : "Please try again.", variant: "destructive" });
       setCallStatus("idle");
       clearTimer();
     }
-  }, [businessInfo, businessName, businessNiche, clearTimer, ownerEmail, ownerPhone, resolvedOwnerName, toast, websiteUrl]);
+  }, [businessInfo, businessName, businessNiche, callerName, callerEmail, clearTimer, ownerEmail, ownerPhone, resolvedOwnerName, toast, websiteUrl, queueCallSummary]);
 
   const endCall = useCallback(() => {
     setCallStatus("ending");
-    try {
-      retellClientRef.current?.stopCall();
-    } catch {
-      // noop
-    }
-
-    window.setTimeout(() => {
-      setCallStatus((current) => (current === "ending" ? "idle" : current));
-    }, 1500);
+    try { retellClientRef.current?.stopCall(); } catch { /* noop */ }
+    window.setTimeout(() => setCallStatus((c) => (c === "ending" ? "idle" : c)), 1500);
   }, []);
 
   const toggleMute = useCallback(() => {
@@ -217,106 +195,102 @@ const VoiceAgentWidget = ({
     }
   }, [isMuted]);
 
-  const formatDuration = (seconds: number) => {
-    const m = Math.floor(seconds / 60);
-    const s = seconds % 60;
-    return `${m}:${s.toString().padStart(2, "0")}`;
-  };
-
-  const helperCopy =
-    callStatus === "active"
-      ? `Ask about ${businessName || "the business"}, request a live handoff to ${resolvedOwnerName}, or confirm a 15-minute appointment.`
-      : `Aspen can answer questions, offer a live handoff to ${resolvedOwnerName}, and confirm a 15-minute appointment.`;
+  const formatDuration = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
 
   return (
-    <div className="rounded-2xl border border-primary/20 bg-primary/5 p-4">
-      <div className="mb-3 flex items-center justify-between">
-        <div className="flex items-center gap-2">
+    <div className="rounded-2xl border border-primary/20 bg-card shadow-2xl overflow-hidden">
+      {/* Header */}
+      <div className="flex items-center justify-between px-4 py-3 bg-primary/10 border-b border-primary/20">
+        <div className="flex items-center gap-2.5">
           <div className="relative">
             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20">
               <Mic className="h-4 w-4 text-primary" />
             </div>
             {callStatus === "active" && (
-              <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-primary ring-2 ring-card" />
+              <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-card" />
             )}
           </div>
           <div>
-            <p className="text-sm font-semibold text-foreground">Ask Aspen</p>
-            <p className="text-[11px] text-muted-foreground">AI Voice Assistant</p>
+            <p className="text-sm font-bold">Talk to Aspen</p>
+            <p className="text-[10px] text-muted-foreground">AI Voice Assistant</p>
           </div>
         </div>
-
-        {callStatus === "active" && (
-          <span className="text-xs font-mono text-primary">{formatDuration(duration)}</span>
-        )}
+        <div className="flex items-center gap-2">
+          {callStatus === "active" && (
+            <span className="text-xs font-mono text-primary">{formatDuration(duration)}</span>
+          )}
+          {onClose && callStatus === "idle" && (
+            <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
       </div>
 
-      <AnimatePresence mode="wait">
-        {callStatus === "idle" && (
-          <motion.button
-            key="start"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            onClick={startCall}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-          >
-            <Phone className="h-4 w-4" />
-            Talk to Aspen
-          </motion.button>
-        )}
+      {/* Body */}
+      <div className="p-4">
+        <p className="text-xs text-muted-foreground mb-3">
+          {callStatus === "active"
+            ? `Ask about ${businessName}, request a live handoff to ${resolvedOwnerName}, or book a 15-minute appointment.`
+            : `This is a demo of our AI voice technology. Aspen can answer questions about ${businessName}, book appointments, and connect you with ${resolvedOwnerName}.`}
+        </p>
 
-        {callStatus === "connecting" && (
-          <motion.div
-            key="connecting"
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary/20 px-4 py-3 text-sm font-semibold text-primary"
-          >
-            <Loader2 className="h-4 w-4 animate-spin" />
-            Connecting...
-          </motion.div>
-        )}
-
-        {(callStatus === "active" || callStatus === "ending") && (
-          <motion.div
-            key="active"
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
-            exit={{ opacity: 0, scale: 0.95 }}
-            className="flex gap-2"
-          >
-            <button
-              onClick={toggleMute}
-              className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
-                isMuted
-                  ? "bg-destructive/20 text-destructive"
-                  : "bg-secondary text-foreground hover:bg-secondary/80"
-              }`}
+        <AnimatePresence mode="wait">
+          {callStatus === "idle" && (
+            <motion.button
+              key="start"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              onClick={startCall}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
             >
-              {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-              {isMuted ? "Unmute" : "Mute"}
-            </button>
-            <button
-              onClick={endCall}
-              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-destructive px-4 py-3 text-sm font-semibold text-destructive-foreground transition-colors hover:bg-destructive/90"
-            >
-              <PhoneOff className="h-4 w-4" />
-              End
-            </button>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              <Phone className="h-4 w-4" />
+              Start Voice Call
+            </motion.button>
+          )}
 
-      <motion.p
-        key={callStatus}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        className="mt-2 text-center text-[11px] text-muted-foreground"
-      >
-        {helperCopy}
-      </motion.p>
+          {callStatus === "connecting" && (
+            <motion.div
+              key="connecting"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary/20 px-4 py-3 text-sm font-semibold text-primary"
+            >
+              <Loader2 className="h-4 w-4 animate-spin" />
+              Connecting...
+            </motion.div>
+          )}
+
+          {(callStatus === "active" || callStatus === "ending") && (
+            <motion.div
+              key="active"
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              exit={{ opacity: 0, scale: 0.95 }}
+              className="flex gap-2"
+            >
+              <button
+                onClick={toggleMute}
+                className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
+                  isMuted ? "bg-destructive/20 text-destructive" : "bg-secondary text-foreground hover:bg-secondary/80"
+                }`}
+              >
+                {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                {isMuted ? "Unmute" : "Mute"}
+              </button>
+              <button
+                onClick={endCall}
+                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-destructive px-4 py-3 text-sm font-semibold text-destructive-foreground transition-colors hover:bg-destructive/90"
+              >
+                <PhoneOff className="h-4 w-4" />
+                End
+              </button>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
     </div>
   );
 };
