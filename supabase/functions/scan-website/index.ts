@@ -415,6 +415,7 @@ Deno.serve(async (req) => {
     const profile = await analyzeBusinessProfile({
       lovableApiKey,
       websiteUrl: formattedUrl,
+      providedBusinessName: cleanText(businessName),
       initialNiche,
       title: cleanText(metadata.title),
       description: cleanText(metadata.description),
