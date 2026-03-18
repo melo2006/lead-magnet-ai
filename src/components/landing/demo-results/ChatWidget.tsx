@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
-import { MessageSquare, Send, X, Loader2, Bot, User } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
+import { MessageSquare, Send, Loader2, Bot, User } from "lucide-react";
+import { motion } from "framer-motion";
 
 interface ChatWidgetProps {
   businessName: string;
