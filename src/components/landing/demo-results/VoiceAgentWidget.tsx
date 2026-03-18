@@ -5,7 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 const RETELL_AGENT_ID = "agent_ea256ca8441689051b9aa2b183";
-const DEFAULT_OWNER_NAME = "Ron Melo";
+const DEFAULT_OWNER_NAME = "Business Owner";
 
 interface VoiceAgentWidgetProps {
   businessName: string;
@@ -53,7 +53,16 @@ const VoiceAgentWidget = ({
 
   const queueCallSummary = useCallback(async () => {
     const callId = callIdRef.current;
-    if (!callId || summaryQueuedRef.current || !ownerEmail) return;
+    if (!callId || summaryQueuedRef.current) return;
+
+    if (!ownerEmail) {
+      toast({
+        title: "Recap skipped",
+        description: "No email was provided in the form, so recap and calendar booking were skipped.",
+      });
+      return;
+    }
+
     summaryQueuedRef.current = true;
 
     try {
@@ -73,21 +82,33 @@ const VoiceAgentWidget = ({
         throw new Error(error?.message || data?.error || "Couldn't finish the call recap.");
       }
 
+      const appointmentBooked = Boolean(data.calendarEventId);
+
       const headline = data.appointmentRequested
-        ? "Appointment confirmed"
+        ? appointmentBooked
+          ? "Appointment confirmed"
+          : "Appointment requested"
         : data.transferRequested
           ? "Live handoff requested"
           : data.callbackRequested
             ? "Callback request captured"
             : "Call summary sent";
 
-      const detailLine = data.appointmentScheduledFor
-        ? `Confirmed for ${data.appointmentScheduledFor}.`
+      const detailLine = data.appointmentRequested
+        ? appointmentBooked && data.appointmentScheduledFor
+          ? `Confirmed for ${data.appointmentScheduledFor}.`
+          : `Aspen captured appointment intent and flagged it for ${resolvedOwnerName}.`
         : data.transferRequested
-          ? `Aspen marked this for an immediate handoff to ${resolvedOwnerName}.`
+          ? `Aspen marked this for an immediate follow-up with ${resolvedOwnerName}.`
           : data.callbackRequested
             ? `${resolvedOwnerName} now has the callback request details.`
             : null;
+
+      const calendarLine = data.calendarWarning
+        ? data.calendarWarning
+        : data.appointmentRequested && !appointmentBooked
+          ? "Calendar booking could not be completed automatically."
+          : null;
 
       const deliveryLine = data.emailWarning
         ? data.emailWarning
@@ -97,7 +118,7 @@ const VoiceAgentWidget = ({
 
       toast({
         title: headline,
-        description: [detailLine, deliveryLine].filter(Boolean).join(" "),
+        description: [detailLine, calendarLine, deliveryLine].filter(Boolean).join(" "),
       });
     } catch (err) {
       console.error("Failed to email call summary:", err);
@@ -114,7 +135,11 @@ const VoiceAgentWidget = ({
     return () => {
       clearTimer();
       if (retellClientRef.current) {
-        try { retellClientRef.current.stopCall(); } catch { /* noop */ }
+        try {
+          retellClientRef.current.stopCall();
+        } catch {
+          /* noop */
+        }
       }
     };
   }, [clearTimer]);
@@ -183,7 +208,11 @@ const VoiceAgentWidget = ({
 
   const endCall = useCallback(() => {
     setCallStatus("ending");
-    try { retellClientRef.current?.stopCall(); } catch { /* noop */ }
+    try {
+      retellClientRef.current?.stopCall();
+    } catch {
+      /* noop */
+    }
     window.setTimeout(() => setCallStatus((c) => (c === "ending" ? "idle" : c)), 1500);
   }, []);
 
@@ -199,7 +228,6 @@ const VoiceAgentWidget = ({
 
   return (
     <div className="rounded-2xl border border-primary/20 bg-card shadow-2xl overflow-hidden">
-      {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 bg-primary/10 border-b border-primary/20">
         <div className="flex items-center gap-2.5">
           <div className="relative">
@@ -227,12 +255,11 @@ const VoiceAgentWidget = ({
         </div>
       </div>
 
-      {/* Body */}
       <div className="p-4">
         <p className="text-xs text-muted-foreground mb-3">
           {callStatus === "active"
-            ? `Ask about ${businessName}, request a live handoff to ${resolvedOwnerName}, or book a 15-minute appointment.`
-            : `This is a demo of our AI voice technology. Aspen can answer questions about ${businessName}, book appointments, and connect you with ${resolvedOwnerName}.`}
+            ? `Ask about ${businessName}, request a callback from ${resolvedOwnerName}, or book a 15-minute appointment.`
+            : `This is a live demo of AI voice for ${businessName}. Aspen can answer questions, capture handoff requests, and schedule appointments.`}
         </p>
 
         <AnimatePresence mode="wait">

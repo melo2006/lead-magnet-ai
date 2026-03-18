@@ -1,5 +1,5 @@
-import { useState, useRef, useEffect } from "react";
-import { Send, Loader2, Bot, User, X } from "lucide-react";
+import { useState, useRef, useEffect, useMemo, useCallback } from "react";
+import { Send, Bot, User, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface ChatWidgetProps {
@@ -7,6 +7,7 @@ interface ChatWidgetProps {
   businessNiche: string;
   websiteUrl: string;
   businessInfo: string;
+  ownerName?: string;
   callerName?: string;
   callerEmail?: string;
   callerPhone?: string;
@@ -18,11 +19,14 @@ interface Message {
   content: string;
 }
 
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
+
 const ChatWidget = ({
   businessName,
   businessNiche,
   websiteUrl,
   businessInfo,
+  ownerName,
   callerName,
   callerEmail,
   callerPhone,
@@ -30,13 +34,62 @@ const ChatWidget = ({
 }: ChatWidgetProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
   const [input, setInput] = useState("");
-  const [isTyping, setIsTyping] = useState(false);
+  const [isThinking, setIsThinking] = useState(false);
+  const [isStreaming, setIsStreaming] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const initialized = useRef(false);
+  const mounted = useRef(true);
+
+  const ownerLabel = ownerName?.trim() || callerName?.trim() || "the business owner";
+  const isBusy = isThinking || isStreaming;
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
 
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
-  }, [messages]);
+  }, [messages, isThinking]);
+
+  const quickPrompts = useMemo(() => {
+    const nichePrompts: Record<string, string[]> = {
+      realtors: [
+        "What services do you offer for buyers and sellers?",
+        "Can this AI qualify new real estate leads?",
+        "How does voice AI help with showings and inquiries?",
+      ],
+      medspa: [
+        "What treatments do you offer most often?",
+        "Can this assistant answer pricing and consultation questions?",
+        "How can AI chat and voice improve bookings?",
+      ],
+      autodetail: [
+        "What detailing packages are available?",
+        "Can Aspen handle quote questions 24/7?",
+        "How quickly can this setup be added to my site?",
+      ],
+      veterinary: [
+        "Can this assistant help with pet appointment questions?",
+        "How does it handle urgent inquiries after hours?",
+        "What does setup look like for a vet clinic?",
+      ],
+      marine: [
+        "Can Aspen answer questions about boat services?",
+        "How can this capture leads after hours?",
+        "Can voice AI reduce missed calls?",
+      ],
+      general: [
+        "What can Aspen do for my business?",
+        "How do AI chat and voice work together?",
+        "Can I schedule a 15-minute walkthrough?",
+      ],
+    };
+
+    return nichePrompts[businessNiche] ?? nichePrompts.general;
+  }, [businessNiche]);
 
   const getGreeting = () => {
     const hour = new Date().getHours();
@@ -49,11 +102,15 @@ const ChatWidget = ({
     if (initialized.current) return;
     initialized.current = true;
 
-    const nameGreet = callerName ? `, ${callerName.split(" ")[0]}` : "";
+    const firstName = callerName?.split(" ")[0]?.trim();
+    const nameGreet = firstName ? `, ${firstName}` : "";
+
     setMessages([
       {
         role: "assistant",
-        content: `${getGreeting()}${nameGreet}! 👋 I'm Aspen, the AI assistant for ${businessName}. This is a live demonstration of our AI chat capability — imagine this widget right on your website, answering customer questions 24/7, booking appointments, and capturing leads.\n\nHow can I help you today? Feel free to ask about our services, what we can do for your business, or anything else!`,
+        content: `${getGreeting()}${nameGreet}! 👋 I'm Aspen, the AI assistant for ${businessName}. This is a live demo of how AI chat + AI voice can work on your website to answer questions, capture leads, and book appointments.
+
+Tap a suggestion below or ask me anything.`,
       },
     ]);
   }, [businessName, callerName]);
@@ -65,74 +122,111 @@ IMPORTANT CONTEXT:
 - Business: ${businessName}
 - Industry: ${businessNiche}
 - Website: ${websiteUrl}
+- Business owner name: ${ownerLabel}
 - Caller name: ${callerName || "Unknown"}
 - Caller email: ${callerEmail || "Not provided"}
 - Caller phone: ${callerPhone || "Not provided"}
 
 BUSINESS KNOWLEDGE:
-${businessInfo?.substring(0, 4000) || "A professional business offering quality services."}
+${businessInfo?.substring(0, 5000) || "A professional business offering quality services."}
 
 PERSONALITY:
-- Be friendly, quick, conversational, clever, and fun to talk to.
-- Use the caller's first name naturally (not every message).
-- Light humor is welcome. Be playful and personable.
-- Keep responses concise — 1-3 sentences usually.
+- Be friendly, quick, conversational, clever, and natural.
+- Keep responses concise: usually 1-3 short sentences.
+- Use caller name naturally when useful.
+- Light humor is welcome, never sarcastic or rude.
 
-DEMO AWARENESS:
-- This is a demonstration of our AI chat technology. If asked, explain that this widget can be embedded on any website.
-- Mention our services: AI Chat Assistant, AI Voice Assistant, website redesign, and lead capture.
-- The owner is Ron Melo. Offer to connect the caller with Ron for a deeper discussion.
-- If the caller wants to schedule something, suggest booking a 15-minute demo with Ron.
+DEMO CONTEXT:
+- This is a demonstration overlay on a website screenshot.
+- Mention capabilities naturally: AI chat, AI voice, lead capture, and appointment booking.
+- If asked for a human, offer a callback or a 15-minute appointment with ${ownerLabel}.
 
 EMAIL CONFIRMATION:
-- You have the caller's email on file: ${callerEmail || "not provided"}.
-- If relevant, confirm: "I have your email as ${callerEmail}. Is that the best one to reach you?"
-- If they provide a different email, acknowledge it.
+- If caller email exists, occasionally confirm: "I have your email as ${callerEmail || "not provided"}. Is that correct?"
+- If caller gives a new email, acknowledge and use the updated one.
 
-Be specific to ${businessName}'s actual industry and services. Never talk about unrelated industries.`;
+INDUSTRY FALLBACK:
+- If business info is thin, still answer intelligently using common ${businessNiche} best practices.
+- Never invent unrelated industries.`;
 
-    try {
-      const { data, error } = await supabase.functions.invoke("retell-web-call", {
-        body: {
-          action: "chat-completion",
-          systemPrompt,
-          messages: conversationHistory.map((m) => ({ role: m.role, content: m.content })),
-        },
+    const { data, error } = await supabase.functions.invoke("retell-web-call", {
+      body: {
+        action: "chat-completion",
+        systemPrompt,
+        messages: conversationHistory.map((m) => ({ role: m.role, content: m.content })),
+      },
+    });
+
+    if (error || !data?.content) {
+      throw new Error(error?.message || "No response");
+    }
+
+    return data.content as string;
+  };
+
+  const typeAssistantResponse = useCallback(async (response: string) => {
+    setIsStreaming(true);
+    setMessages((prev) => [...prev, { role: "assistant", content: "" }]);
+
+    const chunks = response.split(/(\s+)/);
+    let built = "";
+
+    for (const chunk of chunks) {
+      if (!mounted.current) return;
+      built += chunk;
+
+      setMessages((prev) => {
+        if (!prev.length) return prev;
+        const next = [...prev];
+        const lastIndex = next.length - 1;
+        if (next[lastIndex]?.role === "assistant") {
+          next[lastIndex] = { ...next[lastIndex], content: built };
+        }
+        return next;
       });
 
-      if (error || !data?.content) {
-        throw new Error(error?.message || "No response");
-      }
-
-      return data.content as string;
-    } catch (err) {
-      console.error("Chat AI error:", err);
-      // Fallback response
-      const fallbacks = [
-        `Great question! At ${businessName}, we pride ourselves on providing top-notch service. Would you like me to set up a quick call with Ron Melo to discuss further?`,
-        `I'd love to help with that! Based on what I know about ${businessName}, I think we can definitely assist. Want me to schedule a 15-minute demo?`,
-        `Thanks for asking${callerName ? `, ${callerName.split(" ")[0]}` : ""}! Let me connect you with Ron Melo — he'd be the best person to walk you through the specifics.`,
-      ];
-      return fallbacks[Math.floor(Math.random() * fallbacks.length)];
+      const delay = chunk.trim().length === 0 ? 12 : Math.min(85, Math.max(22, chunk.length * 10));
+      await sleep(delay);
     }
-  };
 
-  const handleSend = async () => {
-    if (!input.trim() || isTyping) return;
-    const userMsg = input.trim();
-    setInput("");
+    if (mounted.current) {
+      setIsStreaming(false);
+    }
+  }, []);
+
+  const handleSend = useCallback(async (prefill?: string) => {
+    const userMsg = (prefill ?? input).trim();
+    if (!userMsg || isBusy) return;
+
+    if (!prefill) {
+      setInput("");
+    }
+
     const updated = [...messages, { role: "user" as const, content: userMsg }];
     setMessages(updated);
-    setIsTyping(true);
+    setIsThinking(true);
 
-    const response = await sendToAI(updated);
-    setMessages((prev) => [...prev, { role: "assistant", content: response }]);
-    setIsTyping(false);
-  };
+    try {
+      const response = await sendToAI(updated);
+      if (!mounted.current) return;
+
+      await sleep(350);
+      setIsThinking(false);
+      await typeAssistantResponse(response);
+    } catch (err) {
+      console.error("Chat AI error:", err);
+      if (!mounted.current) return;
+
+      setIsThinking(false);
+      const fallback = `Great question. I can help with that and also arrange a callback or a 15-minute demo with ${ownerLabel}.`;
+      await typeAssistantResponse(fallback);
+    }
+  }, [input, isBusy, messages, ownerLabel, typeAssistantResponse]);
+
+  const userHasMessaged = messages.some((m) => m.role === "user");
 
   return (
     <div className="rounded-2xl border border-accent/20 bg-card shadow-2xl overflow-hidden">
-      {/* Header */}
       <div className="flex items-center justify-between px-4 py-3 bg-accent/10 border-b border-accent/20">
         <div className="flex items-center gap-2.5">
           <div className="relative">
@@ -153,7 +247,6 @@ Be specific to ${businessName}'s actual industry and services. Never talk about 
         )}
       </div>
 
-      {/* Messages */}
       <div className="max-h-80 overflow-y-auto p-3 space-y-2.5">
         {messages.map((msg, i) => (
           <div key={i} className={`flex gap-2 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
@@ -177,33 +270,51 @@ Be specific to ${businessName}'s actual industry and services. Never talk about 
             </div>
           </div>
         ))}
-        {isTyping && (
+
+        {!userHasMessaged && (
+          <div className="ml-8 flex flex-wrap gap-2 pt-1">
+            {quickPrompts.map((prompt) => (
+              <button
+                key={prompt}
+                type="button"
+                onClick={() => void handleSend(prompt)}
+                disabled={isBusy}
+                className="rounded-full border border-border bg-secondary px-3 py-1.5 text-[11px] font-medium text-foreground transition-colors hover:bg-secondary/80 disabled:opacity-50"
+              >
+                {prompt}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {isThinking && (
           <div className="flex gap-2">
             <div className="flex h-6 w-6 items-center justify-center rounded-full bg-accent/20">
               <Bot className="h-3.5 w-3.5 text-accent" />
             </div>
             <div className="flex items-center gap-1 rounded-xl bg-accent/10 px-3 py-2">
-              <Loader2 className="h-3 w-3 animate-spin text-accent" />
-              <span className="text-xs text-muted-foreground">Aspen is typing...</span>
+              <span className="h-1.5 w-1.5 rounded-full bg-accent animate-bounce [animation-delay:-0.2s]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-accent animate-bounce [animation-delay:-0.1s]" />
+              <span className="h-1.5 w-1.5 rounded-full bg-accent animate-bounce" />
             </div>
           </div>
         )}
         <div ref={messagesEndRef} />
       </div>
 
-      {/* Input */}
       <div className="flex gap-2 p-3 border-t border-border">
         <input
           type="text"
           value={input}
           onChange={(e) => setInput(e.target.value)}
-          onKeyDown={(e) => e.key === "Enter" && handleSend()}
-          placeholder="Type a message..."
+          onKeyDown={(e) => e.key === "Enter" && void handleSend()}
+          placeholder="Ask Aspen anything..."
           className="flex-1 rounded-lg border border-border bg-background/50 px-3 py-2 text-sm outline-none focus:border-accent/50"
+          disabled={isBusy}
         />
         <button
-          onClick={handleSend}
-          disabled={!input.trim() || isTyping}
+          onClick={() => void handleSend()}
+          disabled={!input.trim() || isBusy}
           className="flex items-center justify-center rounded-lg bg-accent px-3 py-2 text-accent-foreground transition-colors hover:bg-accent/90 disabled:opacity-50"
         >
           <Send className="h-4 w-4" />

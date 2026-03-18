@@ -1,7 +1,20 @@
 import { useState, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
-import { Rocket, ArrowRight, Globe, Phone, User, Loader2, Mail, Upload, X, FileText, Link2 } from "lucide-react";
+import {
+  Rocket,
+  ArrowRight,
+  Globe,
+  Phone,
+  User,
+  Loader2,
+  Mail,
+  Upload,
+  X,
+  FileText,
+  Link2,
+  Building2,
+} from "lucide-react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -22,9 +35,18 @@ const ALLOWED_TYPES = [
   "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
 ];
 
+const optionalEmailSchema = z
+  .string()
+  .trim()
+  .max(255, "Email is too long")
+  .refine((value) => value.length === 0 || z.string().email().safeParse(value).success, {
+    message: "Please enter a valid email address",
+  });
+
 const leadFormSchema = z.object({
   name: z.string().trim().min(1, "Please enter your name").max(100, "Name is too long"),
-  email: z.string().trim().email("Please enter a valid email address").max(255, "Email is too long"),
+  businessName: z.string().trim().min(1, "Please enter your business name").max(150, "Business name is too long"),
+  email: optionalEmailSchema,
   website: z.string().trim().min(1, "Please enter your website URL").max(255, "Website URL is too long"),
   phone: z.string().trim().max(30, "Phone number is too long").optional().or(z.literal("")),
   secondaryUrl: z.string().trim().max(255, "URL is too long").optional().or(z.literal("")),
@@ -44,6 +66,7 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState({
     name: "",
+    businessName: "",
     email: "",
     website: "",
     phone: "",
@@ -101,14 +124,21 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
 
     setIsSubmitting(true);
     try {
-      const { data: lead, error } = await supabase.from("leads").insert({
-        full_name: parsed.data.name,
-        email: parsed.data.email,
-        website_url: parsed.data.website,
-        phone: parsed.data.phone || null,
-        secondary_url: parsed.data.secondaryUrl || null,
-        niche: selectedNiche.id,
-      }).select("id").single();
+      const { data: lead, error } = await supabase
+        .from("leads")
+        .insert([
+          {
+            business_name: parsed.data.businessName,
+            full_name: parsed.data.name,
+            email: parsed.data.email || null,
+            website_url: parsed.data.website,
+            phone: parsed.data.phone || null,
+            secondary_url: parsed.data.secondaryUrl || null,
+            niche: selectedNiche.id,
+          },
+        ])
+        .select("id")
+        .single();
 
       if (error) throw error;
 
@@ -126,6 +156,7 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
         body: {
           leadId: lead.id,
           websiteUrl: parsed.data.website,
+          businessName: parsed.data.businessName,
           secondaryUrl: parsed.data.secondaryUrl || null,
           uploadedFiles: filePaths,
           initialNiche: selectedNiche.id,
@@ -154,7 +185,8 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
 
         setScanData({
           fullName: updatedLead.full_name,
-          email: updatedLead.email,
+          businessName: updatedLead.business_name || parsed.data.businessName,
+          email: updatedLead.email || parsed.data.email || undefined,
           websiteUrl: updatedLead.website_url,
           phone: updatedLead.phone || parsed.data.phone,
           niche: updatedLead.niche || selectedNiche.id,
@@ -213,7 +245,7 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
               See Your AI Assistant <span className="text-gradient-primary">In Action</span>
             </h2>
             <p className="text-muted-foreground text-lg">
-              Enter your info below. In 60 seconds, you'll talk to an AI trained on your business and get the recap emailed back to you.
+              Enter your info below. In 60 seconds, you'll see your website screenshot with live AI chat and voice assistants.
             </p>
           </motion.div>
 
@@ -228,10 +260,10 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                  <User className="w-4 h-4 text-muted-foreground" /> Your Name
+                  <User className="w-4 h-4 text-muted-foreground" /> Your Name <span className="text-destructive">*</span>
                 </label>
                 <Input
-                  placeholder="Ron Melo"
+                  placeholder="Alex Johnson"
                   value={formData.name}
                   onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                   className="bg-secondary border-border"
@@ -240,13 +272,12 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-muted-foreground" /> Email Address
+                  <Building2 className="w-4 h-4 text-muted-foreground" /> Business Name <span className="text-destructive">*</span>
                 </label>
                 <Input
-                  type="email"
-                  placeholder="tony@example.com"
-                  value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  placeholder="Sunrise Dental Studio"
+                  value={formData.businessName}
+                  onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
                   className="bg-secondary border-border"
                   required
                 />
@@ -268,16 +299,29 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
               </div>
               <div className="space-y-2">
                 <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                  <Phone className="w-4 h-4 text-muted-foreground" /> Cell Phone for callback
+                  <Mail className="w-4 h-4 text-muted-foreground" /> Email Address <span className="text-xs text-muted-foreground">(optional)</span>
                 </label>
                 <Input
-                  type="tel"
-                  placeholder="(954) 555-1234"
-                  value={formData.phone}
-                  onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                  type="email"
+                  placeholder="owner@business.com"
+                  value={formData.email}
+                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
                   className="bg-secondary border-border"
                 />
               </div>
+            </div>
+
+            <div className="mb-4 space-y-2">
+              <label className="text-sm font-medium text-foreground flex items-center gap-2">
+                <Phone className="w-4 h-4 text-muted-foreground" /> Cell Phone for callback <span className="text-xs text-muted-foreground">(optional)</span>
+              </label>
+              <Input
+                type="tel"
+                placeholder="(954) 555-1234"
+                value={formData.phone}
+                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                className="bg-secondary border-border"
+              />
             </div>
 
             <div className="mb-4 space-y-2">
@@ -299,7 +343,10 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
               <div
                 className="rounded-xl border-2 border-dashed border-border bg-secondary/50 p-4 text-center cursor-pointer hover:border-primary/40 transition-colors"
                 onClick={() => fileInputRef.current?.click()}
-                onDragOver={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                onDragOver={(e) => {
+                  e.preventDefault();
+                  e.stopPropagation();
+                }}
                 onDrop={(e) => {
                   e.preventDefault();
                   e.stopPropagation();
@@ -363,7 +410,7 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
               )}
             </Button>
             <p className="text-xs text-muted-foreground text-center mt-2">
-              Use the email and phone where you want callback requests and call summaries sent.
+              Required: owner name, business name, and website URL. Email and phone are optional but recommended for recap + scheduling.
             </p>
           </motion.form>
         </div>

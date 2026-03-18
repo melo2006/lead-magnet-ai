@@ -25,16 +25,18 @@ const DemoSite = () => {
   if (!leadData) return null;
 
   const screenshotSrc = getImageSrc(leadData.screenshot);
-  const siteName = getSiteName(leadData.websiteUrl, leadData.title);
+  const siteName = leadData.businessName?.trim() || getSiteName(leadData.websiteUrl, leadData.title);
 
-  const chatInitX = 24;
-  const chatInitY = typeof window !== "undefined" ? window.innerHeight - 70 : 600;
-  const voiceInitX = typeof window !== "undefined" ? window.innerWidth - (isMobile ? 220 : 240) : 800;
+  const chatInitX = 20;
+  const chatInitY = typeof window !== "undefined" ? window.innerHeight - 96 : 640;
+  const voiceInitX =
+    typeof window !== "undefined"
+      ? Math.max(12, window.innerWidth - (isMobile ? 208 : 248))
+      : 800;
   const voiceInitY = chatInitY;
 
   return (
     <div className="relative min-h-screen bg-background">
-      {/* Top banner */}
       <div className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur-md px-4 py-2.5 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button
@@ -48,22 +50,36 @@ const DemoSite = () => {
           <span className="text-sm font-medium text-foreground">{siteName}</span>
         </div>
         <p className="text-xs text-muted-foreground hidden sm:block">
-          Drag the AI assistants anywhere on the page. This is a demo preview.
+          Demo overlay: drag the AI widgets to preview placement on this page.
         </p>
       </div>
 
-      {/* Full-page screenshot */}
-      <div className="w-full">
+      <div className="relative w-full">
         {screenshotSrc ? (
-          <img src={screenshotSrc} alt={`${siteName} website screenshot`} className="w-full h-auto" />
+          <img
+            src={screenshotSrc}
+            alt={`${siteName} website first-page screenshot`}
+            className="w-full h-auto"
+            loading="lazy"
+          />
         ) : (
           <div className="flex items-center justify-center h-[80vh] bg-muted">
             <p className="text-muted-foreground text-lg">Website screenshot unavailable</p>
           </div>
         )}
+
+        <div className="pointer-events-none absolute inset-0 overflow-hidden">
+          <div className="absolute inset-0 flex items-center justify-center">
+            <p className="select-none text-foreground/10 text-[clamp(2.2rem,9vw,7rem)] font-black tracking-[0.35em]">
+              DEMO
+            </p>
+          </div>
+          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full border border-border/70 bg-card/80 px-4 py-1 text-[11px] text-muted-foreground backdrop-blur-sm">
+            This is a static preview screenshot with live AI widget overlay.
+          </div>
+        </div>
       </div>
 
-      {/* Footer CTA */}
       <div className="border-t border-border bg-card px-6 py-8 text-center">
         <p className="text-muted-foreground text-sm mb-3">
           Impressed? These AI assistants can be added to any website in minutes.
@@ -76,8 +92,7 @@ const DemoSite = () => {
         </button>
       </div>
 
-      {/* ── Draggable Chat Widget (bottom-left) ── */}
-      <DraggableFloating initialX={chatInitX} initialY={chatInitY}>
+      <DraggableFloating initialX={chatInitX} initialY={chatInitY} dragLabel="Drag me">
         {chatOpen ? (
           <div className="w-80 sm:w-96 animate-in slide-in-from-bottom-4 fade-in duration-300">
             <ChatWidget
@@ -85,6 +100,7 @@ const DemoSite = () => {
               businessNiche={leadData.niche || "general"}
               websiteUrl={leadData.websiteUrl}
               businessInfo={leadData.websiteContent || leadData.description || ""}
+              ownerName={leadData.fullName}
               callerName={leadData.fullName}
               callerEmail={leadData.email}
               callerPhone={leadData.phone}
@@ -108,14 +124,13 @@ const DemoSite = () => {
         )}
       </DraggableFloating>
 
-      {/* ── Draggable Voice Widget (bottom-right) ── */}
-      <DraggableFloating initialX={voiceInitX} initialY={voiceInitY}>
+      <DraggableFloating initialX={voiceInitX} initialY={voiceInitY} dragLabel="Drag me">
         {voiceOpen ? (
           <div className="w-80 sm:w-96 animate-in slide-in-from-bottom-4 fade-in duration-300">
             <VoiceAgentWidget
               businessName={siteName}
               businessNiche={leadData.niche || "general"}
-              ownerName="Ron Melo"
+              ownerName={leadData.fullName}
               ownerEmail={leadData.email}
               ownerPhone={leadData.phone}
               websiteUrl={leadData.websiteUrl}
