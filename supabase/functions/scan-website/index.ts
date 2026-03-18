@@ -228,6 +228,39 @@ async function analyzeBusinessProfile({
   }
 }
 
+const NICHE_FALLBACK_KNOWLEDGE: Record<AllowedNiche, { services: string[]; trust: string[]; faqs: string[] }> = {
+  realtors: {
+    services: ['Buyer and seller representation', 'Listing strategy and market pricing', 'Showings and offer coordination'],
+    trust: ['Fast response to inbound leads', 'Neighborhood and market expertise', 'Transparent communication from first contact to closing'],
+    faqs: ['How quickly can I book a showing?', 'Can you help me price my home?', 'What neighborhoods fit my budget?'],
+  },
+  medspa: {
+    services: ['Consultations and treatment planning', 'Injectables and skincare programs', 'Follow-up care guidance'],
+    trust: ['Licensed, experienced providers', 'Comfort-first appointment experience', 'Clear aftercare and results expectations'],
+    faqs: ['Which treatment is best for my goals?', 'How long is recovery?', 'Do you offer consultations?'],
+  },
+  autodetail: {
+    services: ['Interior and exterior detailing', 'Paint correction and ceramic coating', 'Protection packages and maintenance plans'],
+    trust: ['Consistent quality and turnaround', 'Clear package recommendations', 'Protection-focused service approach'],
+    faqs: ['What package do you recommend?', 'How long does service take?', 'Do you offer ceramic coating?'],
+  },
+  veterinary: {
+    services: ['Wellness and preventive care', 'Vaccinations and diagnostics', 'Urgent pet concerns triage'],
+    trust: ['Compassionate pet-first communication', 'Clear care plans and follow-up', 'Responsive scheduling support'],
+    faqs: ['Do you accept new patients?', 'What should I do for urgent symptoms?', 'How do I schedule a visit?'],
+  },
+  marine: {
+    services: ['Routine boat maintenance', 'Engine diagnostics and repair', 'Seasonal prep and service scheduling'],
+    trust: ['Marine-specific technical expertise', 'Reliable turnaround windows', 'Clear recommendations and next steps'],
+    faqs: ['Can you service my engine type?', 'Do you offer seasonal packages?', 'How soon can I get on the schedule?'],
+  },
+  general: {
+    services: ['Consultation and needs assessment', 'Service recommendations by goal', 'Fast support and next-step guidance'],
+    trust: ['Prompt customer communication', 'Clear pricing and process expectations', 'Professional service delivery'],
+    faqs: ['What services do you offer?', 'How quickly can I get started?', 'What is your process?'],
+  },
+};
+
 const buildStructuredKnowledge = ({
   websiteUrl,
   profile,
