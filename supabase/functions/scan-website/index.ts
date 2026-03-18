@@ -301,7 +301,7 @@ Deno.serve(async (req) => {
   let supabase: ReturnType<typeof createClient> | null = null;
 
   try {
-    const { leadId: incomingLeadId, websiteUrl, secondaryUrl, uploadedFiles, initialNiche } = await req.json();
+    const { leadId: incomingLeadId, websiteUrl, businessName, secondaryUrl, uploadedFiles, initialNiche } = await req.json();
     leadId = incomingLeadId;
 
     if (!leadId || !websiteUrl) {
