@@ -9,7 +9,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { NicheData } from "@/data/nicheData";
 import ScanningAnimation from "./ScanningAnimation";
-import DemoResults from "./DemoResults";
+import type { DemoLeadData } from "./demo-results/demoResultsUtils";
 import type { DemoLeadData } from "./demo-results/demoResultsUtils";
 
 type ViewState = "form" | "scanning" | "results";
