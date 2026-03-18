@@ -19,8 +19,9 @@ export type Database = {
           brand_colors: Json | null
           brand_fonts: Json | null
           brand_logo: string | null
+          business_name: string
           created_at: string
-          email: string
+          email: string | null
           full_name: string
           id: string
           niche: string
@@ -40,8 +41,9 @@ export type Database = {
           brand_colors?: Json | null
           brand_fonts?: Json | null
           brand_logo?: string | null
+          business_name: string
           created_at?: string
-          email: string
+          email?: string | null
           full_name: string
           id?: string
           niche?: string
@@ -61,8 +63,9 @@ export type Database = {
           brand_colors?: Json | null
           brand_fonts?: Json | null
           brand_logo?: string | null
+          business_name?: string
           created_at?: string
-          email?: string
+          email?: string | null
           full_name?: string
           id?: string
           niche?: string

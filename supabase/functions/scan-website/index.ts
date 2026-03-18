@@ -116,6 +116,7 @@ async function scrapeMarkdownPage(url: string, apiKey: string) {
 async function analyzeBusinessProfile({
   lovableApiKey,
   websiteUrl,
+  providedBusinessName,
   initialNiche,
   title,
   description,
@@ -124,6 +125,7 @@ async function analyzeBusinessProfile({
 }: {
   lovableApiKey?: string | null;
   websiteUrl: string;
+  providedBusinessName?: string | null;
   initialNiche?: string | null;
   title?: string | null;
   description?: string | null;
@@ -131,7 +133,7 @@ async function analyzeBusinessProfile({
   combinedContent: string;
 }) {
   const fallbackNiche = inferNicheFromKeywords(`${title ?? ''}\n${description ?? ''}\n${combinedContent}`, initialNiche);
-  const fallbackName = cleanText(title) || getHost(websiteUrl) || 'This business';
+  const fallbackName = cleanText(providedBusinessName) || cleanText(title) || getHost(websiteUrl) || 'This business';
   const fallbackSummary = cleanText(description) || `Modern, clearer positioning for ${fallbackName}.`;
 
   if (!lovableApiKey) {
@@ -152,6 +154,7 @@ async function analyzeBusinessProfile({
   const source = truncate(
     [
       `Website URL: ${websiteUrl}`,
+      providedBusinessName ? `Business name from form: ${providedBusinessName}` : '',
       title ? `Title: ${title}` : '',
       description ? `Description: ${description}` : '',
       homepageMarkdown ? `Homepage content:\n${homepageMarkdown}` : '',
@@ -225,6 +228,39 @@ async function analyzeBusinessProfile({
   }
 }
 
+const NICHE_FALLBACK_KNOWLEDGE: Record<AllowedNiche, { services: string[]; trust: string[]; faqs: string[] }> = {
+  realtors: {
+    services: ['Buyer and seller representation', 'Listing strategy and market pricing', 'Showings and offer coordination'],
+    trust: ['Fast response to inbound leads', 'Neighborhood and market expertise', 'Transparent communication from first contact to closing'],
+    faqs: ['How quickly can I book a showing?', 'Can you help me price my home?', 'What neighborhoods fit my budget?'],
+  },
+  medspa: {
+    services: ['Consultations and treatment planning', 'Injectables and skincare programs', 'Follow-up care guidance'],
+    trust: ['Licensed, experienced providers', 'Comfort-first appointment experience', 'Clear aftercare and results expectations'],
+    faqs: ['Which treatment is best for my goals?', 'How long is recovery?', 'Do you offer consultations?'],
+  },
+  autodetail: {
+    services: ['Interior and exterior detailing', 'Paint correction and ceramic coating', 'Protection packages and maintenance plans'],
+    trust: ['Consistent quality and turnaround', 'Clear package recommendations', 'Protection-focused service approach'],
+    faqs: ['What package do you recommend?', 'How long does service take?', 'Do you offer ceramic coating?'],
+  },
+  veterinary: {
+    services: ['Wellness and preventive care', 'Vaccinations and diagnostics', 'Urgent pet concerns triage'],
+    trust: ['Compassionate pet-first communication', 'Clear care plans and follow-up', 'Responsive scheduling support'],
+    faqs: ['Do you accept new patients?', 'What should I do for urgent symptoms?', 'How do I schedule a visit?'],
+  },
+  marine: {
+    services: ['Routine boat maintenance', 'Engine diagnostics and repair', 'Seasonal prep and service scheduling'],
+    trust: ['Marine-specific technical expertise', 'Reliable turnaround windows', 'Clear recommendations and next steps'],
+    faqs: ['Can you service my engine type?', 'Do you offer seasonal packages?', 'How soon can I get on the schedule?'],
+  },
+  general: {
+    services: ['Consultation and needs assessment', 'Service recommendations by goal', 'Fast support and next-step guidance'],
+    trust: ['Prompt customer communication', 'Clear pricing and process expectations', 'Professional service delivery'],
+    faqs: ['What services do you offer?', 'How quickly can I get started?', 'What is your process?'],
+  },
+};
+
 const buildStructuredKnowledge = ({
   websiteUrl,
   profile,
@@ -265,7 +301,7 @@ Deno.serve(async (req) => {
   let supabase: ReturnType<typeof createClient> | null = null;
 
   try {
-    const { leadId: incomingLeadId, websiteUrl, secondaryUrl, uploadedFiles, initialNiche } = await req.json();
+    const { leadId: incomingLeadId, websiteUrl, businessName, secondaryUrl, uploadedFiles, initialNiche } = await req.json();
     leadId = incomingLeadId;
 
     if (!leadId || !websiteUrl) {
@@ -304,7 +340,7 @@ Deno.serve(async (req) => {
 
     const homepageResponse = await firecrawlRequest('/scrape', firecrawlKey, {
       url: formattedUrl,
-      formats: ['markdown', 'screenshot', 'branding', 'links', 'summary'],
+      formats: ['markdown', 'screenshot@fullPage', 'branding', 'links', 'summary'],
       onlyMainContent: false,
       waitFor: 3500,
     });
@@ -379,6 +415,7 @@ Deno.serve(async (req) => {
     const profile = await analyzeBusinessProfile({
       lovableApiKey,
       websiteUrl: formattedUrl,
+      providedBusinessName: cleanText(businessName),
       initialNiche,
       title: cleanText(metadata.title),
       description: cleanText(metadata.description),
