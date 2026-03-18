@@ -116,6 +116,7 @@ async function scrapeMarkdownPage(url: string, apiKey: string) {
 async function analyzeBusinessProfile({
   lovableApiKey,
   websiteUrl,
+  providedBusinessName,
   initialNiche,
   title,
   description,
@@ -124,6 +125,7 @@ async function analyzeBusinessProfile({
 }: {
   lovableApiKey?: string | null;
   websiteUrl: string;
+  providedBusinessName?: string | null;
   initialNiche?: string | null;
   title?: string | null;
   description?: string | null;
@@ -131,7 +133,7 @@ async function analyzeBusinessProfile({
   combinedContent: string;
 }) {
   const fallbackNiche = inferNicheFromKeywords(`${title ?? ''}\n${description ?? ''}\n${combinedContent}`, initialNiche);
-  const fallbackName = cleanText(title) || getHost(websiteUrl) || 'This business';
+  const fallbackName = cleanText(providedBusinessName) || cleanText(title) || getHost(websiteUrl) || 'This business';
   const fallbackSummary = cleanText(description) || `Modern, clearer positioning for ${fallbackName}.`;
 
   if (!lovableApiKey) {
@@ -152,6 +154,7 @@ async function analyzeBusinessProfile({
   const source = truncate(
     [
       `Website URL: ${websiteUrl}`,
+      providedBusinessName ? `Business name from form: ${providedBusinessName}` : '',
       title ? `Title: ${title}` : '',
       description ? `Description: ${description}` : '',
       homepageMarkdown ? `Homepage content:\n${homepageMarkdown}` : '',
