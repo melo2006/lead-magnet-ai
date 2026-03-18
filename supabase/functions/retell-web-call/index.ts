@@ -573,6 +573,46 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const action = body.action || 'create-web-call';
 
+    if (action === 'chat-completion') {
+      const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+      if (!lovableApiKey) {
+        return jsonResponse({ error: 'LOVABLE_API_KEY not configured' }, 500);
+      }
+
+      const systemPrompt = body.systemPrompt || 'You are a helpful assistant.';
+      const chatMessages = Array.isArray(body.messages) ? body.messages : [];
+
+      try {
+        const response = await fetch(LOVABLE_AI_BASE, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${lovableApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            temperature: 0.7,
+            messages: [
+              { role: 'system', content: systemPrompt },
+              ...chatMessages,
+            ],
+          }),
+        });
+
+        const completion = await response.json().catch(() => null);
+        if (!response.ok) {
+          throw new Error(`AI chat failed [${response.status}]: ${JSON.stringify(completion)}`);
+        }
+
+        const content = completion?.choices?.[0]?.message?.content || 'I apologize, I had trouble processing that. Could you try again?';
+
+        return jsonResponse({ success: true, content });
+      } catch (err) {
+        console.error('Chat completion error:', err);
+        return jsonResponse({ error: err instanceof Error ? err.message : 'Chat failed' }, 500);
+      }
+    }
+
     if (action === 'email-call-summary') {
       const resendApiKey = Deno.env.get('RESEND_API_KEY');
       if (!resendApiKey) {
@@ -694,6 +734,8 @@ Deno.serve(async (req) => {
       websiteUrl,
       businessInfo,
       ownerPhone,
+      callerName,
+      callerEmail,
     } = body;
 
     if (!agentId) {
@@ -721,6 +763,8 @@ Deno.serve(async (req) => {
           website_url: websiteUrl || '',
           business_info: (businessInfo || 'A professional business offering quality services.').substring(0, 6000),
           owner_phone: normalizedOwnerPhone || '',
+          caller_name: callerName || '',
+          caller_email: callerEmail || '',
         },
         metadata: {
           niche: businessNiche || 'general',
