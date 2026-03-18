@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Rocket, ArrowRight, Globe, Phone, User, Loader2, Mail, Upload, X, FileText, Link2 } from "lucide-react";
 import { z } from "zod";
@@ -8,7 +9,6 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import type { NicheData } from "@/data/nicheData";
 import ScanningAnimation from "./ScanningAnimation";
-import DemoResults from "./DemoResults";
 import type { DemoLeadData } from "./demo-results/demoResultsUtils";
 
 type ViewState = "form" | "scanning" | "results";
@@ -36,6 +36,7 @@ interface LeadCaptureSectionProps {
 
 const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
   const { toast } = useToast();
+  const navigate = useNavigate();
   const [viewState, setViewState] = useState<ViewState>("form");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [scanData, setScanData] = useState<DemoLeadData | null>(null);
@@ -175,31 +176,17 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
   };
 
   const handleScanComplete = useCallback(() => {
-    setViewState("results");
-  }, []);
-
-  const handleBack = () => {
+    if (scanData) {
+      navigate("/demo", { state: { leadData: scanData } });
+    }
     setViewState("form");
-    setFormData({ name: "", email: "", website: "", phone: "", secondaryUrl: "" });
-    setFiles([]);
-    setScanData(null);
-  };
+  }, [scanData, navigate]);
 
   if (viewState === "scanning") {
     return (
       <section id="demo-form" className="py-12 sm:py-16 relative">
         <div className="container mx-auto px-4 sm:px-6 relative z-10">
           <ScanningAnimation websiteUrl={formData.website} onComplete={handleScanComplete} />
-        </div>
-      </section>
-    );
-  }
-
-  if (viewState === "results" && scanData) {
-    return (
-      <section id="demo-form" className="py-12 sm:py-16 relative">
-        <div className="container mx-auto px-4 sm:px-6 relative z-10">
-          <DemoResults leadData={scanData} onBack={handleBack} />
         </div>
       </section>
     );
