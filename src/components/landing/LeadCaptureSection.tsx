@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import { Rocket, ArrowRight, Globe, Phone, User, Loader2, Mail, Upload, X, FileText, Link2 } from "lucide-react";
 import { z } from "zod";
