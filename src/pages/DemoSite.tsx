@@ -5,6 +5,8 @@ import type { DemoLeadData } from "@/components/landing/demo-results/demoResults
 import { getImageSrc, getSiteName } from "@/components/landing/demo-results/demoResultsUtils";
 import VoiceAgentWidget from "@/components/landing/demo-results/VoiceAgentWidget";
 import ChatWidget from "@/components/landing/demo-results/ChatWidget";
+import DraggableFloating from "@/components/landing/demo-results/DraggableFloating";
+import { useIsMobile } from "@/hooks/use-mobile";
 
 const DemoSite = () => {
   const location = useLocation();
@@ -12,6 +14,7 @@ const DemoSite = () => {
   const leadData = location.state?.leadData as DemoLeadData | undefined;
   const [chatOpen, setChatOpen] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
+  const isMobile = useIsMobile();
 
   useEffect(() => {
     if (!leadData) {
@@ -23,6 +26,11 @@ const DemoSite = () => {
 
   const screenshotSrc = getImageSrc(leadData.screenshot);
   const siteName = getSiteName(leadData.websiteUrl, leadData.title);
+
+  const chatInitX = 24;
+  const chatInitY = typeof window !== "undefined" ? window.innerHeight - 70 : 600;
+  const voiceInitX = typeof window !== "undefined" ? window.innerWidth - (isMobile ? 220 : 240) : 800;
+  const voiceInitY = chatInitY;
 
   return (
     <div className="relative min-h-screen bg-background">
@@ -40,18 +48,14 @@ const DemoSite = () => {
           <span className="text-sm font-medium text-foreground">{siteName}</span>
         </div>
         <p className="text-xs text-muted-foreground hidden sm:block">
-          This is a demo preview — the floating AI assistants show what your website could look like with our technology.
+          Drag the AI assistants anywhere on the page. This is a demo preview.
         </p>
       </div>
 
-      {/* Full-page screenshot as static background */}
+      {/* Full-page screenshot */}
       <div className="w-full">
         {screenshotSrc ? (
-          <img
-            src={screenshotSrc}
-            alt={`${siteName} website screenshot`}
-            className="w-full h-auto"
-          />
+          <img src={screenshotSrc} alt={`${siteName} website screenshot`} className="w-full h-auto" />
         ) : (
           <div className="flex items-center justify-center h-[80vh] bg-muted">
             <p className="text-muted-foreground text-lg">Website screenshot unavailable</p>
@@ -72,10 +76,10 @@ const DemoSite = () => {
         </button>
       </div>
 
-      {/* ── Floating Chat Button (bottom-left) ── */}
-      <div className="fixed bottom-6 left-6 z-50">
+      {/* ── Draggable Chat Widget (bottom-left) ── */}
+      <DraggableFloating initialX={chatInitX} initialY={chatInitY}>
         {chatOpen ? (
-          <div className="mb-3 w-80 sm:w-96 animate-in slide-in-from-bottom-4 fade-in duration-300">
+          <div className="w-80 sm:w-96 animate-in slide-in-from-bottom-4 fade-in duration-300">
             <ChatWidget
               businessName={siteName}
               businessNiche={leadData.niche || "general"}
@@ -102,12 +106,12 @@ const DemoSite = () => {
             </div>
           </button>
         )}
-      </div>
+      </DraggableFloating>
 
-      {/* ── Floating Voice Button (bottom-right) ── */}
-      <div className="fixed bottom-6 right-6 z-50">
+      {/* ── Draggable Voice Widget (bottom-right) ── */}
+      <DraggableFloating initialX={voiceInitX} initialY={voiceInitY}>
         {voiceOpen ? (
-          <div className="mb-3 w-80 sm:w-96 animate-in slide-in-from-bottom-4 fade-in duration-300">
+          <div className="w-80 sm:w-96 animate-in slide-in-from-bottom-4 fade-in duration-300">
             <VoiceAgentWidget
               businessName={siteName}
               businessNiche={leadData.niche || "general"}
@@ -136,7 +140,7 @@ const DemoSite = () => {
             </div>
           </button>
         )}
-      </div>
+      </DraggableFloating>
     </div>
   );
 };
