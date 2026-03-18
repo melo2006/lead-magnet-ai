@@ -734,6 +734,8 @@ Deno.serve(async (req) => {
       websiteUrl,
       businessInfo,
       ownerPhone,
+      callerName,
+      callerEmail,
     } = body;
 
     if (!agentId) {
