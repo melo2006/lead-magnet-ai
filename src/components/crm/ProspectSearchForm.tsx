@@ -331,6 +331,22 @@ const ProspectSearchForm = ({ onSearch, isSearching }: Props) => {
         </div>
       </div>
 
+      {/* Progress Bar */}
+      {batchProgress && (
+        <div className="space-y-1.5">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-muted-foreground">Searching niche {batchProgress.current} of {batchProgress.total}...</span>
+            <span className="font-mono text-primary font-semibold">{Math.round((batchProgress.current / batchProgress.total) * 100)}%</span>
+          </div>
+          <div className="h-2 rounded-full bg-secondary overflow-hidden">
+            <div
+              className="h-full rounded-full bg-primary transition-all duration-500"
+              style={{ width: `${(batchProgress.current / batchProgress.total) * 100}%` }}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Search Button */}
       <button
         onClick={() => handleSearch()}

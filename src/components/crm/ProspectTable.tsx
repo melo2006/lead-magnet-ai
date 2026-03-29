@@ -5,7 +5,7 @@ import {
   ChevronDown, ChevronUp, Flame, Thermometer, Snowflake,
   Brain, Loader2, CheckSquare, Square, Mail, Send,
   ArrowUpDown, Gauge, ChevronLeft, ChevronRight,
-  Linkedin, Facebook, Instagram, User, Smartphone
+  Linkedin, Facebook, Instagram, Smartphone
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
