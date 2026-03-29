@@ -44,6 +44,8 @@ export interface Prospect {
   search_query: string;
   search_location: string;
   search_radius: number;
+  ai_analysis?: string;
+  ai_analyzed?: boolean;
   created_at?: string;
   updated_at?: string;
 }
