@@ -298,7 +298,7 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
                 <Input
                   placeholder="https://yourwebsite.com"
                   value={formData.website}
-                  onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                  onChange={(e) => updateFormData({ website: e.target.value })}
                   className="bg-secondary border-border"
                   required
                 />
