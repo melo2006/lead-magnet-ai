@@ -31,6 +31,7 @@ Deno.serve(async (req) => {
 
     let html = '';
     let markdown = '';
+    let websiteScreenshot = '';
     let hasChatWidget = false;
     let hasVoiceAi = false;
     let hasOnlineBooking = false;
