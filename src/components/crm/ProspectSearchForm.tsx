@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { Search, MapPin, Crosshair, Loader2, ChevronDown, ChevronUp } from "lucide-react";
 import { toast } from "sonner";
-import { Checkbox } from "@/components/ui/checkbox";
+
 import type { SearchParams } from "@/hooks/useProspectSearch";
 
 const NICHE_CATEGORIES = [
