@@ -74,22 +74,47 @@ const pickRelevantLinks = (links: string[], rootUrl: string) => {
     .slice(0, 6);
 };
 
-async function firecrawlRequest(path: string, apiKey: string, body: Record<string, unknown>) {
-  const response = await fetch(`${FIRECRAWL_BASE}${path}`, {
-    method: 'POST',
-    headers: {
-      'Authorization': `Bearer ${apiKey}`,
-      'Content-Type': 'application/json',
-    },
-    body: JSON.stringify(body),
-  });
+async function firecrawlRequest(path: string, apiKey: string, body: Record<string, unknown>, retries = 2): Promise<any> {
+  let lastError: Error | null = null;
 
-  const data = await response.json().catch(() => null);
-  if (!response.ok) {
-    throw new Error(`Firecrawl error [${response.status}]: ${JSON.stringify(data)}`);
+  for (let attempt = 0; attempt <= retries; attempt++) {
+    // Increase timeout on each retry
+    const requestBody = { ...body };
+    if (attempt > 0) {
+      requestBody.timeout = 60000; // 60s on retries
+      // Drop heavy formats on retry to reduce timeout risk
+      if (Array.isArray(requestBody.formats)) {
+        requestBody.formats = (requestBody.formats as string[]).filter(
+          (f: string) => !f.startsWith('screenshot')
+        );
+      }
+      console.log(`Firecrawl retry ${attempt} for ${path} (simplified formats)`);
+    }
+
+    const response = await fetch(`${FIRECRAWL_BASE}${path}`, {
+      method: 'POST',
+      headers: {
+        'Authorization': `Bearer ${apiKey}`,
+        'Content-Type': 'application/json',
+      },
+      body: JSON.stringify(requestBody),
+    });
+
+    const data = await response.json().catch(() => null);
+
+    if (response.ok) return data;
+
+    lastError = new Error(`Firecrawl error [${response.status}]: ${JSON.stringify(data)}`);
+
+    // Only retry on timeout (408) or server errors (5xx)
+    const isRetryable = response.status === 408 || response.status >= 500;
+    if (!isRetryable || attempt === retries) break;
+
+    // Brief pause before retry
+    await new Promise((r) => setTimeout(r, 1500));
   }
 
-  return data;
+  throw lastError!;
 }
 
 async function scrapeMarkdownPage(url: string, apiKey: string) {
