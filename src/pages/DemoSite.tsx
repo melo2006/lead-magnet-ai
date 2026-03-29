@@ -66,9 +66,9 @@ const DemoSite = () => {
         // Now scan the website
         const { data, error } = await supabase.functions.invoke("scan-website", {
           body: {
-            url: urlParam,
+            websiteUrl: urlParam,
             leadId: insertedLead.id,
-            niche: nicheParam || "general",
+            initialNiche: nicheParam || "general",
             businessName: nameParam || "",
           },
         });
