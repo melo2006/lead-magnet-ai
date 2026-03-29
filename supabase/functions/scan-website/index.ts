@@ -138,6 +138,38 @@ async function scrapeMarkdownPage(url: string, apiKey: string) {
   };
 }
 
+async function webResearch(firecrawlKey: string, queries: string[]): Promise<string[]> {
+  const results: string[] = [];
+  for (const query of queries) {
+    try {
+      const response = await fetch(`${FIRECRAWL_BASE}/search`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${firecrawlKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query, limit: 5 }),
+      });
+      const data = await response.json().catch(() => null);
+      if (response.ok && Array.isArray(data?.data)) {
+        for (const item of data.data) {
+          const snippet = [
+            item.title ? `**${item.title}**` : '',
+            item.description || '',
+            item.markdown ? truncate(cleanText(item.markdown), 1500) : '',
+          ].filter(Boolean).join('\n');
+          if (snippet.length > 10) results.push(snippet);
+        }
+      }
+    } catch (err) {
+      console.warn(`Web research failed for query "${query}":`, err);
+    }
+    // Small delay between searches to avoid rate limits
+    await new Promise((r) => setTimeout(r, 800));
+  }
+  return results;
+}
+
 async function analyzeBusinessProfile({
   lovableApiKey,
   websiteUrl,
@@ -173,6 +205,9 @@ async function analyzeBusinessProfile({
       toneKeywords: ['friendly', 'helpful', 'clear'],
       audience: '',
       callGoals: ['Answer questions clearly', 'Guide the caller to the next step'],
+      pricing: [],
+      competitors: [],
+      reviews: [],
     };
   }
 
@@ -204,7 +239,7 @@ async function analyzeBusinessProfile({
           {
             role: 'system',
             content:
-              'Extract a business profile from website content. Return strict JSON with these keys only: businessName (string), detectedNiche (string), summary (string), serviceArea (string), serviceHighlights (array of up to 6 short strings), trustSignals (array of up to 6 short strings), faqs (array of up to 4 short strings), toneKeywords (array of up to 5 short strings), audience (string), callGoals (array of up to 4 short strings). detectedNiche must be one of: realtors, medspa, autodetail, veterinary, marine, general. Use the form niche only as a weak hint. If the website contradicts it, override it. Never default to realtors unless the content clearly indicates real estate.',
+              'Extract a comprehensive business profile from website content. Return strict JSON with these keys only: businessName (string), detectedNiche (string), summary (string), serviceArea (string with city/region/state), serviceHighlights (array of up to 8 short strings describing specific services offered), trustSignals (array of up to 6 short strings), faqs (array of up to 6 question strings a typical caller would ask), toneKeywords (array of up to 5 short strings), audience (string describing target customers), callGoals (array of up to 4 short strings), pricing (array of up to 6 strings with any pricing info found e.g. "Kitchen remodel: $15k-$50k"), competitors (array of up to 3 competitor company names if mentioned). detectedNiche must be one of: realtors, medspa, autodetail, veterinary, marine, general. Use the form niche only as a weak hint. If the website contradicts it, override it. Never default to realtors unless the content clearly indicates real estate. For serviceArea, extract the specific city, region, or metro area they serve.',
           },
           {
             role: 'user',
@@ -229,12 +264,15 @@ async function analyzeBusinessProfile({
       detectedNiche: mapDetectedNiche(parsed.detectedNiche, fallbackNiche),
       summary: cleanText(parsed.summary) || fallbackSummary,
       serviceArea: cleanText(parsed.serviceArea),
-      serviceHighlights: Array.isArray(parsed.serviceHighlights) ? unique(parsed.serviceHighlights.map((item: string) => cleanText(item))).slice(0, 6) : [],
+      serviceHighlights: Array.isArray(parsed.serviceHighlights) ? unique(parsed.serviceHighlights.map((item: string) => cleanText(item))).slice(0, 8) : [],
       trustSignals: Array.isArray(parsed.trustSignals) ? unique(parsed.trustSignals.map((item: string) => cleanText(item))).slice(0, 6) : [],
-      faqs: Array.isArray(parsed.faqs) ? unique(parsed.faqs.map((item: string) => cleanText(item))).slice(0, 4) : [],
+      faqs: Array.isArray(parsed.faqs) ? unique(parsed.faqs.map((item: string) => cleanText(item))).slice(0, 6) : [],
       toneKeywords: Array.isArray(parsed.toneKeywords) ? unique(parsed.toneKeywords.map((item: string) => cleanText(item))).slice(0, 5) : ['friendly', 'helpful', 'clear'],
       audience: cleanText(parsed.audience),
       callGoals: Array.isArray(parsed.callGoals) ? unique(parsed.callGoals.map((item: string) => cleanText(item))).slice(0, 4) : ['Answer questions clearly', 'Guide the caller to the next step'],
+      pricing: Array.isArray(parsed.pricing) ? unique(parsed.pricing.map((item: string) => cleanText(item))).slice(0, 6) : [],
+      competitors: Array.isArray(parsed.competitors) ? unique(parsed.competitors.map((item: string) => cleanText(item))).slice(0, 3) : [],
+      reviews: [] as string[],
     };
   } catch (error) {
     console.warn('AI business profile failed, using fallback:', error);
@@ -249,6 +287,9 @@ async function analyzeBusinessProfile({
       toneKeywords: ['friendly', 'helpful', 'clear'],
       audience: '',
       callGoals: ['Answer questions clearly', 'Guide the caller to the next step'],
+      pricing: [],
+      competitors: [],
+      reviews: [],
     };
   }
 }
@@ -291,27 +332,57 @@ const buildStructuredKnowledge = ({
   profile,
   homepageSummary,
   pageSummaries,
+  webResearchContent,
 }: {
   websiteUrl: string;
   profile: Awaited<ReturnType<typeof analyzeBusinessProfile>>;
   homepageSummary: string;
   pageSummaries: string[];
+  webResearchContent?: string;
 }) => {
+  const nicheFallback = NICHE_FALLBACK_KNOWLEDGE[profile.detectedNiche] || NICHE_FALLBACK_KNOWLEDGE.general;
+
+  // Use scraped services if available, otherwise fall back to niche defaults
+  const services = profile.serviceHighlights.length > 0 ? profile.serviceHighlights : nicheFallback.services;
+  const trust = profile.trustSignals.length > 0 ? profile.trustSignals : nicheFallback.trust;
+  const faqs = profile.faqs.length > 0 ? profile.faqs : nicheFallback.faqs;
+
   const sections = [
     `BUSINESS NAME: ${profile.businessName}`,
     `DETECTED NICHE: ${profile.detectedNiche}`,
     profile.serviceArea ? `SERVICE AREA: ${profile.serviceArea}` : '',
     `SUMMARY: ${profile.summary}`,
     homepageSummary ? `HOMEPAGE SUMMARY: ${homepageSummary}` : '',
-    profile.audience ? `AUDIENCE: ${profile.audience}` : '',
+    profile.audience ? `TARGET AUDIENCE: ${profile.audience}` : '',
     `WEBSITE: ${websiteUrl}`,
     '',
-    ...profile.serviceHighlights.map((item) => `- Service: ${item}`),
-    ...profile.trustSignals.map((item) => `- Trust: ${item}`),
-    ...profile.faqs.map((item) => `- FAQ: ${item}`),
-    ...profile.callGoals.map((item) => `- Call Goal: ${item}`),
-    ...profile.toneKeywords.map((item) => `- Tone: ${item}`),
+    '=== SERVICES OFFERED ===',
+    ...services.map((item) => `- ${item}`),
+    '',
+    profile.pricing.length > 0 ? '=== PRICING INFO ===' : '',
+    ...profile.pricing.map((item) => `- ${item}`),
+    '',
+    '=== TRUST SIGNALS & DIFFERENTIATORS ===',
+    ...trust.map((item) => `- ${item}`),
+    '',
+    '=== FREQUENTLY ASKED QUESTIONS ===',
+    ...faqs.map((item) => `Q: ${item}`),
+    '',
+    '=== CALL GOALS ===',
+    ...profile.callGoals.map((item) => `- ${item}`),
+    '',
+    '=== TONE ===',
+    ...profile.toneKeywords.map((item) => `- ${item}`),
+    '',
+    profile.competitors.length > 0 ? '=== KNOWN COMPETITORS ===' : '',
+    ...profile.competitors.map((item) => `- ${item}`),
+    '',
+    profile.reviews.length > 0 ? '=== CUSTOMER REVIEWS & REPUTATION ===' : '',
+    ...profile.reviews.map((item) => `- ${item}`),
+    '',
     ...pageSummaries.map((item) => `- Detail: ${item}`),
+    '',
+    webResearchContent ? `\n=== INDUSTRY & COMPETITOR RESEARCH ===\n${webResearchContent}` : '',
   ];
 
   return sections.filter(Boolean).join('\n');
@@ -465,11 +536,120 @@ Deno.serve(async (req) => {
       combinedContent: [homepageMarkdown, combinedPageContent, secondaryContent, filesContent].filter(Boolean).join('\n\n'),
     });
 
+    // === WEB RESEARCH PHASE ===
+    // Search the web for comprehensive industry info, competitors, reviews, pricing
+    console.log('Starting web research for:', profile.businessName, 'niche:', profile.detectedNiche, 'area:', profile.serviceArea);
+
+    const searchQueries: string[] = [];
+    const bizName = profile.businessName;
+    const area = profile.serviceArea || '';
+    const nicheLabel = profile.detectedNiche === 'general' ? (initialNiche || 'business') : profile.detectedNiche;
+
+    // Comprehensive service list for this type of business
+    if (profile.serviceHighlights.length < 4) {
+      searchQueries.push(`complete list of services ${nicheLabel} company offers typical pricing`);
+    }
+
+    // Competitor analysis
+    if (area) {
+      searchQueries.push(`best ${nicheLabel} companies in ${area} competitors reviews`);
+    }
+
+    // Reviews and reputation
+    searchQueries.push(`${bizName} reviews ratings ${area}`.trim());
+
+    // Industry-specific pricing if not found on site
+    if (profile.pricing.length === 0) {
+      searchQueries.push(`${nicheLabel} services average pricing cost ${area || 'USA'} 2024 2025`);
+    }
+
+    // Customer FAQs for this industry
+    searchQueries.push(`most common questions customers ask ${nicheLabel} company FAQ`);
+
+    let webResearchContent = '';
+    try {
+      const researchResults = await webResearch(firecrawlKey, searchQueries);
+      if (researchResults.length > 0) {
+        webResearchContent = truncate(researchResults.join('\n\n---\n\n'), 15000);
+        console.log('Web research gathered:', researchResults.length, 'snippets');
+      }
+    } catch (researchErr) {
+      console.warn('Web research phase failed (non-fatal):', researchErr);
+    }
+
+    // === ENRICH PROFILE WITH RESEARCH ===
+    // Use AI to extract structured competitive intel from web research
+    if (webResearchContent && lovableApiKey) {
+      try {
+        const enrichResponse = await fetch(LOVABLE_AI_BASE, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${lovableApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            temperature: 0.2,
+            response_format: { type: 'json_object' },
+            messages: [
+              {
+                role: 'system',
+                content: 'You are enriching a business profile with web research. Return strict JSON with: additionalServices (array of up to 8 services this type of business typically offers that are NOT already in the existing list), typicalPricing (array of up to 6 "service: $range" strings), competitorNames (array of up to 5 competitor business names in the area), reviewHighlights (array of up to 4 short reputation/review summary strings like "4.8 stars on Google" or "Known for fast turnaround"), industryFaqs (array of up to 5 common questions customers ask this type of business). Only include factual info from the research, do not fabricate.',
+              },
+              {
+                role: 'user',
+                content: `Business: ${bizName}\nNiche: ${nicheLabel}\nArea: ${area}\nExisting services: ${profile.serviceHighlights.join(', ')}\n\nWeb research:\n${truncate(webResearchContent, 12000)}`,
+              },
+            ],
+          }),
+        });
+
+        const enrichCompletion = await enrichResponse.json().catch(() => null);
+        if (enrichResponse.ok) {
+          const enrichContent = enrichCompletion?.choices?.[0]?.message?.content;
+          if (typeof enrichContent === 'string') {
+            const enriched = parseJsonContent(enrichContent);
+
+            // Merge enriched data into profile
+            if (Array.isArray(enriched.additionalServices)) {
+              profile.serviceHighlights = unique([
+                ...profile.serviceHighlights,
+                ...enriched.additionalServices.map((s: string) => cleanText(s)),
+              ]).slice(0, 12);
+            }
+            if (Array.isArray(enriched.typicalPricing) && profile.pricing.length === 0) {
+              profile.pricing = enriched.typicalPricing.map((s: string) => cleanText(s)).filter(Boolean).slice(0, 6);
+            }
+            if (Array.isArray(enriched.competitorNames)) {
+              profile.competitors = unique([
+                ...profile.competitors,
+                ...enriched.competitorNames.map((s: string) => cleanText(s)),
+              ]).slice(0, 5);
+            }
+            if (Array.isArray(enriched.reviewHighlights)) {
+              profile.reviews = enriched.reviewHighlights.map((s: string) => cleanText(s)).filter(Boolean).slice(0, 4);
+            }
+            if (Array.isArray(enriched.industryFaqs)) {
+              profile.faqs = unique([
+                ...profile.faqs,
+                ...enriched.industryFaqs.map((s: string) => cleanText(s)),
+              ]).slice(0, 8);
+            }
+
+            console.log('Profile enriched with web research');
+          }
+        }
+      } catch (enrichErr) {
+        console.warn('Profile enrichment failed (non-fatal):', enrichErr);
+      }
+    }
+
     const structuredKnowledge = buildStructuredKnowledge({
       websiteUrl: formattedUrl,
       profile,
       homepageSummary,
       pageSummaries: successfulPages.map((page) => page.summary).filter(Boolean).slice(0, 6),
+      webResearchContent,
     });
 
     const fullContent = truncate(
