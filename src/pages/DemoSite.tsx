@@ -41,14 +41,18 @@ const DemoSite = () => {
 
     if (!urlParam || latestLeadData) return;
 
-    // Check if we already have data for this URL
-    if (leadData?.websiteUrl === urlParam) return;
+    // Re-scan if we have no data, no screenshot, or no content for this URL
+    const cachedIsStale =
+      !leadData ||
+      leadData.websiteUrl !== urlParam ||
+      !leadData.screenshot ||
+      !leadData.websiteContent;
 
-    // Trigger a scan for this business
+    if (!cachedIsStale) return;
+
     const scanWebsite = async () => {
       setIsScanning(true);
       try {
-        // First, create a lead entry so scan-website can update it
         const { data: insertedLead, error: insertError } = await supabase
           .from("leads")
           .insert({
@@ -63,7 +67,6 @@ const DemoSite = () => {
 
         if (insertError) throw insertError;
 
-        // Now scan the website
         const { error } = await supabase.functions.invoke("scan-website", {
           body: {
             websiteUrl: urlParam,
