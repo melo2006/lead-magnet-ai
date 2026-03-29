@@ -10,6 +10,7 @@ import {
 
 const CampaignsView = () => {
   const [showCreate, setShowCreate] = useState(false);
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const { data: campaigns = [], isLoading } = useQuery({
