@@ -1,21 +1,24 @@
-import { useLocation, useNavigate } from "react-router-dom";
+import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useEffect, useState } from "react";
-import { MessageSquare, Mic, ArrowLeft } from "lucide-react";
+import { MessageSquare, Mic, ArrowLeft, Loader2 } from "lucide-react";
 import type { DemoLeadData } from "@/components/landing/demo-results/demoResultsUtils";
 import { getImageSrc, getSiteName } from "@/components/landing/demo-results/demoResultsUtils";
 import VoiceAgentWidget from "@/components/landing/demo-results/VoiceAgentWidget";
 import ChatWidget from "@/components/landing/demo-results/ChatWidget";
 import DraggableFloating from "@/components/landing/demo-results/DraggableFloating";
 import { useIsMobile } from "@/hooks/use-mobile";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 
 const LAST_DEMO_STORAGE_KEY = "lastDemoLeadData";
 
 const DemoSite = () => {
   const location = useLocation();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const [isScanning, setIsScanning] = useState(false);
   const [storedLeadData, setStoredLeadData] = useState<DemoLeadData | undefined>(() => {
     if (typeof window === "undefined") return undefined;
-
     try {
       const saved = window.localStorage.getItem(LAST_DEMO_STORAGE_KEY);
       return saved ? (JSON.parse(saved) as DemoLeadData) : undefined;
@@ -23,31 +26,120 @@ const DemoSite = () => {
       return undefined;
     }
   });
+
   const latestLeadData = location.state?.leadData as DemoLeadData | undefined;
-  const leadData = latestLeadData ?? storedLeadData;
+  const [leadData, setLeadData] = useState<DemoLeadData | undefined>(latestLeadData ?? storedLeadData);
   const [chatOpen, setChatOpen] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
   const isMobile = useIsMobile();
 
+  // Handle URL params from CRM (e.g. /demo?url=...&name=...&niche=...)
+  useEffect(() => {
+    const urlParam = searchParams.get("url");
+    const nameParam = searchParams.get("name");
+    const nicheParam = searchParams.get("niche");
+
+    if (!urlParam || latestLeadData) return;
+
+    // Check if we already have data for this URL
+    if (leadData?.websiteUrl === urlParam) return;
+
+    // Trigger a scan for this business
+    const scanWebsite = async () => {
+      setIsScanning(true);
+      try {
+        // First, create a lead entry so scan-website can update it
+        const { data: insertedLead, error: insertError } = await supabase
+          .from("leads")
+          .insert({
+            full_name: "CRM Prospect",
+            business_name: nameParam || "Business",
+            website_url: urlParam,
+            niche: nicheParam || "general",
+            scan_status: "pending",
+          })
+          .select("id")
+          .single();
+
+        if (insertError) throw insertError;
+
+        // Now scan the website
+        const { data, error } = await supabase.functions.invoke("scan-website", {
+          body: {
+            url: urlParam,
+            leadId: insertedLead.id,
+            niche: nicheParam || "general",
+            businessName: nameParam || "",
+          },
+        });
+
+        if (error) throw error;
+
+        const newLeadData: DemoLeadData = {
+          fullName: "CRM Prospect",
+          businessName: nameParam || data?.title || "Business",
+          websiteUrl: urlParam,
+          niche: nicheParam || data?.niche || "general",
+          screenshot: data?.screenshot || null,
+          title: data?.title || "",
+          description: data?.description || "",
+          websiteContent: data?.content || "",
+          colors: data?.colors || {},
+          logo: data?.logo || "",
+        };
+
+        setLeadData(newLeadData);
+        setStoredLeadData(newLeadData);
+        try {
+          window.localStorage.setItem(LAST_DEMO_STORAGE_KEY, JSON.stringify(newLeadData));
+        } catch { /* noop */ }
+
+        toast.success(`Demo generated for ${nameParam || "this business"}`);
+      } catch (err: any) {
+        console.error("Scan error:", err);
+        toast.error("Failed to generate demo. " + (err.message || ""));
+      } finally {
+        setIsScanning(false);
+      }
+    };
+
+    scanWebsite();
+  }, [searchParams, latestLeadData]);
+
+  // Save state data to localStorage
   useEffect(() => {
     if (!latestLeadData) return;
-
+    setLeadData(latestLeadData);
     setStoredLeadData(latestLeadData);
-
     try {
       window.localStorage.setItem(LAST_DEMO_STORAGE_KEY, JSON.stringify(latestLeadData));
-    } catch {
-      /* noop */
-    }
+    } catch { /* noop */ }
   }, [latestLeadData]);
 
-  useEffect(() => {
-    if (!leadData) {
-      navigate("/", { replace: true });
-    }
-  }, [leadData, navigate]);
+  // Loading state for CRM-triggered scans
+  if (isScanning) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center">
+        <div className="flex flex-col items-center gap-4 text-center px-4">
+          <Loader2 className="w-12 h-12 text-primary animate-spin" />
+          <h2 className="text-xl font-bold text-foreground">Generating Demo</h2>
+          <p className="text-muted-foreground text-sm max-w-md">
+            Scanning {searchParams.get("name") || "the website"} and preparing
+            your AI-enhanced demo experience...
+          </p>
+        </div>
+      </div>
+    );
+  }
 
-  if (!leadData) return null;
+  if (!leadData) {
+    // No data and no URL params - redirect home
+    if (!searchParams.get("url")) {
+      navigate("/", { replace: true });
+      return null;
+    }
+    return null;
+  }
 
   const screenshotSrc = getImageSrc(leadData.screenshot);
   const siteName = leadData.businessName?.trim() || getSiteName(leadData.websiteUrl, leadData.title);
@@ -67,7 +159,7 @@ const DemoSite = () => {
       <div className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur-md px-4 py-2.5 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate("/")}
+            onClick={() => navigate(-1)}
             className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
