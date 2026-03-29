@@ -20,7 +20,7 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <NicheSelector selected={selectedNiche} onSelect={setSelectedNiche} />
+      <HeroSection niche={selectedNiche} onGetDemo={scrollToDemo} />
       <HeroSection niche={selectedNiche} onGetDemo={scrollToDemo} />
       <StatsSection niche={selectedNiche} />
       <BeforeAfterSection niche={selectedNiche} />
