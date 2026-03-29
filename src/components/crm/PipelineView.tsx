@@ -1,8 +1,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import {
-  Flame, Thermometer, Snowflake, Star, ExternalLink, Zap, Brain,
-  Mail, Send, Phone, Eye, MousePointerClick, ChevronRight
+  Flame, Thermometer, Snowflake, Star, ExternalLink, Zap,
+  Mail, Phone, Eye, MousePointerClick, ChevronRight
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";

@@ -185,10 +185,16 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) =
             <button onClick={handleBatchAnalyze} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors">
               <Brain className="w-3 h-3" /> Analyze Selected
             </button>
-            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent/20 border border-accent/30 text-accent-foreground text-xs font-medium hover:bg-accent/30 transition-colors">
+            <button
+              onClick={() => onOutreach?.(sorted.filter((p) => selectedIds.has(p.place_id)))}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent/20 border border-accent/30 text-accent-foreground text-xs font-medium hover:bg-accent/30 transition-colors"
+            >
               <Mail className="w-3 h-3" /> Email Selected
             </button>
-            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary border border-border text-foreground text-xs font-medium hover:bg-secondary/80 transition-colors">
+            <button
+              onClick={() => onOutreach?.(sorted.filter((p) => selectedIds.has(p.place_id)))}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary border border-border text-foreground text-xs font-medium hover:bg-secondary/80 transition-colors"
+            >
               <Send className="w-3 h-3" /> SMS Selected
             </button>
           </div>
