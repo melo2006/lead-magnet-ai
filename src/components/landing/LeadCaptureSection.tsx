@@ -1,4 +1,4 @@
-import { useState, useCallback, useRef } from "react";
+import { useState, useCallback, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -28,6 +28,7 @@ type ViewState = "form" | "scanning" | "results";
 
 const MAX_FILES = 3;
 const MAX_FILE_SIZE = 20 * 1024 * 1024; // 20MB
+const LAST_DEMO_STORAGE_KEY = "lastDemoLeadData";
 const ALLOWED_TYPES = [
   "application/pdf",
   "text/plain",
@@ -62,6 +63,7 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
   const [viewState, setViewState] = useState<ViewState>("form");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [scanData, setScanData] = useState<DemoLeadData | null>(null);
+  const [scanAnimationDone, setScanAnimationDone] = useState(false);
   const [files, setFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const [formData, setFormData] = useState(() => {
@@ -78,6 +80,23 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
     setFormData(next);
     try { localStorage.setItem("leadFormData", JSON.stringify(next)); } catch {}
   };
+
+  const storeDemoLeadData = useCallback((nextScanData: DemoLeadData) => {
+    setScanData(nextScanData);
+    try {
+      localStorage.setItem(LAST_DEMO_STORAGE_KEY, JSON.stringify(nextScanData));
+    } catch {
+      // noop
+    }
+  }, []);
+
+  useEffect(() => {
+    if (viewState !== "scanning" || !scanAnimationDone || !scanData) return;
+
+    navigate("/demo", { state: { leadData: scanData } });
+    setViewState("form");
+    setScanAnimationDone(false);
+  }, [navigate, scanAnimationDone, scanData, viewState]);
 
   const handleFileAdd = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newFiles = Array.from(e.target.files || []);
@@ -129,6 +148,7 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
     }
 
     setIsSubmitting(true);
+    setScanAnimationDone(false);
     try {
       const { data: lead, error } = await supabase
         .from("leads")
@@ -171,9 +191,28 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
 
       if (scanResult.error) {
         console.error("Scan error:", scanResult.error);
+        toast({
+          title: "Loading a basic demo",
+          description: "The site scan took too long, so the demo is opening with the saved business details.",
+        });
       } else {
         console.log("Scan completed:", scanResult.data);
       }
+
+      const fallbackScanData: DemoLeadData = {
+        fullName: parsed.data.name,
+        businessName: parsed.data.businessName,
+        email: parsed.data.email || undefined,
+        websiteUrl: parsed.data.website,
+        phone: parsed.data.phone || undefined,
+        niche: selectedNiche.id,
+        screenshot: undefined,
+        title: parsed.data.businessName,
+        description: undefined,
+        websiteContent: undefined,
+        colors: undefined,
+        logo: undefined,
+      };
 
       const { data: updatedLead } = await supabase
         .from("leads")
@@ -189,7 +228,7 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
             ? (updatedLead.brand_colors as Record<string, string | undefined>)
             : undefined;
 
-        setScanData({
+        storeDemoLeadData({
           fullName: updatedLead.full_name,
           businessName: updatedLead.business_name || parsed.data.businessName,
           email: updatedLead.email || parsed.data.email || undefined,
@@ -203,6 +242,8 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
           colors: normalizedColors,
           logo: updatedLead.brand_logo,
         });
+      } else {
+        storeDemoLeadData(fallbackScanData);
       }
     } catch (err) {
       console.error("Error submitting lead:", err);
@@ -214,11 +255,8 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
   };
 
   const handleScanComplete = useCallback(() => {
-    if (scanData) {
-      navigate("/demo", { state: { leadData: scanData } });
-    }
-    setViewState("form");
-  }, [scanData, navigate]);
+    setScanAnimationDone(true);
+  }, []);
 
   if (viewState === "scanning") {
     return (
