@@ -4,7 +4,7 @@ import {
   Phone, MapPin, Star, ExternalLink, Zap, MessageSquare,
   ChevronDown, ChevronUp, Flame, Thermometer, Snowflake,
   Brain, Loader2, CheckSquare, Square, Mail, Send,
-  ArrowUpDown, Gauge, ChevronLeft, ChevronRight, Tag
+  ArrowUpDown, Gauge, ChevronLeft, ChevronRight
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";

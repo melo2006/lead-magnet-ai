@@ -145,7 +145,7 @@ const ProspectSearchForm = ({ onSearch, isSearching }: Props) => {
   const [radius, setRadius] = useState(20);
   const [customQuery, setCustomQuery] = useState("");
   const [expandedCategories, setExpandedCategories] = useState<Set<string>>(new Set());
-  const [batchMode, setBatchMode] = useState(false);
+  
   const [batchProgress, setBatchProgress] = useState<{ current: number; total: number } | null>(null);
 
   const toggleCategory = (label: string) => {
