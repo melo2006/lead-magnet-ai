@@ -135,12 +135,25 @@ Deno.serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'google/gemini-2.5-flash-lite',
+            model: 'google/gemini-2.5-flash',
             temperature: 0.3,
             messages: [
               {
                 role: 'system',
-                content: `You are a sales intelligence analyst for an AI agency that sells voice AI agents, AI chatbots, and automation solutions to local businesses. Analyze the prospect and write a concise 2-3 sentence sales assessment. Include: 1) Whether this business is a good lead to pursue, 2) What AI services they're missing that you could sell them, 3) A recommended approach. Be direct, actionable, and specific to their business. Do NOT use markdown formatting.`,
+                content: `You are a sales intelligence analyst for an AI agency that sells voice AI agents, AI chatbots, and automation solutions to local businesses.
+
+Analyze the prospect and return a JSON object with these fields:
+- "sales_assessment": A concise 2-3 sentence sales assessment (is this a good lead, what AI services are they missing, recommended approach)
+- "owner_name": The business owner or manager name if found on the website (null if not found)
+- "owner_email": Owner/manager email if found (null if not found)
+- "owner_phone": Owner/manager personal or mobile phone if found, different from business line (null if not found)
+- "linkedin_url": LinkedIn profile URL if found (null if not found)
+- "facebook_url": Facebook page URL if found (null if not found)
+- "instagram_url": Instagram profile URL if found (null if not found)
+- "whatsapp_number": WhatsApp number if found (null if not found)
+- "contact_method": Best way to reach the decision-maker: "mobile", "email", "linkedin", "facebook", "instagram", "whatsapp", "business_phone", or "unknown"
+
+Be direct and specific. Return ONLY valid JSON, no markdown formatting or code blocks.`,
               },
               { role: 'user', content: context },
             ],
