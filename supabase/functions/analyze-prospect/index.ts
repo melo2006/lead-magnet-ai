@@ -115,7 +115,7 @@ Deno.serve(async (req) => {
 
     // Step 2: AI Analysis
     let aiAnalysis = '';
-    if (lovableApiKey) {
+    let enrichmentData: Record<string, any> = {};
       try {
         const context = [
           `Business: ${business_name}`,
