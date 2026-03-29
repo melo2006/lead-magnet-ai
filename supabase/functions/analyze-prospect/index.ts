@@ -8,6 +8,99 @@ const corsHeaders = {
 const FIRECRAWL_BASE = 'https://api.firecrawl.dev/v1';
 const LOVABLE_AI_BASE = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 
+// Structured schema for Firecrawl AI JSON extraction
+const BUSINESS_SCHEMA = {
+  type: 'object',
+  properties: {
+    business_name: { type: 'string', description: 'Official business name' },
+    tagline: { type: 'string', description: 'Business tagline or slogan' },
+    about: { type: 'string', description: 'About the business, mission statement, or company description (2-4 sentences)' },
+    services: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          description: { type: 'string' },
+          price: { type: 'string' },
+        },
+        required: ['name'],
+      },
+      description: 'List of services or products offered with optional pricing',
+    },
+    pricing: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          item: { type: 'string' },
+          price: { type: 'string' },
+          details: { type: 'string' },
+        },
+        required: ['item'],
+      },
+      description: 'Pricing tiers or packages if available',
+    },
+    faqs: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          question: { type: 'string' },
+          answer: { type: 'string' },
+        },
+        required: ['question', 'answer'],
+      },
+      description: 'Frequently asked questions and answers',
+    },
+    service_areas: {
+      type: 'array',
+      items: { type: 'string' },
+      description: 'Geographic areas or cities served',
+    },
+    team_members: {
+      type: 'array',
+      items: {
+        type: 'object',
+        properties: {
+          name: { type: 'string' },
+          role: { type: 'string' },
+        },
+        required: ['name'],
+      },
+      description: 'Key team members or staff',
+    },
+    unique_selling_points: {
+      type: 'array',
+      items: { type: 'string' },
+      description: 'What makes this business stand out (certifications, awards, guarantees, years in business)',
+    },
+    contact_info: {
+      type: 'object',
+      properties: {
+        phone: { type: 'string' },
+        email: { type: 'string' },
+        address: { type: 'string' },
+      },
+      description: 'Contact information found on the website',
+    },
+    business_hours: { type: 'string', description: 'Operating hours if listed' },
+    social_links: {
+      type: 'object',
+      properties: {
+        facebook: { type: 'string' },
+        instagram: { type: 'string' },
+        linkedin: { type: 'string' },
+        twitter: { type: 'string' },
+        youtube: { type: 'string' },
+        yelp: { type: 'string' },
+      },
+      description: 'Social media profile URLs',
+    },
+  },
+  required: ['business_name'],
+};
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -29,19 +122,20 @@ Deno.serve(async (req) => {
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
-    let html = '';
     let markdown = '';
     let websiteScreenshot = '';
     let hasChatWidget = false;
     let hasVoiceAi = false;
     let hasOnlineBooking = false;
     let websiteQualityScore = 0;
+    let businessData: Record<string, any> = {};
+    let brandingData: Record<string, any> = {};
 
-    // Step 1: Scrape the website with Firecrawl
+    // Step 1: Scrape with Firecrawl — structured JSON + branding + screenshot + markdown
     if (firecrawlKey) {
       try {
         const url = website_url.startsWith('http') ? website_url : `https://${website_url}`;
-        console.log('Scraping website:', url);
+        console.log('Scraping website with structured extraction:', url);
 
         const response = await fetch(`${FIRECRAWL_BASE}/scrape`, {
           method: 'POST',
@@ -51,7 +145,15 @@ Deno.serve(async (req) => {
           },
           body: JSON.stringify({
             url,
-            formats: ['html', 'markdown', 'screenshot'],
+            formats: [
+              'markdown',
+              'screenshot',
+              'branding',
+              {
+                type: 'json',
+                schema: BUSINESS_SCHEMA,
+              },
+            ],
             onlyMainContent: false,
             waitFor: 3000,
             timeout: 30000,
@@ -61,52 +163,58 @@ Deno.serve(async (req) => {
         const data = await response.json().catch(() => null);
         if (response.ok) {
           const payload = data?.data ?? data ?? {};
-          html = (payload.html || '').toLowerCase();
           markdown = payload.markdown || '';
           websiteScreenshot = payload.screenshot || '';
+          businessData = payload.json || {};
+          brandingData = payload.branding || {};
 
-          // Detect chat widgets
+          // Merge social links from structured extraction
+          const socialLinks = businessData.social_links || {};
+
+          // Detect tech from HTML-level markdown
+          const htmlLower = (markdown || '').toLowerCase();
+
           const chatPatterns = [
             'tawk.to', 'tidio', 'intercom', 'drift', 'crisp', 'zendesk',
             'livechat', 'hubspot', 'freshchat', 'olark', 'chatwoot',
             'chatbot', 'chat-widget', 'chat_widget', 'messenger-widget',
-            'fb-messenger', 'whatsapp-widget', 'botpress', 'landbot',
-            'manychat', 'dialogflow', 'chatfuel', 'kommunicate',
+            'botpress', 'landbot', 'manychat', 'dialogflow',
             'smartsupp', 'pure-chat', 'jivochat', 'userlike',
-            'widget.intercom', 'js.intercomcdn', 'embed.tawk',
           ];
-          hasChatWidget = chatPatterns.some(p => html.includes(p));
+          hasChatWidget = chatPatterns.some(p => htmlLower.includes(p));
 
-          // Detect voice AI
           const voicePatterns = [
             'retell', 'vapi', 'bland.ai', 'voiceflow', 'play.ai',
-            'voice-agent', 'voice_agent', 'ai-phone', 'ai_phone',
-            'callrail', 'aircall', 'dialpad', 'ringcentral',
+            'voice-agent', 'voice_agent', 'ai-phone',
+            'callrail', 'aircall', 'dialpad',
           ];
-          hasVoiceAi = voicePatterns.some(p => html.includes(p));
+          hasVoiceAi = voicePatterns.some(p => htmlLower.includes(p));
 
-          // Detect online booking
           const bookingPatterns = [
             'calendly', 'acuity', 'booksy', 'square appointments',
             'book-now', 'book_now', 'booknow', 'schedule-appointment',
-            'schedule_appointment', 'booking-widget', 'booking_widget',
             'appointlet', 'setmore', 'vagaro', 'mindbody',
-            'schedulista', 'simplybook', 'zcal', 'cal.com',
-            'housecallpro', 'jobber', 'servicetitan',
+            'simplybook', 'cal.com', 'housecallpro', 'jobber',
             'book online', 'book an appointment', 'schedule now',
-            'book a consultation', 'request appointment',
           ];
-          hasOnlineBooking = bookingPatterns.some(p => html.includes(p));
+          hasOnlineBooking = bookingPatterns.some(p => htmlLower.includes(p));
 
-          // Website quality scoring
+          // Quality scoring
           let quality = 50;
-          if (html.includes('ssl') || website_url.startsWith('https')) quality += 10;
-          if (html.includes('responsive') || html.includes('viewport')) quality += 10;
-          if (html.includes('schema.org') || html.includes('jsonld')) quality += 10;
-          if (!html.includes('wordpress') && !html.includes('wix') && !html.includes('squarespace')) quality += 5;
-          if (html.length > 10000) quality += 5;
-          if (html.includes('google-analytics') || html.includes('gtag') || html.includes('gtm')) quality += 10;
+          if (url.startsWith('https')) quality += 10;
+          if (htmlLower.includes('viewport')) quality += 10;
+          if (htmlLower.includes('schema.org') || htmlLower.includes('jsonld')) quality += 10;
+          if (htmlLower.length > 10000) quality += 5;
+          if (htmlLower.includes('google-analytics') || htmlLower.includes('gtag') || htmlLower.includes('gtm')) quality += 10;
+          if ((businessData.services?.length || 0) > 0) quality += 5;
           websiteQualityScore = Math.min(100, quality);
+
+          console.log('Structured extraction result:', {
+            servicesFound: businessData.services?.length || 0,
+            faqsFound: businessData.faqs?.length || 0,
+            pricingFound: businessData.pricing?.length || 0,
+            hasBranding: !!brandingData.colors,
+          });
         } else {
           console.error('Firecrawl scrape failed:', data);
         }
@@ -115,21 +223,26 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Step 2: AI Analysis
+    // Step 2: AI Sales Analysis (uses structured data for richer assessment)
     let aiAnalysis = '';
     let enrichmentData: Record<string, any> = {};
     if (lovableApiKey) {
       try {
-        const context = [
-          `Business: ${business_name}`,
+        const structuredSummary = [
+          `Business: ${businessData.business_name || business_name}`,
           `Website: ${website_url}`,
           `Niche: ${niche || 'unknown'}`,
+          businessData.about ? `About: ${businessData.about}` : '',
+          businessData.services?.length ? `Services (${businessData.services.length}): ${businessData.services.map((s: any) => s.name).join(', ')}` : '',
+          businessData.pricing?.length ? `Pricing tiers: ${businessData.pricing.length}` : 'No pricing found on website',
+          businessData.faqs?.length ? `FAQs: ${businessData.faqs.length} found` : 'No FAQs found',
+          businessData.unique_selling_points?.length ? `USPs: ${businessData.unique_selling_points.join('; ')}` : '',
           `Has Chat Widget: ${hasChatWidget}`,
           `Has Voice AI: ${hasVoiceAi}`,
           `Has Online Booking: ${hasOnlineBooking}`,
           `Website Quality Score: ${websiteQualityScore}/100`,
-          markdown ? `Website Content (first 3000 chars):\n${markdown.slice(0, 3000)}` : 'No website content available',
-        ].join('\n');
+          markdown ? `Additional context (first 2000 chars):\n${markdown.slice(0, 2000)}` : '',
+        ].filter(Boolean).join('\n');
 
         const response = await fetch(LOVABLE_AI_BASE, {
           method: 'POST',
@@ -147,9 +260,9 @@ Deno.serve(async (req) => {
 
 Analyze the prospect and return a JSON object with these fields:
 - "sales_assessment": A concise 2-3 sentence sales assessment (is this a good lead, what AI services are they missing, recommended approach)
-- "owner_name": The business owner or manager name if found on the website (null if not found)
+- "owner_name": The business owner or manager name if found (null if not found)
 - "owner_email": Owner/manager email if found (null if not found)
-- "owner_phone": Owner/manager personal or mobile phone if found, different from business line (null if not found)
+- "owner_phone": Owner/manager personal phone if found (null if not found)
 - "linkedin_url": LinkedIn profile URL if found (null if not found)
 - "facebook_url": Facebook page URL if found (null if not found)
 - "instagram_url": Instagram profile URL if found (null if not found)
@@ -158,7 +271,7 @@ Analyze the prospect and return a JSON object with these fields:
 
 Be direct and specific. Return ONLY valid JSON, no markdown formatting or code blocks.`,
               },
-              { role: 'user', content: context },
+              { role: 'user', content: structuredSummary },
             ],
           }),
         });
@@ -180,6 +293,12 @@ Be direct and specific. Return ONLY valid JSON, no markdown formatting or code b
               whatsapp_number: parsed.whatsapp_number || null,
               contact_method: parsed.contact_method || 'unknown',
             };
+
+            // Merge social links from structured scrape if AI didn't find them
+            const socialLinks = businessData.social_links || {};
+            if (!enrichmentData.facebook_url && socialLinks.facebook) enrichmentData.facebook_url = socialLinks.facebook;
+            if (!enrichmentData.instagram_url && socialLinks.instagram) enrichmentData.instagram_url = socialLinks.instagram;
+            if (!enrichmentData.linkedin_url && socialLinks.linkedin) enrichmentData.linkedin_url = socialLinks.linkedin;
           } catch {
             aiAnalysis = raw;
           }
@@ -194,7 +313,10 @@ Be direct and specific. Return ONLY valid JSON, no markdown formatting or code b
       }
     }
 
-    // Step 3: Update the prospect in the database
+    // Step 3: Build voice agent context from structured data
+    const voiceAgentContext = buildVoiceAgentContext(businessData, business_name, niche);
+
+    // Step 4: Update the prospect in the database
     const updateData: Record<string, any> = {
       has_chat_widget: hasChatWidget,
       has_voice_ai: hasVoiceAi,
@@ -203,6 +325,11 @@ Be direct and specific. Return ONLY valid JSON, no markdown formatting or code b
       website_screenshot: websiteScreenshot || null,
       ai_analysis: aiAnalysis,
       ai_analyzed: true,
+      business_data: {
+        ...businessData,
+        branding: brandingData,
+        voice_agent_context: voiceAgentContext,
+      },
       ...enrichmentData,
     };
 
@@ -225,6 +352,8 @@ Be direct and specific. Return ONLY valid JSON, no markdown formatting or code b
           has_online_booking: hasOnlineBooking,
           website_quality_score: websiteQualityScore,
           ai_analysis: aiAnalysis,
+          business_data: businessData,
+          branding: brandingData,
         },
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -238,3 +367,62 @@ Be direct and specific. Return ONLY valid JSON, no markdown formatting or code b
     );
   }
 });
+
+/**
+ * Build a concise, structured context string for the Retell voice agent
+ * so it can "talk shop" about the business's real services, pricing, and FAQs.
+ */
+function buildVoiceAgentContext(
+  data: Record<string, any>,
+  fallbackName: string,
+  niche?: string,
+): string {
+  const parts: string[] = [];
+
+  const name = data.business_name || fallbackName;
+  parts.push(`Business: ${name}`);
+  if (niche) parts.push(`Industry: ${niche}`);
+  if (data.tagline) parts.push(`Tagline: ${data.tagline}`);
+  if (data.about) parts.push(`About: ${data.about}`);
+
+  if (data.services?.length) {
+    const serviceLines = data.services.map((s: any) => {
+      let line = `- ${s.name}`;
+      if (s.price) line += ` ($${s.price})`;
+      if (s.description) line += `: ${s.description}`;
+      return line;
+    });
+    parts.push(`Services:\n${serviceLines.join('\n')}`);
+  }
+
+  if (data.pricing?.length) {
+    const pricingLines = data.pricing.map((p: any) => {
+      let line = `- ${p.item}`;
+      if (p.price) line += `: ${p.price}`;
+      if (p.details) line += ` (${p.details})`;
+      return line;
+    });
+    parts.push(`Pricing:\n${pricingLines.join('\n')}`);
+  }
+
+  if (data.faqs?.length) {
+    const faqLines = data.faqs.slice(0, 8).map((f: any) =>
+      `Q: ${f.question}\nA: ${f.answer}`
+    );
+    parts.push(`FAQs:\n${faqLines.join('\n\n')}`);
+  }
+
+  if (data.service_areas?.length) {
+    parts.push(`Service areas: ${data.service_areas.join(', ')}`);
+  }
+
+  if (data.unique_selling_points?.length) {
+    parts.push(`Why choose us: ${data.unique_selling_points.join('; ')}`);
+  }
+
+  if (data.business_hours) {
+    parts.push(`Hours: ${data.business_hours}`);
+  }
+
+  return parts.join('\n\n');
+}
