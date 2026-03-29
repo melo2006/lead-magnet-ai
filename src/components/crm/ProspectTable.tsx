@@ -226,6 +226,9 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) =
                 <th className="px-3 py-2.5 text-left min-w-[75px]"><SortHeader label="Booking" sortKey="has_online_booking" currentSort={sortBy} currentDir={sortDir} onSort={toggleSort} /></th>
                 <th className="px-3 py-2.5 text-left min-w-[80px]"><SortHeader label="Site Quality" sortKey="website_quality_score" currentSort={sortBy} currentDir={sortDir} onSort={toggleSort} /></th>
                 <th className="px-3 py-2.5 text-left min-w-[55px]"><SortHeader label="AI" sortKey="ai_analyzed" currentSort={sortBy} currentDir={sortDir} onSort={toggleSort} /></th>
+                <th className="px-3 py-2.5 text-left min-w-[100px]"><SortHeader label="Owner" sortKey="owner_name" currentSort={sortBy} currentDir={sortDir} onSort={toggleSort} /></th>
+                <th className="px-3 py-2.5 text-left min-w-[90px]"><SortHeader label="Contact" sortKey="contact_method" currentSort={sortBy} currentDir={sortDir} onSort={toggleSort} /></th>
+                <th className="px-3 py-2.5 text-left min-w-[80px]">Social</th>
                 <th className="px-3 py-2.5 text-left min-w-[100px]">Actions</th>
               </tr>
             </thead>
