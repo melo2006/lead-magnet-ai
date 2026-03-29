@@ -283,7 +283,7 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
                 <Input
                   placeholder="Sunrise Dental Studio"
                   value={formData.businessName}
-                  onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
+                  onChange={(e) => updateFormData({ businessName: e.target.value })}
                   className="bg-secondary border-border"
                   required
                 />
