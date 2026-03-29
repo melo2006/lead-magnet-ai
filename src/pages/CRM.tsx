@@ -4,6 +4,7 @@ import { CRMSidebar } from "@/components/crm/CRMSidebar";
 import CRMDashboard from "@/components/crm/CRMDashboard";
 import ProspectsView from "@/components/crm/ProspectsView";
 import CampaignsView from "@/components/crm/CampaignsView";
+import CampaignDetailView from "@/components/crm/CampaignDetailView";
 import PipelinePageView from "@/components/crm/PipelinePageView";
 import TemplatesView from "@/components/crm/TemplatesView";
 
@@ -22,6 +23,7 @@ const CRM = () => {
               <Route index element={<CRMDashboard />} />
               <Route path="prospects" element={<ProspectsView />} />
               <Route path="campaigns" element={<CampaignsView />} />
+              <Route path="campaigns/:id" element={<CampaignDetailView />} />
               <Route path="pipeline" element={<PipelinePageView />} />
               <Route path="templates" element={<TemplatesView />} />
             </Routes>

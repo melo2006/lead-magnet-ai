@@ -1,14 +1,16 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
-  Plus, Megaphone, Play, Pause, Trash2, Edit2,
+  Plus, Megaphone, Play, Pause, Trash2,
   Users, Mail, Eye, MousePointerClick, Sparkles, X
 } from "lucide-react";
 
 const CampaignsView = () => {
   const [showCreate, setShowCreate] = useState(false);
+  const navigate = useNavigate();
   const queryClient = useQueryClient();
 
   const { data: campaigns = [], isLoading } = useQuery({
@@ -90,7 +92,7 @@ const CampaignsView = () => {
             const st = statusStyles[c.status] || statusStyles.draft;
             const openRate = c.emails_sent > 0 ? Math.round((c.emails_opened / c.emails_sent) * 100) : 0;
             return (
-              <div key={c.id} className="bg-card border border-border rounded-xl overflow-hidden hover:border-primary/30 transition-colors">
+              <div key={c.id} onClick={() => navigate(`/crm/campaigns/${c.id}`)} className="bg-card border border-border rounded-xl overflow-hidden hover:border-primary/30 transition-colors cursor-pointer">
                 <div className="p-4 space-y-3">
                   <div className="flex items-start justify-between">
                     <div className="min-w-0 flex-1">
