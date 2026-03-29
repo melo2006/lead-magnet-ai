@@ -1,0 +1,1 @@
+ALTER TABLE public.prospects ADD COLUMN IF NOT EXISTS business_data jsonb DEFAULT '{}'::jsonb;

@@ -138,6 +138,7 @@ export type Database = {
         Row: {
           ai_analysis: string | null
           ai_analyzed: boolean | null
+          business_data: Json | null
           business_name: string
           business_types: Json | null
           campaign_id: string | null
@@ -198,6 +199,7 @@ export type Database = {
         Insert: {
           ai_analysis?: string | null
           ai_analyzed?: boolean | null
+          business_data?: Json | null
           business_name: string
           business_types?: Json | null
           campaign_id?: string | null
@@ -258,6 +260,7 @@ export type Database = {
         Update: {
           ai_analysis?: string | null
           ai_analyzed?: boolean | null
+          business_data?: Json | null
           business_name?: string
           business_types?: Json | null
           campaign_id?: string | null
