@@ -8,13 +8,38 @@ import ChatWidget from "@/components/landing/demo-results/ChatWidget";
 import DraggableFloating from "@/components/landing/demo-results/DraggableFloating";
 import { useIsMobile } from "@/hooks/use-mobile";
 
+const LAST_DEMO_STORAGE_KEY = "lastDemoLeadData";
+
 const DemoSite = () => {
   const location = useLocation();
   const navigate = useNavigate();
-  const leadData = location.state?.leadData as DemoLeadData | undefined;
+  const [storedLeadData, setStoredLeadData] = useState<DemoLeadData | undefined>(() => {
+    if (typeof window === "undefined") return undefined;
+
+    try {
+      const saved = window.localStorage.getItem(LAST_DEMO_STORAGE_KEY);
+      return saved ? (JSON.parse(saved) as DemoLeadData) : undefined;
+    } catch {
+      return undefined;
+    }
+  });
+  const latestLeadData = location.state?.leadData as DemoLeadData | undefined;
+  const leadData = latestLeadData ?? storedLeadData;
   const [chatOpen, setChatOpen] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
   const isMobile = useIsMobile();
+
+  useEffect(() => {
+    if (!latestLeadData) return;
+
+    setStoredLeadData(latestLeadData);
+
+    try {
+      window.localStorage.setItem(LAST_DEMO_STORAGE_KEY, JSON.stringify(latestLeadData));
+    } catch {
+      /* noop */
+    }
+  }, [latestLeadData]);
 
   useEffect(() => {
     if (!leadData) {
@@ -27,13 +52,15 @@ const DemoSite = () => {
   const screenshotSrc = getImageSrc(leadData.screenshot);
   const siteName = leadData.businessName?.trim() || getSiteName(leadData.websiteUrl, leadData.title);
 
-  const chatInitX = 20;
-  const chatInitY = typeof window !== "undefined" ? window.innerHeight - 96 : 640;
+  const chatInitX = isMobile ? 12 : 20;
+  const chatInitY = typeof window !== "undefined" ? Math.max(84, window.innerHeight - (isMobile ? 88 : 96)) : 640;
   const voiceInitX =
     typeof window !== "undefined"
-      ? Math.max(12, window.innerWidth - (isMobile ? 208 : 248))
+      ? isMobile
+        ? Math.max(12, window.innerWidth - 188)
+        : Math.max(12, window.innerWidth - 248)
       : 800;
-  const voiceInitY = chatInitY;
+  const voiceInitY = isMobile ? Math.max(12, chatInitY - 72) : chatInitY;
 
   return (
     <div className="relative min-h-screen bg-background">
@@ -94,7 +121,7 @@ const DemoSite = () => {
 
       <DraggableFloating initialX={chatInitX} initialY={chatInitY} dragLabel="Drag me">
         {chatOpen ? (
-          <div className="w-80 sm:w-96 animate-in slide-in-from-bottom-4 fade-in duration-300">
+          <div className="w-[calc(100vw-1.5rem)] max-w-[20rem] sm:w-96 sm:max-w-none animate-in slide-in-from-bottom-4 fade-in duration-300">
             <ChatWidget
               businessName={siteName}
               businessNiche={leadData.niche || "general"}
@@ -126,7 +153,7 @@ const DemoSite = () => {
 
       <DraggableFloating initialX={voiceInitX} initialY={voiceInitY} dragLabel="Drag me">
         {voiceOpen ? (
-          <div className="w-80 sm:w-96 animate-in slide-in-from-bottom-4 fade-in duration-300">
+          <div className="w-[calc(100vw-1.5rem)] max-w-[20rem] sm:w-96 sm:max-w-none animate-in slide-in-from-bottom-4 fade-in duration-300">
             <VoiceAgentWidget
               businessName={siteName}
               businessNiche={leadData.niche || "general"}

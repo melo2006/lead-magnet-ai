@@ -1,4 +1,8 @@
-import { useState, useRef, useCallback, type ReactNode } from "react";
+import { useState, useRef, useCallback, useEffect, type ReactNode } from "react";
+
+const VIEWPORT_PADDING = 12;
+
+const clampValue = (value: number, min: number, max: number) => Math.min(Math.max(value, min), Math.max(min, max));
 
 interface DraggableFloatingProps {
   children: ReactNode;
@@ -18,6 +22,35 @@ const DraggableFloating = ({
   const dragging = useRef(false);
   const offset = useRef({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
+
+  const clampPosition = useCallback((nextPosition?: { x: number; y: number }) => {
+    const el = containerRef.current;
+    if (!el) return;
+
+    const maxX = window.innerWidth - el.offsetWidth - VIEWPORT_PADDING;
+    const maxY = window.innerHeight - el.offsetHeight - VIEWPORT_PADDING;
+
+    setPos((prev) => {
+      const base = nextPosition ?? prev;
+      const clamped = {
+        x: clampValue(base.x, VIEWPORT_PADDING, maxX),
+        y: clampValue(base.y, VIEWPORT_PADDING, maxY),
+      };
+
+      return prev.x === clamped.x && prev.y === clamped.y ? prev : clamped;
+    });
+  }, []);
+
+  useEffect(() => {
+    const frame = window.requestAnimationFrame(() => clampPosition());
+    return () => window.cancelAnimationFrame(frame);
+  }, [children, clampPosition]);
+
+  useEffect(() => {
+    const handleResize = () => clampPosition();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, [clampPosition]);
 
   const onPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
@@ -41,15 +74,15 @@ const DraggableFloating = ({
 
     const w = el.offsetWidth;
     const h = el.offsetHeight;
-    const maxX = Math.max(0, window.innerWidth - w);
-    const maxY = Math.max(0, window.innerHeight - h);
+    const maxX = window.innerWidth - w - VIEWPORT_PADDING;
+    const maxY = window.innerHeight - h - VIEWPORT_PADDING;
 
     const newX = e.clientX - offset.current.x;
     const newY = e.clientY - offset.current.y;
 
     setPos({
-      x: Math.max(0, Math.min(newX, maxX)),
-      y: Math.max(0, Math.min(newY, maxY)),
+      x: clampValue(newX, VIEWPORT_PADDING, maxX),
+      y: clampValue(newY, VIEWPORT_PADDING, maxY),
     });
   }, []);
 
