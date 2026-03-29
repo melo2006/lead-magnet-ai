@@ -85,6 +85,8 @@ export type Database = {
       }
       prospects: {
         Row: {
+          ai_analysis: string | null
+          ai_analyzed: boolean | null
           business_name: string
           business_types: Json | null
           city: string | null
@@ -123,6 +125,8 @@ export type Database = {
           zip_code: string | null
         }
         Insert: {
+          ai_analysis?: string | null
+          ai_analyzed?: boolean | null
           business_name: string
           business_types?: Json | null
           city?: string | null
@@ -161,6 +165,8 @@ export type Database = {
           zip_code?: string | null
         }
         Update: {
+          ai_analysis?: string | null
+          ai_analyzed?: boolean | null
           business_name?: string
           business_types?: Json | null
           city?: string | null
