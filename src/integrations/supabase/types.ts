@@ -14,6 +14,57 @@ export type Database = {
   }
   public: {
     Tables: {
+      campaigns: {
+        Row: {
+          created_at: string
+          demos_viewed: number | null
+          description: string | null
+          emails_clicked: number | null
+          emails_opened: number | null
+          emails_sent: number | null
+          id: string
+          name: string
+          niche: string | null
+          prospect_count: number | null
+          sms_sent: number | null
+          status: string
+          target_filters: Json | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          demos_viewed?: number | null
+          description?: string | null
+          emails_clicked?: number | null
+          emails_opened?: number | null
+          emails_sent?: number | null
+          id?: string
+          name: string
+          niche?: string | null
+          prospect_count?: number | null
+          sms_sent?: number | null
+          status?: string
+          target_filters?: Json | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          demos_viewed?: number | null
+          description?: string | null
+          emails_clicked?: number | null
+          emails_opened?: number | null
+          emails_sent?: number | null
+          id?: string
+          name?: string
+          niche?: string | null
+          prospect_count?: number | null
+          sms_sent?: number | null
+          status?: string
+          target_filters?: Json | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           brand_colors: Json | null
