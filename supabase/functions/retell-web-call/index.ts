@@ -748,19 +748,25 @@ Deno.serve(async (req) => {
 
       if (aiSummary.appointmentRequested) {
         try {
-          const appointmentStart =
+          const preferredStart =
             parseRequestedAppointmentStart(aiSummary.appointmentTimeText, transcript) ?? getDefaultAppointmentStart();
+          
+          // Check real calendar availability before booking
+          const calendarIdForBooking = ownerEmail || TESTING_INBOX_EMAIL;
+          const appointmentStart = await findAvailableSlot(calendarIdForBooking, preferredStart, 15);
           const appointmentEnd = new Date(appointmentStart);
           appointmentEnd.setMinutes(appointmentEnd.getMinutes() + 15);
-          appointmentScheduledFor = `${formatAppointmentLabel(appointmentStart)} (15 minutes)`;
+
+          const wasRescheduled = appointmentStart.getTime() !== preferredStart.getTime();
+          appointmentScheduledFor = `${formatAppointmentLabel(appointmentStart)} (15 minutes)${wasRescheduled ? ' — adjusted from requested time due to existing calendar conflict' : ''}`;
 
           const calEvent = await createCalendarEvent({
-            calendarId: ownerEmail,
+            calendarId: calendarIdForBooking,
             summary: `Aspen Demo Follow-up: ${resolvedOwnerName} — ${businessName}`,
             description: `Auto-booked by Aspen AI after a demo call.\n\nSummary: ${aiSummary.summary}\nNext step: ${aiSummary.nextStep}\nRequested slot: ${appointmentScheduledFor || aiSummary.appointmentTimeText || 'Default next business day at 10:00 AM ET'}\n\nPhone: ${ownerPhone || 'Not provided'}\nEmail: ${ownerEmail}\nWebsite: ${websiteUrl}`,
             startTime: formatNaiveCalendarDateTime(appointmentStart),
             endTime: formatNaiveCalendarDateTime(appointmentEnd),
-            attendeeEmail: ownerEmail,
+            attendeeEmail: ownerEmail || undefined,
             timeZone: DEFAULT_TIME_ZONE,
           });
 
