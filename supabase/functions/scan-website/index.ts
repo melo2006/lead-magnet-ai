@@ -332,27 +332,57 @@ const buildStructuredKnowledge = ({
   profile,
   homepageSummary,
   pageSummaries,
+  webResearchContent,
 }: {
   websiteUrl: string;
   profile: Awaited<ReturnType<typeof analyzeBusinessProfile>>;
   homepageSummary: string;
   pageSummaries: string[];
+  webResearchContent?: string;
 }) => {
+  const nicheFallback = NICHE_FALLBACK_KNOWLEDGE[profile.detectedNiche] || NICHE_FALLBACK_KNOWLEDGE.general;
+
+  // Use scraped services if available, otherwise fall back to niche defaults
+  const services = profile.serviceHighlights.length > 0 ? profile.serviceHighlights : nicheFallback.services;
+  const trust = profile.trustSignals.length > 0 ? profile.trustSignals : nicheFallback.trust;
+  const faqs = profile.faqs.length > 0 ? profile.faqs : nicheFallback.faqs;
+
   const sections = [
     `BUSINESS NAME: ${profile.businessName}`,
     `DETECTED NICHE: ${profile.detectedNiche}`,
     profile.serviceArea ? `SERVICE AREA: ${profile.serviceArea}` : '',
     `SUMMARY: ${profile.summary}`,
     homepageSummary ? `HOMEPAGE SUMMARY: ${homepageSummary}` : '',
-    profile.audience ? `AUDIENCE: ${profile.audience}` : '',
+    profile.audience ? `TARGET AUDIENCE: ${profile.audience}` : '',
     `WEBSITE: ${websiteUrl}`,
     '',
-    ...profile.serviceHighlights.map((item) => `- Service: ${item}`),
-    ...profile.trustSignals.map((item) => `- Trust: ${item}`),
-    ...profile.faqs.map((item) => `- FAQ: ${item}`),
-    ...profile.callGoals.map((item) => `- Call Goal: ${item}`),
-    ...profile.toneKeywords.map((item) => `- Tone: ${item}`),
+    '=== SERVICES OFFERED ===',
+    ...services.map((item) => `- ${item}`),
+    '',
+    profile.pricing.length > 0 ? '=== PRICING INFO ===' : '',
+    ...profile.pricing.map((item) => `- ${item}`),
+    '',
+    '=== TRUST SIGNALS & DIFFERENTIATORS ===',
+    ...trust.map((item) => `- ${item}`),
+    '',
+    '=== FREQUENTLY ASKED QUESTIONS ===',
+    ...faqs.map((item) => `Q: ${item}`),
+    '',
+    '=== CALL GOALS ===',
+    ...profile.callGoals.map((item) => `- ${item}`),
+    '',
+    '=== TONE ===',
+    ...profile.toneKeywords.map((item) => `- ${item}`),
+    '',
+    profile.competitors.length > 0 ? '=== KNOWN COMPETITORS ===' : '',
+    ...profile.competitors.map((item) => `- ${item}`),
+    '',
+    profile.reviews.length > 0 ? '=== CUSTOMER REVIEWS & REPUTATION ===' : '',
+    ...profile.reviews.map((item) => `- ${item}`),
+    '',
     ...pageSummaries.map((item) => `- Detail: ${item}`),
+    '',
+    webResearchContent ? `\n=== INDUSTRY & COMPETITOR RESEARCH ===\n${webResearchContent}` : '',
   ];
 
   return sections.filter(Boolean).join('\n');
