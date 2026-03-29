@@ -55,6 +55,7 @@ const CRM = () => {
         <ProspectTable
           prospects={displayProspects}
           isLoading={isLoading || isSearching}
+          onRefetch={refetch}
         />
       </div>
     </div>
