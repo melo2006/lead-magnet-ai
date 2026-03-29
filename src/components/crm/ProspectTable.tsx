@@ -15,6 +15,7 @@ interface Props {
   prospects: Prospect[];
   isLoading: boolean;
   onRefetch?: () => void;
+  onOutreach?: (selected: Prospect[]) => void;
 }
 
 type SortKey =
