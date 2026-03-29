@@ -200,6 +200,7 @@ Be direct and specific. Return ONLY valid JSON, no markdown formatting or code b
       website_quality_score: websiteQualityScore,
       ai_analysis: aiAnalysis,
       ai_analyzed: true,
+      ...enrichmentData,
     };
 
     const { error: updateError } = await supabase
