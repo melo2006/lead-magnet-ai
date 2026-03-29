@@ -23,7 +23,7 @@ type SortKey =
   | "lead_score" | "rating" | "review_count" | "business_name"
   | "has_website" | "has_chat_widget" | "has_voice_ai"
   | "has_online_booking" | "website_quality_score" | "lead_temperature"
-  | "city" | "ai_analyzed" | "niche";
+  | "city" | "ai_analyzed" | "niche" | "contact_method" | "owner_name";
 
 const tempIcons: Record<string, any> = {
   hot: Flame, warm: Thermometer, cold: Snowflake,
