@@ -468,7 +468,7 @@ const extractCallerEmailFromTranscript = (transcript: string) => {
     .replace(/\bg\s*mail\b/g, 'gmail')
     .replace(/\s+at\s+/g, '@')
     .replace(/\s+dot\s+/g, '.')
-    .replace(/[^a-z0-9@._%+\-]/g, ' ')
+    .replace(/[^a-z0-9@._%+-]/g, ' ')
     .replace(/\s+/g, '');
 
   return normalizeEmailCandidate(flattened);
@@ -478,7 +478,7 @@ const extractCallerNameFromTranscript = (transcript: string) => {
   if (!transcript) return '';
 
   const matches = Array.from(
-    transcript.matchAll(/User:\s.*?\b(?:my name is|this is|i am|i'm)\s+([A-Za-z][A-Za-z'\-]*)/gi),
+    transcript.matchAll(/User:\s.*?\b(?:my name is|this is|i am|i'm)\s+([A-Za-z][A-Za-z'-]*)/gi),
   );
 
   return matches.length > 0 ? matches[matches.length - 1][1] : '';
@@ -922,8 +922,6 @@ Deno.serve(async (req) => {
       websiteUrl,
       businessInfo,
       ownerPhone,
-      callerName,
-      callerEmail,
     } = body;
 
     if (!agentId) {

@@ -539,7 +539,6 @@ Deno.serve(async (req) => {
 
     // === PHASE 1: Homepage scrape (fast, synchronous) ===
     let homepageResponse: any;
-    let hasScreenshot = false;
 
     try {
       homepageResponse = await firecrawlRequest('/scrape', firecrawlKey, {
@@ -549,7 +548,6 @@ Deno.serve(async (req) => {
         waitFor: 3000,
         timeout: 30000,
       }, 1);
-      hasScreenshot = true;
     } catch (screenshotErr) {
       console.warn('Screenshot scrape failed, retrying without:', screenshotErr);
       homepageResponse = await firecrawlRequest('/scrape', firecrawlKey, {
