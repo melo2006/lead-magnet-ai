@@ -15,7 +15,28 @@ const SearchSchema = z.object({
   useGeolocation: z.boolean().optional().default(false),
   lat: z.number().optional(),
   lng: z.number().optional(),
+  maxResults: z.number().min(1).max(60).optional().default(60),
 });
+
+const FIELD_MASK = [
+  "places.id",
+  "places.displayName",
+  "places.formattedAddress",
+  "places.nationalPhoneNumber",
+  "places.internationalPhoneNumber",
+  "places.websiteUri",
+  "places.googleMapsUri",
+  "places.rating",
+  "places.userRatingCount",
+  "places.types",
+  "places.primaryType",
+  "places.location",
+  "places.photos",
+  "places.regularOpeningHours",
+  "places.businessStatus",
+  "places.addressComponents",
+  "nextPageToken",
+].join(",");
 
 serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -37,8 +58,8 @@ serve(async (req) => {
       );
     }
 
-    const { query, location, radius, useGeolocation, lat, lng } = parsed.data;
-    const radiusMeters = radius * 1609.34; // miles to meters
+    const { query, location, radius, useGeolocation, lat, lng, maxResults } = parsed.data;
+    const radiusMeters = radius * 1609.34;
 
     // Step 1: Geocode the location (if not using geolocation)
     let searchLat = lat;
@@ -60,63 +81,68 @@ serve(async (req) => {
       searchLng = geocodeData.results[0].geometry.location.lng;
     }
 
-    // Step 2: Search Google Places (New) API - Text Search
-    const textSearchUrl = "https://places.googleapis.com/v1/places:searchText";
-    const searchBody = {
-      textQuery: query,
-      locationBias: {
-        circle: {
-          center: { latitude: searchLat, longitude: searchLng },
-          radius: radiusMeters,
+    // Step 2: Paginate through Google Places Text Search to get up to maxResults
+    const allPlaces: any[] = [];
+    let pageToken: string | undefined;
+    const maxPages = Math.ceil(maxResults / 20);
+
+    for (let page = 0; page < maxPages; page++) {
+      const searchBody: any = {
+        textQuery: query,
+        locationBias: {
+          circle: {
+            center: { latitude: searchLat, longitude: searchLng },
+            radius: radiusMeters,
+          },
         },
-      },
-      maxResultCount: 20,
-      languageCode: "en",
-    };
+        maxResultCount: 20,
+        languageCode: "en",
+      };
 
-    const placesRes = await fetch(textSearchUrl, {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        "X-Goog-Api-Key": GOOGLE_MAPS_API_KEY,
-        "X-Goog-FieldMask": [
-          "places.id",
-          "places.displayName",
-          "places.formattedAddress",
-          "places.nationalPhoneNumber",
-          "places.internationalPhoneNumber",
-          "places.websiteUri",
-          "places.googleMapsUri",
-          "places.rating",
-          "places.userRatingCount",
-          "places.types",
-          "places.primaryType",
-          "places.location",
-          "places.photos",
-          "places.regularOpeningHours",
-          "places.businessStatus",
-          "places.addressComponents",
-        ].join(","),
-      },
-      body: JSON.stringify(searchBody),
-    });
+      if (pageToken) {
+        searchBody.pageToken = pageToken;
+      }
 
-    const placesData = await placesRes.json();
+      const placesRes = await fetch("https://places.googleapis.com/v1/places:searchText", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "X-Goog-Api-Key": GOOGLE_MAPS_API_KEY,
+          "X-Goog-FieldMask": FIELD_MASK,
+        },
+        body: JSON.stringify(searchBody),
+      });
 
-    if (!placesRes.ok) {
-      console.error("Google Places API error:", JSON.stringify(placesData));
-      throw new Error(`Google Places API error [${placesRes.status}]: ${JSON.stringify(placesData)}`);
+      const placesData = await placesRes.json();
+
+      if (!placesRes.ok) {
+        console.error("Google Places API error:", JSON.stringify(placesData));
+        if (page === 0) {
+          throw new Error(`Google Places API error [${placesRes.status}]: ${JSON.stringify(placesData)}`);
+        }
+        break;
+      }
+
+      const places = placesData.places || [];
+      allPlaces.push(...places);
+      console.log(`Page ${page + 1}: got ${places.length} results (total: ${allPlaces.length})`);
+
+      pageToken = placesData.nextPageToken;
+      if (!pageToken || allPlaces.length >= maxResults) break;
+
+      // Google requires a short delay before using pageToken
+      await new Promise((r) => setTimeout(r, 2000));
     }
 
-    const places = placesData.places || [];
+    // Trim to maxResults
+    const trimmedPlaces = allPlaces.slice(0, maxResults);
 
     // Step 3: Transform and score each place
-    const prospects = places.map((place: any) => {
+    const prospects = trimmedPlaces.map((place: any) => {
       const hasWebsite = !!place.websiteUri;
       const reviewCount = place.userRatingCount || 0;
       const rating = place.rating || 0;
 
-      // Extract address components
       let city = "";
       let state = "";
       let zipCode = "";
@@ -128,24 +154,20 @@ serve(async (req) => {
         }
       }
 
-      // Lead scoring algorithm
-      let score = 50; // base score
-      if (!hasWebsite) score += 30; // No website = high opportunity
+      // Lead scoring
+      let score = 50;
+      if (!hasWebsite) score += 30;
       if (hasWebsite) score += 5;
-      if (reviewCount < 10) score += 15; // Low reviews = less digital presence
-      if (reviewCount >= 10 && reviewCount < 50) score += 10;
-      if (rating < 4.0 && rating > 0) score += 10; // Lower rating = needs help
+      if (reviewCount < 10) score += 15;
+      else if (reviewCount < 50) score += 10;
+      if (rating < 4.0 && rating > 0) score += 10;
       if (rating >= 4.5) score -= 5;
-
-      // Cap score
       score = Math.min(100, Math.max(0, score));
 
-      // Temperature based on score
       let temperature = "cold";
       if (score >= 75) temperature = "hot";
       else if (score >= 50) temperature = "warm";
 
-      // Extract photo references
       const photos = (place.photos || []).slice(0, 5).map((p: any) => ({
         name: p.name,
         widthPx: p.widthPx,
