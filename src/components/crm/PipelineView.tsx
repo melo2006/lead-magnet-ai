@@ -31,7 +31,7 @@ const tempColors: Record<string, string> = {
 };
 
 const PipelineView = ({ prospects, onRefetch }: Props) => {
-  const [draggingId, setDraggingId] = useState<string | null>(null);
+  const [_draggingId, setDraggingId] = useState<string | null>(null);
 
   const getProspectsForStage = (stage: string) => {
     return prospects.filter((p) => {
