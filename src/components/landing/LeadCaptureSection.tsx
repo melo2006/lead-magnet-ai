@@ -64,14 +64,20 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
   const [scanData, setScanData] = useState<DemoLeadData | null>(null);
   const [files, setFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [formData, setFormData] = useState({
-    name: "",
-    businessName: "",
-    email: "",
-    website: "",
-    phone: "",
-    secondaryUrl: "",
+  const [formData, setFormData] = useState(() => {
+    try {
+      const saved = localStorage.getItem("leadFormData");
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return { name: "", businessName: "", email: "", website: "", phone: "", secondaryUrl: "" };
   });
+
+  // Persist form data to localStorage during dev
+  const updateFormData = (update: Partial<typeof formData>) => {
+    const next = { ...formData, ...update };
+    setFormData(next);
+    try { localStorage.setItem("leadFormData", JSON.stringify(next)); } catch {}
+  };
 
   const handleFileAdd = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newFiles = Array.from(e.target.files || []);
