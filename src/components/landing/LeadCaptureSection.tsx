@@ -64,14 +64,20 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
   const [scanData, setScanData] = useState<DemoLeadData | null>(null);
   const [files, setFiles] = useState<File[]>([]);
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const [formData, setFormData] = useState({
-    name: "",
-    businessName: "",
-    email: "",
-    website: "",
-    phone: "",
-    secondaryUrl: "",
+  const [formData, setFormData] = useState(() => {
+    try {
+      const saved = localStorage.getItem("leadFormData");
+      if (saved) return JSON.parse(saved);
+    } catch {}
+    return { name: "", businessName: "", email: "", website: "", phone: "", secondaryUrl: "" };
   });
+
+  // Persist form data to localStorage during dev
+  const updateFormData = (update: Partial<typeof formData>) => {
+    const next = { ...formData, ...update };
+    setFormData(next);
+    try { localStorage.setItem("leadFormData", JSON.stringify(next)); } catch {}
+  };
 
   const handleFileAdd = (e: React.ChangeEvent<HTMLInputElement>) => {
     const newFiles = Array.from(e.target.files || []);
@@ -265,7 +271,7 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
                 <Input
                   placeholder="Alex Johnson"
                   value={formData.name}
-                  onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                  onChange={(e) => updateFormData({ name: e.target.value })}
                   className="bg-secondary border-border"
                   required
                 />
@@ -277,7 +283,7 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
                 <Input
                   placeholder="Sunrise Dental Studio"
                   value={formData.businessName}
-                  onChange={(e) => setFormData({ ...formData, businessName: e.target.value })}
+                  onChange={(e) => updateFormData({ businessName: e.target.value })}
                   className="bg-secondary border-border"
                   required
                 />
@@ -292,7 +298,7 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
                 <Input
                   placeholder="https://yourwebsite.com"
                   value={formData.website}
-                  onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                  onChange={(e) => updateFormData({ website: e.target.value })}
                   className="bg-secondary border-border"
                   required
                 />
@@ -305,7 +311,7 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
                   type="email"
                   placeholder="owner@business.com"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onChange={(e) => updateFormData({ email: e.target.value })}
                   className="bg-secondary border-border"
                 />
               </div>
@@ -319,7 +325,7 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
                 type="tel"
                 placeholder="(954) 555-1234"
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                onChange={(e) => updateFormData({ phone: e.target.value })}
                 className="bg-secondary border-border"
               />
             </div>
@@ -331,7 +337,7 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
               <Input
                 placeholder="https://vendor-or-partner-site.com"
                 value={formData.secondaryUrl}
-                onChange={(e) => setFormData({ ...formData, secondaryUrl: e.target.value })}
+                onChange={(e) => updateFormData({ secondaryUrl: e.target.value })}
                 className="bg-secondary border-border"
               />
             </div>
