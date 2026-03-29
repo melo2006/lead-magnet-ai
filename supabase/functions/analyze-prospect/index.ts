@@ -115,6 +115,7 @@ Deno.serve(async (req) => {
 
     // Step 2: AI Analysis
     let aiAnalysis = '';
+    let enrichmentData: Record<string, any> = {};
     if (lovableApiKey) {
       try {
         const context = [
@@ -135,12 +136,25 @@ Deno.serve(async (req) => {
             'Content-Type': 'application/json',
           },
           body: JSON.stringify({
-            model: 'google/gemini-2.5-flash-lite',
+            model: 'google/gemini-2.5-flash',
             temperature: 0.3,
             messages: [
               {
                 role: 'system',
-                content: `You are a sales intelligence analyst for an AI agency that sells voice AI agents, AI chatbots, and automation solutions to local businesses. Analyze the prospect and write a concise 2-3 sentence sales assessment. Include: 1) Whether this business is a good lead to pursue, 2) What AI services they're missing that you could sell them, 3) A recommended approach. Be direct, actionable, and specific to their business. Do NOT use markdown formatting.`,
+                content: `You are a sales intelligence analyst for an AI agency that sells voice AI agents, AI chatbots, and automation solutions to local businesses.
+
+Analyze the prospect and return a JSON object with these fields:
+- "sales_assessment": A concise 2-3 sentence sales assessment (is this a good lead, what AI services are they missing, recommended approach)
+- "owner_name": The business owner or manager name if found on the website (null if not found)
+- "owner_email": Owner/manager email if found (null if not found)
+- "owner_phone": Owner/manager personal or mobile phone if found, different from business line (null if not found)
+- "linkedin_url": LinkedIn profile URL if found (null if not found)
+- "facebook_url": Facebook page URL if found (null if not found)
+- "instagram_url": Instagram profile URL if found (null if not found)
+- "whatsapp_number": WhatsApp number if found (null if not found)
+- "contact_method": Best way to reach the decision-maker: "mobile", "email", "linkedin", "facebook", "instagram", "whatsapp", "business_phone", or "unknown"
+
+Be direct and specific. Return ONLY valid JSON, no markdown formatting or code blocks.`,
               },
               { role: 'user', content: context },
             ],
@@ -149,7 +163,24 @@ Deno.serve(async (req) => {
 
         if (response.ok) {
           const completion = await response.json();
-          aiAnalysis = completion?.choices?.[0]?.message?.content?.trim() || '';
+          const raw = completion?.choices?.[0]?.message?.content?.trim() || '';
+          try {
+            const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+            const parsed = JSON.parse(cleaned);
+            aiAnalysis = parsed.sales_assessment || raw;
+            enrichmentData = {
+              owner_name: parsed.owner_name || null,
+              owner_email: parsed.owner_email || null,
+              owner_phone: parsed.owner_phone || null,
+              linkedin_url: parsed.linkedin_url || null,
+              facebook_url: parsed.facebook_url || null,
+              instagram_url: parsed.instagram_url || null,
+              whatsapp_number: parsed.whatsapp_number || null,
+              contact_method: parsed.contact_method || 'unknown',
+            };
+          } catch {
+            aiAnalysis = raw;
+          }
         } else if (response.status === 429) {
           aiAnalysis = 'Analysis temporarily unavailable (rate limited). Try again shortly.';
         } else if (response.status === 402) {
@@ -169,6 +200,7 @@ Deno.serve(async (req) => {
       website_quality_score: websiteQualityScore,
       ai_analysis: aiAnalysis,
       ai_analyzed: true,
+      ...enrichmentData,
     };
 
     const { error: updateError } = await supabase

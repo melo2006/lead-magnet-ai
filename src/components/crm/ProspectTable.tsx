@@ -4,7 +4,8 @@ import {
   Phone, MapPin, Star, ExternalLink, Zap, MessageSquare,
   ChevronDown, ChevronUp, Flame, Thermometer, Snowflake,
   Brain, Loader2, CheckSquare, Square, Mail, Send,
-  ArrowUpDown, Gauge, ChevronLeft, ChevronRight
+  ArrowUpDown, Gauge, ChevronLeft, ChevronRight,
+  Linkedin, Facebook, Instagram, Smartphone
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -22,7 +23,7 @@ type SortKey =
   | "lead_score" | "rating" | "review_count" | "business_name"
   | "has_website" | "has_chat_widget" | "has_voice_ai"
   | "has_online_booking" | "website_quality_score" | "lead_temperature"
-  | "city" | "ai_analyzed" | "niche";
+  | "city" | "ai_analyzed" | "niche" | "contact_method" | "owner_name";
 
 const tempIcons: Record<string, any> = {
   hot: Flame, warm: Thermometer, cold: Snowflake,
@@ -225,6 +226,9 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) =
                 <th className="px-3 py-2.5 text-left min-w-[75px]"><SortHeader label="Booking" sortKey="has_online_booking" currentSort={sortBy} currentDir={sortDir} onSort={toggleSort} /></th>
                 <th className="px-3 py-2.5 text-left min-w-[80px]"><SortHeader label="Site Quality" sortKey="website_quality_score" currentSort={sortBy} currentDir={sortDir} onSort={toggleSort} /></th>
                 <th className="px-3 py-2.5 text-left min-w-[55px]"><SortHeader label="AI" sortKey="ai_analyzed" currentSort={sortBy} currentDir={sortDir} onSort={toggleSort} /></th>
+                <th className="px-3 py-2.5 text-left min-w-[100px]"><SortHeader label="Owner" sortKey="owner_name" currentSort={sortBy} currentDir={sortDir} onSort={toggleSort} /></th>
+                <th className="px-3 py-2.5 text-left min-w-[90px]"><SortHeader label="Contact" sortKey="contact_method" currentSort={sortBy} currentDir={sortDir} onSort={toggleSort} /></th>
+                <th className="px-3 py-2.5 text-left min-w-[80px]">Social</th>
                 <th className="px-3 py-2.5 text-left min-w-[100px]">Actions</th>
               </tr>
             </thead>
@@ -293,6 +297,30 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) =
                     <td className="px-3 py-2.5">
                       {isAnalyzing ? <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" /> : aiAnalyzed ? <span className="text-[9px] px-1 py-0.5 rounded bg-primary/20 text-primary font-medium">AI ✓</span> : <span className="text-[10px] text-muted-foreground">—</span>}
                     </td>
+                    {/* Owner */}
+                    <td className="px-3 py-2.5">
+                      {(p as any).owner_name ? (
+                        <div className="min-w-0">
+                          <span className="text-xs font-medium text-foreground truncate block max-w-[100px]">{(p as any).owner_name}</span>
+                          {(p as any).owner_phone && <span className="text-[10px] text-muted-foreground flex items-center gap-0.5"><Smartphone className="w-2.5 h-2.5" />{(p as any).owner_phone}</span>}
+                        </div>
+                      ) : <span className="text-[10px] text-muted-foreground">—</span>}
+                    </td>
+                    {/* Contact Method */}
+                    <td className="px-3 py-2.5">
+                      {(p as any).contact_method && (p as any).contact_method !== 'unknown' ? (
+                        <span className="text-[10px] font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded capitalize">{(p as any).contact_method}</span>
+                      ) : <span className="text-[10px] text-muted-foreground">—</span>}
+                    </td>
+                    {/* Social Links */}
+                    <td className="px-3 py-2.5">
+                      <div className="flex items-center gap-1">
+                        {(p as any).linkedin_url && <a href={(p as any).linkedin_url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="p-0.5 rounded hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors" title="LinkedIn"><Linkedin className="w-3.5 h-3.5" /></a>}
+                        {(p as any).facebook_url && <a href={(p as any).facebook_url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="p-0.5 rounded hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors" title="Facebook"><Facebook className="w-3.5 h-3.5" /></a>}
+                        {(p as any).instagram_url && <a href={(p as any).instagram_url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="p-0.5 rounded hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors" title="Instagram"><Instagram className="w-3.5 h-3.5" /></a>}
+                        {!(p as any).linkedin_url && !(p as any).facebook_url && !(p as any).instagram_url && <span className="text-[10px] text-muted-foreground">—</span>}
+                      </div>
+                    </td>
                     <td className="px-3 py-2.5">
                       <div className="flex items-center gap-1">
                         {p.website_url && (
@@ -340,6 +368,22 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) =
                 </div>
                 <div><h4 className="text-xs font-semibold text-muted-foreground mb-1">Website</h4>{p.website_url ? <a href={p.website_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline truncate block">{p.website_url}</a> : <p className="text-sm text-red-400">No website</p>}</div>
               </div>
+              {/* Contact Enrichment */}
+              {((p as any).owner_name || (p as any).owner_email || (p as any).linkedin_url || (p as any).facebook_url) && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-3 pt-3 border-t border-border/50">
+                  {(p as any).owner_name && <div><h4 className="text-xs font-semibold text-muted-foreground mb-1">Owner/Manager</h4><p className="text-sm text-foreground">{(p as any).owner_name}</p>{(p as any).owner_phone && <p className="text-xs text-muted-foreground mt-0.5">{(p as any).owner_phone}</p>}{(p as any).owner_email && <p className="text-xs text-muted-foreground">{(p as any).owner_email}</p>}</div>}
+                  <div>
+                    <h4 className="text-xs font-semibold text-muted-foreground mb-1">Social Profiles</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {(p as any).linkedin_url && <a href={(p as any).linkedin_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-primary hover:underline"><Linkedin className="w-3 h-3" />LinkedIn</a>}
+                      {(p as any).facebook_url && <a href={(p as any).facebook_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-primary hover:underline"><Facebook className="w-3 h-3" />Facebook</a>}
+                      {(p as any).instagram_url && <a href={(p as any).instagram_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-primary hover:underline"><Instagram className="w-3 h-3" />Instagram</a>}
+                      {(p as any).whatsapp_number && <span className="text-xs text-muted-foreground">WhatsApp: {(p as any).whatsapp_number}</span>}
+                    </div>
+                  </div>
+                  {(p as any).contact_method && (p as any).contact_method !== 'unknown' && <div><h4 className="text-xs font-semibold text-muted-foreground mb-1">Best Contact Method</h4><span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-1 rounded capitalize">{(p as any).contact_method}</span></div>}
+                </div>
+              )}
               <div className="flex flex-wrap gap-2 mt-4 pt-3 border-t border-border/50">
                 {!aiAnalyzed && p.has_website && (
                   <button onClick={() => handleAnalyze(p)} disabled={isAnalyzing} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/20 border border-primary/30 text-primary text-xs font-semibold hover:bg-primary/30 transition-colors disabled:opacity-50">
