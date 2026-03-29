@@ -52,8 +52,8 @@ const ProspectSearchForm = ({ onSearch, isSearching }: Props) => {
       toast.error("Please select or type a business niche");
       return;
     }
-    if (!useGeo && !location) {
-      toast.error("Please enter a location or use 'Near Me'");
+    if (!useGeo && (!location || location === "Near me")) {
+      toast.error("Please enter a location or use the 'Near Me' button");
       return;
     }
     onSearch({
