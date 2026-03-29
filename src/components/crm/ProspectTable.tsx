@@ -1,10 +1,10 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import {
-  Globe, Phone, MapPin, Star, ExternalLink, Zap, MessageSquare,
+  Phone, MapPin, Star, ExternalLink, Zap, MessageSquare,
   ChevronDown, ChevronUp, Flame, Thermometer, Snowflake,
   Brain, Loader2, CheckSquare, Square, Mail, Send,
-  ArrowUpDown, Bot, Calendar, Gauge
+  ArrowUpDown, Gauge
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
