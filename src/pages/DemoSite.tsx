@@ -128,8 +128,6 @@ const DemoSite = () => {
               websiteUrl={leadData.websiteUrl}
               businessInfo={leadData.websiteContent || leadData.description || ""}
               ownerName={leadData.fullName}
-              callerName={leadData.fullName}
-              callerEmail={leadData.email}
               callerPhone={leadData.phone}
               onClose={() => setChatOpen(false)}
             />
