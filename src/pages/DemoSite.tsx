@@ -162,8 +162,6 @@ const DemoSite = () => {
               ownerPhone={leadData.phone}
               websiteUrl={leadData.websiteUrl}
               businessInfo={leadData.websiteContent || leadData.description || ""}
-              callerName={leadData.fullName}
-              callerEmail={leadData.email}
               onClose={() => setVoiceOpen(false)}
             />
           </div>
