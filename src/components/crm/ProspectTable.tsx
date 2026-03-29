@@ -272,7 +272,7 @@ const ProspectTable = ({ prospects, isLoading, onRefetch }: Props) => {
                 const isSelected = selectedIds.has(p.place_id);
                 const isAnalyzing = analyzingIds.has(p.id || "");
                 const aiAnalyzed = (p as any).ai_analyzed;
-                const aiAnalysis = (p as any).ai_analysis;
+                const _aiAnalysis = (p as any).ai_analysis;
                 const qualityScore = (p as any).website_quality_score || 0;
 
                 return (
