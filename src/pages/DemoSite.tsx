@@ -5,8 +5,6 @@ import type { DemoLeadData } from "@/components/landing/demo-results/demoResults
 import { getImageSrc, getSiteName } from "@/components/landing/demo-results/demoResultsUtils";
 import VoiceAgentWidget from "@/components/landing/demo-results/VoiceAgentWidget";
 import ChatWidget from "@/components/landing/demo-results/ChatWidget";
-import DraggableFloating from "@/components/landing/demo-results/DraggableFloating";
-import { useIsMobile } from "@/hooks/use-mobile";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -31,7 +29,6 @@ const DemoSite = () => {
   const [leadData, setLeadData] = useState<DemoLeadData | undefined>(latestLeadData ?? storedLeadData);
   const [chatOpen, setChatOpen] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
-  const isMobile = useIsMobile();
 
   // Handle URL params from CRM (e.g. /demo?url=...&name=...&niche=...)
   useEffect(() => {
@@ -41,7 +38,6 @@ const DemoSite = () => {
 
     if (!urlParam || latestLeadData) return;
 
-    // Re-scan if we have no data, no screenshot, or no content for this URL
     const cachedIsStale =
       !leadData ||
       leadData.websiteUrl !== urlParam ||
@@ -78,7 +74,6 @@ const DemoSite = () => {
 
         if (error) throw error;
 
-        // Fetch the full lead record from DB to get screenshot + content
         const { data: fullLead, error: fetchError } = await supabase
           .from("leads")
           .select("*")
@@ -128,7 +123,7 @@ const DemoSite = () => {
     } catch { /* noop */ }
   }, [latestLeadData]);
 
-  // Loading state for CRM-triggered scans
+  // Loading state
   if (isScanning) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -145,7 +140,6 @@ const DemoSite = () => {
   }
 
   if (!leadData) {
-    // No data and no URL params - redirect home
     if (!searchParams.get("url")) {
       navigate("/", { replace: true });
       return null;
@@ -156,29 +150,17 @@ const DemoSite = () => {
   const screenshotSrc = getImageSrc(leadData.screenshot);
   const siteName = leadData.businessName?.trim() || getSiteName(leadData.websiteUrl, leadData.title);
 
-  const chatInitX = isMobile ? 12 : 20;
-  const chatInitY = typeof window !== "undefined" ? Math.max(84, window.innerHeight - (isMobile ? 88 : 96)) : 640;
-  const voiceInitX =
-    typeof window !== "undefined"
-      ? isMobile
-        ? Math.max(12, window.innerWidth - 188)
-        : Math.max(12, window.innerWidth - 248)
-      : 800;
-  const voiceInitY = isMobile ? Math.max(12, chatInitY - 72) : chatInitY;
-
   return (
-    <div className="relative min-h-screen bg-background">
-      <div className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur-md px-4 py-2.5 flex items-center justify-between">
+    <div className="relative flex min-h-screen flex-col bg-background">
+      {/* Top bar */}
+      <div className="sticky top-0 z-50 flex items-center justify-between border-b border-border bg-card/95 px-4 py-2.5 backdrop-blur-md">
         <div className="flex items-center gap-3">
           <button
             onClick={() => {
-              if (window.history.length > 1) {
-                navigate(-1);
-              } else {
-                navigate("/crm");
-              }
+              if (window.history.length > 1) navigate(-1);
+              else navigate("/crm");
             }}
-            className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
+            className="flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
             Back
@@ -186,111 +168,114 @@ const DemoSite = () => {
           <span className="text-xs text-muted-foreground">|</span>
           <span className="text-sm font-medium text-foreground">{siteName}</span>
         </div>
-        <p className="text-xs text-muted-foreground hidden sm:block">
-          Demo overlay: drag the AI widgets to preview placement on this page.
-        </p>
+        <span className="hidden text-xs text-muted-foreground sm:block">
+          AI-Enhanced Demo Preview
+        </span>
       </div>
 
-      <div className="relative w-full">
+      {/* Website simulation area — fills available space */}
+      <div className="relative flex-1">
+        {/* Screenshot fills the container */}
         {screenshotSrc ? (
           <img
             src={screenshotSrc}
-            alt={`${siteName} website first-page screenshot`}
-            className="block w-full h-auto align-top"
+            alt={`${siteName} website`}
+            className="block h-auto w-full align-top"
             loading="lazy"
             decoding="async"
             draggable={false}
           />
         ) : (
-          <div className="flex items-center justify-center h-[80vh] bg-muted">
-            <p className="text-muted-foreground text-lg">Website screenshot unavailable</p>
+          <div className="flex h-[80vh] items-center justify-center bg-muted">
+            <p className="text-lg text-muted-foreground">Website screenshot unavailable</p>
           </div>
         )}
 
-        <div className="pointer-events-none absolute inset-0 overflow-hidden">
-          <div className="absolute inset-0 flex items-center justify-center">
-            <p className="select-none text-foreground/10 text-[clamp(2.2rem,9vw,7rem)] font-black tracking-[0.35em]">
-              DEMO
-            </p>
-          </div>
-          <div className="absolute bottom-4 left-1/2 -translate-x-1/2 rounded-full border border-border/70 bg-card/80 px-4 py-1 text-[11px] text-muted-foreground backdrop-blur-sm">
-            This is a static preview screenshot with live AI widget overlay.
-          </div>
+        {/* DEMO watermark */}
+        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+          <p className="select-none text-[clamp(2.5rem,10vw,8rem)] font-black tracking-[0.35em] text-foreground/[0.06]">
+            DEMO
+          </p>
+        </div>
+
+        {/* ===== AI Widget buttons — fixed to bottom-right of viewport, INSIDE the page ===== */}
+
+        {/* Voice widget / button */}
+        <div className="fixed bottom-20 right-4 z-50 sm:bottom-24 sm:right-6">
+          {voiceOpen ? (
+            <div className="w-[min(22rem,calc(100vw-2rem))] animate-in slide-in-from-bottom-4 fade-in duration-300">
+              <VoiceAgentWidget
+                businessName={siteName}
+                businessNiche={leadData.niche || "general"}
+                ownerName={leadData.fullName}
+                ownerEmail={leadData.email}
+                ownerPhone={leadData.phone}
+                websiteUrl={leadData.websiteUrl}
+                businessInfo={leadData.websiteContent || leadData.description || ""}
+                onClose={() => setVoiceOpen(false)}
+              />
+            </div>
+          ) : (
+            <button
+              onClick={() => { setVoiceOpen(true); setChatOpen(false); }}
+              className="group flex items-center gap-3 rounded-2xl bg-primary px-5 py-3.5 text-primary-foreground shadow-lg transition-all hover:scale-105 hover:shadow-xl"
+            >
+              <div className="relative">
+                <Mic className="h-5 w-5" />
+                <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-primary" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-semibold leading-tight">Talk to Aspen</p>
+                <p className="text-[10px] opacity-80">AI Voice Assistant</p>
+              </div>
+            </button>
+          )}
+        </div>
+
+        {/* Chat widget / button */}
+        <div className="fixed bottom-4 right-4 z-50 sm:bottom-6 sm:right-6">
+          {chatOpen ? (
+            <div className="w-[min(22rem,calc(100vw-2rem))] animate-in slide-in-from-bottom-4 fade-in duration-300">
+              <ChatWidget
+                businessName={siteName}
+                businessNiche={leadData.niche || "general"}
+                websiteUrl={leadData.websiteUrl}
+                businessInfo={leadData.websiteContent || leadData.description || ""}
+                ownerName={leadData.fullName}
+                callerPhone={leadData.phone}
+                onClose={() => setChatOpen(false)}
+              />
+            </div>
+          ) : (
+            <button
+              onClick={() => { setChatOpen(true); setVoiceOpen(false); }}
+              className="group flex items-center gap-3 rounded-2xl bg-accent px-5 py-3.5 text-accent-foreground shadow-lg transition-all hover:scale-105 hover:shadow-xl"
+            >
+              <div className="relative">
+                <MessageSquare className="h-5 w-5" />
+                <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-accent" />
+              </div>
+              <div className="text-left">
+                <p className="text-sm font-semibold leading-tight">Chat with Aspen</p>
+                <p className="text-[10px] opacity-80">AI Chat Assistant</p>
+              </div>
+            </button>
+          )}
         </div>
       </div>
 
-      <div className="border-t border-border bg-card px-6 py-8 text-center">
-        <p className="text-muted-foreground text-sm mb-3">
+      {/* Bottom CTA bar */}
+      <div className="border-t border-border bg-card px-6 py-6 text-center">
+        <p className="mb-3 text-sm text-muted-foreground">
           Impressed? These AI assistants can be added to any website in minutes.
         </p>
         <button
           onClick={() => navigate("/")}
-          className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground hover:bg-primary/90 transition-colors"
+          className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
         >
           Get Started — Contact Us
         </button>
       </div>
-
-      <DraggableFloating initialX={chatInitX} initialY={chatInitY} dragLabel="Drag me">
-        {chatOpen ? (
-          <div className="w-[calc(100vw-1.5rem)] max-w-[20rem] sm:w-96 sm:max-w-none animate-in slide-in-from-bottom-4 fade-in duration-300">
-            <ChatWidget
-              businessName={siteName}
-              businessNiche={leadData.niche || "general"}
-              websiteUrl={leadData.websiteUrl}
-              businessInfo={leadData.websiteContent || leadData.description || ""}
-              ownerName={leadData.fullName}
-              callerPhone={leadData.phone}
-              onClose={() => setChatOpen(false)}
-            />
-          </div>
-        ) : (
-          <button
-            onClick={() => setChatOpen(true)}
-            className="group flex items-center gap-3 rounded-2xl bg-accent px-5 py-3.5 text-accent-foreground shadow-lg hover:shadow-xl transition-all hover:scale-105"
-          >
-            <div className="relative">
-              <MessageSquare className="h-5 w-5" />
-              <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-accent" />
-            </div>
-            <div className="text-left">
-              <p className="text-sm font-semibold leading-tight">Chat with Aspen</p>
-              <p className="text-[10px] opacity-80">AI Chat Assistant</p>
-            </div>
-          </button>
-        )}
-      </DraggableFloating>
-
-      <DraggableFloating initialX={voiceInitX} initialY={voiceInitY} dragLabel="Drag me">
-        {voiceOpen ? (
-          <div className="w-[calc(100vw-1.5rem)] max-w-[20rem] sm:w-96 sm:max-w-none animate-in slide-in-from-bottom-4 fade-in duration-300">
-            <VoiceAgentWidget
-              businessName={siteName}
-              businessNiche={leadData.niche || "general"}
-              ownerName={leadData.fullName}
-              ownerEmail={leadData.email}
-              ownerPhone={leadData.phone}
-              websiteUrl={leadData.websiteUrl}
-              businessInfo={leadData.websiteContent || leadData.description || ""}
-              onClose={() => setVoiceOpen(false)}
-            />
-          </div>
-        ) : (
-          <button
-            onClick={() => setVoiceOpen(true)}
-            className="group flex items-center gap-3 rounded-2xl bg-primary px-5 py-3.5 text-primary-foreground shadow-lg hover:shadow-xl transition-all hover:scale-105"
-          >
-            <div className="relative">
-              <Mic className="h-5 w-5" />
-              <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-primary" />
-            </div>
-            <div className="text-left">
-              <p className="text-sm font-semibold leading-tight">Talk to Aspen</p>
-              <p className="text-[10px] opacity-80">AI Voice Assistant</p>
-            </div>
-          </button>
-        )}
-      </DraggableFloating>
     </div>
   );
 };
