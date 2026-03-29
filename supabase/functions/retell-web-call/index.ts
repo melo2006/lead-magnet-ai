@@ -95,8 +95,7 @@ async function getFreeBusy(calendarId: string, timeMin: string, timeMax: string)
 
   const data = await res.json().catch(() => null);
   if (!res.ok) {
-    console.warn('FreeBusy API error:', JSON.stringify(data));
-    return [];
+    throw new Error(`FreeBusy API error [${res.status}] for ${calendarId}: ${JSON.stringify(data)}`);
   }
 
   return data?.calendars?.[calendarId]?.busy ?? [];
@@ -163,6 +162,32 @@ async function findAvailableSlot(calendarId: string, preferredStart: Date, durat
 
   // Fallback: return the preferred time anyway
   return preferredStart;
+}
+
+async function findAvailableSlotAcrossCalendars(calendarIds: string[], preferredStart: Date, durationMinutes = 15) {
+  const uniqueCalendarIds = Array.from(new Set(calendarIds.map((value) => value.trim()).filter(Boolean)));
+  let lastError: Error | null = null;
+
+  for (let index = 0; index < uniqueCalendarIds.length; index += 1) {
+    const calendarId = uniqueCalendarIds[index];
+
+    try {
+      const slot = await findAvailableSlot(calendarId, preferredStart, durationMinutes);
+      return {
+        calendarId,
+        slot,
+        warning:
+          index > 0
+            ? `The owner's calendar is not shared yet, so Aspen used the connected demo calendar to check availability.`
+            : null,
+      };
+    } catch (error) {
+      lastError = error instanceof Error ? error : new Error('Unknown calendar lookup error');
+      console.warn(`Calendar lookup failed for ${calendarId}:`, lastError.message);
+    }
+  }
+
+  throw lastError ?? new Error('No accessible calendar was available for booking.');
 }
 
 async function createCalendarEvent({
@@ -418,6 +443,47 @@ const getTranscriptText = (callData: any) => {
   return '';
 };
 
+const normalizeEmailCandidate = (value?: string | null) => {
+  if (!value) return '';
+
+  const normalized = value
+    .toLowerCase()
+    .replace(/\s+/g, '')
+    .replace(/\(at\)|\[at\]/g, '@')
+    .replace(/\(dot\)|\[dot\]/g, '.')
+    .replace(/@+/g, '@');
+
+  const match = normalized.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i);
+  return match ? match[0] : '';
+};
+
+const extractCallerEmailFromTranscript = (transcript: string) => {
+  if (!transcript) return '';
+
+  const directMatches = Array.from(transcript.matchAll(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)).map((match) => normalizeEmailCandidate(match[0]));
+  if (directMatches.length > 0) return directMatches[directMatches.length - 1];
+
+  const flattened = transcript
+    .toLowerCase()
+    .replace(/\bg\s*mail\b/g, 'gmail')
+    .replace(/\s+at\s+/g, '@')
+    .replace(/\s+dot\s+/g, '.')
+    .replace(/[^a-z0-9@._%+-]/g, ' ')
+    .replace(/\s+/g, '');
+
+  return normalizeEmailCandidate(flattened);
+};
+
+const extractCallerNameFromTranscript = (transcript: string) => {
+  if (!transcript) return '';
+
+  const matches = Array.from(
+    transcript.matchAll(/User:\s.*?\b(?:my name is|this is|i am|i'm)\s+([A-Za-z][A-Za-z'-]*)/gi),
+  );
+
+  return matches.length > 0 ? matches[matches.length - 1][1] : '';
+};
+
 const parseJsonContent = (value: string) => {
   const cleaned = value
     .trim()
@@ -453,6 +519,8 @@ async function summarizeTranscript({
   };
 
   const fallbackAppointmentTimeText = extractAppointmentTimeHint(transcript);
+  const fallbackCallerName = extractCallerNameFromTranscript(transcript);
+  const fallbackCallerEmail = extractCallerEmailFromTranscript(transcript);
 
   if (!lovableApiKey) {
     return {
@@ -466,6 +534,8 @@ async function summarizeTranscript({
             : 'Review the transcript and follow up if needed.',
       ...fallbackFlags,
       appointmentTimeText: fallbackAppointmentTimeText,
+      callerName: fallbackCallerName,
+      callerEmail: fallbackCallerEmail,
       keyPoints: [],
     };
   }
@@ -484,7 +554,7 @@ async function summarizeTranscript({
         {
           role: 'system',
           content:
-            'You summarize demo call transcripts for business owners. Return strict JSON with these keys only: summary (string), nextStep (string), callbackRequested (boolean), appointmentRequested (boolean), transferRequested (boolean), appointmentTimeText (string), keyPoints (array of up to 4 short strings). appointmentTimeText must capture the exact requested appointment slot or time window if one was mentioned, otherwise return an empty string. Keep the summary practical and concise.',
+            'You summarize demo call transcripts for business owners. Return strict JSON with these keys only: summary (string), nextStep (string), callbackRequested (boolean), appointmentRequested (boolean), transferRequested (boolean), appointmentTimeText (string), callerName (string), callerEmail (string), keyPoints (array of up to 4 short strings). callerName must be the final confirmed caller name, not the business owner. callerEmail must be the final corrected caller email address if one was provided. appointmentTimeText must capture the exact requested appointment slot or time window if one was mentioned, otherwise return an empty string. Keep the summary practical and concise.',
         },
         {
           role: 'user',
@@ -524,12 +594,19 @@ async function summarizeTranscript({
       typeof parsed.appointmentTimeText === 'string' && parsed.appointmentTimeText.trim()
         ? parsed.appointmentTimeText.trim()
         : fallbackAppointmentTimeText,
+    callerName: typeof parsed.callerName === 'string' && parsed.callerName.trim() ? parsed.callerName.trim() : fallbackCallerName,
+    callerEmail:
+      typeof parsed.callerEmail === 'string' && parsed.callerEmail.trim()
+        ? normalizeEmailCandidate(parsed.callerEmail)
+        : fallbackCallerEmail,
     keyPoints: Array.isArray(parsed.keyPoints) ? parsed.keyPoints.slice(0, 4) : [],
   };
 }
 
 async function sendSummaryEmail({
   resendApiKey,
+  callerName,
+  callerEmail,
   ownerName,
   ownerEmail,
   ownerPhone,
@@ -546,6 +623,8 @@ async function sendSummaryEmail({
   callDurationSeconds,
 }: {
   resendApiKey: string;
+  callerName: string;
+  callerEmail: string;
   ownerName: string;
   ownerEmail: string;
   ownerPhone: string;
@@ -575,10 +654,12 @@ async function sendSummaryEmail({
       <p style="margin-top: 0; color: #475569;">${escapeHtml(businessName)} · ${escapeHtml(websiteUrl)}</p>
 
       <div style="border: 1px solid #cbd5e1; border-radius: 12px; padding: 16px; margin: 20px 0; background: #f8fafc;">
-        <h2 style="font-size: 18px; margin: 0 0 8px;">Lead details</h2>
-        <p style="margin: 4px 0;"><strong>Name:</strong> ${escapeHtml(ownerName)}</p>
-        <p style="margin: 4px 0;"><strong>Email:</strong> ${escapeHtml(ownerEmail)}</p>
-        <p style="margin: 4px 0;"><strong>Phone:</strong> ${escapeHtml(ownerPhone || 'Not provided')}</p>
+        <h2 style="font-size: 18px; margin: 0 0 8px;">Caller details</h2>
+        <p style="margin: 4px 0;"><strong>Name:</strong> ${escapeHtml(callerName || 'Not captured')}</p>
+        <p style="margin: 4px 0;"><strong>Email:</strong> ${escapeHtml(callerEmail || 'Not captured')}</p>
+        <p style="margin: 4px 0;"><strong>Business owner on file:</strong> ${escapeHtml(ownerName)}</p>
+        <p style="margin: 4px 0;"><strong>Owner email on file:</strong> ${escapeHtml(ownerEmail)}</p>
+        <p style="margin: 4px 0;"><strong>Owner phone on file:</strong> ${escapeHtml(ownerPhone || 'Not provided')}</p>
         <p style="margin: 4px 0;"><strong>Call length:</strong> ${callDurationSeconds ? `${callDurationSeconds}s` : 'Unavailable'}</p>
       </div>
 
@@ -614,7 +695,7 @@ async function sendSummaryEmail({
         to,
         subject: `Aspen demo recap for ${businessName}`,
         html,
-        text: `Aspen demo call recap\n\nBusiness: ${businessName}\nWebsite: ${websiteUrl}\nName: ${ownerName}\nEmail: ${ownerEmail}\nPhone: ${ownerPhone || 'Not provided'}\n\nSummary: ${summary}\nNext step: ${nextStep}\nCallback requested: ${callbackRequested ? 'Yes' : 'No'}\nAppointment requested: ${appointmentRequested ? 'Yes' : 'No'}\nImmediate transfer requested: ${transferRequested ? 'Yes' : 'No'}\n${appointmentScheduledFor ? `Confirmed time: ${appointmentScheduledFor}\n` : ''}\nTranscript:\n${transcript || 'Transcript was not available yet.'}`,
+        text: `Aspen demo call recap\n\nBusiness: ${businessName}\nWebsite: ${websiteUrl}\nCaller name: ${callerName || 'Not captured'}\nCaller email: ${callerEmail || 'Not captured'}\nBusiness owner: ${ownerName}\nOwner email: ${ownerEmail}\nOwner phone: ${ownerPhone || 'Not provided'}\n\nSummary: ${summary}\nNext step: ${nextStep}\nCallback requested: ${callbackRequested ? 'Yes' : 'No'}\nAppointment requested: ${appointmentRequested ? 'Yes' : 'No'}\nImmediate transfer requested: ${transferRequested ? 'Yes' : 'No'}\n${appointmentScheduledFor ? `Confirmed time: ${appointmentScheduledFor}\n` : ''}\nTranscript:\n${transcript || 'Transcript was not available yet.'}`,
       }),
     });
 
@@ -745,17 +826,19 @@ Deno.serve(async (req) => {
 
       let calendarEventId: string | null = null;
       let appointmentScheduledFor: string | null = null;
+      let calendarWarning: string | null = null;
 
       if (aiSummary.appointmentRequested) {
         try {
           const preferredStart =
             parseRequestedAppointmentStart(aiSummary.appointmentTimeText, transcript) ?? getDefaultAppointmentStart();
-          
-          // Check real calendar availability before booking
-          const calendarIdForBooking = ownerEmail || TESTING_INBOX_EMAIL;
-          const appointmentStart = await findAvailableSlot(calendarIdForBooking, preferredStart, 15);
+          const attendeeEmail = aiSummary.callerEmail || undefined;
+          const bookingContext = await findAvailableSlotAcrossCalendars([ownerEmail, TESTING_INBOX_EMAIL], preferredStart, 15);
+          const calendarIdForBooking = bookingContext.calendarId;
+          const appointmentStart = bookingContext.slot;
           const appointmentEnd = new Date(appointmentStart);
           appointmentEnd.setMinutes(appointmentEnd.getMinutes() + 15);
+          calendarWarning = bookingContext.warning;
 
           const wasRescheduled = appointmentStart.getTime() !== preferredStart.getTime();
           appointmentScheduledFor = `${formatAppointmentLabel(appointmentStart)} (15 minutes)${wasRescheduled ? ' — adjusted from requested time due to existing calendar conflict' : ''}`;
@@ -766,13 +849,20 @@ Deno.serve(async (req) => {
             description: `Auto-booked by Aspen AI after a demo call.\n\nSummary: ${aiSummary.summary}\nNext step: ${aiSummary.nextStep}\nRequested slot: ${appointmentScheduledFor || aiSummary.appointmentTimeText || 'Default next business day at 10:00 AM ET'}\n\nPhone: ${ownerPhone || 'Not provided'}\nEmail: ${ownerEmail}\nWebsite: ${websiteUrl}`,
             startTime: formatNaiveCalendarDateTime(appointmentStart),
             endTime: formatNaiveCalendarDateTime(appointmentEnd),
-            attendeeEmail: ownerEmail || undefined,
+            attendeeEmail,
             timeZone: DEFAULT_TIME_ZONE,
           });
 
           calendarEventId = calEvent?.id || null;
           console.log('Calendar event created:', calendarEventId);
+
+          if (!attendeeEmail) {
+            calendarWarning = [calendarWarning, 'Aspen could not confidently capture the caller email, so no invite email was sent.']
+              .filter(Boolean)
+              .join(' ');
+          }
         } catch (calErr) {
+          calendarWarning = calErr instanceof Error ? calErr.message : 'Calendar availability could not be checked.';
           console.error('Failed to create calendar event (non-fatal):', calErr);
         }
       }
@@ -783,6 +873,8 @@ Deno.serve(async (req) => {
       try {
         emailResult = await sendSummaryEmail({
           resendApiKey,
+          callerName: aiSummary.callerName || '',
+          callerEmail: aiSummary.callerEmail || '',
           ownerName: resolvedOwnerName,
           ownerEmail,
           ownerPhone,
@@ -817,6 +909,7 @@ Deno.serve(async (req) => {
         emailWarning,
         calendarEventId,
         appointmentScheduledFor,
+        calendarWarning,
       });
     }
 
@@ -829,8 +922,6 @@ Deno.serve(async (req) => {
       websiteUrl,
       businessInfo,
       ownerPhone,
-      callerName,
-      callerEmail,
     } = body;
 
     if (!agentId) {
@@ -881,9 +972,22 @@ PERSONALITY RULES:
 
 KNOWLEDGE: Use the business_info to answer questions about services, pricing, service area, and competitors. If you don't have a specific answer, use common ${businessNiche || 'industry'} knowledge to give a helpful response and offer to have ${resolvedOwnerName} follow up with specifics.
 
+LIVE CALENDAR HONESTY:
+- Never claim someone is available all day or say a time is booked before a real calendar check happens.
+- If someone asks about availability, say you can REQUEST their preferred time and the calendar will be checked right after the call.
+- If the caller gives a preferred time, confirm it as a requested slot, not a guaranteed booking.
+
+EMAIL CAPTURE RULES:
+- Never use owner_email as the caller's email. owner_email belongs only to the business owner.
+- If you promise to send anything by email, explicitly ask for the caller's best email address.
+- After they say it, repeat it back slowly and clearly, character by character.
+- Always confirm gmail as "g-m-a-i-l dot com" when that is the domain.
+- If the caller corrects any part of the email, discard the old version and restate only the corrected one.
+- If you are not fully sure, ask them to repeat it once more instead of guessing.
+
 APPOINTMENT & CALLBACK:
-- When offering to schedule, say something like: "I can set up a time for you to chat with ${resolvedOwnerName}. What day and time works best for you?"
-- At the end of the call, confirm: "I'll make sure ${resolvedOwnerName} gets all the details from our chat!"
+- When offering to schedule, say something like: "I can request a time for you to chat with ${resolvedOwnerName}. What day and time works best for you?"
+- At the end of the call, confirm: "I'll make sure ${resolvedOwnerName} gets all the details from our chat, and we'll confirm the timing by email if needed!"
 
 DEMO CONTEXT: This is a demonstration of AI voice capabilities. If the caller asks about signing up for the AI service itself, you can mention they can speak with Ron Melo, our Director of Sales, about getting this for their own business.`,
         },

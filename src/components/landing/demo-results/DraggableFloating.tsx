@@ -20,6 +20,7 @@ const DraggableFloating = ({
   const [pos, setPos] = useState({ x: initialX, y: initialY });
   const [isDragging, setIsDragging] = useState(false);
   const dragging = useRef(false);
+  const activePointerId = useRef<number | null>(null);
   const offset = useRef({ x: 0, y: 0 });
   const containerRef = useRef<HTMLDivElement>(null);
 
@@ -60,57 +61,81 @@ const DraggableFloating = ({
     if (!rect) return;
 
     dragging.current = true;
+    activePointerId.current = e.pointerId;
     setIsDragging(true);
     offset.current = { x: e.clientX - rect.left, y: e.clientY - rect.top };
+    document.body.style.userSelect = "none";
+    document.body.style.touchAction = "none";
     e.currentTarget.setPointerCapture?.(e.pointerId);
     e.preventDefault();
   }, []);
 
-  const onPointerMove = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
-    if (!dragging.current) return;
+  const stopDragging = useCallback((pointerId?: number | null) => {
+    if (pointerId != null && activePointerId.current != null && pointerId !== activePointerId.current) return;
 
-    const el = containerRef.current;
-    if (!el) return;
-
-    const w = el.offsetWidth;
-    const h = el.offsetHeight;
-    const maxX = window.innerWidth - w - VIEWPORT_PADDING;
-    const maxY = window.innerHeight - h - VIEWPORT_PADDING;
-
-    const newX = e.clientX - offset.current.x;
-    const newY = e.clientY - offset.current.y;
-
-    setPos({
-      x: clampValue(newX, VIEWPORT_PADDING, maxX),
-      y: clampValue(newY, VIEWPORT_PADDING, maxY),
-    });
-  }, []);
-
-  const stopDragging = useCallback(() => {
     dragging.current = false;
+    activePointerId.current = null;
+    document.body.style.userSelect = "";
+    document.body.style.touchAction = "";
     setIsDragging(false);
   }, []);
+
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handlePointerMove = (e: PointerEvent) => {
+      if (!dragging.current) return;
+      if (activePointerId.current !== null && e.pointerId !== activePointerId.current) return;
+
+      const el = containerRef.current;
+      if (!el) return;
+
+      const w = el.offsetWidth;
+      const h = el.offsetHeight;
+      const maxX = window.innerWidth - w - VIEWPORT_PADDING;
+      const maxY = window.innerHeight - h - VIEWPORT_PADDING;
+
+      const newX = e.clientX - offset.current.x;
+      const newY = e.clientY - offset.current.y;
+
+      setPos({
+        x: clampValue(newX, VIEWPORT_PADDING, maxX),
+        y: clampValue(newY, VIEWPORT_PADDING, maxY),
+      });
+    };
+
+    const handlePointerEnd = (e: PointerEvent) => stopDragging(e.pointerId);
+
+    window.addEventListener("pointermove", handlePointerMove);
+    window.addEventListener("pointerup", handlePointerEnd);
+    window.addEventListener("pointercancel", handlePointerEnd);
+
+    return () => {
+      window.removeEventListener("pointermove", handlePointerMove);
+      window.removeEventListener("pointerup", handlePointerEnd);
+      window.removeEventListener("pointercancel", handlePointerEnd);
+      document.body.style.userSelect = "";
+      document.body.style.touchAction = "";
+    };
+  }, [isDragging, stopDragging]);
 
   return (
     <div
       ref={containerRef}
       onPointerDown={onPointerDown}
-      onPointerMove={onPointerMove}
-      onPointerUp={stopDragging}
-      onPointerCancel={stopDragging}
-      onLostPointerCapture={stopDragging}
+      onLostPointerCapture={() => stopDragging()}
       style={{
         position: "fixed",
         left: pos.x,
         top: pos.y,
         zIndex: 50,
-        touchAction: "auto",
+        touchAction: isDragging ? "none" : "auto",
       }}
     >
       <button
         type="button"
         data-drag-handle
-        className="mx-auto mb-1.5 inline-flex select-none items-center gap-1.5 rounded-full border border-border bg-card/95 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground shadow-sm"
+        className="mx-auto mb-1.5 inline-flex cursor-grab touch-none select-none items-center gap-1.5 rounded-full border border-border bg-card/95 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground shadow-sm active:cursor-grabbing"
         aria-label="Drag widget"
       >
         <span className="text-xs leading-none">⋮⋮</span>
