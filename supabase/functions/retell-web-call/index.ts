@@ -76,6 +76,95 @@ async function getGoogleAccessToken(): Promise<string> {
   return data.access_token;
 }
 
+async function getFreeBusy(calendarId: string, timeMin: string, timeMax: string): Promise<{ start: string; end: string }[]> {
+  const accessToken = await getGoogleAccessToken();
+
+  const res = await fetch(`${GOOGLE_CALENDAR_API}/freeBusy`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      timeMin,
+      timeMax,
+      timeZone: DEFAULT_TIME_ZONE,
+      items: [{ id: calendarId }],
+    }),
+  });
+
+  const data = await res.json().catch(() => null);
+  if (!res.ok) {
+    console.warn('FreeBusy API error:', JSON.stringify(data));
+    return [];
+  }
+
+  return data?.calendars?.[calendarId]?.busy ?? [];
+}
+
+async function findAvailableSlot(calendarId: string, preferredStart: Date, durationMinutes = 15): Promise<Date> {
+  // Check a 3-day window from the preferred start
+  const windowStart = new Date(preferredStart);
+  windowStart.setHours(0, 0, 0, 0);
+  const windowEnd = new Date(windowStart);
+  windowEnd.setDate(windowEnd.getDate() + 3);
+
+  const busySlots = await getFreeBusy(
+    calendarId,
+    windowStart.toISOString(),
+    windowEnd.toISOString(),
+  );
+
+  const isSlotFree = (start: Date, end: Date): boolean => {
+    return !busySlots.some((busy) => {
+      const busyStart = new Date(busy.start);
+      const busyEnd = new Date(busy.end);
+      return start < busyEnd && end > busyStart;
+    });
+  };
+
+  // First try the preferred time
+  const preferredEnd = new Date(preferredStart);
+  preferredEnd.setMinutes(preferredEnd.getMinutes() + durationMinutes);
+  if (isSlotFree(preferredStart, preferredEnd)) {
+    return preferredStart;
+  }
+
+  console.log('Preferred slot is busy, searching for next available...');
+
+  // Search forward in 30-min increments, business hours only (9am-5pm)
+  const candidate = new Date(preferredStart);
+  for (let i = 0; i < 48; i++) {
+    candidate.setMinutes(candidate.getMinutes() + 30);
+
+    // Skip weekends
+    if (candidate.getDay() === 0 || candidate.getDay() === 6) {
+      candidate.setDate(candidate.getDate() + (candidate.getDay() === 0 ? 1 : 2));
+      candidate.setHours(9, 0, 0, 0);
+      continue;
+    }
+
+    // Skip outside business hours
+    if (candidate.getHours() < 9) {
+      candidate.setHours(9, 0, 0, 0);
+    }
+    if (candidate.getHours() >= 17) {
+      candidate.setDate(candidate.getDate() + 1);
+      candidate.setHours(9, 0, 0, 0);
+      continue;
+    }
+
+    const candEnd = new Date(candidate);
+    candEnd.setMinutes(candEnd.getMinutes() + durationMinutes);
+    if (isSlotFree(candidate, candEnd)) {
+      return new Date(candidate);
+    }
+  }
+
+  // Fallback: return the preferred time anyway
+  return preferredStart;
+}
+
 async function createCalendarEvent({
   calendarId,
   summary,
