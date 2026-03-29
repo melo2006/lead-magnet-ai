@@ -297,6 +297,30 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) =
                     <td className="px-3 py-2.5">
                       {isAnalyzing ? <Loader2 className="w-3.5 h-3.5 animate-spin text-primary" /> : aiAnalyzed ? <span className="text-[9px] px-1 py-0.5 rounded bg-primary/20 text-primary font-medium">AI ✓</span> : <span className="text-[10px] text-muted-foreground">—</span>}
                     </td>
+                    {/* Owner */}
+                    <td className="px-3 py-2.5">
+                      {(p as any).owner_name ? (
+                        <div className="min-w-0">
+                          <span className="text-xs font-medium text-foreground truncate block max-w-[100px]">{(p as any).owner_name}</span>
+                          {(p as any).owner_phone && <span className="text-[10px] text-muted-foreground flex items-center gap-0.5"><Smartphone className="w-2.5 h-2.5" />{(p as any).owner_phone}</span>}
+                        </div>
+                      ) : <span className="text-[10px] text-muted-foreground">—</span>}
+                    </td>
+                    {/* Contact Method */}
+                    <td className="px-3 py-2.5">
+                      {(p as any).contact_method && (p as any).contact_method !== 'unknown' ? (
+                        <span className="text-[10px] font-semibold text-primary bg-primary/10 px-1.5 py-0.5 rounded capitalize">{(p as any).contact_method}</span>
+                      ) : <span className="text-[10px] text-muted-foreground">—</span>}
+                    </td>
+                    {/* Social Links */}
+                    <td className="px-3 py-2.5">
+                      <div className="flex items-center gap-1">
+                        {(p as any).linkedin_url && <a href={(p as any).linkedin_url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="p-0.5 rounded hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors" title="LinkedIn"><Linkedin className="w-3.5 h-3.5" /></a>}
+                        {(p as any).facebook_url && <a href={(p as any).facebook_url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="p-0.5 rounded hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors" title="Facebook"><Facebook className="w-3.5 h-3.5" /></a>}
+                        {(p as any).instagram_url && <a href={(p as any).instagram_url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="p-0.5 rounded hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors" title="Instagram"><Instagram className="w-3.5 h-3.5" /></a>}
+                        {!(p as any).linkedin_url && !(p as any).facebook_url && !(p as any).instagram_url && <span className="text-[10px] text-muted-foreground">—</span>}
+                      </div>
+                    </td>
                     <td className="px-3 py-2.5">
                       <div className="flex items-center gap-1">
                         {p.website_url && (
