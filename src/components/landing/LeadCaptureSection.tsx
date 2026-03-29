@@ -311,7 +311,7 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
                   type="email"
                   placeholder="owner@business.com"
                   value={formData.email}
-                  onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+                  onChange={(e) => updateFormData({ email: e.target.value })}
                   className="bg-secondary border-border"
                 />
               </div>
