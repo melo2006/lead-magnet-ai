@@ -138,6 +138,38 @@ async function scrapeMarkdownPage(url: string, apiKey: string) {
   };
 }
 
+async function webResearch(firecrawlKey: string, queries: string[]): Promise<string[]> {
+  const results: string[] = [];
+  for (const query of queries) {
+    try {
+      const response = await fetch(`${FIRECRAWL_BASE}/search`, {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${firecrawlKey}`,
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ query, limit: 5 }),
+      });
+      const data = await response.json().catch(() => null);
+      if (response.ok && Array.isArray(data?.data)) {
+        for (const item of data.data) {
+          const snippet = [
+            item.title ? `**${item.title}**` : '',
+            item.description || '',
+            item.markdown ? truncate(cleanText(item.markdown), 1500) : '',
+          ].filter(Boolean).join('\n');
+          if (snippet.length > 10) results.push(snippet);
+        }
+      }
+    } catch (err) {
+      console.warn(`Web research failed for query "${query}":`, err);
+    }
+    // Small delay between searches to avoid rate limits
+    await new Promise((r) => setTimeout(r, 800));
+  }
+  return results;
+}
+
 async function analyzeBusinessProfile({
   lovableApiKey,
   websiteUrl,
@@ -173,6 +205,9 @@ async function analyzeBusinessProfile({
       toneKeywords: ['friendly', 'helpful', 'clear'],
       audience: '',
       callGoals: ['Answer questions clearly', 'Guide the caller to the next step'],
+      pricing: [],
+      competitors: [],
+      reviews: [],
     };
   }
 
@@ -204,7 +239,7 @@ async function analyzeBusinessProfile({
           {
             role: 'system',
             content:
-              'Extract a business profile from website content. Return strict JSON with these keys only: businessName (string), detectedNiche (string), summary (string), serviceArea (string), serviceHighlights (array of up to 6 short strings), trustSignals (array of up to 6 short strings), faqs (array of up to 4 short strings), toneKeywords (array of up to 5 short strings), audience (string), callGoals (array of up to 4 short strings). detectedNiche must be one of: realtors, medspa, autodetail, veterinary, marine, general. Use the form niche only as a weak hint. If the website contradicts it, override it. Never default to realtors unless the content clearly indicates real estate.',
+              'Extract a comprehensive business profile from website content. Return strict JSON with these keys only: businessName (string), detectedNiche (string), summary (string), serviceArea (string with city/region/state), serviceHighlights (array of up to 8 short strings describing specific services offered), trustSignals (array of up to 6 short strings), faqs (array of up to 6 question strings a typical caller would ask), toneKeywords (array of up to 5 short strings), audience (string describing target customers), callGoals (array of up to 4 short strings), pricing (array of up to 6 strings with any pricing info found e.g. "Kitchen remodel: $15k-$50k"), competitors (array of up to 3 competitor company names if mentioned). detectedNiche must be one of: realtors, medspa, autodetail, veterinary, marine, general. Use the form niche only as a weak hint. If the website contradicts it, override it. Never default to realtors unless the content clearly indicates real estate. For serviceArea, extract the specific city, region, or metro area they serve.',
           },
           {
             role: 'user',
@@ -229,12 +264,15 @@ async function analyzeBusinessProfile({
       detectedNiche: mapDetectedNiche(parsed.detectedNiche, fallbackNiche),
       summary: cleanText(parsed.summary) || fallbackSummary,
       serviceArea: cleanText(parsed.serviceArea),
-      serviceHighlights: Array.isArray(parsed.serviceHighlights) ? unique(parsed.serviceHighlights.map((item: string) => cleanText(item))).slice(0, 6) : [],
+      serviceHighlights: Array.isArray(parsed.serviceHighlights) ? unique(parsed.serviceHighlights.map((item: string) => cleanText(item))).slice(0, 8) : [],
       trustSignals: Array.isArray(parsed.trustSignals) ? unique(parsed.trustSignals.map((item: string) => cleanText(item))).slice(0, 6) : [],
-      faqs: Array.isArray(parsed.faqs) ? unique(parsed.faqs.map((item: string) => cleanText(item))).slice(0, 4) : [],
+      faqs: Array.isArray(parsed.faqs) ? unique(parsed.faqs.map((item: string) => cleanText(item))).slice(0, 6) : [],
       toneKeywords: Array.isArray(parsed.toneKeywords) ? unique(parsed.toneKeywords.map((item: string) => cleanText(item))).slice(0, 5) : ['friendly', 'helpful', 'clear'],
       audience: cleanText(parsed.audience),
       callGoals: Array.isArray(parsed.callGoals) ? unique(parsed.callGoals.map((item: string) => cleanText(item))).slice(0, 4) : ['Answer questions clearly', 'Guide the caller to the next step'],
+      pricing: Array.isArray(parsed.pricing) ? unique(parsed.pricing.map((item: string) => cleanText(item))).slice(0, 6) : [],
+      competitors: Array.isArray(parsed.competitors) ? unique(parsed.competitors.map((item: string) => cleanText(item))).slice(0, 3) : [],
+      reviews: [] as string[],
     };
   } catch (error) {
     console.warn('AI business profile failed, using fallback:', error);
@@ -249,6 +287,9 @@ async function analyzeBusinessProfile({
       toneKeywords: ['friendly', 'helpful', 'clear'],
       audience: '',
       callGoals: ['Answer questions clearly', 'Guide the caller to the next step'],
+      pricing: [],
+      competitors: [],
+      reviews: [],
     };
   }
 }
