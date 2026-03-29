@@ -89,9 +89,16 @@ export type Database = {
           ai_analyzed: boolean | null
           business_name: string
           business_types: Json | null
+          campaign_id: string | null
           city: string | null
           country: string | null
           created_at: string
+          demo_link: string | null
+          demo_viewed_at: string | null
+          email: string | null
+          email_clicked_at: string | null
+          email_opened_at: string | null
+          email_sent_at: string | null
           formatted_address: string | null
           google_maps_url: string | null
           has_chat_widget: boolean | null
@@ -109,6 +116,7 @@ export type Database = {
           opening_hours: Json | null
           phone: string | null
           photos: Json | null
+          pipeline_stage: string
           place_id: string
           primary_type: string | null
           rating: number | null
@@ -116,6 +124,8 @@ export type Database = {
           search_location: string | null
           search_query: string | null
           search_radius: number | null
+          sms_clicked_at: string | null
+          sms_sent_at: string | null
           state: string | null
           status: string | null
           tags: Json | null
@@ -129,9 +139,16 @@ export type Database = {
           ai_analyzed?: boolean | null
           business_name: string
           business_types?: Json | null
+          campaign_id?: string | null
           city?: string | null
           country?: string | null
           created_at?: string
+          demo_link?: string | null
+          demo_viewed_at?: string | null
+          email?: string | null
+          email_clicked_at?: string | null
+          email_opened_at?: string | null
+          email_sent_at?: string | null
           formatted_address?: string | null
           google_maps_url?: string | null
           has_chat_widget?: boolean | null
@@ -149,6 +166,7 @@ export type Database = {
           opening_hours?: Json | null
           phone?: string | null
           photos?: Json | null
+          pipeline_stage?: string
           place_id: string
           primary_type?: string | null
           rating?: number | null
@@ -156,6 +174,8 @@ export type Database = {
           search_location?: string | null
           search_query?: string | null
           search_radius?: number | null
+          sms_clicked_at?: string | null
+          sms_sent_at?: string | null
           state?: string | null
           status?: string | null
           tags?: Json | null
@@ -169,9 +189,16 @@ export type Database = {
           ai_analyzed?: boolean | null
           business_name?: string
           business_types?: Json | null
+          campaign_id?: string | null
           city?: string | null
           country?: string | null
           created_at?: string
+          demo_link?: string | null
+          demo_viewed_at?: string | null
+          email?: string | null
+          email_clicked_at?: string | null
+          email_opened_at?: string | null
+          email_sent_at?: string | null
           formatted_address?: string | null
           google_maps_url?: string | null
           has_chat_widget?: boolean | null
@@ -189,6 +216,7 @@ export type Database = {
           opening_hours?: Json | null
           phone?: string | null
           photos?: Json | null
+          pipeline_stage?: string
           place_id?: string
           primary_type?: string | null
           rating?: number | null
@@ -196,6 +224,8 @@ export type Database = {
           search_location?: string | null
           search_query?: string | null
           search_radius?: number | null
+          sms_clicked_at?: string | null
+          sms_sent_at?: string | null
           state?: string | null
           status?: string | null
           tags?: Json | null
