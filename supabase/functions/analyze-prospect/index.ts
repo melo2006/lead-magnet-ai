@@ -50,7 +50,7 @@ Deno.serve(async (req) => {
           },
           body: JSON.stringify({
             url,
-            formats: ['html', 'markdown'],
+            formats: ['html', 'markdown', 'screenshot'],
             onlyMainContent: false,
             waitFor: 3000,
             timeout: 30000,
