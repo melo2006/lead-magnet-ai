@@ -76,6 +76,95 @@ async function getGoogleAccessToken(): Promise<string> {
   return data.access_token;
 }
 
+async function getFreeBusy(calendarId: string, timeMin: string, timeMax: string): Promise<{ start: string; end: string }[]> {
+  const accessToken = await getGoogleAccessToken();
+
+  const res = await fetch(`${GOOGLE_CALENDAR_API}/freeBusy`, {
+    method: 'POST',
+    headers: {
+      Authorization: `Bearer ${accessToken}`,
+      'Content-Type': 'application/json',
+    },
+    body: JSON.stringify({
+      timeMin,
+      timeMax,
+      timeZone: DEFAULT_TIME_ZONE,
+      items: [{ id: calendarId }],
+    }),
+  });
+
+  const data = await res.json().catch(() => null);
+  if (!res.ok) {
+    console.warn('FreeBusy API error:', JSON.stringify(data));
+    return [];
+  }
+
+  return data?.calendars?.[calendarId]?.busy ?? [];
+}
+
+async function findAvailableSlot(calendarId: string, preferredStart: Date, durationMinutes = 15): Promise<Date> {
+  // Check a 3-day window from the preferred start
+  const windowStart = new Date(preferredStart);
+  windowStart.setHours(0, 0, 0, 0);
+  const windowEnd = new Date(windowStart);
+  windowEnd.setDate(windowEnd.getDate() + 3);
+
+  const busySlots = await getFreeBusy(
+    calendarId,
+    windowStart.toISOString(),
+    windowEnd.toISOString(),
+  );
+
+  const isSlotFree = (start: Date, end: Date): boolean => {
+    return !busySlots.some((busy) => {
+      const busyStart = new Date(busy.start);
+      const busyEnd = new Date(busy.end);
+      return start < busyEnd && end > busyStart;
+    });
+  };
+
+  // First try the preferred time
+  const preferredEnd = new Date(preferredStart);
+  preferredEnd.setMinutes(preferredEnd.getMinutes() + durationMinutes);
+  if (isSlotFree(preferredStart, preferredEnd)) {
+    return preferredStart;
+  }
+
+  console.log('Preferred slot is busy, searching for next available...');
+
+  // Search forward in 30-min increments, business hours only (9am-5pm)
+  const candidate = new Date(preferredStart);
+  for (let i = 0; i < 48; i++) {
+    candidate.setMinutes(candidate.getMinutes() + 30);
+
+    // Skip weekends
+    if (candidate.getDay() === 0 || candidate.getDay() === 6) {
+      candidate.setDate(candidate.getDate() + (candidate.getDay() === 0 ? 1 : 2));
+      candidate.setHours(9, 0, 0, 0);
+      continue;
+    }
+
+    // Skip outside business hours
+    if (candidate.getHours() < 9) {
+      candidate.setHours(9, 0, 0, 0);
+    }
+    if (candidate.getHours() >= 17) {
+      candidate.setDate(candidate.getDate() + 1);
+      candidate.setHours(9, 0, 0, 0);
+      continue;
+    }
+
+    const candEnd = new Date(candidate);
+    candEnd.setMinutes(candEnd.getMinutes() + durationMinutes);
+    if (isSlotFree(candidate, candEnd)) {
+      return new Date(candidate);
+    }
+  }
+
+  // Fallback: return the preferred time anyway
+  return preferredStart;
+}
+
 async function createCalendarEvent({
   calendarId,
   summary,
@@ -659,19 +748,25 @@ Deno.serve(async (req) => {
 
       if (aiSummary.appointmentRequested) {
         try {
-          const appointmentStart =
+          const preferredStart =
             parseRequestedAppointmentStart(aiSummary.appointmentTimeText, transcript) ?? getDefaultAppointmentStart();
+          
+          // Check real calendar availability before booking
+          const calendarIdForBooking = ownerEmail || TESTING_INBOX_EMAIL;
+          const appointmentStart = await findAvailableSlot(calendarIdForBooking, preferredStart, 15);
           const appointmentEnd = new Date(appointmentStart);
           appointmentEnd.setMinutes(appointmentEnd.getMinutes() + 15);
-          appointmentScheduledFor = `${formatAppointmentLabel(appointmentStart)} (15 minutes)`;
+
+          const wasRescheduled = appointmentStart.getTime() !== preferredStart.getTime();
+          appointmentScheduledFor = `${formatAppointmentLabel(appointmentStart)} (15 minutes)${wasRescheduled ? ' — adjusted from requested time due to existing calendar conflict' : ''}`;
 
           const calEvent = await createCalendarEvent({
-            calendarId: ownerEmail,
+            calendarId: calendarIdForBooking,
             summary: `Aspen Demo Follow-up: ${resolvedOwnerName} — ${businessName}`,
             description: `Auto-booked by Aspen AI after a demo call.\n\nSummary: ${aiSummary.summary}\nNext step: ${aiSummary.nextStep}\nRequested slot: ${appointmentScheduledFor || aiSummary.appointmentTimeText || 'Default next business day at 10:00 AM ET'}\n\nPhone: ${ownerPhone || 'Not provided'}\nEmail: ${ownerEmail}\nWebsite: ${websiteUrl}`,
             startTime: formatNaiveCalendarDateTime(appointmentStart),
             endTime: formatNaiveCalendarDateTime(appointmentEnd),
-            attendeeEmail: ownerEmail,
+            attendeeEmail: ownerEmail || undefined,
             timeZone: DEFAULT_TIME_ZONE,
           });
 
@@ -763,20 +858,32 @@ Deno.serve(async (req) => {
           website_url: websiteUrl || '',
           business_info: (businessInfo || 'A professional business offering quality services.').substring(0, 12000),
           owner_phone: normalizedOwnerPhone || '',
-          caller_name: callerName || '',
-          caller_email: callerEmail || '',
+          caller_name: '',
+          caller_email: '',
           voice_persona: `You are Aspen, the AI voice assistant for ${businessName || 'this business'}. You are FUNNY, CORDIAL, and CONVERSATIONAL — like a witty, charming receptionist who genuinely loves helping people.
+
+CRITICAL OPENING RULE:
+- When the call starts, greet the caller warmly and IMMEDIATELY ask for their name. Example: "Hey there! Thanks for calling ${businessName || 'us'}! Before we dive in, who do I have the pleasure of speaking with today?"
+- Once they tell you their name, USE IT naturally throughout the conversation.
+- NEVER assume the caller's name. ALWAYS ask first.
+
+TWO PEOPLE IN EVERY CALL:
+- The CALLER is the person on the phone right now — a potential customer/lead. You do NOT know their name until they tell you.
+- The BUSINESS OWNER is ${resolvedOwnerName} — the person who owns ${businessName || 'this business'}. When offering callbacks, appointments, or transfers, always refer to ${resolvedOwnerName} by name.
+- These are DIFFERENT people. Never confuse them.
 
 PERSONALITY RULES:
 - Be warm and playful. Use light humor and casual language.
 - Let the caller ask questions — don't monologue. Keep answers to 2-3 sentences max.
 - Validate their questions: "Oh great question!" / "I love that you asked that!"
-- Use the caller's name naturally (${callerName || 'the caller'}).
 - Sound human, not robotic. Use filler words occasionally: "So...", "Well...", "Actually..."
 - If something is funny or relatable, acknowledge it with warmth.
-- The business owner is ${resolvedOwnerName} — always use their name when offering transfers or callbacks.
 
 KNOWLEDGE: Use the business_info to answer questions about services, pricing, service area, and competitors. If you don't have a specific answer, use common ${businessNiche || 'industry'} knowledge to give a helpful response and offer to have ${resolvedOwnerName} follow up with specifics.
+
+APPOINTMENT & CALLBACK:
+- When offering to schedule, say something like: "I can set up a time for you to chat with ${resolvedOwnerName}. What day and time works best for you?"
+- At the end of the call, confirm: "I'll make sure ${resolvedOwnerName} gets all the details from our chat!"
 
 DEMO CONTEXT: This is a demonstration of AI voice capabilities. If the caller asks about signing up for the AI service itself, you can mention they can speak with Ron Melo, our Director of Sales, about getting this for their own business.`,
         },
