@@ -200,6 +200,7 @@ Be direct and specific. Return ONLY valid JSON, no markdown formatting or code b
       has_voice_ai: hasVoiceAi,
       has_online_booking: hasOnlineBooking,
       website_quality_score: websiteQualityScore,
+      website_screenshot: websiteScreenshot || null,
       ai_analysis: aiAnalysis,
       ai_analyzed: true,
       ...enrichmentData,
