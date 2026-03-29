@@ -4,7 +4,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
-  Plus, Megaphone, Play, Pause, Trash2, Edit2,
+  Plus, Megaphone, Play, Pause, Trash2,
   Users, Mail, Eye, MousePointerClick, Sparkles, X
 } from "lucide-react";
 
