@@ -363,12 +363,29 @@ Deno.serve(async (req) => {
     const formattedUrl = normalizeUrl(websiteUrl);
     console.log('Scanning website:', formattedUrl);
 
-    const homepageResponse = await firecrawlRequest('/scrape', firecrawlKey, {
-      url: formattedUrl,
-      formats: ['markdown', 'screenshot@fullPage', 'branding', 'links', 'summary'],
-      onlyMainContent: false,
-      waitFor: 3500,
-    });
+    let homepageResponse: any;
+    let hasScreenshot = false;
+
+    try {
+      homepageResponse = await firecrawlRequest('/scrape', firecrawlKey, {
+        url: formattedUrl,
+        formats: ['markdown', 'screenshot@fullPage', 'branding', 'links', 'summary'],
+        onlyMainContent: false,
+        waitFor: 3500,
+        timeout: 45000,
+      }, 1);
+      hasScreenshot = true;
+    } catch (screenshotErr) {
+      console.warn('Full-page screenshot scrape failed, retrying without screenshot:', screenshotErr);
+      // Fallback: scrape without the heavy screenshot format
+      homepageResponse = await firecrawlRequest('/scrape', firecrawlKey, {
+        url: formattedUrl,
+        formats: ['markdown', 'branding', 'links', 'summary'],
+        onlyMainContent: false,
+        waitFor: 2000,
+        timeout: 30000,
+      }, 1);
+    }
 
     const homepage = unwrapFirecrawlPayload(homepageResponse);
     const homepageMarkdown = cleanText(homepage.markdown);
