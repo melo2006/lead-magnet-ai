@@ -162,7 +162,24 @@ Be direct and specific. Return ONLY valid JSON, no markdown formatting or code b
 
         if (response.ok) {
           const completion = await response.json();
-          aiAnalysis = completion?.choices?.[0]?.message?.content?.trim() || '';
+          const raw = completion?.choices?.[0]?.message?.content?.trim() || '';
+          try {
+            const cleaned = raw.replace(/```json\n?/g, '').replace(/```\n?/g, '').trim();
+            const parsed = JSON.parse(cleaned);
+            aiAnalysis = parsed.sales_assessment || raw;
+            enrichmentData = {
+              owner_name: parsed.owner_name || null,
+              owner_email: parsed.owner_email || null,
+              owner_phone: parsed.owner_phone || null,
+              linkedin_url: parsed.linkedin_url || null,
+              facebook_url: parsed.facebook_url || null,
+              instagram_url: parsed.instagram_url || null,
+              whatsapp_number: parsed.whatsapp_number || null,
+              contact_method: parsed.contact_method || 'unknown',
+            };
+          } catch {
+            aiAnalysis = raw;
+          }
         } else if (response.status === 429) {
           aiAnalysis = 'Analysis temporarily unavailable (rate limited). Try again shortly.';
         } else if (response.status === 402) {
