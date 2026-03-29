@@ -71,24 +71,22 @@ const pickRelevantLinks = (links: string[], rootUrl: string) => {
       .sort((a, b) => Number(preferred.test(b)) - Number(preferred.test(a))),
   )
     .filter((link) => link !== rootUrl)
-    .slice(0, 6);
+    .slice(0, 5);
 };
 
-async function firecrawlRequest(path: string, apiKey: string, body: Record<string, unknown>, retries = 2): Promise<any> {
+async function firecrawlRequest(path: string, apiKey: string, body: Record<string, unknown>, retries = 1): Promise<any> {
   let lastError: Error | null = null;
 
   for (let attempt = 0; attempt <= retries; attempt++) {
-    // Increase timeout on each retry
     const requestBody = { ...body };
     if (attempt > 0) {
-      requestBody.timeout = 60000; // 60s on retries
-      // Drop heavy formats on retry to reduce timeout risk
+      requestBody.timeout = 45000;
       if (Array.isArray(requestBody.formats)) {
         requestBody.formats = (requestBody.formats as string[]).filter(
           (f: string) => !f.startsWith('screenshot')
         );
       }
-      console.log(`Firecrawl retry ${attempt} for ${path} (simplified formats)`);
+      console.log(`Firecrawl retry ${attempt} for ${path} (simplified)`);
     }
 
     const response = await fetch(`${FIRECRAWL_BASE}${path}`, {
@@ -106,12 +104,10 @@ async function firecrawlRequest(path: string, apiKey: string, body: Record<strin
 
     lastError = new Error(`Firecrawl error [${response.status}]: ${JSON.stringify(data)}`);
 
-    // Only retry on timeout (408) or server errors (5xx)
     const isRetryable = response.status === 408 || response.status >= 500;
     if (!isRetryable || attempt === retries) break;
 
-    // Brief pause before retry
-    await new Promise((r) => setTimeout(r, 1500));
+    await new Promise((r) => setTimeout(r, 1000));
   }
 
   throw lastError!;
@@ -122,19 +118,16 @@ async function scrapeMarkdownPage(url: string, apiKey: string) {
     url,
     formats: ['markdown', 'summary'],
     onlyMainContent: true,
-    waitFor: 2500,
+    waitFor: 2000,
+    timeout: 20000,
   });
 
   const data = unwrapFirecrawlPayload(response);
-  const markdown = cleanText(data.markdown);
-  const summary = cleanText(data.summary);
-  const title = cleanText(data.metadata?.title);
-
   return {
     url,
-    title,
-    summary,
-    markdown: truncate(markdown, 6000),
+    title: cleanText(data.metadata?.title),
+    summary: cleanText(data.summary),
+    markdown: truncate(cleanText(data.markdown), 5000),
   };
 }
 
@@ -148,7 +141,7 @@ async function webResearch(firecrawlKey: string, queries: string[]): Promise<str
           'Authorization': `Bearer ${firecrawlKey}`,
           'Content-Type': 'application/json',
         },
-        body: JSON.stringify({ query, limit: 5 }),
+        body: JSON.stringify({ query, limit: 3 }),
       });
       const data = await response.json().catch(() => null);
       if (response.ok && Array.isArray(data?.data)) {
@@ -156,16 +149,15 @@ async function webResearch(firecrawlKey: string, queries: string[]): Promise<str
           const snippet = [
             item.title ? `**${item.title}**` : '',
             item.description || '',
-            item.markdown ? truncate(cleanText(item.markdown), 1500) : '',
+            item.markdown ? truncate(cleanText(item.markdown), 1000) : '',
           ].filter(Boolean).join('\n');
           if (snippet.length > 10) results.push(snippet);
         }
       }
     } catch (err) {
-      console.warn(`Web research failed for query "${query}":`, err);
+      console.warn(`Web research failed for "${query}":`, err);
     }
-    // Small delay between searches to avoid rate limits
-    await new Promise((r) => setTimeout(r, 800));
+    await new Promise((r) => setTimeout(r, 500));
   }
   return results;
 }
@@ -221,7 +213,7 @@ async function analyzeBusinessProfile({
       combinedContent ? `Additional website content:\n${combinedContent}` : '',
       initialNiche ? `Initial niche hint from the form: ${initialNiche}` : '',
     ].filter(Boolean).join('\n\n'),
-    18000,
+    16000,
   );
 
   try {
@@ -241,18 +233,13 @@ async function analyzeBusinessProfile({
             content:
               'Extract a comprehensive business profile from website content. Return strict JSON with these keys only: businessName (string), detectedNiche (string), summary (string), serviceArea (string with city/region/state), serviceHighlights (array of up to 8 short strings describing specific services offered), trustSignals (array of up to 6 short strings), faqs (array of up to 6 question strings a typical caller would ask), toneKeywords (array of up to 5 short strings), audience (string describing target customers), callGoals (array of up to 4 short strings), pricing (array of up to 6 strings with any pricing info found e.g. "Kitchen remodel: $15k-$50k"), competitors (array of up to 3 competitor company names if mentioned). detectedNiche must be one of: realtors, medspa, autodetail, veterinary, marine, general. Use the form niche only as a weak hint. If the website contradicts it, override it. Never default to realtors unless the content clearly indicates real estate. For serviceArea, extract the specific city, region, or metro area they serve.',
           },
-          {
-            role: 'user',
-            content: source,
-          },
+          { role: 'user', content: source },
         ],
       }),
     });
 
     const completion = await response.json().catch(() => null);
-    if (!response.ok) {
-      throw new Error(`AI profile failed [${response.status}]: ${JSON.stringify(completion)}`);
-    }
+    if (!response.ok) throw new Error(`AI profile failed [${response.status}]`);
 
     const content = completion?.choices?.[0]?.message?.content;
     if (typeof content !== 'string') throw new Error('AI profile response was empty');
@@ -264,14 +251,14 @@ async function analyzeBusinessProfile({
       detectedNiche: mapDetectedNiche(parsed.detectedNiche, fallbackNiche),
       summary: cleanText(parsed.summary) || fallbackSummary,
       serviceArea: cleanText(parsed.serviceArea),
-      serviceHighlights: Array.isArray(parsed.serviceHighlights) ? unique(parsed.serviceHighlights.map((item: string) => cleanText(item))).slice(0, 8) : [],
-      trustSignals: Array.isArray(parsed.trustSignals) ? unique(parsed.trustSignals.map((item: string) => cleanText(item))).slice(0, 6) : [],
-      faqs: Array.isArray(parsed.faqs) ? unique(parsed.faqs.map((item: string) => cleanText(item))).slice(0, 6) : [],
-      toneKeywords: Array.isArray(parsed.toneKeywords) ? unique(parsed.toneKeywords.map((item: string) => cleanText(item))).slice(0, 5) : ['friendly', 'helpful', 'clear'],
+      serviceHighlights: Array.isArray(parsed.serviceHighlights) ? unique(parsed.serviceHighlights.map((s: string) => cleanText(s))).slice(0, 8) : [],
+      trustSignals: Array.isArray(parsed.trustSignals) ? unique(parsed.trustSignals.map((s: string) => cleanText(s))).slice(0, 6) : [],
+      faqs: Array.isArray(parsed.faqs) ? unique(parsed.faqs.map((s: string) => cleanText(s))).slice(0, 6) : [],
+      toneKeywords: Array.isArray(parsed.toneKeywords) ? unique(parsed.toneKeywords.map((s: string) => cleanText(s))).slice(0, 5) : ['friendly', 'helpful', 'clear'],
       audience: cleanText(parsed.audience),
-      callGoals: Array.isArray(parsed.callGoals) ? unique(parsed.callGoals.map((item: string) => cleanText(item))).slice(0, 4) : ['Answer questions clearly', 'Guide the caller to the next step'],
-      pricing: Array.isArray(parsed.pricing) ? unique(parsed.pricing.map((item: string) => cleanText(item))).slice(0, 6) : [],
-      competitors: Array.isArray(parsed.competitors) ? unique(parsed.competitors.map((item: string) => cleanText(item))).slice(0, 3) : [],
+      callGoals: Array.isArray(parsed.callGoals) ? unique(parsed.callGoals.map((s: string) => cleanText(s))).slice(0, 4) : ['Answer questions clearly', 'Guide the caller to the next step'],
+      pricing: Array.isArray(parsed.pricing) ? unique(parsed.pricing.map((s: string) => cleanText(s))).slice(0, 6) : [],
+      competitors: Array.isArray(parsed.competitors) ? unique(parsed.competitors.map((s: string) => cleanText(s))).slice(0, 3) : [],
       reviews: [] as string[],
     };
   } catch (error) {
@@ -341,8 +328,6 @@ const buildStructuredKnowledge = ({
   webResearchContent?: string;
 }) => {
   const nicheFallback = NICHE_FALLBACK_KNOWLEDGE[profile.detectedNiche] || NICHE_FALLBACK_KNOWLEDGE.general;
-
-  // Use scraped services if available, otherwise fall back to niche defaults
   const services = profile.serviceHighlights.length > 0 ? profile.serviceHighlights : nicheFallback.services;
   const trust = profile.trustSignals.length > 0 ? profile.trustSignals : nicheFallback.trust;
   const faqs = profile.faqs.length > 0 ? profile.faqs : nicheFallback.faqs;
@@ -388,6 +373,126 @@ const buildStructuredKnowledge = ({
   return sections.filter(Boolean).join('\n');
 };
 
+// Background enrichment — runs via EdgeRuntime.waitUntil() after the main response
+async function backgroundEnrich(
+  leadId: string,
+  supabaseUrl: string,
+  supabaseServiceKey: string,
+  firecrawlKey: string,
+  lovableApiKey: string | undefined,
+  profile: Awaited<ReturnType<typeof analyzeBusinessProfile>>,
+  initialNiche: string | undefined,
+  existingContent: string,
+  homepageSummary: string,
+  pageSummaries: string[],
+  formattedUrl: string,
+) {
+  const supabase = createClient(supabaseUrl, supabaseServiceKey);
+
+  try {
+    const bizName = profile.businessName;
+    const area = profile.serviceArea || '';
+    const nicheLabel = profile.detectedNiche === 'general' ? (initialNiche || 'business') : profile.detectedNiche;
+
+    const searchQueries: string[] = [];
+    if (profile.serviceHighlights.length < 4) {
+      searchQueries.push(`complete list of services ${nicheLabel} company offers typical pricing`);
+    }
+    if (area) {
+      searchQueries.push(`best ${nicheLabel} companies in ${area} competitors reviews`);
+    }
+    searchQueries.push(`${bizName} reviews ratings ${area}`.trim());
+    if (profile.pricing.length === 0) {
+      searchQueries.push(`${nicheLabel} services average pricing cost ${area || 'USA'} 2024 2025`);
+    }
+
+    console.log('Background enrichment: starting web research');
+    const researchResults = await webResearch(firecrawlKey, searchQueries);
+    const webResearchContent = researchResults.length > 0 ? truncate(researchResults.join('\n\n---\n\n'), 12000) : '';
+    console.log('Background enrichment: gathered', researchResults.length, 'snippets');
+
+    // AI enrichment pass
+    if (webResearchContent && lovableApiKey) {
+      try {
+        const enrichResponse = await fetch(LOVABLE_AI_BASE, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${lovableApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            temperature: 0.2,
+            response_format: { type: 'json_object' },
+            messages: [
+              {
+                role: 'system',
+                content: 'You are enriching a business profile with web research. Return strict JSON with: additionalServices (array of up to 8 services this type of business typically offers that are NOT already in the existing list), typicalPricing (array of up to 6 "service: $range" strings), competitorNames (array of up to 5 competitor business names in the area), reviewHighlights (array of up to 4 short reputation/review summary strings), industryFaqs (array of up to 5 common questions customers ask). Only include factual info from the research.',
+              },
+              {
+                role: 'user',
+                content: `Business: ${bizName}\nNiche: ${nicheLabel}\nArea: ${area}\nExisting services: ${profile.serviceHighlights.join(', ')}\n\nWeb research:\n${truncate(webResearchContent, 10000)}`,
+              },
+            ],
+          }),
+        });
+
+        const enrichCompletion = await enrichResponse.json().catch(() => null);
+        if (enrichResponse.ok) {
+          const enrichContent = enrichCompletion?.choices?.[0]?.message?.content;
+          if (typeof enrichContent === 'string') {
+            const enriched = parseJsonContent(enrichContent);
+
+            if (Array.isArray(enriched.additionalServices)) {
+              profile.serviceHighlights = unique([...profile.serviceHighlights, ...enriched.additionalServices.map((s: string) => cleanText(s))]).slice(0, 12);
+            }
+            if (Array.isArray(enriched.typicalPricing) && profile.pricing.length === 0) {
+              profile.pricing = enriched.typicalPricing.map((s: string) => cleanText(s)).filter(Boolean).slice(0, 6);
+            }
+            if (Array.isArray(enriched.competitorNames)) {
+              profile.competitors = unique([...profile.competitors, ...enriched.competitorNames.map((s: string) => cleanText(s))]).slice(0, 5);
+            }
+            if (Array.isArray(enriched.reviewHighlights)) {
+              profile.reviews = enriched.reviewHighlights.map((s: string) => cleanText(s)).filter(Boolean).slice(0, 4);
+            }
+            if (Array.isArray(enriched.industryFaqs)) {
+              profile.faqs = unique([...profile.faqs, ...enriched.industryFaqs.map((s: string) => cleanText(s))]).slice(0, 8);
+            }
+
+            console.log('Background enrichment: profile enriched with AI');
+          }
+        }
+      } catch (enrichErr) {
+        console.warn('Background enrichment: AI enrichment failed:', enrichErr);
+      }
+    }
+
+    // Rebuild knowledge with enriched profile
+    const enrichedKnowledge = buildStructuredKnowledge({
+      websiteUrl: formattedUrl,
+      profile,
+      homepageSummary,
+      pageSummaries,
+      webResearchContent,
+    });
+
+    const fullContent = truncate(
+      [enrichedKnowledge, existingContent ? `\n\n${existingContent}` : ''].join(''),
+      60000,
+    );
+
+    await supabase.from('leads').update({
+      website_content: fullContent,
+      scan_status: 'enriched',
+    }).eq('id', leadId);
+
+    console.log('Background enrichment: completed for lead', leadId);
+  } catch (err) {
+    console.error('Background enrichment failed:', err);
+    // Non-fatal — the basic scan data is already saved
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -409,15 +514,14 @@ Deno.serve(async (req) => {
 
     const firecrawlKey = Deno.env.get('FIRECRAWL_API_KEY');
     if (!firecrawlKey) {
-      console.error('FIRECRAWL_API_KEY not configured');
       return new Response(
         JSON.stringify({ success: false, error: 'Firecrawl not configured' }),
         { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
       );
     }
 
-    const supabaseUrl = Deno.env.get('SUPABASE_URL');
-    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+    const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
+    const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
 
     if (!supabaseUrl || !supabaseServiceKey) {
@@ -428,12 +532,12 @@ Deno.serve(async (req) => {
     }
 
     supabase = createClient(supabaseUrl, supabaseServiceKey);
-
     await supabase.from('leads').update({ scan_status: 'scanning' }).eq('id', leadId);
 
     const formattedUrl = normalizeUrl(websiteUrl);
     console.log('Scanning website:', formattedUrl);
 
+    // === PHASE 1: Homepage scrape (fast, synchronous) ===
     let homepageResponse: any;
     let hasScreenshot = false;
 
@@ -442,19 +546,18 @@ Deno.serve(async (req) => {
         url: formattedUrl,
         formats: ['markdown', 'screenshot@fullPage', 'branding', 'links', 'summary'],
         onlyMainContent: false,
-        waitFor: 3500,
-        timeout: 45000,
+        waitFor: 3000,
+        timeout: 30000,
       }, 1);
       hasScreenshot = true;
     } catch (screenshotErr) {
-      console.warn('Full-page screenshot scrape failed, retrying without screenshot:', screenshotErr);
-      // Fallback: scrape without the heavy screenshot format
+      console.warn('Screenshot scrape failed, retrying without:', screenshotErr);
       homepageResponse = await firecrawlRequest('/scrape', firecrawlKey, {
         url: formattedUrl,
         formats: ['markdown', 'branding', 'links', 'summary'],
         onlyMainContent: false,
         waitFor: 2000,
-        timeout: 30000,
+        timeout: 20000,
       }, 1);
     }
 
@@ -464,6 +567,7 @@ Deno.serve(async (req) => {
     const branding = homepage.branding || {};
     const metadata = homepage.metadata || {};
 
+    // === PHASE 2: Sub-pages (parallel, with short timeout) ===
     const linkPool = new Set<string>();
     if (Array.isArray(homepage.links)) {
       homepage.links.forEach((link: string) => linkPool.add(cleanText(link)));
@@ -472,13 +576,13 @@ Deno.serve(async (req) => {
     try {
       const mapResponse = await firecrawlRequest('/map', firecrawlKey, {
         url: formattedUrl,
-        limit: 30,
+        limit: 20,
         includeSubdomains: false,
       });
       const links = Array.isArray(mapResponse.links) ? mapResponse.links : [];
       links.forEach((link: string) => linkPool.add(cleanText(link)));
     } catch (mapError) {
-      console.warn('Firecrawl map failed, continuing with homepage links only:', mapError);
+      console.warn('Map failed, using homepage links:', mapError);
     }
 
     const candidateLinks = pickRelevantLinks(Array.from(linkPool), formattedUrl);
@@ -486,36 +590,37 @@ Deno.serve(async (req) => {
 
     const pageResults = await Promise.allSettled(candidateLinks.map((link) => scrapeMarkdownPage(link, firecrawlKey)));
     const successfulPages = pageResults
-      .filter((result): result is PromiseFulfilledResult<Awaited<ReturnType<typeof scrapeMarkdownPage>>> => result.status === 'fulfilled')
-      .map((result) => result.value)
+      .filter((r): r is PromiseFulfilledResult<Awaited<ReturnType<typeof scrapeMarkdownPage>>> => r.status === 'fulfilled')
+      .map((r) => r.value)
       .filter((page) => page.markdown || page.summary);
 
+    // Secondary URL (quick)
     let secondaryContent = '';
     if (secondaryUrl && typeof secondaryUrl === 'string' && secondaryUrl.trim()) {
       try {
         const secondary = await scrapeMarkdownPage(normalizeUrl(secondaryUrl), firecrawlKey);
         secondaryContent = secondary.markdown;
-      } catch (secondaryError) {
-        console.warn('Secondary URL scrape error:', secondaryError);
+      } catch (e) {
+        console.warn('Secondary URL scrape error:', e);
       }
     }
 
+    // Uploaded files
     let filesContent = '';
     if (Array.isArray(uploadedFiles) && uploadedFiles.length > 0) {
       for (const filePath of uploadedFiles) {
         try {
           const { data: fileData, error: fileErr } = await supabase.storage.from('lead-uploads').download(filePath);
           if (fileErr || !fileData) continue;
-
           const ext = filePath.split('.').pop()?.toLowerCase();
           if (ext === 'txt' || ext === 'md') {
             const text = await fileData.text();
-            filesContent += `\n--- Uploaded file: ${filePath} ---\n${truncate(text, 10000)}\n`;
+            filesContent += `\n--- Uploaded file: ${filePath} ---\n${truncate(text, 8000)}\n`;
           } else {
-            filesContent += `\n--- Uploaded file: ${filePath} (document provided for business context) ---\n`;
+            filesContent += `\n--- Uploaded file: ${filePath} (document provided) ---\n`;
           }
-        } catch (fileError) {
-          console.warn('File read error:', fileError);
+        } catch (e) {
+          console.warn('File read error:', e);
         }
       }
     }
@@ -523,8 +628,9 @@ Deno.serve(async (req) => {
     const combinedPageContent = successfulPages
       .map((page) => [page.title ? `## ${page.title}` : '', page.summary ? `Summary: ${page.summary}` : '', page.markdown].filter(Boolean).join('\n'))
       .join('\n\n')
-      .slice(0, 30000);
+      .slice(0, 25000);
 
+    // === PHASE 3: AI profile analysis ===
     const profile = await analyzeBusinessProfile({
       lovableApiKey,
       websiteUrl: formattedUrl,
@@ -536,143 +642,34 @@ Deno.serve(async (req) => {
       combinedContent: [homepageMarkdown, combinedPageContent, secondaryContent, filesContent].filter(Boolean).join('\n\n'),
     });
 
-    // === WEB RESEARCH PHASE ===
-    // Search the web for comprehensive industry info, competitors, reviews, pricing
-    console.log('Starting web research for:', profile.businessName, 'niche:', profile.detectedNiche, 'area:', profile.serviceArea);
-
-    const searchQueries: string[] = [];
-    const bizName = profile.businessName;
-    const area = profile.serviceArea || '';
-    const nicheLabel = profile.detectedNiche === 'general' ? (initialNiche || 'business') : profile.detectedNiche;
-
-    // Comprehensive service list for this type of business
-    if (profile.serviceHighlights.length < 4) {
-      searchQueries.push(`complete list of services ${nicheLabel} company offers typical pricing`);
-    }
-
-    // Competitor analysis
-    if (area) {
-      searchQueries.push(`best ${nicheLabel} companies in ${area} competitors reviews`);
-    }
-
-    // Reviews and reputation
-    searchQueries.push(`${bizName} reviews ratings ${area}`.trim());
-
-    // Industry-specific pricing if not found on site
-    if (profile.pricing.length === 0) {
-      searchQueries.push(`${nicheLabel} services average pricing cost ${area || 'USA'} 2024 2025`);
-    }
-
-    // Customer FAQs for this industry
-    searchQueries.push(`most common questions customers ask ${nicheLabel} company FAQ`);
-
-    let webResearchContent = '';
-    try {
-      const researchResults = await webResearch(firecrawlKey, searchQueries);
-      if (researchResults.length > 0) {
-        webResearchContent = truncate(researchResults.join('\n\n---\n\n'), 15000);
-        console.log('Web research gathered:', researchResults.length, 'snippets');
-      }
-    } catch (researchErr) {
-      console.warn('Web research phase failed (non-fatal):', researchErr);
-    }
-
-    // === ENRICH PROFILE WITH RESEARCH ===
-    // Use AI to extract structured competitive intel from web research
-    if (webResearchContent && lovableApiKey) {
-      try {
-        const enrichResponse = await fetch(LOVABLE_AI_BASE, {
-          method: 'POST',
-          headers: {
-            'Authorization': `Bearer ${lovableApiKey}`,
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            model: 'google/gemini-2.5-flash',
-            temperature: 0.2,
-            response_format: { type: 'json_object' },
-            messages: [
-              {
-                role: 'system',
-                content: 'You are enriching a business profile with web research. Return strict JSON with: additionalServices (array of up to 8 services this type of business typically offers that are NOT already in the existing list), typicalPricing (array of up to 6 "service: $range" strings), competitorNames (array of up to 5 competitor business names in the area), reviewHighlights (array of up to 4 short reputation/review summary strings like "4.8 stars on Google" or "Known for fast turnaround"), industryFaqs (array of up to 5 common questions customers ask this type of business). Only include factual info from the research, do not fabricate.',
-              },
-              {
-                role: 'user',
-                content: `Business: ${bizName}\nNiche: ${nicheLabel}\nArea: ${area}\nExisting services: ${profile.serviceHighlights.join(', ')}\n\nWeb research:\n${truncate(webResearchContent, 12000)}`,
-              },
-            ],
-          }),
-        });
-
-        const enrichCompletion = await enrichResponse.json().catch(() => null);
-        if (enrichResponse.ok) {
-          const enrichContent = enrichCompletion?.choices?.[0]?.message?.content;
-          if (typeof enrichContent === 'string') {
-            const enriched = parseJsonContent(enrichContent);
-
-            // Merge enriched data into profile
-            if (Array.isArray(enriched.additionalServices)) {
-              profile.serviceHighlights = unique([
-                ...profile.serviceHighlights,
-                ...enriched.additionalServices.map((s: string) => cleanText(s)),
-              ]).slice(0, 12);
-            }
-            if (Array.isArray(enriched.typicalPricing) && profile.pricing.length === 0) {
-              profile.pricing = enriched.typicalPricing.map((s: string) => cleanText(s)).filter(Boolean).slice(0, 6);
-            }
-            if (Array.isArray(enriched.competitorNames)) {
-              profile.competitors = unique([
-                ...profile.competitors,
-                ...enriched.competitorNames.map((s: string) => cleanText(s)),
-              ]).slice(0, 5);
-            }
-            if (Array.isArray(enriched.reviewHighlights)) {
-              profile.reviews = enriched.reviewHighlights.map((s: string) => cleanText(s)).filter(Boolean).slice(0, 4);
-            }
-            if (Array.isArray(enriched.industryFaqs)) {
-              profile.faqs = unique([
-                ...profile.faqs,
-                ...enriched.industryFaqs.map((s: string) => cleanText(s)),
-              ]).slice(0, 8);
-            }
-
-            console.log('Profile enriched with web research');
-          }
-        }
-      } catch (enrichErr) {
-        console.warn('Profile enrichment failed (non-fatal):', enrichErr);
-      }
-    }
-
-    const structuredKnowledge = buildStructuredKnowledge({
+    // Build initial knowledge (without web research)
+    const initialKnowledge = buildStructuredKnowledge({
       websiteUrl: formattedUrl,
       profile,
       homepageSummary,
-      pageSummaries: successfulPages.map((page) => page.summary).filter(Boolean).slice(0, 6),
-      webResearchContent,
+      pageSummaries: successfulPages.map((p) => p.summary).filter(Boolean).slice(0, 6),
     });
 
-    const fullContent = truncate(
-      [
-        structuredKnowledge,
-        homepageMarkdown ? `\n\n=== HOMEPAGE CONTENT ===\n${homepageMarkdown}` : '',
-        combinedPageContent ? `\n\n=== ADDITIONAL WEBSITE CONTENT ===\n${combinedPageContent}` : '',
-        secondaryContent ? `\n\n=== SECONDARY WEBSITE ===\n${secondaryContent}` : '',
-        filesContent ? `\n\n=== UPLOADED DOCUMENTS ===\n${filesContent}` : '',
-      ].join(''),
-      60000,
-    );
+    const additionalContent = [
+      homepageMarkdown ? `\n\n=== HOMEPAGE CONTENT ===\n${homepageMarkdown}` : '',
+      combinedPageContent ? `\n\n=== ADDITIONAL WEBSITE CONTENT ===\n${combinedPageContent}` : '',
+      secondaryContent ? `\n\n=== SECONDARY WEBSITE ===\n${secondaryContent}` : '',
+      filesContent ? `\n\n=== UPLOADED DOCUMENTS ===\n${filesContent}` : '',
+    ].join('');
+
+    const initialContent = truncate([initialKnowledge, additionalContent].join(''), 60000);
 
     const title = cleanText(metadata.title) || profile.businessName || getHost(formattedUrl);
     const description = cleanText(metadata.description) || profile.summary;
 
+    // Save initial results immediately so the demo can load
     const updateResult = await supabase.from('leads').update({
       niche: profile.detectedNiche,
       brand_colors: branding.colors || null,
       brand_logo: branding.images?.logo || branding.logo || null,
       brand_fonts: branding.fonts || branding.typography || null,
       website_screenshot: homepage.screenshot || null,
-      website_content: fullContent || null,
+      website_content: initialContent || null,
       website_title: title || null,
       website_description: description || null,
       scan_status: 'completed',
@@ -686,7 +683,28 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log('Scan completed for lead:', leadId, '— total content length:', fullContent.length);
+    console.log('Scan completed for lead:', leadId, '— content length:', initialContent.length);
+
+    // === PHASE 4: Background enrichment (non-blocking) ===
+    // Web research + AI enrichment happens AFTER we return the response
+    EdgeRuntime.waitUntil(
+      backgroundEnrich(
+        leadId,
+        supabaseUrl,
+        supabaseServiceKey,
+        firecrawlKey,
+        lovableApiKey || undefined,
+        profile,
+        initialNiche,
+        additionalContent,
+        homepageSummary,
+        successfulPages.map((p) => p.summary).filter(Boolean).slice(0, 6),
+        formattedUrl,
+      ).catch((err) => {
+        console.error('Background enrichment error:', err);
+      })
+    );
+
     return new Response(
       JSON.stringify({
         success: true,
