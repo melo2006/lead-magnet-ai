@@ -325,7 +325,7 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
                 type="tel"
                 placeholder="(954) 555-1234"
                 value={formData.phone}
-                onChange={(e) => setFormData({ ...formData, phone: e.target.value })}
+                onChange={(e) => updateFormData({ phone: e.target.value })}
                 className="bg-secondary border-border"
               />
             </div>
