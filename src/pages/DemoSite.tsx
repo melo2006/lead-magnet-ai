@@ -64,7 +64,7 @@ const DemoSite = () => {
         if (insertError) throw insertError;
 
         // Now scan the website
-        const { data, error } = await supabase.functions.invoke("scan-website", {
+        const { error } = await supabase.functions.invoke("scan-website", {
           body: {
             websiteUrl: urlParam,
             leadId: insertedLead.id,
@@ -75,17 +75,26 @@ const DemoSite = () => {
 
         if (error) throw error;
 
+        // Fetch the full lead record from DB to get screenshot + content
+        const { data: fullLead, error: fetchError } = await supabase
+          .from("leads")
+          .select("*")
+          .eq("id", insertedLead.id)
+          .single();
+
+        if (fetchError) throw fetchError;
+
         const newLeadData: DemoLeadData = {
           fullName: "CRM Prospect",
-          businessName: nameParam || data?.title || "Business",
+          businessName: fullLead.business_name || nameParam || "Business",
           websiteUrl: urlParam,
-          niche: nicheParam || data?.niche || "general",
-          screenshot: data?.screenshot || null,
-          title: data?.title || "",
-          description: data?.description || "",
-          websiteContent: data?.content || "",
-          colors: data?.colors || {},
-          logo: data?.logo || "",
+          niche: fullLead.niche || nicheParam || "general",
+          screenshot: fullLead.website_screenshot || null,
+          title: fullLead.website_title || "",
+          description: fullLead.website_description || "",
+          websiteContent: fullLead.website_content || "",
+          colors: (fullLead.brand_colors as Record<string, string>) || {},
+          logo: fullLead.brand_logo || "",
         };
 
         setLeadData(newLeadData);
