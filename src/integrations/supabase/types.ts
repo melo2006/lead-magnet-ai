@@ -139,6 +139,7 @@ export type Database = {
           tags: Json | null
           updated_at: string
           website_quality_score: number | null
+          website_screenshot: string | null
           website_url: string | null
           whatsapp_number: string | null
           zip_code: string | null
@@ -198,6 +199,7 @@ export type Database = {
           tags?: Json | null
           updated_at?: string
           website_quality_score?: number | null
+          website_screenshot?: string | null
           website_url?: string | null
           whatsapp_number?: string | null
           zip_code?: string | null
@@ -257,6 +259,7 @@ export type Database = {
           tags?: Json | null
           updated_at?: string
           website_quality_score?: number | null
+          website_screenshot?: string | null
           website_url?: string | null
           whatsapp_number?: string | null
           zip_code?: string | null

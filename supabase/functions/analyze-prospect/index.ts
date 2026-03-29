@@ -31,6 +31,7 @@ Deno.serve(async (req) => {
 
     let html = '';
     let markdown = '';
+    let websiteScreenshot = '';
     let hasChatWidget = false;
     let hasVoiceAi = false;
     let hasOnlineBooking = false;
@@ -50,7 +51,7 @@ Deno.serve(async (req) => {
           },
           body: JSON.stringify({
             url,
-            formats: ['html', 'markdown'],
+            formats: ['html', 'markdown', 'screenshot'],
             onlyMainContent: false,
             waitFor: 3000,
             timeout: 30000,
@@ -62,6 +63,7 @@ Deno.serve(async (req) => {
           const payload = data?.data ?? data ?? {};
           html = (payload.html || '').toLowerCase();
           markdown = payload.markdown || '';
+          websiteScreenshot = payload.screenshot || '';
 
           // Detect chat widgets
           const chatPatterns = [
@@ -198,6 +200,7 @@ Be direct and specific. Return ONLY valid JSON, no markdown formatting or code b
       has_voice_ai: hasVoiceAi,
       has_online_booking: hasOnlineBooking,
       website_quality_score: websiteQualityScore,
+      website_screenshot: websiteScreenshot || null,
       ai_analysis: aiAnalysis,
       ai_analyzed: true,
       ...enrichmentData,

@@ -48,6 +48,15 @@ export interface Prospect {
   ai_analyzed?: boolean;
   created_at?: string;
   updated_at?: string;
+  website_screenshot?: string;
+  demo_link?: string;
+  pipeline_stage?: string;
+  email_sent_at?: string;
+  sms_sent_at?: string;
+  owner_name?: string;
+  owner_email?: string;
+  owner_phone?: string;
+  contact_method?: string;
 }
 
 export const useProspectSearch = () => {
