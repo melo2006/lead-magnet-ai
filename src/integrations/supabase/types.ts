@@ -91,6 +91,7 @@ export type Database = {
           business_types: Json | null
           campaign_id: string | null
           city: string | null
+          contact_method: string | null
           country: string | null
           created_at: string
           demo_link: string | null
@@ -99,6 +100,7 @@ export type Database = {
           email_clicked_at: string | null
           email_opened_at: string | null
           email_sent_at: string | null
+          facebook_url: string | null
           formatted_address: string | null
           google_maps_url: string | null
           has_chat_widget: boolean | null
@@ -106,14 +108,19 @@ export type Database = {
           has_voice_ai: boolean | null
           has_website: boolean | null
           id: string
+          instagram_url: string | null
           last_contacted_at: string | null
           lead_score: number | null
           lead_temperature: string | null
+          linkedin_url: string | null
           location_lat: number | null
           location_lng: number | null
           niche: string | null
           notes: string | null
           opening_hours: Json | null
+          owner_email: string | null
+          owner_name: string | null
+          owner_phone: string | null
           phone: string | null
           photos: Json | null
           pipeline_stage: string
@@ -126,12 +133,14 @@ export type Database = {
           search_radius: number | null
           sms_clicked_at: string | null
           sms_sent_at: string | null
+          social_profiles: Json | null
           state: string | null
           status: string | null
           tags: Json | null
           updated_at: string
           website_quality_score: number | null
           website_url: string | null
+          whatsapp_number: string | null
           zip_code: string | null
         }
         Insert: {
@@ -141,6 +150,7 @@ export type Database = {
           business_types?: Json | null
           campaign_id?: string | null
           city?: string | null
+          contact_method?: string | null
           country?: string | null
           created_at?: string
           demo_link?: string | null
@@ -149,6 +159,7 @@ export type Database = {
           email_clicked_at?: string | null
           email_opened_at?: string | null
           email_sent_at?: string | null
+          facebook_url?: string | null
           formatted_address?: string | null
           google_maps_url?: string | null
           has_chat_widget?: boolean | null
@@ -156,14 +167,19 @@ export type Database = {
           has_voice_ai?: boolean | null
           has_website?: boolean | null
           id?: string
+          instagram_url?: string | null
           last_contacted_at?: string | null
           lead_score?: number | null
           lead_temperature?: string | null
+          linkedin_url?: string | null
           location_lat?: number | null
           location_lng?: number | null
           niche?: string | null
           notes?: string | null
           opening_hours?: Json | null
+          owner_email?: string | null
+          owner_name?: string | null
+          owner_phone?: string | null
           phone?: string | null
           photos?: Json | null
           pipeline_stage?: string
@@ -176,12 +192,14 @@ export type Database = {
           search_radius?: number | null
           sms_clicked_at?: string | null
           sms_sent_at?: string | null
+          social_profiles?: Json | null
           state?: string | null
           status?: string | null
           tags?: Json | null
           updated_at?: string
           website_quality_score?: number | null
           website_url?: string | null
+          whatsapp_number?: string | null
           zip_code?: string | null
         }
         Update: {
@@ -191,6 +209,7 @@ export type Database = {
           business_types?: Json | null
           campaign_id?: string | null
           city?: string | null
+          contact_method?: string | null
           country?: string | null
           created_at?: string
           demo_link?: string | null
@@ -199,6 +218,7 @@ export type Database = {
           email_clicked_at?: string | null
           email_opened_at?: string | null
           email_sent_at?: string | null
+          facebook_url?: string | null
           formatted_address?: string | null
           google_maps_url?: string | null
           has_chat_widget?: boolean | null
@@ -206,14 +226,19 @@ export type Database = {
           has_voice_ai?: boolean | null
           has_website?: boolean | null
           id?: string
+          instagram_url?: string | null
           last_contacted_at?: string | null
           lead_score?: number | null
           lead_temperature?: string | null
+          linkedin_url?: string | null
           location_lat?: number | null
           location_lng?: number | null
           niche?: string | null
           notes?: string | null
           opening_hours?: Json | null
+          owner_email?: string | null
+          owner_name?: string | null
+          owner_phone?: string | null
           phone?: string | null
           photos?: Json | null
           pipeline_stage?: string
@@ -226,12 +251,14 @@ export type Database = {
           search_radius?: number | null
           sms_clicked_at?: string | null
           sms_sent_at?: string | null
+          social_profiles?: Json | null
           state?: string | null
           status?: string | null
           tags?: Json | null
           updated_at?: string
           website_quality_score?: number | null
           website_url?: string | null
+          whatsapp_number?: string | null
           zip_code?: string | null
         }
         Relationships: []
