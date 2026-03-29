@@ -86,8 +86,10 @@ const DemoSite = () => {
           <img
             src={screenshotSrc}
             alt={`${siteName} website first-page screenshot`}
-            className="w-full h-auto"
+            className="block w-full h-auto align-top"
             loading="lazy"
+            decoding="async"
+            draggable={false}
           />
         ) : (
           <div className="flex items-center justify-center h-[80vh] bg-muted">

@@ -544,7 +544,7 @@ Deno.serve(async (req) => {
     try {
       homepageResponse = await firecrawlRequest('/scrape', firecrawlKey, {
         url: formattedUrl,
-        formats: ['markdown', 'screenshot@fullPage', 'branding', 'links', 'summary'],
+        formats: ['markdown', 'screenshot', 'branding', 'links', 'summary'],
         onlyMainContent: false,
         waitFor: 3000,
         timeout: 30000,

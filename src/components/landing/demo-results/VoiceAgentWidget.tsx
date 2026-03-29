@@ -1,6 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { Mic, MicOff, Phone, PhoneOff, Loader2, X } from "lucide-react";
-import { motion, AnimatePresence } from "framer-motion";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -262,61 +261,43 @@ const VoiceAgentWidget = ({
             : `This is a live demo of AI voice for ${businessName}. Aspen can answer questions, capture handoff requests, and schedule appointments.`}
         </p>
 
-        <AnimatePresence mode="wait">
-          {callStatus === "idle" && (
-            <motion.button
-              key="start"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              onClick={startCall}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-            >
-              <Phone className="h-4 w-4" />
-              Start Voice Call
-            </motion.button>
-          )}
+        {callStatus === "idle" && (
+          <button
+            onClick={startCall}
+            className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+          >
+            <Phone className="h-4 w-4" />
+            Start Voice Call
+          </button>
+        )}
 
-          {callStatus === "connecting" && (
-            <motion.div
-              key="connecting"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              exit={{ opacity: 0 }}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary/20 px-4 py-3 text-sm font-semibold text-primary"
-            >
-              <Loader2 className="h-4 w-4 animate-spin" />
-              Connecting...
-            </motion.div>
-          )}
+        {callStatus === "connecting" && (
+          <div className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary/20 px-4 py-3 text-sm font-semibold text-primary">
+            <Loader2 className="h-4 w-4 animate-spin" />
+            Connecting...
+          </div>
+        )}
 
-          {(callStatus === "active" || callStatus === "ending") && (
-            <motion.div
-              key="active"
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              exit={{ opacity: 0, scale: 0.95 }}
-              className="flex gap-2"
+        {(callStatus === "active" || callStatus === "ending") && (
+          <div className="flex gap-2">
+            <button
+              onClick={toggleMute}
+              className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
+                isMuted ? "bg-destructive/20 text-destructive" : "bg-secondary text-foreground hover:bg-secondary/80"
+              }`}
             >
-              <button
-                onClick={toggleMute}
-                className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
-                  isMuted ? "bg-destructive/20 text-destructive" : "bg-secondary text-foreground hover:bg-secondary/80"
-                }`}
-              >
-                {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                {isMuted ? "Unmute" : "Mute"}
-              </button>
-              <button
-                onClick={endCall}
-                className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-destructive px-4 py-3 text-sm font-semibold text-destructive-foreground transition-colors hover:bg-destructive/90"
-              >
-                <PhoneOff className="h-4 w-4" />
-                End
-              </button>
-            </motion.div>
-          )}
-        </AnimatePresence>
+              {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+              {isMuted ? "Unmute" : "Mute"}
+            </button>
+            <button
+              onClick={endCall}
+              className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-destructive px-4 py-3 text-sm font-semibold text-destructive-foreground transition-colors hover:bg-destructive/90"
+            >
+              <PhoneOff className="h-4 w-4" />
+              End
+            </button>
+          </div>
+        )}
       </div>
     </div>
   );
