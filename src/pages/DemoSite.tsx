@@ -41,14 +41,18 @@ const DemoSite = () => {
 
     if (!urlParam || latestLeadData) return;
 
-    // Check if we already have data for this URL
-    if (leadData?.websiteUrl === urlParam) return;
+    // Re-scan if we have no data, no screenshot, or no content for this URL
+    const cachedIsStale =
+      !leadData ||
+      leadData.websiteUrl !== urlParam ||
+      !leadData.screenshot ||
+      !leadData.websiteContent;
 
-    // Trigger a scan for this business
+    if (!cachedIsStale) return;
+
     const scanWebsite = async () => {
       setIsScanning(true);
       try {
-        // First, create a lead entry so scan-website can update it
         const { data: insertedLead, error: insertError } = await supabase
           .from("leads")
           .insert({
@@ -63,7 +67,6 @@ const DemoSite = () => {
 
         if (insertError) throw insertError;
 
-        // Now scan the website
         const { error } = await supabase.functions.invoke("scan-website", {
           body: {
             websiteUrl: urlParam,
@@ -168,7 +171,13 @@ const DemoSite = () => {
       <div className="sticky top-0 z-50 border-b border-border bg-card/95 backdrop-blur-md px-4 py-2.5 flex items-center justify-between">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate(-1)}
+            onClick={() => {
+              if (window.history.length > 1) {
+                navigate(-1);
+              } else {
+                navigate("/crm");
+              }
+            }}
             className="flex items-center gap-1.5 text-sm text-muted-foreground hover:text-foreground transition-colors"
           >
             <ArrowLeft className="h-4 w-4" />
