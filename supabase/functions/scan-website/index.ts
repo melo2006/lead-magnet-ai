@@ -536,11 +536,120 @@ Deno.serve(async (req) => {
       combinedContent: [homepageMarkdown, combinedPageContent, secondaryContent, filesContent].filter(Boolean).join('\n\n'),
     });
 
+    // === WEB RESEARCH PHASE ===
+    // Search the web for comprehensive industry info, competitors, reviews, pricing
+    console.log('Starting web research for:', profile.businessName, 'niche:', profile.detectedNiche, 'area:', profile.serviceArea);
+
+    const searchQueries: string[] = [];
+    const bizName = profile.businessName;
+    const area = profile.serviceArea || '';
+    const nicheLabel = profile.detectedNiche === 'general' ? (initialNiche || 'business') : profile.detectedNiche;
+
+    // Comprehensive service list for this type of business
+    if (profile.serviceHighlights.length < 4) {
+      searchQueries.push(`complete list of services ${nicheLabel} company offers typical pricing`);
+    }
+
+    // Competitor analysis
+    if (area) {
+      searchQueries.push(`best ${nicheLabel} companies in ${area} competitors reviews`);
+    }
+
+    // Reviews and reputation
+    searchQueries.push(`${bizName} reviews ratings ${area}`.trim());
+
+    // Industry-specific pricing if not found on site
+    if (profile.pricing.length === 0) {
+      searchQueries.push(`${nicheLabel} services average pricing cost ${area || 'USA'} 2024 2025`);
+    }
+
+    // Customer FAQs for this industry
+    searchQueries.push(`most common questions customers ask ${nicheLabel} company FAQ`);
+
+    let webResearchContent = '';
+    try {
+      const researchResults = await webResearch(firecrawlKey, searchQueries);
+      if (researchResults.length > 0) {
+        webResearchContent = truncate(researchResults.join('\n\n---\n\n'), 15000);
+        console.log('Web research gathered:', researchResults.length, 'snippets');
+      }
+    } catch (researchErr) {
+      console.warn('Web research phase failed (non-fatal):', researchErr);
+    }
+
+    // === ENRICH PROFILE WITH RESEARCH ===
+    // Use AI to extract structured competitive intel from web research
+    if (webResearchContent && lovableApiKey) {
+      try {
+        const enrichResponse = await fetch(LOVABLE_AI_BASE, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${lovableApiKey}`,
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            model: 'google/gemini-2.5-flash',
+            temperature: 0.2,
+            response_format: { type: 'json_object' },
+            messages: [
+              {
+                role: 'system',
+                content: 'You are enriching a business profile with web research. Return strict JSON with: additionalServices (array of up to 8 services this type of business typically offers that are NOT already in the existing list), typicalPricing (array of up to 6 "service: $range" strings), competitorNames (array of up to 5 competitor business names in the area), reviewHighlights (array of up to 4 short reputation/review summary strings like "4.8 stars on Google" or "Known for fast turnaround"), industryFaqs (array of up to 5 common questions customers ask this type of business). Only include factual info from the research, do not fabricate.',
+              },
+              {
+                role: 'user',
+                content: `Business: ${bizName}\nNiche: ${nicheLabel}\nArea: ${area}\nExisting services: ${profile.serviceHighlights.join(', ')}\n\nWeb research:\n${truncate(webResearchContent, 12000)}`,
+              },
+            ],
+          }),
+        });
+
+        const enrichCompletion = await enrichResponse.json().catch(() => null);
+        if (enrichResponse.ok) {
+          const enrichContent = enrichCompletion?.choices?.[0]?.message?.content;
+          if (typeof enrichContent === 'string') {
+            const enriched = parseJsonContent(enrichContent);
+
+            // Merge enriched data into profile
+            if (Array.isArray(enriched.additionalServices)) {
+              profile.serviceHighlights = unique([
+                ...profile.serviceHighlights,
+                ...enriched.additionalServices.map((s: string) => cleanText(s)),
+              ]).slice(0, 12);
+            }
+            if (Array.isArray(enriched.typicalPricing) && profile.pricing.length === 0) {
+              profile.pricing = enriched.typicalPricing.map((s: string) => cleanText(s)).filter(Boolean).slice(0, 6);
+            }
+            if (Array.isArray(enriched.competitorNames)) {
+              profile.competitors = unique([
+                ...profile.competitors,
+                ...enriched.competitorNames.map((s: string) => cleanText(s)),
+              ]).slice(0, 5);
+            }
+            if (Array.isArray(enriched.reviewHighlights)) {
+              profile.reviews = enriched.reviewHighlights.map((s: string) => cleanText(s)).filter(Boolean).slice(0, 4);
+            }
+            if (Array.isArray(enriched.industryFaqs)) {
+              profile.faqs = unique([
+                ...profile.faqs,
+                ...enriched.industryFaqs.map((s: string) => cleanText(s)),
+              ]).slice(0, 8);
+            }
+
+            console.log('Profile enriched with web research');
+          }
+        }
+      } catch (enrichErr) {
+        console.warn('Profile enrichment failed (non-fatal):', enrichErr);
+      }
+    }
+
     const structuredKnowledge = buildStructuredKnowledge({
       websiteUrl: formattedUrl,
       profile,
       homepageSummary,
       pageSummaries: successfulPages.map((page) => page.summary).filter(Boolean).slice(0, 6),
+      webResearchContent,
     });
 
     const fullContent = truncate(
