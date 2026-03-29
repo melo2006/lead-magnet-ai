@@ -63,6 +63,7 @@ Deno.serve(async (req) => {
           const payload = data?.data ?? data ?? {};
           html = (payload.html || '').toLowerCase();
           markdown = payload.markdown || '';
+          websiteScreenshot = payload.screenshot || '';
 
           // Detect chat widgets
           const chatPatterns = [
