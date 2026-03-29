@@ -368,6 +368,22 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) =
                 </div>
                 <div><h4 className="text-xs font-semibold text-muted-foreground mb-1">Website</h4>{p.website_url ? <a href={p.website_url} target="_blank" rel="noopener noreferrer" className="text-sm text-primary hover:underline truncate block">{p.website_url}</a> : <p className="text-sm text-red-400">No website</p>}</div>
               </div>
+              {/* Contact Enrichment */}
+              {((p as any).owner_name || (p as any).owner_email || (p as any).linkedin_url || (p as any).facebook_url) && (
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 mt-3 pt-3 border-t border-border/50">
+                  {(p as any).owner_name && <div><h4 className="text-xs font-semibold text-muted-foreground mb-1">Owner/Manager</h4><p className="text-sm text-foreground">{(p as any).owner_name}</p>{(p as any).owner_phone && <p className="text-xs text-muted-foreground mt-0.5">{(p as any).owner_phone}</p>}{(p as any).owner_email && <p className="text-xs text-muted-foreground">{(p as any).owner_email}</p>}</div>}
+                  <div>
+                    <h4 className="text-xs font-semibold text-muted-foreground mb-1">Social Profiles</h4>
+                    <div className="flex flex-wrap gap-2">
+                      {(p as any).linkedin_url && <a href={(p as any).linkedin_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-primary hover:underline"><Linkedin className="w-3 h-3" />LinkedIn</a>}
+                      {(p as any).facebook_url && <a href={(p as any).facebook_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-primary hover:underline"><Facebook className="w-3 h-3" />Facebook</a>}
+                      {(p as any).instagram_url && <a href={(p as any).instagram_url} target="_blank" rel="noopener noreferrer" className="flex items-center gap-1 text-xs text-primary hover:underline"><Instagram className="w-3 h-3" />Instagram</a>}
+                      {(p as any).whatsapp_number && <span className="text-xs text-muted-foreground">WhatsApp: {(p as any).whatsapp_number}</span>}
+                    </div>
+                  </div>
+                  {(p as any).contact_method && (p as any).contact_method !== 'unknown' && <div><h4 className="text-xs font-semibold text-muted-foreground mb-1">Best Contact Method</h4><span className="text-xs font-semibold text-primary bg-primary/10 px-2 py-1 rounded capitalize">{(p as any).contact_method}</span></div>}
+                </div>
+              )}
               <div className="flex flex-wrap gap-2 mt-4 pt-3 border-t border-border/50">
                 {!aiAnalyzed && p.has_website && (
                   <button onClick={() => handleAnalyze(p)} disabled={isAnalyzing} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/20 border border-primary/30 text-primary text-xs font-semibold hover:bg-primary/30 transition-colors disabled:opacity-50">
