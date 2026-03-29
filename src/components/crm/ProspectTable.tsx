@@ -63,7 +63,7 @@ const BoolBadge = ({ value, scanned }: { value: boolean | null; scanned: boolean
   );
 };
 
-const ProspectTable = ({ prospects, isLoading, onRefetch }: Props) => {
+const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortKey>("lead_score");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
