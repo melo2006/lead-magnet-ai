@@ -4,6 +4,7 @@ import { CRMSidebar } from "@/components/crm/CRMSidebar";
 import CRMDashboard from "@/components/crm/CRMDashboard";
 import ProspectsView from "@/components/crm/ProspectsView";
 import CampaignsView from "@/components/crm/CampaignsView";
+import CampaignDetailView from "@/components/crm/CampaignDetailView";
 import PipelinePageView from "@/components/crm/PipelinePageView";
 import TemplatesView from "@/components/crm/TemplatesView";
 
