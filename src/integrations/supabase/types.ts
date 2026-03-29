@@ -83,6 +83,123 @@ export type Database = {
         }
         Relationships: []
       }
+      prospects: {
+        Row: {
+          business_name: string
+          business_types: Json | null
+          city: string | null
+          country: string | null
+          created_at: string
+          formatted_address: string | null
+          google_maps_url: string | null
+          has_chat_widget: boolean | null
+          has_online_booking: boolean | null
+          has_voice_ai: boolean | null
+          has_website: boolean | null
+          id: string
+          last_contacted_at: string | null
+          lead_score: number | null
+          lead_temperature: string | null
+          location_lat: number | null
+          location_lng: number | null
+          niche: string | null
+          notes: string | null
+          opening_hours: Json | null
+          phone: string | null
+          photos: Json | null
+          place_id: string
+          primary_type: string | null
+          rating: number | null
+          review_count: number | null
+          search_location: string | null
+          search_query: string | null
+          search_radius: number | null
+          state: string | null
+          status: string | null
+          tags: Json | null
+          updated_at: string
+          website_quality_score: number | null
+          website_url: string | null
+          zip_code: string | null
+        }
+        Insert: {
+          business_name: string
+          business_types?: Json | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          formatted_address?: string | null
+          google_maps_url?: string | null
+          has_chat_widget?: boolean | null
+          has_online_booking?: boolean | null
+          has_voice_ai?: boolean | null
+          has_website?: boolean | null
+          id?: string
+          last_contacted_at?: string | null
+          lead_score?: number | null
+          lead_temperature?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          niche?: string | null
+          notes?: string | null
+          opening_hours?: Json | null
+          phone?: string | null
+          photos?: Json | null
+          place_id: string
+          primary_type?: string | null
+          rating?: number | null
+          review_count?: number | null
+          search_location?: string | null
+          search_query?: string | null
+          search_radius?: number | null
+          state?: string | null
+          status?: string | null
+          tags?: Json | null
+          updated_at?: string
+          website_quality_score?: number | null
+          website_url?: string | null
+          zip_code?: string | null
+        }
+        Update: {
+          business_name?: string
+          business_types?: Json | null
+          city?: string | null
+          country?: string | null
+          created_at?: string
+          formatted_address?: string | null
+          google_maps_url?: string | null
+          has_chat_widget?: boolean | null
+          has_online_booking?: boolean | null
+          has_voice_ai?: boolean | null
+          has_website?: boolean | null
+          id?: string
+          last_contacted_at?: string | null
+          lead_score?: number | null
+          lead_temperature?: string | null
+          location_lat?: number | null
+          location_lng?: number | null
+          niche?: string | null
+          notes?: string | null
+          opening_hours?: Json | null
+          phone?: string | null
+          photos?: Json | null
+          place_id?: string
+          primary_type?: string | null
+          rating?: number | null
+          review_count?: number | null
+          search_location?: string | null
+          search_query?: string | null
+          search_radius?: number | null
+          state?: string | null
+          status?: string | null
+          tags?: Json | null
+          updated_at?: string
+          website_quality_score?: number | null
+          website_url?: string | null
+          zip_code?: string | null
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
