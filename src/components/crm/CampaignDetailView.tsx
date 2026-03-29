@@ -5,8 +5,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   ArrowLeft, Play, Pause, Users, Mail, Eye, MousePointerClick,
-  Sparkles, Globe, ScanSearch, Send, ExternalLink, CheckSquare,
-  Square, Search, Filter, MoreHorizontal, Loader2, AlertCircle
+  Globe, ScanSearch, Send, ExternalLink, CheckSquare,
+  Square, Search, Loader2, AlertCircle
 } from "lucide-react";
 import OutreachDialog from "./OutreachDialog";
 import type { Prospect } from "@/hooks/useProspectSearch";
