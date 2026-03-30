@@ -141,7 +141,7 @@ const CampaignsView = () => {
                   )}
                   {c.status === "active" && (
                     <button
-                      onClick={() => updateStatus.mutate({ id: c.id, status: "paused" })}
+                      onClick={(e) => { e.stopPropagation(); updateStatus.mutate({ id: c.id, status: "paused" }); }}
                       className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-amber-400 hover:bg-amber-400/10 transition-colors"
                     >
                       <Pause className="w-3 h-3" /> Pause
