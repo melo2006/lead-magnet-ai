@@ -246,7 +246,7 @@ CRITICAL RULES:
           </div>
         </div>
         {onClose && (
-          <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
+          <button onClick={onClose} className="p-1 rounded-full bg-foreground/10 text-foreground hover:bg-foreground/20 transition-colors" aria-label="Close chat">
             <X className="h-4 w-4" />
           </button>
         )}
