@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Search, Radar, Flame, Thermometer, Snowflake, Info } from "lucide-react";
 import { IntentLead, NICHES, PLATFORMS, TIME_RANGES } from "./intent-leads/types";
 import IntentLeadCard from "./intent-leads/IntentLeadCard";
+import { CostEstimate, LastScanCost, UsageDashboard } from "./intent-leads/CostTracker";
 
 export default function IntentLeadsView() {
   const { toast } = useToast();
@@ -19,6 +20,7 @@ export default function IntentLeadsView() {
   const [isScanning, setIsScanning] = useState(false);
   const [results, setResults] = useState<IntentLead[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
+  const [lastUsage, setLastUsage] = useState<{ firecrawl_calls: number; ai_calls: number; estimated_cost_usd: number } | null>(null);
 
   const togglePlatform = (val: string) => {
     setSelectedPlatforms((prev) =>
@@ -45,6 +47,7 @@ export default function IntentLeadsView() {
 
       if (data?.success) {
         setResults(data.data || []);
+        if (data.usage) setLastUsage(data.usage);
         toast({ title: "Scan complete", description: `Found ${data.count || 0} intent signals.` });
       } else {
         toast({ title: "Scan failed", description: data?.error || "Unknown error", variant: "destructive" });
@@ -69,6 +72,9 @@ export default function IntentLeadsView() {
           Find warm leads by scanning public posts, reviews, and forums for people actively looking for services.
         </p>
       </div>
+
+      {/* Cost Usage Dashboard */}
+      <UsageDashboard />
 
       {/* Scoring Legend */}
       <Card className="border-primary/20 bg-primary/5">
@@ -145,19 +151,25 @@ export default function IntentLeadsView() {
             </div>
           </div>
 
-          <Button onClick={handleScan} disabled={isScanning} className="w-full sm:w-auto">
-            {isScanning ? (
-              <>
-                <Radar className="w-4 h-4 mr-2 animate-spin" />
-                Scanning public sources...
-              </>
-            ) : (
-              <>
-                <Search className="w-4 h-4 mr-2" />
-                Scan for Intent Leads
-              </>
-            )}
-          </Button>
+          <CostEstimate platformCount={selectedPlatforms.length} />
+
+          <div className="flex flex-wrap items-center gap-3">
+            <Button onClick={handleScan} disabled={isScanning} className="w-full sm:w-auto">
+              {isScanning ? (
+                <>
+                  <Radar className="w-4 h-4 mr-2 animate-spin" />
+                  Scanning public sources...
+                </>
+              ) : (
+                <>
+                  <Search className="w-4 h-4 mr-2" />
+                  Scan for Intent Leads
+                </>
+              )}
+            </Button>
+          </div>
+
+          <LastScanCost usage={lastUsage} />
         </CardContent>
       </Card>
 
