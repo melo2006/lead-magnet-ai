@@ -18,6 +18,7 @@ const CampaignDetailView = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState("");
   const [showOutreach, setShowOutreach] = useState(false);
+  const [showTestOutreach, setShowTestOutreach] = useState(false);
   const [analyzingIds, setAnalyzingIds] = useState<Set<string>>(new Set());
 
   // Fetch campaign
