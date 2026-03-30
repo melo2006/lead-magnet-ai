@@ -10,11 +10,11 @@ import {
 } from "@/components/ui/sidebar";
 
 const navItems = [
-  { title: "Dashboard", url: "/crm", icon: LayoutDashboard },
-  { title: "Prospects", url: "/crm/prospects", icon: Search },
-  { title: "Campaigns", url: "/crm/campaigns", icon: Megaphone },
-  { title: "Pipeline", url: "/crm/pipeline", icon: LayoutGrid },
-  { title: "Templates", url: "/crm/templates", icon: FileText },
+  { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "Prospects", url: "/prospects", icon: Search },
+  { title: "Campaigns", url: "/campaigns", icon: Megaphone },
+  { title: "Pipeline", url: "/pipeline", icon: LayoutGrid },
+  { title: "Templates", url: "/templates", icon: FileText },
 ];
 
 export function CRMSidebar() {
