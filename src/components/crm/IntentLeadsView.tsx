@@ -151,19 +151,25 @@ export default function IntentLeadsView() {
             </div>
           </div>
 
-          <Button onClick={handleScan} disabled={isScanning} className="w-full sm:w-auto">
-            {isScanning ? (
-              <>
-                <Radar className="w-4 h-4 mr-2 animate-spin" />
-                Scanning public sources...
-              </>
-            ) : (
-              <>
-                <Search className="w-4 h-4 mr-2" />
-                Scan for Intent Leads
-              </>
-            )}
-          </Button>
+          <CostEstimate platformCount={selectedPlatforms.length} />
+
+          <div className="flex flex-wrap items-center gap-3">
+            <Button onClick={handleScan} disabled={isScanning} className="w-full sm:w-auto">
+              {isScanning ? (
+                <>
+                  <Radar className="w-4 h-4 mr-2 animate-spin" />
+                  Scanning public sources...
+                </>
+              ) : (
+                <>
+                  <Search className="w-4 h-4 mr-2" />
+                  Scan for Intent Leads
+                </>
+              )}
+            </Button>
+          </div>
+
+          <LastScanCost usage={lastUsage} />
         </CardContent>
       </Card>
 
