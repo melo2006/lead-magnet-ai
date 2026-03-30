@@ -395,6 +395,45 @@ export type Database = {
         }
         Relationships: []
       }
+      scraping_usage: {
+        Row: {
+          ai_calls: number
+          created_at: string
+          estimated_cost_usd: number
+          firecrawl_calls: number
+          id: string
+          leads_found: number
+          location: string | null
+          niche: string | null
+          platforms_used: string[] | null
+          scan_type: string
+        }
+        Insert: {
+          ai_calls?: number
+          created_at?: string
+          estimated_cost_usd?: number
+          firecrawl_calls?: number
+          id?: string
+          leads_found?: number
+          location?: string | null
+          niche?: string | null
+          platforms_used?: string[] | null
+          scan_type?: string
+        }
+        Update: {
+          ai_calls?: number
+          created_at?: string
+          estimated_cost_usd?: number
+          firecrawl_calls?: number
+          id?: string
+          leads_found?: number
+          location?: string | null
+          niche?: string | null
+          platforms_used?: string[] | null
+          scan_type?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
