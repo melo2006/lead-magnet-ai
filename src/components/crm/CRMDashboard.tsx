@@ -1,13 +1,14 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import {
   Building2, Flame, Thermometer, Snowflake, Megaphone,
-  TrendingUp, Search, Plus, ArrowRight, Mail, Eye,
-  MousePointerClick, BarChart3
+  TrendingUp, Search, Plus, ArrowRight, Mail
 } from "lucide-react";
 
 const CRMDashboard = () => {
+  const navigate = useNavigate();
+
   const { data: prospects = [] } = useQuery({
     queryKey: ["dashboard-prospects"],
     queryFn: async () => {
@@ -32,12 +33,12 @@ const CRMDashboard = () => {
   const contacted = prospects.filter((p: any) => p.email_sent_at || p.sms_sent_at).length;
 
   const statCards = [
-    { label: "Total Prospects", value: total, icon: Building2, color: "text-primary", bg: "bg-primary/10" },
-    { label: "Hot Leads", value: hot, icon: Flame, color: "text-red-400", bg: "bg-red-400/10" },
-    { label: "Warm Leads", value: warm, icon: Thermometer, color: "text-amber-400", bg: "bg-amber-400/10" },
-    { label: "Cold Leads", value: cold, icon: Snowflake, color: "text-blue-400", bg: "bg-blue-400/10" },
-    { label: "AI Analyzed", value: analyzed, icon: TrendingUp, color: "text-accent", bg: "bg-accent/10" },
-    { label: "Contacted", value: contacted, icon: Mail, color: "text-purple-400", bg: "bg-purple-400/10" },
+    { label: "Total Prospects", value: total, icon: Building2, color: "text-primary", bg: "bg-primary/10", link: "/prospects" },
+    { label: "Hot Leads", value: hot, icon: Flame, color: "text-red-400", bg: "bg-red-400/10", link: "/prospects?temp=hot" },
+    { label: "Warm Leads", value: warm, icon: Thermometer, color: "text-amber-400", bg: "bg-amber-400/10", link: "/prospects?temp=warm" },
+    { label: "Cold Leads", value: cold, icon: Snowflake, color: "text-blue-400", bg: "bg-blue-400/10", link: "/prospects?temp=cold" },
+    { label: "AI Analyzed", value: analyzed, icon: TrendingUp, color: "text-accent", bg: "bg-accent/10", link: "/prospects?analyzed=true" },
+    { label: "Contacted", value: contacted, icon: Mail, color: "text-purple-400", bg: "bg-purple-400/10", link: "/prospects?status=contacted" },
   ];
 
   const recentProspects = prospects
@@ -69,21 +70,25 @@ const CRMDashboard = () => {
         </div>
       </div>
 
-      {/* Stats Grid */}
+      {/* Stats Grid - now clickable */}
       <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-6 gap-3">
         {statCards.map((s) => (
-          <div key={s.label} className="bg-card border border-border rounded-xl p-4">
-            <div className={`w-8 h-8 rounded-lg ${s.bg} flex items-center justify-center mb-2`}>
+          <button
+            key={s.label}
+            onClick={() => navigate(s.link)}
+            className="bg-card border border-border rounded-xl p-4 text-left hover:border-primary/40 hover:shadow-md transition-all cursor-pointer group"
+          >
+            <div className={`w-8 h-8 rounded-lg ${s.bg} flex items-center justify-center mb-2 group-hover:scale-110 transition-transform`}>
               <s.icon className={`w-4 h-4 ${s.color}`} />
             </div>
             <p className="text-2xl font-bold text-foreground">{s.value}</p>
             <p className="text-[11px] text-muted-foreground mt-0.5">{s.label}</p>
-          </div>
+          </button>
         ))}
       </div>
 
       <div className="grid lg:grid-cols-2 gap-4">
-        {/* Active Campaigns */}
+        {/* Active Campaigns - now clickable */}
         <div className="bg-card border border-border rounded-xl">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <div className="flex items-center gap-2">
@@ -106,7 +111,11 @@ const CRMDashboard = () => {
                 {campaigns.slice(0, 5).map((c: any) => {
                   const st = statusLabel[c.status] || statusLabel.draft;
                   return (
-                    <div key={c.id} className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 hover:bg-secondary/50 transition-colors">
+                    <Link
+                      key={c.id}
+                      to={`/campaigns/${c.id}`}
+                      className="flex items-center justify-between p-3 rounded-lg bg-secondary/30 hover:bg-secondary/50 hover:border-primary/20 border border-transparent transition-all block"
+                    >
                       <div className="min-w-0 flex-1">
                         <p className="text-sm font-medium text-foreground truncate">{c.name}</p>
                         <div className="flex items-center gap-3 mt-1 text-[10px] text-muted-foreground">
@@ -115,7 +124,7 @@ const CRMDashboard = () => {
                         </div>
                       </div>
                       <span className={`text-[10px] font-semibold px-2 py-0.5 rounded-full ${st.cls}`}>{st.text}</span>
-                    </div>
+                    </Link>
                   );
                 })}
               </div>
@@ -123,7 +132,7 @@ const CRMDashboard = () => {
           </div>
         </div>
 
-        {/* Recent Prospects */}
+        {/* Recent Prospects - now clickable */}
         <div className="bg-card border border-border rounded-xl">
           <div className="flex items-center justify-between px-4 py-3 border-b border-border">
             <div className="flex items-center gap-2">
@@ -143,7 +152,11 @@ const CRMDashboard = () => {
               </div>
             ) : (
               recentProspects.map((p: any) => (
-                <div key={p.id} className="flex items-center justify-between p-2.5 rounded-lg hover:bg-secondary/30 transition-colors">
+                <Link
+                  key={p.id}
+                  to={`/prospects?id=${p.id}`}
+                  className="flex items-center justify-between p-2.5 rounded-lg hover:bg-secondary/30 transition-colors block"
+                >
                   <div className="min-w-0 flex-1">
                     <p className="text-sm font-medium text-foreground truncate">{p.business_name}</p>
                     <p className="text-[10px] text-muted-foreground">{p.city}{p.state ? `, ${p.state}` : ""} · {p.niche || "—"}</p>
@@ -154,7 +167,7 @@ const CRMDashboard = () => {
                     {p.lead_temperature === "warm" && <Thermometer className="w-3 h-3 text-amber-400" />}
                     {p.lead_temperature === "cold" && <Snowflake className="w-3 h-3 text-blue-400" />}
                   </div>
-                </div>
+                </Link>
               ))
             )}
           </div>
