@@ -115,7 +115,7 @@ const CampaignDetailView = () => {
     for (const p of toAnalyze) {
       try {
         const { error } = await supabase.functions.invoke("analyze-prospect", {
-          body: { prospectId: p.id, websiteUrl: p.website_url },
+          body: { prospect_id: p.id, website_url: p.website_url, business_name: p.business_name, niche: p.niche },
         });
         if (error) throw error;
         success++;
