@@ -130,7 +130,7 @@ const CRMDashboard = () => {
               <Building2 className="w-4 h-4 text-primary" />
               <h2 className="text-sm font-semibold text-foreground">Recent Prospects</h2>
             </div>
-            <Link to="/crm/prospects" className="text-[11px] text-primary hover:underline flex items-center gap-1">
+            <Link to="/prospects" className="text-[11px] text-primary hover:underline flex items-center gap-1">
               View All <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
