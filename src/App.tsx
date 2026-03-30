@@ -9,6 +9,8 @@ import DemoSite from "./pages/DemoSite.tsx";
 import CRM from "./pages/CRM.tsx";
 import NotFound from "./pages/NotFound.tsx";
 
+// Landing page is now at /landing, CRM is the homepage
+
 const queryClient = new QueryClient();
 
 const App = () => (
