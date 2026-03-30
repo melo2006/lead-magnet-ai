@@ -29,24 +29,66 @@ const OutreachDialog = ({ prospects, onClose, onSent }: Props) => {
   const handleSend = async () => {
     setSending(true);
     try {
-      for (const p of prospects) {
-        const link = demoUrl(p);
-        await supabase
-          .from("prospects")
-          .update({
-            demo_link: link,
-            pipeline_stage: "contacted",
-            email_sent_at: channel !== "sms" ? new Date().toISOString() : undefined,
-            sms_sent_at: channel !== "email" ? new Date().toISOString() : undefined,
-          } as any)
-          .eq("id", p.id);
+      if (channel === "email" || channel === "both") {
+        const prospectData = prospects.map((p) => ({
+          id: p.id,
+          business_name: p.business_name,
+          email: p.email || null,
+          owner_email: p.owner_email || null,
+          owner_name: p.owner_name || null,
+          website_url: p.website_url || null,
+          website_screenshot: p.website_screenshot || null,
+          niche: p.niche || null,
+        }));
+
+        const { data, error } = await supabase.functions.invoke("send-outreach-email", {
+          body: {
+            prospects: prospectData,
+            subject,
+            customMessage,
+            templateStyle,
+            baseUrl: window.location.origin,
+          },
+        });
+
+        if (error) throw error;
+
+        const sent = data?.sent || 0;
+        const failed = data?.failed || 0;
+        const noEmail = data?.results?.filter((r: any) => r.error === "No email address").length || 0;
+
+        if (sent > 0) {
+          toast.success(`Sent ${sent} email${sent > 1 ? "s" : ""} successfully!`, {
+            description: failed > 0 ? `${failed} failed (${noEmail} missing email)` : undefined,
+          });
+        } else {
+          toast.error(`No emails sent. ${noEmail} prospects have no email address.`);
+        }
       }
-      toast.success(`Campaign queued for ${prospects.length} prospects!`, {
-        description: "Demo links generated. Connect email/SMS service to deliver.",
-      });
+
+      if (channel === "sms" || channel === "both") {
+        // SMS: just update timestamps for now
+        for (const p of prospects) {
+          await supabase
+            .from("prospects")
+            .update({
+              sms_sent_at: new Date().toISOString(),
+              demo_link: demoUrl(p),
+              pipeline_stage: "contacted",
+            } as any)
+            .eq("id", p.id);
+        }
+        if (channel === "sms") {
+          toast.success(`SMS queued for ${prospects.length} prospects`, {
+            description: "Connect Twilio to deliver SMS.",
+          });
+        }
+      }
+
       onSent();
-    } catch {
-      toast.error("Failed to queue campaign");
+    } catch (err) {
+      console.error("Outreach error:", err);
+      toast.error("Failed to send outreach");
     } finally {
       setSending(false);
     }
