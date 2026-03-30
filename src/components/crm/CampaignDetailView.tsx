@@ -20,6 +20,7 @@ const CampaignDetailView = () => {
   const [showOutreach, setShowOutreach] = useState(false);
   const [showTestOutreach, setShowTestOutreach] = useState(false);
   const [analyzingIds, setAnalyzingIds] = useState<Set<string>>(new Set());
+  const returnTo = encodeURIComponent(`${window.location.pathname}${window.location.search}${window.location.hash}`);
 
   // Fetch campaign
   const { data: campaign, isLoading: loadingCampaign } = useQuery({
@@ -321,7 +322,7 @@ const CampaignDetailView = () => {
             {filtered.map((p) => {
               const isSelected = selectedIds.has(p.id);
               const isAnalyzing = analyzingIds.has(p.id);
-              const demoUrl = `${window.location.origin}/demo?url=${encodeURIComponent(p.website_url || "")}&name=${encodeURIComponent(p.business_name)}&niche=${encodeURIComponent(p.niche || "")}`;
+              const demoUrl = `${window.location.origin}/demo?url=${encodeURIComponent(p.website_url || "")}&name=${encodeURIComponent(p.business_name)}&niche=${encodeURIComponent(p.niche || "")}&returnTo=${returnTo}`;
 
               return (
                 <div
