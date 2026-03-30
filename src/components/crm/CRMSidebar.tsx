@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Search, Megaphone, LayoutGrid, FileText, Settings, Zap
+  LayoutDashboard, Search, Megaphone, LayoutGrid, FileText, Settings, Zap, Radar
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
