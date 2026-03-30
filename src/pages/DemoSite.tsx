@@ -5,30 +5,21 @@ import type { DemoLeadData } from "@/components/landing/demo-results/demoResults
 import { getImageSrc, getSiteName } from "@/components/landing/demo-results/demoResultsUtils";
 import VoiceAgentWidget from "@/components/landing/demo-results/VoiceAgentWidget";
 import ChatWidget from "@/components/landing/demo-results/ChatWidget";
+import ScanningAnimation from "@/components/landing/ScanningAnimation";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-
-const LAST_DEMO_STORAGE_KEY = "lastDemoLeadData";
 
 const DemoSite = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [isScanning, setIsScanning] = useState(false);
-  const [storedLeadData, setStoredLeadData] = useState<DemoLeadData | undefined>(() => {
-    if (typeof window === "undefined") return undefined;
-    try {
-      const saved = window.localStorage.getItem(LAST_DEMO_STORAGE_KEY);
-      return saved ? (JSON.parse(saved) as DemoLeadData) : undefined;
-    } catch {
-      return undefined;
-    }
-  });
 
   const latestLeadData = location.state?.leadData as DemoLeadData | undefined;
-  const [leadData, setLeadData] = useState<DemoLeadData | undefined>(latestLeadData ?? storedLeadData);
+  const [leadData, setLeadData] = useState<DemoLeadData | undefined>(latestLeadData);
   const [chatOpen, setChatOpen] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
+  const returnTo = searchParams.get("returnTo");
 
   // Handle URL params from CRM (e.g. /demo?url=...&name=...&niche=...)
   useEffect(() => {
@@ -38,17 +29,12 @@ const DemoSite = () => {
 
     if (!urlParam || latestLeadData) return;
 
-    // Check if cached data matches the requested URL
-    const cachedIsStale =
-      !leadData ||
-      leadData.websiteUrl !== urlParam ||
-      !leadData.screenshot ||
-      !leadData.websiteContent;
+    let cancelled = false;
 
-    if (!cachedIsStale) return;
-
-    // Clear stale data immediately so we show the loading state
+    // Always clear when opening a lead from CRM so stale demos never bleed into a new one
     setLeadData(undefined);
+    setChatOpen(false);
+    setVoiceOpen(false);
 
     const scanWebsite = async () => {
       setIsScanning(true);
@@ -86,6 +72,8 @@ const DemoSite = () => {
 
         if (fetchError) throw fetchError;
 
+        if (cancelled) return;
+
         const newLeadData: DemoLeadData = {
           fullName: "CRM Prospect",
           businessName: fullLead.business_name || nameParam || "Business",
@@ -100,10 +88,6 @@ const DemoSite = () => {
         };
 
         setLeadData(newLeadData);
-        setStoredLeadData(newLeadData);
-        try {
-          window.localStorage.setItem(LAST_DEMO_STORAGE_KEY, JSON.stringify(newLeadData));
-        } catch { /* noop */ }
 
         toast.success(`Demo generated for ${nameParam || "this business"}`);
       } catch (err: any) {
@@ -115,29 +99,40 @@ const DemoSite = () => {
     };
 
     scanWebsite();
-  }, [searchParams, latestLeadData]);
+
+    return () => {
+      cancelled = true;
+    };
+  }, [searchParams.toString(), latestLeadData]);
 
   // Save state data to localStorage
   useEffect(() => {
     if (!latestLeadData) return;
     setLeadData(latestLeadData);
-    setStoredLeadData(latestLeadData);
-    try {
-      window.localStorage.setItem(LAST_DEMO_STORAGE_KEY, JSON.stringify(latestLeadData));
-    } catch { /* noop */ }
+    setChatOpen(false);
+    setVoiceOpen(false);
   }, [latestLeadData]);
+
+  const handleBack = () => {
+    if (returnTo && returnTo.startsWith("/")) {
+      navigate(returnTo);
+      return;
+    }
+
+    if (window.history.length > 1) {
+      navigate(-1);
+      return;
+    }
+
+    navigate("/prospects");
+  };
 
   // Loading state
   if (isScanning) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="flex flex-col items-center gap-4 text-center px-4">
-          <Loader2 className="w-12 h-12 text-primary animate-spin" />
-          <h2 className="text-xl font-bold text-foreground">Generating Demo</h2>
-          <p className="text-muted-foreground text-sm max-w-md">
-            Scanning {searchParams.get("name") || "the website"} and preparing
-            your AI-enhanced demo experience...
-          </p>
+        <div className="w-full max-w-2xl px-4">
+          <ScanningAnimation websiteUrl={searchParams.get("url") || "website"} onComplete={() => {}} />
         </div>
       </div>
     );
@@ -160,11 +155,11 @@ const DemoSite = () => {
       <div className="sticky top-0 z-50 flex items-center justify-between border-b border-border bg-card/95 px-4 py-2.5 backdrop-blur-md">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => navigate("/")}
+            onClick={handleBack}
             className="flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back to Dashboard
+            Back
           </button>
           <span className="text-xs text-muted-foreground">|</span>
           <span className="text-sm font-medium text-foreground">{siteName}</span>
@@ -181,7 +176,7 @@ const DemoSite = () => {
           <img
             src={screenshotSrc}
             alt={`${siteName} website`}
-            className="block h-auto w-full align-top"
+            className="block h-[calc(100vh-11rem)] w-full object-cover object-top align-top"
             loading="lazy"
             decoding="async"
             draggable={false}
@@ -206,6 +201,7 @@ const DemoSite = () => {
           {voiceOpen ? (
             <div className="w-[min(22rem,calc(100vw-2rem))] animate-in slide-in-from-bottom-4 fade-in duration-300">
               <VoiceAgentWidget
+                key={`voice-${leadData.websiteUrl}`}
                 businessName={siteName}
                 businessNiche={leadData.niche || "general"}
                 ownerName={leadData.fullName}
@@ -238,6 +234,7 @@ const DemoSite = () => {
           {chatOpen ? (
             <div className="w-[min(22rem,calc(100vw-2rem))] animate-in slide-in-from-bottom-4 fade-in duration-300">
               <ChatWidget
+                key={`chat-${leadData.websiteUrl}`}
                 businessName={siteName}
                 businessNiche={leadData.niche || "general"}
                 websiteUrl={leadData.websiteUrl}
