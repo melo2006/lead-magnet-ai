@@ -47,6 +47,7 @@ export default function IntentLeadsView() {
 
       if (data?.success) {
         setResults(data.data || []);
+        if (data.usage) setLastUsage(data.usage);
         toast({ title: "Scan complete", description: `Found ${data.count || 0} intent signals.` });
       } else {
         toast({ title: "Scan failed", description: data?.error || "Unknown error", variant: "destructive" });
