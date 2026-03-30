@@ -170,31 +170,48 @@ const DemoSite = () => {
         </span>
       </div>
 
-      {/* Website simulation area — fills available space */}
+      {/* Website display area — live iframe with screenshot fallback */}
       <div className="relative flex-1">
-        <div className="h-[calc(100vh-11rem)] overflow-y-auto overscroll-contain">
-          {screenshotSrc ? (
-            <img
-              src={screenshotSrc}
-              alt={`${siteName} website`}
-              className="block h-auto w-full object-contain object-top align-top"
-              loading="lazy"
-              decoding="async"
-              draggable={false}
+        <div className="h-[calc(100vh-11rem)] overflow-hidden">
+          {!iframeBlocked && leadData.websiteUrl ? (
+            <iframe
+              key={leadData.websiteUrl}
+              src={leadData.websiteUrl.startsWith("http") ? leadData.websiteUrl : `https://${leadData.websiteUrl}`}
+              title={`${siteName} website`}
+              className="h-full w-full border-0"
+              sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+              onError={() => setIframeBlocked(true)}
+              onLoad={(e) => {
+                // Some sites load but show blank due to X-Frame-Options; we can't detect that reliably
+                // but the iframe will at least try
+              }}
             />
+          ) : screenshotSrc ? (
+            <div className="h-full overflow-y-auto overscroll-contain">
+              <img
+                src={screenshotSrc}
+                alt={`${siteName} website`}
+                className="block h-auto w-full object-contain object-top align-top"
+                loading="lazy"
+                decoding="async"
+                draggable={false}
+              />
+            </div>
           ) : (
-            <div className="flex h-[80vh] items-center justify-center bg-muted">
-              <p className="text-lg text-muted-foreground">Website screenshot unavailable</p>
+            <div className="flex h-full items-center justify-center bg-muted">
+              <p className="text-lg text-muted-foreground">Website preview unavailable</p>
             </div>
           )}
         </div>
 
-        {/* DEMO watermark */}
-        <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-          <p className="select-none text-[clamp(2.5rem,10vw,8rem)] font-black tracking-[0.35em] text-foreground/[0.06]">
-            DEMO
-          </p>
-        </div>
+        {/* DEMO watermark — only show on screenshot fallback */}
+        {iframeBlocked && (
+          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+            <p className="select-none text-[clamp(2.5rem,10vw,8rem)] font-black tracking-[0.35em] text-foreground/[0.06]">
+              DEMO
+            </p>
+          </div>
+        )}
 
         {/* ===== AI Widget buttons — fixed to bottom-right of viewport, INSIDE the page ===== */}
 
