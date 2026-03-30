@@ -250,7 +250,7 @@ CRITICAL RULES:
         <div className="flex items-center gap-2">
           <button
             onClick={() => setIsMinimized((prev) => !prev)}
-            className="rounded-md bg-primary p-1 text-primary-foreground transition-colors hover:bg-primary/90"
+            className="rounded-md bg-foreground/10 p-1 text-foreground transition-colors hover:bg-foreground/20"
             aria-label={isMinimized ? "Expand chat" : "Minimize chat"}
           >
             {isMinimized ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
@@ -258,7 +258,7 @@ CRITICAL RULES:
           {onClose && (
             <button
               onClick={onClose}
-              className="rounded-md bg-primary p-1 text-primary-foreground transition-colors hover:bg-primary/90"
+              className="rounded-md bg-foreground/10 p-1 text-foreground transition-colors hover:bg-foreground/20"
               aria-label="Close chat"
             >
               <X className="h-4 w-4" />

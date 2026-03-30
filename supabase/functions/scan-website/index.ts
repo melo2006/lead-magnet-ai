@@ -544,8 +544,8 @@ Deno.serve(async (req) => {
       homepageResponse = await firecrawlRequest('/scrape', firecrawlKey, {
         url: formattedUrl,
         formats: ['markdown', 'screenshot', 'branding', 'links', 'summary'],
-        onlyMainContent: false,
-        waitFor: 3000,
+        onlyMainContent: true,
+        waitFor: 4500,
         timeout: 30000,
       }, 1);
     } catch (screenshotErr) {
@@ -553,8 +553,8 @@ Deno.serve(async (req) => {
       homepageResponse = await firecrawlRequest('/scrape', firecrawlKey, {
         url: formattedUrl,
         formats: ['markdown', 'branding', 'links', 'summary'],
-        onlyMainContent: false,
-        waitFor: 2000,
+        onlyMainContent: true,
+        waitFor: 3000,
         timeout: 20000,
       }, 1);
     }
