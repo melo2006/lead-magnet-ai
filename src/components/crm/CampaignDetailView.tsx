@@ -258,6 +258,13 @@ const CampaignDetailView = () => {
           />
         </div>
         <div className="flex items-center gap-2 ml-auto">
+          <button
+            onClick={() => setShowTestOutreach(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-secondary border border-border text-sm font-medium text-foreground hover:border-primary/30 transition-colors"
+          >
+            <TestTube2 className="w-4 h-4 text-amber-400" />
+            Send Test Email
+          </button>
           {selectedIds.size > 0 && (
             <>
               <button
