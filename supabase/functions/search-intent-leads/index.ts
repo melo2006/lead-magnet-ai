@@ -282,8 +282,38 @@ serve(async (req) => {
     // Sort by score descending
     scoredLeads.sort((a, b) => b.intent_score - a.intent_score);
 
+    // Track usage costs
+    const firecrawlCalls = maxQueries * selectedPlatforms.length;
+    const aiCalls = Math.ceil(uniqueResults.length / batchSize);
+    const FIRECRAWL_COST_PER_SEARCH = 0.01; // ~$0.01 per search call
+    const estimatedCost = firecrawlCalls * FIRECRAWL_COST_PER_SEARCH;
+
+    try {
+      await supabase.from("scraping_usage").insert({
+        scan_type: "intent_leads",
+        niche,
+        location,
+        platforms_used: selectedPlatforms,
+        firecrawl_calls: firecrawlCalls,
+        ai_calls: aiCalls,
+        leads_found: scoredLeads.length,
+        estimated_cost_usd: estimatedCost,
+      });
+    } catch (costErr) {
+      console.error("Failed to log usage:", costErr);
+    }
+
     return new Response(
-      JSON.stringify({ success: true, data: scoredLeads, count: scoredLeads.length }),
+      JSON.stringify({
+        success: true,
+        data: scoredLeads,
+        count: scoredLeads.length,
+        usage: {
+          firecrawl_calls: firecrawlCalls,
+          ai_calls: aiCalls,
+          estimated_cost_usd: Number(estimatedCost.toFixed(4)),
+        },
+      }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
