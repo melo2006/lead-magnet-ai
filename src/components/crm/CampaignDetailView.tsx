@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import {
   ArrowLeft, Play, Pause, Users, Mail, Eye, MousePointerClick,
   Globe, ScanSearch, Send, ExternalLink, CheckSquare,
-  Square, Search, Loader2, AlertCircle
+  Square, Search, Loader2, AlertCircle, TestTube2
 } from "lucide-react";
 import OutreachDialog from "./OutreachDialog";
 import type { Prospect } from "@/hooks/useProspectSearch";
@@ -18,6 +18,7 @@ const CampaignDetailView = () => {
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [searchTerm, setSearchTerm] = useState("");
   const [showOutreach, setShowOutreach] = useState(false);
+  const [showTestOutreach, setShowTestOutreach] = useState(false);
   const [analyzingIds, setAnalyzingIds] = useState<Set<string>>(new Set());
 
   // Fetch campaign
@@ -257,6 +258,13 @@ const CampaignDetailView = () => {
           />
         </div>
         <div className="flex items-center gap-2 ml-auto">
+          <button
+            onClick={() => setShowTestOutreach(true)}
+            className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-secondary border border-border text-sm font-medium text-foreground hover:border-primary/30 transition-colors"
+          >
+            <TestTube2 className="w-4 h-4 text-amber-400" />
+            Send Test Email
+          </button>
           {selectedIds.size > 0 && (
             <>
               <button
@@ -397,6 +405,25 @@ const CampaignDetailView = () => {
           </div>
         )}
       </div>
+
+      {/* Test Outreach Dialog — sends to test email using first prospect's data */}
+      {showTestOutreach && prospects.length > 0 && (() => {
+        const testProspect = {
+          ...prospects[0],
+          email: "melo4000@gmail.com",
+          owner_email: "melo4000@gmail.com",
+        };
+        return (
+          <OutreachDialog
+            prospects={[testProspect] as any}
+            onClose={() => setShowTestOutreach(false)}
+            onSent={() => {
+              setShowTestOutreach(false);
+              toast.success("Test email sent to melo4000@gmail.com!");
+            }}
+          />
+        );
+      })()}
 
       {/* Outreach Dialog */}
       {showOutreach && selectedProspects.length > 0 && (
