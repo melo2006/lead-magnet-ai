@@ -32,6 +32,7 @@ const tempColors: Record<string, string> = {
 
 const PipelineView = ({ prospects, onRefetch }: Props) => {
   const [_draggingId, setDraggingId] = useState<string | null>(null);
+  const returnTo = encodeURIComponent(`${window.location.pathname}${window.location.search}${window.location.hash}`);
 
   const getProspectsForStage = (stage: string) => {
     return prospects.filter((p) => {
@@ -145,7 +146,7 @@ const PipelineView = ({ prospects, onRefetch }: Props) => {
                             <ExternalLink className="w-3 h-3" />
                           </a>
                         )}
-                        <Link to={`/demo?url=${encodeURIComponent(p.website_url || "")}&name=${encodeURIComponent(p.business_name)}&niche=${encodeURIComponent(p.niche || "")}`} className="p-1 rounded hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors">
+                        <Link to={`/demo?url=${encodeURIComponent(p.website_url || "")}&name=${encodeURIComponent(p.business_name)}&niche=${encodeURIComponent(p.niche || "")}&returnTo=${returnTo}`} className="p-1 rounded hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors">
                           <Zap className="w-3 h-3" />
                         </Link>
                         {p.phone && (
