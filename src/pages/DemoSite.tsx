@@ -171,21 +171,22 @@ const DemoSite = () => {
 
       {/* Website simulation area — fills available space */}
       <div className="relative flex-1">
-        {/* Screenshot fills the container */}
-        {screenshotSrc ? (
-          <img
-            src={screenshotSrc}
-            alt={`${siteName} website`}
-            className="block h-[calc(100vh-11rem)] w-full object-cover object-top align-top"
-            loading="lazy"
-            decoding="async"
-            draggable={false}
-          />
-        ) : (
-          <div className="flex h-[80vh] items-center justify-center bg-muted">
-            <p className="text-lg text-muted-foreground">Website screenshot unavailable</p>
-          </div>
-        )}
+        <div className="h-[calc(100vh-11rem)] overflow-y-auto overscroll-contain">
+          {screenshotSrc ? (
+            <img
+              src={screenshotSrc}
+              alt={`${siteName} website`}
+              className="block h-auto w-full object-contain object-top align-top"
+              loading="lazy"
+              decoding="async"
+              draggable={false}
+            />
+          ) : (
+            <div className="flex h-[80vh] items-center justify-center bg-muted">
+              <p className="text-lg text-muted-foreground">Website screenshot unavailable</p>
+            </div>
+          )}
+        </div>
 
         {/* DEMO watermark */}
         <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
@@ -199,7 +200,7 @@ const DemoSite = () => {
         {/* Voice widget / button */}
         <div className="fixed bottom-20 right-4 z-50 sm:bottom-24 sm:right-6">
           {voiceOpen ? (
-            <div className="w-[min(22rem,calc(100vw-2rem))] animate-in slide-in-from-bottom-4 fade-in duration-300">
+            <div className="w-[min(22rem,calc(100vw-2rem))] max-h-[70vh] overflow-y-auto animate-in slide-in-from-bottom-4 fade-in duration-300">
               <VoiceAgentWidget
                 key={`voice-${leadData.websiteUrl}`}
                 businessName={siteName}
@@ -232,7 +233,7 @@ const DemoSite = () => {
         {/* Chat widget / button */}
         <div className="fixed bottom-4 right-4 z-50 sm:bottom-6 sm:right-6">
           {chatOpen ? (
-            <div className="w-[min(22rem,calc(100vw-2rem))] animate-in slide-in-from-bottom-4 fade-in duration-300">
+            <div className="w-[min(22rem,calc(100vw-2rem))] max-h-[70vh] overflow-y-auto animate-in slide-in-from-bottom-4 fade-in duration-300">
               <ChatWidget
                 key={`chat-${leadData.websiteUrl}`}
                 businessName={siteName}

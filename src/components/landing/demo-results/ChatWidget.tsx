@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
-import { Send, Bot, User, X } from "lucide-react";
+import { Send, Bot, User, Maximize2, Minimize2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface ChatWidgetProps {
@@ -36,6 +36,7 @@ const ChatWidget = ({
   const [input, setInput] = useState("");
   const [isThinking, setIsThinking] = useState(false);
   const [isStreaming, setIsStreaming] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const initialized = useRef(false);
   const mounted = useRef(true);
@@ -229,6 +230,7 @@ CRITICAL RULES:
   }, [input, isBusy, messages, ownerLabel, typeAssistantResponse]);
 
   const userHasMessaged = messages.some((m) => m.role === "user");
+  const lastAssistantMessage = [...messages].reverse().find((m) => m.role === "assistant")?.content;
 
   return (
     <div className="rounded-2xl border border-accent/20 bg-card shadow-2xl overflow-hidden">
@@ -245,14 +247,38 @@ CRITICAL RULES:
             <p className="text-[10px] text-muted-foreground">AI Chat Assistant • Online</p>
           </div>
         </div>
-        {onClose && (
-          <button onClick={onClose} className="p-1 rounded-full bg-foreground/10 text-foreground hover:bg-foreground/20 transition-colors" aria-label="Close chat">
-            <X className="h-4 w-4" />
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setIsMinimized((prev) => !prev)}
+            className="rounded-md bg-foreground/10 p-1 text-foreground transition-colors hover:bg-foreground/20"
+            aria-label={isMinimized ? "Expand chat" : "Minimize chat"}
+          >
+            {isMinimized ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
           </button>
-        )}
+          {onClose && (
+            <button
+              onClick={onClose}
+              className="rounded-md bg-foreground/10 p-1 text-foreground transition-colors hover:bg-foreground/20"
+              aria-label="Close chat"
+            >
+              <X className="h-4 w-4" />
+            </button>
+          )}
+        </div>
       </div>
 
-      <div className="max-h-80 overflow-y-auto p-3 space-y-2.5">
+      {isMinimized ? (
+        <div className="p-3">
+          <p className="text-xs text-muted-foreground">
+            Chat minimized. Expand to read full conversation.
+          </p>
+          {lastAssistantMessage && (
+            <p className="mt-2 line-clamp-2 text-xs text-foreground/80">{lastAssistantMessage}</p>
+          )}
+        </div>
+      ) : (
+      <>
+      <div className="max-h-[22rem] overflow-y-auto p-3 space-y-2.5">
         {messages.map((msg, i) => (
           <div key={i} className={`flex gap-2 ${msg.role === "user" ? "flex-row-reverse" : ""}`}>
             <div
@@ -325,6 +351,8 @@ CRITICAL RULES:
           <Send className="h-4 w-4" />
         </button>
       </div>
+      </>
+      )}
     </div>
   );
 };

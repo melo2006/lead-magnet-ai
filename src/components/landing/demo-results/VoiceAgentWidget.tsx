@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { Mic, MicOff, Phone, PhoneOff, Loader2, X } from "lucide-react";
+import { Mic, MicOff, Phone, PhoneOff, Loader2, Maximize2, Minimize2, X } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
@@ -36,6 +36,7 @@ const VoiceAgentWidget = ({
   const { toast } = useToast();
   const [callStatus, setCallStatus] = useState<CallStatus>("idle");
   const [isMuted, setIsMuted] = useState(false);
+  const [isMinimized, setIsMinimized] = useState(false);
   const [duration, setDuration] = useState(0);
   const retellClientRef = useRef<any>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -145,6 +146,7 @@ const VoiceAgentWidget = ({
 
   const startCall = useCallback(async () => {
     setCallStatus("connecting");
+    setIsMinimized(false);
     callIdRef.current = null;
     summaryQueuedRef.current = false;
 
@@ -224,6 +226,7 @@ const VoiceAgentWidget = ({
   }, [isMuted]);
 
   const formatDuration = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
+  const callIsLive = callStatus === "active" || callStatus === "ending";
 
   return (
     <div className="rounded-2xl border border-primary/20 bg-card shadow-2xl overflow-hidden">
@@ -246,15 +249,53 @@ const VoiceAgentWidget = ({
           {callStatus === "active" && (
             <span className="text-xs font-mono text-primary">{formatDuration(duration)}</span>
           )}
+          <button
+            onClick={() => setIsMinimized((prev) => !prev)}
+            className="rounded-md bg-foreground/10 p-1 text-foreground transition-colors hover:bg-foreground/20"
+            aria-label={isMinimized ? "Expand voice widget" : "Minimize voice widget"}
+          >
+            {isMinimized ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
+          </button>
           {onClose && callStatus === "idle" && (
-            <button onClick={onClose} className="text-muted-foreground hover:text-foreground transition-colors">
+            <button
+              onClick={onClose}
+              className="rounded-md bg-foreground/10 p-1 text-foreground transition-colors hover:bg-foreground/20"
+              aria-label="Close voice widget"
+            >
               <X className="h-4 w-4" />
             </button>
           )}
         </div>
       </div>
 
-      <div className="p-4">
+      {isMinimized ? (
+        <div className="flex items-center gap-2 p-3">
+          <p className="text-xs text-muted-foreground">
+            {callIsLive ? "Call in progress" : "Ready to start"}
+          </p>
+          <div className="ml-auto flex items-center gap-2">
+            {callIsLive && (
+              <>
+                <button
+                  onClick={toggleMute}
+                  className={`rounded-lg px-3 py-1.5 text-xs font-semibold transition-colors ${
+                    isMuted ? "bg-destructive/20 text-destructive" : "bg-secondary text-foreground hover:bg-secondary/80"
+                  }`}
+                >
+                  {isMuted ? "Unmute" : "Mute"}
+                </button>
+                <button
+                  onClick={endCall}
+                  className="rounded-lg bg-destructive px-3 py-1.5 text-xs font-semibold text-destructive-foreground transition-colors hover:bg-destructive/90"
+                >
+                  End
+                </button>
+              </>
+            )}
+          </div>
+        </div>
+      ) : (
+        <div className="p-4">
         <p className="text-xs text-muted-foreground mb-3">
           {callStatus === "active"
             ? `Ask about ${businessName}, request a callback from ${resolvedOwnerName}, or book a 15-minute appointment.`
@@ -298,7 +339,8 @@ const VoiceAgentWidget = ({
             </button>
           </div>
         )}
-      </div>
+        </div>
+      )}
     </div>
   );
 };
