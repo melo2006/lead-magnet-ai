@@ -160,14 +160,11 @@ const DemoSite = () => {
       <div className="sticky top-0 z-50 flex items-center justify-between border-b border-border bg-card/95 px-4 py-2.5 backdrop-blur-md">
         <div className="flex items-center gap-3">
           <button
-            onClick={() => {
-              if (window.history.length > 1) navigate(-1);
-              else navigate("/crm");
-            }}
+            onClick={() => navigate("/")}
             className="flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back
+            Back to Dashboard
           </button>
           <span className="text-xs text-muted-foreground">|</span>
           <span className="text-sm font-medium text-foreground">{siteName}</span>
