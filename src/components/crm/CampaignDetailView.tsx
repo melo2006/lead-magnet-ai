@@ -163,7 +163,7 @@ const CampaignDetailView = () => {
       <div className="text-center py-20">
         <AlertCircle className="w-10 h-10 text-destructive mx-auto mb-3" />
         <p className="text-foreground font-semibold">Campaign not found</p>
-        <button onClick={() => navigate("/crm/campaigns")} className="mt-3 text-sm text-primary hover:underline">
+        <button onClick={() => navigate("/campaigns")} className="mt-3 text-sm text-primary hover:underline">
           ← Back to Campaigns
         </button>
       </div>
