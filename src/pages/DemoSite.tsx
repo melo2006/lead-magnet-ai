@@ -19,6 +19,7 @@ const DemoSite = () => {
   const [leadData, setLeadData] = useState<DemoLeadData | undefined>(latestLeadData);
   const [chatOpen, setChatOpen] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
+  const [iframeBlocked, setIframeBlocked] = useState(false);
   const returnTo = searchParams.get("returnTo");
 
   // Handle URL params from CRM (e.g. /demo?url=...&name=...&niche=...)
