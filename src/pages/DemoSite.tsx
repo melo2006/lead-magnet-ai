@@ -181,9 +181,8 @@ const DemoSite = () => {
               className="h-full w-full border-0"
               sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
               onError={() => setIframeBlocked(true)}
-              onLoad={(e) => {
-                // Some sites load but show blank due to X-Frame-Options; we can't detect that reliably
-                // but the iframe will at least try
+              onLoad={() => {
+                // iframe loaded successfully
               }}
             />
           ) : screenshotSrc ? (
