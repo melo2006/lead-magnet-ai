@@ -9,6 +9,7 @@ import { useToast } from "@/hooks/use-toast";
 import { Search, Radar, Flame, Thermometer, Snowflake, Info } from "lucide-react";
 import { IntentLead, NICHES, PLATFORMS, TIME_RANGES } from "./intent-leads/types";
 import IntentLeadCard from "./intent-leads/IntentLeadCard";
+import { CostEstimate, LastScanCost, UsageDashboard } from "./intent-leads/CostTracker";
 
 export default function IntentLeadsView() {
   const { toast } = useToast();
@@ -19,6 +20,7 @@ export default function IntentLeadsView() {
   const [isScanning, setIsScanning] = useState(false);
   const [results, setResults] = useState<IntentLead[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
+  const [lastUsage, setLastUsage] = useState<{ firecrawl_calls: number; ai_calls: number; estimated_cost_usd: number } | null>(null);
 
   const togglePlatform = (val: string) => {
     setSelectedPlatforms((prev) =>
