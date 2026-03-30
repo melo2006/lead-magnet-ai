@@ -406,6 +406,25 @@ const CampaignDetailView = () => {
         )}
       </div>
 
+      {/* Test Outreach Dialog — sends to test email using first prospect's data */}
+      {showTestOutreach && prospects.length > 0 && (() => {
+        const testProspect = {
+          ...prospects[0],
+          email: "melo4000@gmail.com",
+          owner_email: "melo4000@gmail.com",
+        };
+        return (
+          <OutreachDialog
+            prospects={[testProspect] as any}
+            onClose={() => setShowTestOutreach(false)}
+            onSent={() => {
+              setShowTestOutreach(false);
+              toast.success("Test email sent to melo4000@gmail.com!");
+            }}
+          />
+        );
+      })()}
+
       {/* Outreach Dialog */}
       {showOutreach && selectedProspects.length > 0 && (
         <OutreachDialog
