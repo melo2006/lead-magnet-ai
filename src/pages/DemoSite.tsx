@@ -38,6 +38,7 @@ const DemoSite = () => {
 
     if (!urlParam || latestLeadData) return;
 
+    // Check if cached data matches the requested URL
     const cachedIsStale =
       !leadData ||
       leadData.websiteUrl !== urlParam ||
@@ -45,6 +46,9 @@ const DemoSite = () => {
       !leadData.websiteContent;
 
     if (!cachedIsStale) return;
+
+    // Clear stale data immediately so we show the loading state
+    setLeadData(undefined);
 
     const scanWebsite = async () => {
       setIsScanning(true);
