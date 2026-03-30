@@ -11,14 +11,28 @@ import { useProspectSearch } from "@/hooks/useProspectSearch";
 import { useProspects } from "@/hooks/useProspects";
 
 const ProspectsView = () => {
+  const [searchParams] = useSearchParams();
   const [showFilters, setShowFilters] = useState(false);
   const [filters, setFilters] = useState({
-    temperature: "all",
+    temperature: searchParams.get("temp") || "all",
     hasWebsite: "all",
     minScore: 0,
-    status: "all",
+    status: searchParams.get("status") || "all",
   });
   const [outreachProspects, setOutreachProspects] = useState<any[] | null>(null);
+
+  useEffect(() => {
+    const temp = searchParams.get("temp");
+    const status = searchParams.get("status");
+    if (temp || status) {
+      setFilters(f => ({
+        ...f,
+        temperature: temp || "all",
+        status: status || "all",
+      }));
+      setShowFilters(true);
+    }
+  }, [searchParams]);
 
   const { search, isSearching, searchResults } = useProspectSearch();
   const { prospects, isLoading, refetch } = useProspects(filters);
