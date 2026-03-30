@@ -180,7 +180,7 @@ const CampaignDetailView = () => {
       {/* Header */}
       <div className="flex items-start gap-4">
         <button
-          onClick={() => navigate("/crm/campaigns")}
+          onClick={() => navigate("/campaigns")}
           className="mt-1 p-2 rounded-lg hover:bg-secondary text-muted-foreground hover:text-foreground transition-colors"
         >
           <ArrowLeft className="w-5 h-5" />
