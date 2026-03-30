@@ -3,6 +3,7 @@ import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { CRMSidebar } from "@/components/crm/CRMSidebar";
 import CRMDashboard from "@/components/crm/CRMDashboard";
 import ProspectsView from "@/components/crm/ProspectsView";
+import IntentLeadsView from "@/components/crm/IntentLeadsView";
 import CampaignsView from "@/components/crm/CampaignsView";
 import CampaignDetailView from "@/components/crm/CampaignDetailView";
 import PipelinePageView from "@/components/crm/PipelinePageView";
