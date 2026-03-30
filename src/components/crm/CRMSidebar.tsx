@@ -10,11 +10,11 @@ import {
 } from "@/components/ui/sidebar";
 
 const navItems = [
-  { title: "Dashboard", url: "/crm", icon: LayoutDashboard },
-  { title: "Prospects", url: "/crm/prospects", icon: Search },
-  { title: "Campaigns", url: "/crm/campaigns", icon: Megaphone },
-  { title: "Pipeline", url: "/crm/pipeline", icon: LayoutGrid },
-  { title: "Templates", url: "/crm/templates", icon: FileText },
+  { title: "Dashboard", url: "/", icon: LayoutDashboard },
+  { title: "Prospects", url: "/prospects", icon: Search },
+  { title: "Campaigns", url: "/campaigns", icon: Megaphone },
+  { title: "Pipeline", url: "/pipeline", icon: LayoutGrid },
+  { title: "Templates", url: "/templates", icon: FileText },
 ];
 
 export function CRMSidebar() {
@@ -23,7 +23,7 @@ export function CRMSidebar() {
   const location = useLocation();
 
   const isActive = (path: string) =>
-    path === "/crm" ? location.pathname === "/crm" : location.pathname.startsWith(path);
+    path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
@@ -51,7 +51,7 @@ export function CRMSidebar() {
                   <SidebarMenuButton asChild>
                     <NavLink
                       to={item.url}
-                      end={item.url === "/crm"}
+                      end={item.url === "/"}
                       className="hover:bg-muted/50"
                       activeClassName="bg-primary/10 text-primary font-medium"
                     >

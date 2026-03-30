@@ -60,10 +60,10 @@ const CRMDashboard = () => {
           <p className="text-sm text-muted-foreground">Overview of your prospects and campaigns</p>
         </div>
         <div className="flex gap-2">
-          <Link to="/crm/prospects" className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-secondary border border-border text-sm font-medium text-foreground hover:bg-secondary/80 transition-colors">
+          <Link to="/prospects" className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-secondary border border-border text-sm font-medium text-foreground hover:bg-secondary/80 transition-colors">
             <Search className="w-4 h-4" /> Find Leads
           </Link>
-          <Link to="/crm/campaigns" className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
+          <Link to="/campaigns" className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
             <Plus className="w-4 h-4" /> New Campaign
           </Link>
         </div>
@@ -90,7 +90,7 @@ const CRMDashboard = () => {
               <Megaphone className="w-4 h-4 text-primary" />
               <h2 className="text-sm font-semibold text-foreground">Campaigns</h2>
             </div>
-            <Link to="/crm/campaigns" className="text-[11px] text-primary hover:underline flex items-center gap-1">
+            <Link to="/campaigns" className="text-[11px] text-primary hover:underline flex items-center gap-1">
               View All <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
@@ -99,7 +99,7 @@ const CRMDashboard = () => {
               <div className="text-center py-8">
                 <Megaphone className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
                 <p className="text-sm text-muted-foreground">No campaigns yet</p>
-                <Link to="/crm/campaigns" className="text-xs text-primary hover:underline mt-1 inline-block">Create your first campaign</Link>
+                <Link to="/campaigns" className="text-xs text-primary hover:underline mt-1 inline-block">Create your first campaign</Link>
               </div>
             ) : (
               <div className="space-y-2">
@@ -130,7 +130,7 @@ const CRMDashboard = () => {
               <Building2 className="w-4 h-4 text-primary" />
               <h2 className="text-sm font-semibold text-foreground">Recent Prospects</h2>
             </div>
-            <Link to="/crm/prospects" className="text-[11px] text-primary hover:underline flex items-center gap-1">
+            <Link to="/prospects" className="text-[11px] text-primary hover:underline flex items-center gap-1">
               View All <ArrowRight className="w-3 h-3" />
             </Link>
           </div>
@@ -139,7 +139,7 @@ const CRMDashboard = () => {
               <div className="text-center py-8">
                 <Search className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
                 <p className="text-sm text-muted-foreground">No prospects yet</p>
-                <Link to="/crm/prospects" className="text-xs text-primary hover:underline mt-1 inline-block">Search for businesses</Link>
+                <Link to="/prospects" className="text-xs text-primary hover:underline mt-1 inline-block">Search for businesses</Link>
               </div>
             ) : (
               recentProspects.map((p: any) => (

@@ -92,7 +92,7 @@ const CampaignsView = () => {
             const st = statusStyles[c.status] || statusStyles.draft;
             const openRate = c.emails_sent > 0 ? Math.round((c.emails_opened / c.emails_sent) * 100) : 0;
             return (
-              <div key={c.id} onClick={() => navigate(`/crm/campaigns/${c.id}`)} className="bg-card border border-border rounded-xl overflow-hidden hover:border-primary/30 transition-colors cursor-pointer">
+              <div key={c.id} onClick={() => navigate(`/campaigns/${c.id}`)} className="bg-card border border-border rounded-xl overflow-hidden hover:border-primary/30 transition-colors cursor-pointer">
                 <div className="p-4 space-y-3">
                   <div className="flex items-start justify-between">
                     <div className="min-w-0 flex-1">
