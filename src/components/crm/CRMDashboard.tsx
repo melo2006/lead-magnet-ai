@@ -60,10 +60,10 @@ const CRMDashboard = () => {
           <p className="text-sm text-muted-foreground">Overview of your prospects and campaigns</p>
         </div>
         <div className="flex gap-2">
-          <Link to="/crm/prospects" className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-secondary border border-border text-sm font-medium text-foreground hover:bg-secondary/80 transition-colors">
+          <Link to="/prospects" className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-secondary border border-border text-sm font-medium text-foreground hover:bg-secondary/80 transition-colors">
             <Search className="w-4 h-4" /> Find Leads
           </Link>
-          <Link to="/crm/campaigns" className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
+          <Link to="/campaigns" className="flex items-center gap-1.5 px-3 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors">
             <Plus className="w-4 h-4" /> New Campaign
           </Link>
         </div>
