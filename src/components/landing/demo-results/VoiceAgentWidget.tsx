@@ -55,14 +55,6 @@ const VoiceAgentWidget = ({
     const callId = callIdRef.current;
     if (!callId || summaryQueuedRef.current) return;
 
-    if (!ownerEmail) {
-      toast({
-        title: "Recap skipped",
-        description: "No email was provided in the form, so recap and calendar booking were skipped.",
-      });
-      return;
-    }
-
     summaryQueuedRef.current = true;
 
     try {
