@@ -23,7 +23,7 @@ export function CRMSidebar() {
   const location = useLocation();
 
   const isActive = (path: string) =>
-    path === "/crm" ? location.pathname === "/crm" : location.pathname.startsWith(path);
+    path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
