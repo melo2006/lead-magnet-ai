@@ -212,12 +212,12 @@ const DemoSite = () => {
           </div>
         )}
 
-        {/* ===== AI Widget buttons — fixed to bottom-right of viewport, INSIDE the page ===== */}
+        {/* ===== AI Widget buttons — Talk to Aspen (right), Chat (left) ===== */}
 
-        {/* Voice widget / button */}
-        <div className="fixed bottom-20 right-4 z-50 sm:bottom-24 sm:right-6">
+        {/* Voice widget / button — bottom RIGHT */}
+        <div className="fixed bottom-3 right-3 z-50 sm:bottom-4 sm:right-4">
           {voiceOpen ? (
-            <div className="w-[min(22rem,calc(100vw-2rem))] max-h-[70vh] overflow-y-auto animate-in slide-in-from-bottom-4 fade-in duration-300">
+            <div className="w-[min(20rem,calc(100vw-2rem))] max-h-[70vh] overflow-y-auto animate-in slide-in-from-bottom-4 fade-in duration-300">
               <VoiceAgentWidget
                 key={`voice-${leadData.websiteUrl}`}
                 businessName={siteName}
@@ -233,24 +233,24 @@ const DemoSite = () => {
           ) : (
             <button
               onClick={() => { setVoiceOpen(true); setChatOpen(false); }}
-              className="group flex items-center gap-3 rounded-2xl bg-primary px-5 py-3.5 text-primary-foreground shadow-lg transition-all hover:scale-105 hover:shadow-xl"
+              className="group flex items-center gap-2 rounded-xl bg-primary px-3 py-2 text-primary-foreground shadow-lg transition-all hover:scale-105 hover:shadow-xl sm:px-4 sm:py-2.5"
             >
               <div className="relative">
-                <Mic className="h-5 w-5" />
-                <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-primary" />
+                <Mic className="h-4 w-4" />
+                <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-green-500 ring-2 ring-primary" />
               </div>
               <div className="text-left">
-                <p className="text-sm font-semibold leading-tight">Talk to Aspen</p>
-                <p className="text-[10px] opacity-80">AI Voice Assistant</p>
+                <p className="text-xs font-semibold leading-tight sm:text-sm">Talk to Aspen</p>
+                <p className="hidden text-[9px] opacity-80 sm:block">AI Voice</p>
               </div>
             </button>
           )}
         </div>
 
-        {/* Chat widget / button */}
-        <div className="fixed bottom-4 right-4 z-50 sm:bottom-6 sm:right-6">
+        {/* Chat widget / button — bottom LEFT */}
+        <div className="fixed bottom-3 left-3 z-50 sm:bottom-4 sm:left-4">
           {chatOpen ? (
-            <div className="w-[min(22rem,calc(100vw-2rem))] max-h-[70vh] overflow-y-auto animate-in slide-in-from-bottom-4 fade-in duration-300">
+            <div className="w-[min(20rem,calc(100vw-2rem))] max-h-[70vh] overflow-y-auto animate-in slide-in-from-bottom-4 fade-in duration-300">
               <ChatWidget
                 key={`chat-${leadData.websiteUrl}`}
                 businessName={siteName}
@@ -265,15 +265,15 @@ const DemoSite = () => {
           ) : (
             <button
               onClick={() => { setChatOpen(true); setVoiceOpen(false); }}
-              className="group flex items-center gap-3 rounded-2xl bg-accent px-5 py-3.5 text-accent-foreground shadow-lg transition-all hover:scale-105 hover:shadow-xl"
+              className="group flex items-center gap-2 rounded-xl bg-accent px-3 py-2 text-accent-foreground shadow-lg transition-all hover:scale-105 hover:shadow-xl sm:px-4 sm:py-2.5"
             >
               <div className="relative">
-                <MessageSquare className="h-5 w-5" />
-                <span className="absolute -right-1 -top-1 h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-accent" />
+                <MessageSquare className="h-4 w-4" />
+                <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-green-500 ring-2 ring-accent" />
               </div>
               <div className="text-left">
-                <p className="text-sm font-semibold leading-tight">Chat with Aspen</p>
-                <p className="text-[10px] opacity-80">AI Chat Assistant</p>
+                <p className="text-xs font-semibold leading-tight sm:text-sm">Chat with Aspen</p>
+                <p className="hidden text-[9px] opacity-80 sm:block">AI Chat</p>
               </div>
             </button>
           )}
