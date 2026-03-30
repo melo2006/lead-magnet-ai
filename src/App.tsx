@@ -21,11 +21,9 @@ const App = () => (
       <BrowserRouter>
         <Navbar />
         <Routes>
-          <Route path="/" element={<Index />} />
+          <Route path="/*" element={<CRM />} />
+          <Route path="/landing" element={<Index />} />
           <Route path="/demo" element={<DemoSite />} />
-          <Route path="/crm/*" element={<CRM />} />
-          {/* ADD ALL CUSTOM ROUTES ABOVE THE CATCH-ALL "*" ROUTE */}
-          <Route path="*" element={<NotFound />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
