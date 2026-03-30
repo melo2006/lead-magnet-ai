@@ -139,7 +139,7 @@ const CRMDashboard = () => {
               <div className="text-center py-8">
                 <Search className="w-8 h-8 text-muted-foreground mx-auto mb-2" />
                 <p className="text-sm text-muted-foreground">No prospects yet</p>
-                <Link to="/crm/prospects" className="text-xs text-primary hover:underline mt-1 inline-block">Search for businesses</Link>
+                <Link to="/prospects" className="text-xs text-primary hover:underline mt-1 inline-block">Search for businesses</Link>
               </div>
             ) : (
               recentProspects.map((p: any) => (
