@@ -31,9 +31,9 @@ const OutreachDialog = ({ prospects, onClose, onSent }: Props) => {
     try {
       if (channel === "email" || channel === "both") {
         const prospectData = prospects.map((p) => ({
-          id: p.id,
+          id: p.id!,
           business_name: p.business_name,
-          email: p.email || null,
+          email: (p as any).email || null,
           owner_email: p.owner_email || null,
           owner_name: p.owner_name || null,
           website_url: p.website_url || null,
