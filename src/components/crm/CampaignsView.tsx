@@ -156,7 +156,7 @@ const CampaignsView = () => {
                     </button>
                   )}
                   <button
-                    onClick={() => deleteCampaign.mutate(c.id)}
+                    onClick={(e) => { e.stopPropagation(); deleteCampaign.mutate(c.id); }}
                     className="flex items-center justify-center gap-1 px-3 py-2 text-xs font-medium text-destructive hover:bg-destructive/10 transition-colors border-l border-border"
                   >
                     <Trash2 className="w-3 h-3" />
