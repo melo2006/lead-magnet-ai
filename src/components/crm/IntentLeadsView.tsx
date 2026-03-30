@@ -73,6 +73,9 @@ export default function IntentLeadsView() {
         </p>
       </div>
 
+      {/* Cost Usage Dashboard */}
+      <UsageDashboard />
+
       {/* Scoring Legend */}
       <Card className="border-primary/20 bg-primary/5">
         <CardContent className="py-3 px-4">
