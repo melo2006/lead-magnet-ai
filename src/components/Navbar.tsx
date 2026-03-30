@@ -7,7 +7,6 @@ const navItems = [
   { to: "/", label: "Dashboard", icon: Home },
   { to: "/campaigns", label: "Campaigns", icon: Users },
   { to: "/landing", label: "Landing Page", icon: Monitor },
-  { to: "/demo", label: "Demo", icon: Monitor },
 ];
 
 const Navbar = () => {

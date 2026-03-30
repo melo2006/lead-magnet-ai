@@ -141,8 +141,33 @@ const DemoSite = () => {
 
   if (!leadData) {
     if (!searchParams.get("url")) {
-      navigate("/", { replace: true });
-      return null;
+      return (
+        <div className="flex min-h-screen items-center justify-center bg-background px-4 py-10">
+          <div className="w-full max-w-xl rounded-3xl border border-border bg-card p-6 text-center shadow-xl">
+            <p className="text-xs font-semibold uppercase tracking-[0.3em] text-primary">Demo Preview</p>
+            <h1 className="mt-3 text-2xl font-semibold text-foreground sm:text-3xl">
+              Select a lead to open the live demo
+            </h1>
+            <p className="mt-3 text-sm leading-6 text-muted-foreground">
+              This page is meant to preview a specific business website with the Aspen voice and chat widgets overlaid on top. Open a lead from Prospects to generate the demo for that company.
+            </p>
+            <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
+              <button
+                onClick={() => navigate("/prospects")}
+                className="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+              >
+                Go to Prospects
+              </button>
+              <button
+                onClick={() => navigate("/landing")}
+                className="inline-flex items-center justify-center rounded-xl border border-border bg-secondary px-5 py-3 text-sm font-semibold text-secondary-foreground transition-colors hover:bg-secondary/80"
+              >
+                View Landing Page
+              </button>
+            </div>
+          </div>
+        </div>
+      );
     }
     return null;
   }
