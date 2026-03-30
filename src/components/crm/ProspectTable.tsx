@@ -72,6 +72,7 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) =
   const [page, setPage] = useState(1);
   const [pageSize, setPageSize] = useState(25);
   const { analyze, analyzeBatch, analyzingIds } = useProspectAnalysis();
+  const returnTo = encodeURIComponent(`${window.location.pathname}${window.location.search}${window.location.hash}`);
 
   const sorted = useMemo(() => {
     return [...prospects].sort((a, b) => {
@@ -332,7 +333,7 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) =
                         {!aiAnalyzed && p.has_website && (
                           <button onClick={(e) => { e.stopPropagation(); handleAnalyze(p); }} disabled={isAnalyzing} className="p-1 rounded hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors disabled:opacity-50" title="AI Analyze"><Brain className="w-3.5 h-3.5" /></button>
                         )}
-                        <Link to={`/demo?url=${encodeURIComponent(p.website_url || "")}&name=${encodeURIComponent(p.business_name)}&niche=${encodeURIComponent(p.niche || "")}`} onClick={(e) => e.stopPropagation()} className="p-1 rounded hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors" title="Generate Demo"><Zap className="w-3.5 h-3.5" /></Link>
+                        <Link to={`/demo?url=${encodeURIComponent(p.website_url || "")}&name=${encodeURIComponent(p.business_name)}&niche=${encodeURIComponent(p.niche || "")}&returnTo=${returnTo}`} onClick={(e) => e.stopPropagation()} className="p-1 rounded hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors" title="Generate Demo"><Zap className="w-3.5 h-3.5" /></Link>
                       </div>
                     </td>
                   </motion.tr>
@@ -390,7 +391,7 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) =
                     {isAnalyzing ? <Loader2 className="w-3 h-3 animate-spin" /> : <Brain className="w-3 h-3" />}{isAnalyzing ? "Analyzing..." : "AI Analyze"}
                   </button>
                 )}
-                <Link to={`/demo?url=${encodeURIComponent(p.website_url || "")}&name=${encodeURIComponent(p.business_name)}&niche=${encodeURIComponent(p.niche || "")}`} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors"><Zap className="w-3 h-3" /> Generate Demo</Link>
+                <Link to={`/demo?url=${encodeURIComponent(p.website_url || "")}&name=${encodeURIComponent(p.business_name)}&niche=${encodeURIComponent(p.niche || "")}&returnTo=${returnTo}`} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors"><Zap className="w-3 h-3" /> Generate Demo</Link>
                 <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent/20 border border-accent/30 text-accent-foreground text-xs font-medium hover:bg-accent/30 transition-colors"><MessageSquare className="w-3 h-3" /> Send Outreach</button>
                 {p.phone && <a href={`tel:${p.phone}`} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary border border-border text-foreground text-xs font-medium hover:bg-secondary/80 transition-colors"><Phone className="w-3 h-3" /> Call</a>}
               </div>
