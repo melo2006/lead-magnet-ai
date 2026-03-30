@@ -133,7 +133,7 @@ const CampaignsView = () => {
                 <div className="flex items-center border-t border-border">
                   {c.status === "draft" && (
                     <button
-                      onClick={() => updateStatus.mutate({ id: c.id, status: "active" })}
+                      onClick={(e) => { e.stopPropagation(); updateStatus.mutate({ id: c.id, status: "active" }); }}
                       className="flex-1 flex items-center justify-center gap-1.5 px-3 py-2 text-xs font-medium text-primary hover:bg-primary/10 transition-colors"
                     >
                       <Play className="w-3 h-3" /> Launch
