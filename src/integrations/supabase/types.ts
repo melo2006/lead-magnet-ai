@@ -65,6 +65,81 @@ export type Database = {
         }
         Relationships: []
       }
+      intent_leads: {
+        Row: {
+          added_to_crm: boolean
+          ai_recommended_services: string | null
+          ai_summary: string | null
+          author_name: string | null
+          author_profile_url: string | null
+          created_at: string
+          id: string
+          intent_category: string | null
+          intent_score: number
+          is_dismissed: boolean
+          lead_temperature: string
+          location: string | null
+          niche: string
+          post_content: string | null
+          post_title: string | null
+          posted_at: string | null
+          search_location: string | null
+          search_niche: string | null
+          search_query: string | null
+          source_platform: string
+          source_url: string | null
+          updated_at: string
+        }
+        Insert: {
+          added_to_crm?: boolean
+          ai_recommended_services?: string | null
+          ai_summary?: string | null
+          author_name?: string | null
+          author_profile_url?: string | null
+          created_at?: string
+          id?: string
+          intent_category?: string | null
+          intent_score?: number
+          is_dismissed?: boolean
+          lead_temperature?: string
+          location?: string | null
+          niche: string
+          post_content?: string | null
+          post_title?: string | null
+          posted_at?: string | null
+          search_location?: string | null
+          search_niche?: string | null
+          search_query?: string | null
+          source_platform?: string
+          source_url?: string | null
+          updated_at?: string
+        }
+        Update: {
+          added_to_crm?: boolean
+          ai_recommended_services?: string | null
+          ai_summary?: string | null
+          author_name?: string | null
+          author_profile_url?: string | null
+          created_at?: string
+          id?: string
+          intent_category?: string | null
+          intent_score?: number
+          is_dismissed?: boolean
+          lead_temperature?: string
+          location?: string | null
+          niche?: string
+          post_content?: string | null
+          post_title?: string | null
+          posted_at?: string | null
+          search_location?: string | null
+          search_niche?: string | null
+          search_query?: string | null
+          source_platform?: string
+          source_url?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       leads: {
         Row: {
           brand_colors: Json | null
