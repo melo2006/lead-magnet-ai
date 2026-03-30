@@ -6,7 +6,7 @@ import { toast } from "sonner";
 import {
   ArrowLeft, Play, Pause, Users, Mail, Eye, MousePointerClick,
   Globe, ScanSearch, Send, ExternalLink, CheckSquare,
-  Square, Search, Loader2, AlertCircle
+  Square, Search, Loader2, AlertCircle, TestTube2
 } from "lucide-react";
 import OutreachDialog from "./OutreachDialog";
 import type { Prospect } from "@/hooks/useProspectSearch";
