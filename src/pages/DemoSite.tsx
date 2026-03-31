@@ -313,7 +313,7 @@ const DemoSite = () => {
                       >
                         <div className="relative">
                           <MessageSquare className="h-4 w-4" />
-                          <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-green-500 ring-2 ring-accent" />
+                          <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-primary ring-2 ring-accent" />
                         </div>
                         <div className="text-left">
                           <p className="text-xs font-semibold leading-tight sm:text-sm">Chat with Aspen</p>
@@ -345,7 +345,7 @@ const DemoSite = () => {
                       >
                         <div className="relative">
                           <Mic className="h-4 w-4" />
-                          <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-green-500 ring-2 ring-primary" />
+                          <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-accent ring-2 ring-primary" />
                         </div>
                         <div className="text-left">
                           <p className="text-xs font-semibold leading-tight sm:text-sm">Talk to Aspen</p>
@@ -358,7 +358,7 @@ const DemoSite = () => {
               </div>
             </div>
           </div>
-        )}
+        </div>
       </div>
 
       {/* Bottom CTA bar */}
