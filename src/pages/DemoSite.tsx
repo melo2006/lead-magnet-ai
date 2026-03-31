@@ -133,6 +133,7 @@ const DemoSite = () => {
   }, [leadData?.websiteUrl, iframeBlocked]);
 
   const handleIframeLoad = () => {
+    iframeLoadedRef.current = true;
     setIframeLoaded(true);
     try {
       // If contentDocument is accessible, iframe loaded same-origin content successfully
