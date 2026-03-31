@@ -56,7 +56,9 @@ const ALL_COLUMNS: ColumnDef[] = [
   { id: "niche", label: "Niche", sortKey: "niche", minWidth: "100px", removable: true },
   { id: "temp", label: "Temp", sortKey: "lead_temperature", minWidth: "60px", removable: true },
   { id: "location", label: "Location", sortKey: "city", minWidth: "120px", removable: true },
-  { id: "actions", label: "Actions", minWidth: "100px", removable: false },
+  { id: "actions", label: "Actions", minWidth: "120px", removable: false },
+  { id: "voiceai_candidate", label: "Voice AI Fit", sortKey: "voiceai_fit", minWidth: "85px", removable: true },
+  { id: "webdev_candidate", label: "Web Dev Fit", sortKey: "webdev_fit", minWidth: "85px", removable: true },
   { id: "rating", label: "Rating", sortKey: "rating", minWidth: "60px", removable: true },
   { id: "reviews", label: "Reviews", sortKey: "review_count", minWidth: "70px", removable: true },
   { id: "score", label: "Score", sortKey: "lead_score", minWidth: "70px", removable: true },
@@ -69,8 +71,6 @@ const ALL_COLUMNS: ColumnDef[] = [
   { id: "owner", label: "Owner", sortKey: "owner_name", minWidth: "100px", removable: true },
   { id: "contact", label: "Contact", sortKey: "contact_method", minWidth: "90px", removable: true },
   { id: "social", label: "Social", minWidth: "80px", removable: true },
-  { id: "voiceai_candidate", label: "Voice AI Fit", minWidth: "85px", removable: true },
-  { id: "webdev_candidate", label: "Web Dev Fit", minWidth: "85px", removable: true },
 ];
 
 const DEFAULT_ORDER: ColumnId[] = ALL_COLUMNS.map(c => c.id);
