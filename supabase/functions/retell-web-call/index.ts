@@ -976,6 +976,8 @@ Deno.serve(async (req) => {
         }, 500);
       }
     }
+
+    const {
       agentId,
       businessName,
       businessNiche,
