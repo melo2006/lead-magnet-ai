@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Filter } from "lucide-react";
+import { Filter, Search, ChevronDown } from "lucide-react";
 import ProspectSearchForm from "@/components/crm/ProspectSearchForm";
 import ProspectTable from "@/components/crm/ProspectTable";
 import CRMStats from "@/components/crm/CRMStats";
@@ -9,6 +9,7 @@ import CRMFilters from "@/components/crm/CRMFilters";
 import OutreachDialog from "@/components/crm/OutreachDialog";
 import { useProspectSearch } from "@/hooks/useProspectSearch";
 import { useProspects } from "@/hooks/useProspects";
+import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 const ProspectsView = () => {
   const [searchParams] = useSearchParams();
