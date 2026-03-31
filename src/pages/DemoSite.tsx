@@ -116,6 +116,41 @@ const DemoSite = () => {
     setVoiceOpen(false);
   }, [latestLeadData]);
 
+  // Iframe block detection: timeout fallback + onLoad check
+  useEffect(() => {
+    if (!leadData || iframeBlocked || !leadData.websiteUrl) return;
+    setIframeLoaded(false);
+
+    const timer = setTimeout(() => {
+      if (!iframeLoaded) {
+        // If iframe hasn't confirmed successful load after 3.5s, fall back to screenshot
+        setIframeBlocked(true);
+      }
+    }, 3500);
+
+    return () => clearTimeout(timer);
+  }, [leadData?.websiteUrl]);
+
+  const handleIframeLoad = () => {
+    setIframeLoaded(true);
+    try {
+      // If contentDocument is accessible, iframe loaded same-origin content successfully
+      const doc = iframeRef.current?.contentDocument;
+      if (doc) {
+        // Same-origin: check if body is empty (blocked)
+        const bodyContent = doc.body?.innerHTML || "";
+        if (!bodyContent.trim()) {
+          setIframeBlocked(true);
+        }
+      }
+      // If doc is null, it's cross-origin. We can't tell if it's blocked or loaded.
+      // The timeout will handle truly blocked cases (blank page).
+    } catch {
+      // Cross-origin access throws — this is normal for successfully loaded cross-origin pages
+      // Cancel the timeout since the iframe did load something
+    }
+  };
+
   const handleBack = () => {
     if (returnTo && returnTo.startsWith("/")) {
       navigate(returnTo);
