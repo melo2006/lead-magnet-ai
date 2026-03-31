@@ -798,9 +798,10 @@ Deno.serve(async (req) => {
       const websiteUrl = typeof body.websiteUrl === 'string' ? body.websiteUrl.trim() : '';
       const resolvedOwnerName = ownerNameInput || DEFAULT_OWNER_NAME;
 
-      if (!callId || !ownerEmail) {
-        return jsonResponse({ error: 'callId and ownerEmail are required' }, 400);
+      if (!callId) {
+        return jsonResponse({ error: 'callId is required' }, 400);
       }
+      const effectiveOwnerEmail = ownerEmail || TESTING_INBOX_EMAIL;
 
       console.log('Preparing call summary email for call:', callId);
 
