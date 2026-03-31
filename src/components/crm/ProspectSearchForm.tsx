@@ -221,7 +221,7 @@ const ProspectSearchForm = ({ onSearch, isSearching }: Props) => {
   };
 
   return (
-    <div className="bg-card border border-border rounded-xl p-4 sm:p-6 space-y-4">
+    <div className="p-4 sm:p-6 space-y-4">
       <div className="flex items-center justify-between mb-1">
         <div className="flex items-center gap-2">
           <Search className="w-4 h-4 text-primary" />

@@ -6,7 +6,8 @@ import {
   Brain, Loader2, CheckSquare, Square, Mail, Send,
   ArrowUpDown, Gauge, ChevronLeft, ChevronRight,
   Linkedin, Facebook, Instagram, Smartphone,
-  Settings2, GripVertical, Eye, EyeOff, Info
+  Settings2, GripVertical, Eye, EyeOff, Info,
+  Mic, Globe
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
@@ -39,7 +40,7 @@ const tempColors: Record<string, string> = {
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 // Column definitions
-type ColumnId = "business" | "niche" | "temp" | "location" | "actions" | "rating" | "reviews" | "score" | "website" | "chat" | "voiceai" | "booking" | "sitequality" | "ai" | "owner" | "contact" | "social";
+type ColumnId = "business" | "niche" | "temp" | "location" | "actions" | "rating" | "reviews" | "score" | "website" | "chat" | "voiceai" | "booking" | "sitequality" | "ai" | "owner" | "contact" | "social" | "voiceai_candidate" | "webdev_candidate";
 
 interface ColumnDef {
   id: ColumnId;
@@ -67,6 +68,8 @@ const ALL_COLUMNS: ColumnDef[] = [
   { id: "owner", label: "Owner", sortKey: "owner_name", minWidth: "100px", removable: true },
   { id: "contact", label: "Contact", sortKey: "contact_method", minWidth: "90px", removable: true },
   { id: "social", label: "Social", minWidth: "80px", removable: true },
+  { id: "voiceai_candidate", label: "Voice AI Fit", minWidth: "85px", removable: true },
+  { id: "webdev_candidate", label: "Web Dev Fit", minWidth: "85px", removable: true },
 ];
 
 const DEFAULT_ORDER: ColumnId[] = ALL_COLUMNS.map(c => c.id);
@@ -395,6 +398,26 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) =
             {!(p as any).linkedin_url && !(p as any).facebook_url && !(p as any).instagram_url && <span className="text-[10px] text-muted-foreground">—</span>}
           </div>
         );
+      case "voiceai_candidate": {
+        // Voice AI candidate = has website (we can read it & install widget)
+        const isCandidate = !!p.has_website;
+        const hasIt = !!(p as any).has_voice_ai;
+        if (hasIt) return <span className="text-[10px] font-semibold text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">Has AI</span>;
+        return isCandidate ? (
+          <span className="text-[10px] font-bold text-emerald-400 bg-emerald-400/10 border border-emerald-400/30 px-1.5 py-0.5 rounded inline-flex items-center gap-0.5"><Mic className="w-2.5 h-2.5" />Ready</span>
+        ) : (
+          <span className="text-[10px] font-semibold text-red-400 bg-red-400/10 px-1.5 py-0.5 rounded">No Site</span>
+        );
+      }
+      case "webdev_candidate": {
+        // Web dev candidate = no website (opportunity to build one)
+        const needsWebsite = !p.has_website;
+        return needsWebsite ? (
+          <span className="text-[10px] font-bold text-amber-400 bg-amber-400/10 border border-amber-400/30 px-1.5 py-0.5 rounded inline-flex items-center gap-0.5"><Globe className="w-2.5 h-2.5" />Hot</span>
+        ) : (
+          <span className="text-[10px] text-muted-foreground">—</span>
+        );
+      }
       default:
         return null;
     }
