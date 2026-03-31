@@ -237,15 +237,14 @@ const DemoSite = () => {
         <div className="h-[calc(100vh-11rem)] overflow-hidden">
           {!iframeBlocked && leadData.websiteUrl ? (
             <iframe
+              ref={iframeRef}
               key={leadData.websiteUrl}
               src={leadData.websiteUrl.startsWith("http") ? leadData.websiteUrl : `https://${leadData.websiteUrl}`}
               title={`${siteName} website`}
               className="h-full w-full border-0"
               sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
               onError={() => setIframeBlocked(true)}
-              onLoad={() => {
-                // iframe loaded successfully
-              }}
+              onLoad={handleIframeLoad}
             />
           ) : screenshotSrc ? (
             <div className="h-full overflow-y-auto overscroll-contain">
