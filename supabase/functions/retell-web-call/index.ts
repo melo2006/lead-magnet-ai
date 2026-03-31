@@ -834,7 +834,7 @@ Deno.serve(async (req) => {
           const preferredStart =
             parseRequestedAppointmentStart(aiSummary.appointmentTimeText, transcript) ?? getDefaultAppointmentStart();
           const attendeeEmail = aiSummary.callerEmail || undefined;
-          const bookingContext = await findAvailableSlotAcrossCalendars([ownerEmail, TESTING_INBOX_EMAIL], preferredStart, 15);
+          const bookingContext = await findAvailableSlotAcrossCalendars([effectiveOwnerEmail, TESTING_INBOX_EMAIL], preferredStart, 15);
           const calendarIdForBooking = bookingContext.calendarId;
           const appointmentStart = bookingContext.slot;
           const appointmentEnd = new Date(appointmentStart);
