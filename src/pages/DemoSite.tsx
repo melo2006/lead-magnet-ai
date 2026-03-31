@@ -1,5 +1,5 @@
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MessageSquare, Mic, ArrowLeft } from "lucide-react";
 import type { DemoLeadData } from "@/components/landing/demo-results/demoResultsUtils";
 import { getImageSrc, getSiteName } from "@/components/landing/demo-results/demoResultsUtils";
@@ -20,6 +20,8 @@ const DemoSite = () => {
   const [chatOpen, setChatOpen] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [iframeBlocked, setIframeBlocked] = useState(false);
+  const [, setIframeLoaded] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
   const returnTo = searchParams.get("returnTo");
 
   // Handle URL params from CRM (e.g. /demo?url=...&name=...&niche=...)
@@ -114,6 +116,43 @@ const DemoSite = () => {
     setVoiceOpen(false);
   }, [latestLeadData]);
 
+  // Iframe block detection: timeout fallback + onLoad check
+  const iframeLoadedRef = useRef(false);
+  useEffect(() => {
+    if (!leadData || iframeBlocked || !leadData.websiteUrl) return;
+    iframeLoadedRef.current = false;
+    setIframeLoaded(false);
+
+    const timer = setTimeout(() => {
+      if (!iframeLoadedRef.current) {
+        setIframeBlocked(true);
+      }
+    }, 3500);
+
+    return () => clearTimeout(timer);
+  }, [leadData?.websiteUrl, iframeBlocked]);
+
+  const handleIframeLoad = () => {
+    iframeLoadedRef.current = true;
+    setIframeLoaded(true);
+    try {
+      // If contentDocument is accessible, iframe loaded same-origin content successfully
+      const doc = iframeRef.current?.contentDocument;
+      if (doc) {
+        // Same-origin: check if body is empty (blocked)
+        const bodyContent = doc.body?.innerHTML || "";
+        if (!bodyContent.trim()) {
+          setIframeBlocked(true);
+        }
+      }
+      // If doc is null, it's cross-origin. We can't tell if it's blocked or loaded.
+      // The timeout will handle truly blocked cases (blank page).
+    } catch {
+      // Cross-origin access throws — this is normal for successfully loaded cross-origin pages
+      // Cancel the timeout since the iframe did load something
+    }
+  };
+
   const handleBack = () => {
     if (returnTo && returnTo.startsWith("/")) {
       navigate(returnTo);
@@ -200,15 +239,14 @@ const DemoSite = () => {
         <div className="h-[calc(100vh-11rem)] overflow-hidden">
           {!iframeBlocked && leadData.websiteUrl ? (
             <iframe
+              ref={iframeRef}
               key={leadData.websiteUrl}
               src={leadData.websiteUrl.startsWith("http") ? leadData.websiteUrl : `https://${leadData.websiteUrl}`}
               title={`${siteName} website`}
               className="h-full w-full border-0"
               sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
               onError={() => setIframeBlocked(true)}
-              onLoad={() => {
-                // iframe loaded successfully
-              }}
+              onLoad={handleIframeLoad}
             />
           ) : screenshotSrc ? (
             <div className="h-full overflow-y-auto overscroll-contain">
