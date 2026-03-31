@@ -820,7 +820,7 @@ Deno.serve(async (req) => {
         businessName,
         ownerName: resolvedOwnerName,
         ownerPhone,
-        ownerEmail,
+        ownerEmail: effectiveOwnerEmail,
         lovableApiKey: lovableApiKey || undefined,
         existingSummary: callData?.call_analysis?.call_summary || callData?.call_analysis?.summary,
       });
