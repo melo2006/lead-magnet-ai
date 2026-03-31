@@ -936,8 +936,14 @@ Deno.serve(async (req) => {
 
       console.log(`Initiating warm transfer to ${transferTo} for call ${callId}`);
 
-      // Use Twilio TwiML to announce and connect
-      const twimlMessage = `Hello, this is Aspen, the AI assistant for ${businessName}. I have ${callerName} on the line who would like to speak with an ${TRANSFER_TITLE}. Connecting you now.`;
+      // Caller's phone for Ron to call back
+      const callerPhone = typeof body.callerPhone === 'string' ? normalizePhoneNumber(body.callerPhone) : '';
+
+      // Use Twilio TwiML to announce caller details so Ron can call them back immediately
+      const callerPhoneAnnouncement = callerPhone
+        ? ` Their phone number is ${callerPhone.split('').join(' ')}. Again, ${callerPhone.split('').join(' ')}.`
+        : ' Their phone number was not captured — check the email recap for details.';
+      const twimlMessage = `Hello ${resolvedOwnerName}, this is Aspen, the AI assistant for ${businessName}. ${callerName} just finished a demo call and would like to speak with you right away.${callerPhoneAnnouncement} Please call them back as soon as possible. Thank you!`;
       const twimlUrl = `http://twimlets.com/message?Message%5B0%5D=${encodeURIComponent(twimlMessage)}`;
 
       try {
