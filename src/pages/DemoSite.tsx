@@ -23,6 +23,13 @@ const DemoSite = () => {
   const [, setIframeLoaded] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
   const returnTo = searchParams.get("returnTo");
+  const previewUrl = leadData?.websiteUrl
+    ? leadData.websiteUrl.startsWith("http://")
+      ? leadData.websiteUrl.replace(/^http:\/\//i, "https://")
+      : leadData.websiteUrl.startsWith("http")
+        ? leadData.websiteUrl
+        : `https://${leadData.websiteUrl}`
+    : "";
 
   // Handle URL params from CRM (e.g. /demo?url=...&name=...&niche=...)
   useEffect(() => {
@@ -116,10 +123,16 @@ const DemoSite = () => {
     setVoiceOpen(false);
   }, [latestLeadData]);
 
+  useEffect(() => {
+    setIframeBlocked(false);
+    iframeLoadedRef.current = false;
+    setIframeLoaded(false);
+  }, [previewUrl]);
+
   // Iframe block detection: timeout fallback + onLoad check
   const iframeLoadedRef = useRef(false);
   useEffect(() => {
-    if (!leadData || iframeBlocked || !leadData.websiteUrl) return;
+    if (!leadData || iframeBlocked || !previewUrl) return;
     iframeLoadedRef.current = false;
     setIframeLoaded(false);
 
@@ -130,7 +143,7 @@ const DemoSite = () => {
     }, 3500);
 
     return () => clearTimeout(timer);
-  }, [leadData?.websiteUrl, iframeBlocked]);
+  }, [previewUrl, iframeBlocked, leadData]);
 
   const handleIframeLoad = () => {
     iframeLoadedRef.current = true;
@@ -235,111 +248,116 @@ const DemoSite = () => {
       </div>
 
       {/* Website display area — live iframe with screenshot fallback */}
-      <div className="relative flex-1 overflow-hidden">
-        <div className="absolute inset-0 overflow-hidden">
-          {!iframeBlocked && leadData.websiteUrl ? (
-            <iframe
-              ref={iframeRef}
-              key={leadData.websiteUrl}
-              src={leadData.websiteUrl.startsWith("http") ? leadData.websiteUrl : `https://${leadData.websiteUrl}`}
-              title={`${siteName} website`}
-              className="h-full w-full border-0"
-              sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-              onError={() => setIframeBlocked(true)}
-              onLoad={handleIframeLoad}
-            />
-          ) : screenshotSrc ? (
-            <div className="h-full overflow-y-auto overscroll-contain bg-muted">
-              <img
-                src={screenshotSrc}
-                alt={`${siteName} website`}
-                className="block min-h-full w-full object-cover object-top"
-                loading="lazy"
-                decoding="async"
-                draggable={false}
-              />
-            </div>
-          ) : (
-            <div className="flex h-full items-center justify-center bg-muted">
-              <p className="text-lg text-muted-foreground">Website preview unavailable</p>
-            </div>
-          )}
-        </div>
+      <div className="relative flex-1 overflow-hidden bg-muted/20">
+        <div className="absolute inset-0 overflow-auto">
+          <div className="min-h-full w-full px-0 py-0 sm:px-4 sm:py-4 lg:px-6">
+            <div className="relative mx-auto min-h-[calc(100vh-11rem)] w-full max-w-[1400px] overflow-hidden bg-background shadow-2xl sm:rounded-[1.75rem] sm:border sm:border-border/70">
+              {!iframeBlocked && previewUrl ? (
+                <iframe
+                  ref={iframeRef}
+                  key={previewUrl}
+                  src={previewUrl}
+                  title={`${siteName} website`}
+                  className="h-full min-h-[calc(100vh-11rem)] w-full border-0 bg-background"
+                  sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                  onError={() => setIframeBlocked(true)}
+                  onLoad={handleIframeLoad}
+                />
+              ) : screenshotSrc ? (
+                <div className="relative h-full min-h-[calc(100vh-11rem)] w-full overflow-hidden bg-muted">
+                  <img
+                    src={screenshotSrc}
+                    alt={`${siteName} website`}
+                    className="block h-full min-h-[calc(100vh-11rem)] w-full origin-top object-cover object-top scale-[1.22] sm:scale-[1.16] lg:scale-[1.12]"
+                    loading="lazy"
+                    decoding="async"
+                    draggable={false}
+                  />
+                </div>
+              ) : (
+                <div className="flex h-full min-h-[calc(100vh-11rem)] items-center justify-center bg-muted">
+                  <p className="text-lg text-muted-foreground">Website preview unavailable</p>
+                </div>
+              )}
 
-        {/* DEMO watermark — only show on screenshot fallback */}
-        {iframeBlocked && (
-          <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-            <p className="select-none text-[clamp(2.5rem,10vw,8rem)] font-black tracking-[0.35em] text-foreground/[0.06]">
-              DEMO
-            </p>
+              {/* DEMO watermark — only show on screenshot fallback */}
+              {iframeBlocked && (
+                <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+                  <p className="select-none text-[clamp(2.5rem,10vw,8rem)] font-black tracking-[0.35em] text-foreground/[0.06]">
+                    DEMO
+                  </p>
+                </div>
+              )}
+
+              {/* ===== AI Widget buttons — anchored inside the website frame ===== */}
+              <div className="pointer-events-none absolute inset-x-0 bottom-4 z-50 px-3 sm:bottom-6 sm:px-6">
+                <div className="relative mx-auto h-0 w-full max-w-[1100px]">
+                  <div className="pointer-events-auto absolute bottom-0 left-0">
+                    {chatOpen ? (
+                      <div className="w-[min(20rem,calc(100vw-2.5rem))] max-h-[60vh] overflow-y-auto animate-in slide-in-from-bottom-4 fade-in duration-300">
+                        <ChatWidget
+                          key={`chat-${leadData.websiteUrl}`}
+                          businessName={siteName}
+                          businessNiche={leadData.niche || "general"}
+                          websiteUrl={leadData.websiteUrl}
+                          businessInfo={leadData.websiteContent || leadData.description || ""}
+                          ownerName={leadData.fullName}
+                          callerPhone={leadData.phone}
+                          onClose={() => setChatOpen(false)}
+                        />
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => { setChatOpen(true); setVoiceOpen(false); }}
+                        className="group flex items-center gap-2 rounded-xl bg-accent px-3 py-2 text-accent-foreground shadow-lg transition-all hover:scale-105 hover:shadow-xl sm:px-4 sm:py-2.5"
+                      >
+                        <div className="relative">
+                          <MessageSquare className="h-4 w-4" />
+                          <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-primary ring-2 ring-accent" />
+                        </div>
+                        <div className="text-left">
+                          <p className="text-xs font-semibold leading-tight sm:text-sm">Chat with Aspen</p>
+                          <p className="hidden text-[9px] opacity-80 sm:block">AI Chat</p>
+                        </div>
+                      </button>
+                    )}
+                  </div>
+
+                  <div className="pointer-events-auto absolute bottom-0 right-0">
+                    {voiceOpen ? (
+                      <div className="w-[min(20rem,calc(100vw-2.5rem))] max-h-[60vh] overflow-y-auto animate-in slide-in-from-bottom-4 fade-in duration-300">
+                        <VoiceAgentWidget
+                          key={`voice-${leadData.websiteUrl}`}
+                          businessName={siteName}
+                          businessNiche={leadData.niche || "general"}
+                          ownerName={leadData.fullName}
+                          ownerEmail={leadData.email}
+                          ownerPhone={leadData.phone}
+                          websiteUrl={leadData.websiteUrl}
+                          businessInfo={leadData.websiteContent || leadData.description || ""}
+                          onClose={() => setVoiceOpen(false)}
+                        />
+                      </div>
+                    ) : (
+                      <button
+                        onClick={() => { setVoiceOpen(true); setChatOpen(false); }}
+                        className="group flex items-center gap-2 rounded-xl bg-primary px-3 py-2 text-primary-foreground shadow-lg transition-all hover:scale-105 hover:shadow-xl sm:px-4 sm:py-2.5"
+                      >
+                        <div className="relative">
+                          <Mic className="h-4 w-4" />
+                          <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-accent ring-2 ring-primary" />
+                        </div>
+                        <div className="text-left">
+                          <p className="text-xs font-semibold leading-tight sm:text-sm">Talk to Aspen</p>
+                          <p className="hidden text-[9px] opacity-80 sm:block">AI Voice</p>
+                        </div>
+                      </button>
+                    )}
+                  </div>
+                </div>
+              </div>
+            </div>
           </div>
-        )}
-
-        {/* ===== AI Widget buttons — inside the website area ===== */}
-
-        {/* Voice widget / button — bottom RIGHT of content area */}
-        <div className="absolute bottom-4 right-4 z-50">
-          {voiceOpen ? (
-            <div className="w-[min(20rem,calc(100vw-2rem))] max-h-[60vh] overflow-y-auto animate-in slide-in-from-bottom-4 fade-in duration-300">
-              <VoiceAgentWidget
-                key={`voice-${leadData.websiteUrl}`}
-                businessName={siteName}
-                businessNiche={leadData.niche || "general"}
-                ownerName={leadData.fullName}
-                ownerEmail={leadData.email}
-                ownerPhone={leadData.phone}
-                websiteUrl={leadData.websiteUrl}
-                businessInfo={leadData.websiteContent || leadData.description || ""}
-                onClose={() => setVoiceOpen(false)}
-              />
-            </div>
-          ) : (
-            <button
-              onClick={() => { setVoiceOpen(true); setChatOpen(false); }}
-              className="group flex items-center gap-2 rounded-xl bg-primary px-3 py-2 text-primary-foreground shadow-lg transition-all hover:scale-105 hover:shadow-xl sm:px-4 sm:py-2.5"
-            >
-              <div className="relative">
-                <Mic className="h-4 w-4" />
-                <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-green-500 ring-2 ring-primary" />
-              </div>
-              <div className="text-left">
-                <p className="text-xs font-semibold leading-tight sm:text-sm">Talk to Aspen</p>
-                <p className="hidden text-[9px] opacity-80 sm:block">AI Voice</p>
-              </div>
-            </button>
-          )}
-        </div>
-
-        {/* Chat widget / button — bottom LEFT of content area */}
-        <div className="absolute bottom-4 left-4 z-50">
-          {chatOpen ? (
-            <div className="w-[min(20rem,calc(100vw-2rem))] max-h-[60vh] overflow-y-auto animate-in slide-in-from-bottom-4 fade-in duration-300">
-              <ChatWidget
-                key={`chat-${leadData.websiteUrl}`}
-                businessName={siteName}
-                businessNiche={leadData.niche || "general"}
-                websiteUrl={leadData.websiteUrl}
-                businessInfo={leadData.websiteContent || leadData.description || ""}
-                ownerName={leadData.fullName}
-                callerPhone={leadData.phone}
-                onClose={() => setChatOpen(false)}
-              />
-            </div>
-          ) : (
-            <button
-              onClick={() => { setChatOpen(true); setVoiceOpen(false); }}
-              className="group flex items-center gap-2 rounded-xl bg-accent px-3 py-2 text-accent-foreground shadow-lg transition-all hover:scale-105 hover:shadow-xl sm:px-4 sm:py-2.5"
-            >
-              <div className="relative">
-                <MessageSquare className="h-4 w-4" />
-                <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-green-500 ring-2 ring-accent" />
-              </div>
-              <div className="text-left">
-                <p className="text-xs font-semibold leading-tight sm:text-sm">Chat with Aspen</p>
-                <p className="hidden text-[9px] opacity-80 sm:block">AI Chat</p>
-              </div>
-            </button>
-          )}
         </div>
       </div>
 
