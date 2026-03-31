@@ -877,7 +877,7 @@ Deno.serve(async (req) => {
           callerName: aiSummary.callerName || '',
           callerEmail: aiSummary.callerEmail || '',
           ownerName: resolvedOwnerName,
-          ownerEmail,
+          ownerEmail: effectiveOwnerEmail,
           ownerPhone,
           businessName,
           websiteUrl,
