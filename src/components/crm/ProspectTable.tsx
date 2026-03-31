@@ -336,7 +336,7 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) =
         return <span className="text-muted-foreground truncate max-w-[120px] block">{p.city}{p.state ? `, ${p.state}` : ""}</span>;
       case "actions":
         return (
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2.5">
             {p.website_url && (
               <a href={p.website_url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="p-1 rounded hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors" title="Visit website"><ExternalLink className="w-3.5 h-3.5" /></a>
             )}
