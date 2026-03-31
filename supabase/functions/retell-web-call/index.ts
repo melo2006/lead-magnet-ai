@@ -798,9 +798,10 @@ Deno.serve(async (req) => {
       const websiteUrl = typeof body.websiteUrl === 'string' ? body.websiteUrl.trim() : '';
       const resolvedOwnerName = ownerNameInput || DEFAULT_OWNER_NAME;
 
-      if (!callId || !ownerEmail) {
-        return jsonResponse({ error: 'callId and ownerEmail are required' }, 400);
+      if (!callId) {
+        return jsonResponse({ error: 'callId is required' }, 400);
       }
+      const effectiveOwnerEmail = ownerEmail || TESTING_INBOX_EMAIL;
 
       console.log('Preparing call summary email for call:', callId);
 
@@ -819,7 +820,7 @@ Deno.serve(async (req) => {
         businessName,
         ownerName: resolvedOwnerName,
         ownerPhone,
-        ownerEmail,
+        ownerEmail: effectiveOwnerEmail,
         lovableApiKey: lovableApiKey || undefined,
         existingSummary: callData?.call_analysis?.call_summary || callData?.call_analysis?.summary,
       });
@@ -833,7 +834,7 @@ Deno.serve(async (req) => {
           const preferredStart =
             parseRequestedAppointmentStart(aiSummary.appointmentTimeText, transcript) ?? getDefaultAppointmentStart();
           const attendeeEmail = aiSummary.callerEmail || undefined;
-          const bookingContext = await findAvailableSlotAcrossCalendars([ownerEmail, TESTING_INBOX_EMAIL], preferredStart, 15);
+          const bookingContext = await findAvailableSlotAcrossCalendars([effectiveOwnerEmail, TESTING_INBOX_EMAIL], preferredStart, 15);
           const calendarIdForBooking = bookingContext.calendarId;
           const appointmentStart = bookingContext.slot;
           const appointmentEnd = new Date(appointmentStart);
@@ -846,7 +847,7 @@ Deno.serve(async (req) => {
           const calEvent = await createCalendarEvent({
             calendarId: calendarIdForBooking,
             summary: `Aspen Demo Follow-up: ${resolvedOwnerName} — ${businessName}`,
-            description: `Auto-booked by Aspen AI after a demo call.\n\nSummary: ${aiSummary.summary}\nNext step: ${aiSummary.nextStep}\nRequested slot: ${appointmentScheduledFor || aiSummary.appointmentTimeText || 'Default next business day at 10:00 AM ET'}\n\nPhone: ${ownerPhone || 'Not provided'}\nEmail: ${ownerEmail}\nWebsite: ${websiteUrl}`,
+            description: `Auto-booked by Aspen AI after a demo call.\n\nSummary: ${aiSummary.summary}\nNext step: ${aiSummary.nextStep}\nRequested slot: ${appointmentScheduledFor || aiSummary.appointmentTimeText || 'Default next business day at 10:00 AM ET'}\n\nPhone: ${ownerPhone || 'Not provided'}\nEmail: ${effectiveOwnerEmail}\nWebsite: ${websiteUrl}`,
             startTime: formatNaiveCalendarDateTime(appointmentStart),
             endTime: formatNaiveCalendarDateTime(appointmentEnd),
             attendeeEmail,
@@ -876,7 +877,7 @@ Deno.serve(async (req) => {
           callerName: aiSummary.callerName || '',
           callerEmail: aiSummary.callerEmail || '',
           ownerName: resolvedOwnerName,
-          ownerEmail,
+          ownerEmail: effectiveOwnerEmail,
           ownerPhone,
           businessName,
           websiteUrl,
