@@ -235,8 +235,8 @@ const DemoSite = () => {
       </div>
 
       {/* Website display area — live iframe with screenshot fallback */}
-      <div className="relative flex-1">
-        <div className="h-[calc(100vh-11rem)] overflow-hidden">
+      <div className="relative flex-1 overflow-hidden">
+        <div className="absolute inset-0 overflow-hidden">
           {!iframeBlocked && leadData.websiteUrl ? (
             <iframe
               ref={iframeRef}
@@ -249,11 +249,11 @@ const DemoSite = () => {
               onLoad={handleIframeLoad}
             />
           ) : screenshotSrc ? (
-            <div className="h-full overflow-y-auto overscroll-contain">
+            <div className="h-full overflow-y-auto overscroll-contain bg-muted">
               <img
                 src={screenshotSrc}
                 alt={`${siteName} website`}
-                className="block h-auto w-full object-contain object-top align-top"
+                className="block min-h-full w-full object-cover object-top"
                 loading="lazy"
                 decoding="async"
                 draggable={false}
@@ -275,12 +275,12 @@ const DemoSite = () => {
           </div>
         )}
 
-        {/* ===== AI Widget buttons — Talk to Aspen (right), Chat (left) ===== */}
+        {/* ===== AI Widget buttons — inside the website area ===== */}
 
-        {/* Voice widget / button — bottom RIGHT */}
-        <div className="fixed bottom-3 right-3 z-50 sm:bottom-4 sm:right-4">
+        {/* Voice widget / button — bottom RIGHT of content area */}
+        <div className="absolute bottom-4 right-4 z-50">
           {voiceOpen ? (
-            <div className="w-[min(20rem,calc(100vw-2rem))] max-h-[70vh] overflow-y-auto animate-in slide-in-from-bottom-4 fade-in duration-300">
+            <div className="w-[min(20rem,calc(100vw-2rem))] max-h-[60vh] overflow-y-auto animate-in slide-in-from-bottom-4 fade-in duration-300">
               <VoiceAgentWidget
                 key={`voice-${leadData.websiteUrl}`}
                 businessName={siteName}
@@ -310,10 +310,10 @@ const DemoSite = () => {
           )}
         </div>
 
-        {/* Chat widget / button — bottom LEFT */}
-        <div className="fixed bottom-3 left-3 z-50 sm:bottom-4 sm:left-4">
+        {/* Chat widget / button — bottom LEFT of content area */}
+        <div className="absolute bottom-4 left-4 z-50">
           {chatOpen ? (
-            <div className="w-[min(20rem,calc(100vw-2rem))] max-h-[70vh] overflow-y-auto animate-in slide-in-from-bottom-4 fade-in duration-300">
+            <div className="w-[min(20rem,calc(100vw-2rem))] max-h-[60vh] overflow-y-auto animate-in slide-in-from-bottom-4 fade-in duration-300">
               <ChatWidget
                 key={`chat-${leadData.websiteUrl}`}
                 businessName={siteName}
