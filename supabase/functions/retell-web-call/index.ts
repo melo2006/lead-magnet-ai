@@ -847,7 +847,7 @@ Deno.serve(async (req) => {
           const calEvent = await createCalendarEvent({
             calendarId: calendarIdForBooking,
             summary: `Aspen Demo Follow-up: ${resolvedOwnerName} — ${businessName}`,
-            description: `Auto-booked by Aspen AI after a demo call.\n\nSummary: ${aiSummary.summary}\nNext step: ${aiSummary.nextStep}\nRequested slot: ${appointmentScheduledFor || aiSummary.appointmentTimeText || 'Default next business day at 10:00 AM ET'}\n\nPhone: ${ownerPhone || 'Not provided'}\nEmail: ${ownerEmail}\nWebsite: ${websiteUrl}`,
+            description: `Auto-booked by Aspen AI after a demo call.\n\nSummary: ${aiSummary.summary}\nNext step: ${aiSummary.nextStep}\nRequested slot: ${appointmentScheduledFor || aiSummary.appointmentTimeText || 'Default next business day at 10:00 AM ET'}\n\nPhone: ${ownerPhone || 'Not provided'}\nEmail: ${effectiveOwnerEmail}\nWebsite: ${websiteUrl}`,
             startTime: formatNaiveCalendarDateTime(appointmentStart),
             endTime: formatNaiveCalendarDateTime(appointmentEnd),
             attendeeEmail,
