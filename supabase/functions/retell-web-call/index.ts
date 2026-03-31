@@ -9,9 +9,13 @@ const RETELL_BASE = 'https://api.retellai.com';
 const LOVABLE_AI_BASE = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 const RESEND_BASE = 'https://api.resend.com/emails';
 const GOOGLE_CALENDAR_API = 'https://www.googleapis.com/calendar/v3';
+const TWILIO_GATEWAY_URL = 'https://connector-gateway.lovable.dev/twilio';
 const DEFAULT_OWNER_NAME = 'Ron Melo';
 const TESTING_INBOX_EMAIL = 'melo2006@gmail.com';
 const DEFAULT_TIME_ZONE = 'America/New_York';
+const DEFAULT_TRANSFER_NUMBER = '+19547706622';
+const TWILIO_CALLER_ID = '+15612755757';
+const TRANSFER_TITLE = 'AI Solutions Specialist';
 
 // Service account credentials for aspen-calendar-bot
 const SERVICE_ACCOUNT = {
@@ -914,7 +918,64 @@ Deno.serve(async (req) => {
       });
     }
 
-    const {
+    if (action === 'warm-transfer') {
+      const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+      if (!lovableApiKey) {
+        return jsonResponse({ error: 'LOVABLE_API_KEY not configured' }, 500);
+      }
+
+      const twilioApiKey = Deno.env.get('TWILIO_API_KEY');
+      if (!twilioApiKey) {
+        return jsonResponse({ error: 'TWILIO_API_KEY not configured' }, 500);
+      }
+
+      const transferTo = normalizePhoneNumber(body.transferTo) || DEFAULT_TRANSFER_NUMBER;
+      const callerName = typeof body.callerName === 'string' ? body.callerName.trim() : 'a caller';
+      const businessName = typeof body.businessName === 'string' ? body.businessName.trim() : 'Demo Business';
+      const callId = typeof body.callId === 'string' ? body.callId : '';
+
+      console.log(`Initiating warm transfer to ${transferTo} for call ${callId}`);
+
+      // Use Twilio TwiML to announce and connect
+      const twimlMessage = `Hello, this is Aspen, the AI assistant for ${businessName}. I have ${callerName} on the line who would like to speak with an ${TRANSFER_TITLE}. Connecting you now.`;
+      const twimlUrl = `http://twimlets.com/message?Message%5B0%5D=${encodeURIComponent(twimlMessage)}`;
+
+      try {
+        const response = await fetch(`${TWILIO_GATEWAY_URL}/Calls.json`, {
+          method: 'POST',
+          headers: {
+            'Authorization': `Bearer ${lovableApiKey}`,
+            'X-Connection-Api-Key': twilioApiKey,
+            'Content-Type': 'application/x-www-form-urlencoded',
+          },
+          body: new URLSearchParams({
+            To: transferTo,
+            From: TWILIO_CALLER_ID,
+            Url: twimlUrl,
+          }),
+        });
+
+        const data = await response.json().catch(() => null);
+        if (!response.ok) {
+          throw new Error(`Twilio call failed [${response.status}]: ${JSON.stringify(data)}`);
+        }
+
+        console.log('Warm transfer call initiated:', data?.sid);
+
+        return jsonResponse({
+          success: true,
+          callSid: data?.sid,
+          transferTo,
+          transferTitle: TRANSFER_TITLE,
+        });
+      } catch (err) {
+        console.error('Warm transfer error:', err);
+        return jsonResponse({
+          error: err instanceof Error ? err.message : 'Transfer failed',
+          fallback: 'callback',
+        }, 500);
+      }
+    }
       agentId,
       businessName,
       businessNiche,
@@ -989,6 +1050,11 @@ EMAIL CAPTURE RULES:
 APPOINTMENT & CALLBACK:
 - When offering to schedule, say something like: "I can request a time for you to chat with ${resolvedOwnerName}. What day and time works best for you?"
 - At the end of the call, confirm: "I'll make sure ${resolvedOwnerName} gets all the details from our chat, and we'll confirm the timing by email if needed!"
+
+LIVE TRANSFER:
+- If the caller asks to speak with someone right now, a live person, or requests a transfer, say: "Absolutely! Let me connect you with our ${TRANSFER_TITLE} right now. One moment please!"
+- Mark this as a transfer request so the system can initiate a warm handoff.
+- The transfer will ring ${resolvedOwnerName} and announce the caller before connecting.
 
 DEMO CONTEXT: This is a demonstration of AI voice capabilities. If the caller asks about signing up for the AI service itself, you can mention they can speak with Ron Melo, our Director of Sales, about getting this for their own business.`,
         },

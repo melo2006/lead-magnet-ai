@@ -51,6 +51,39 @@ const VoiceAgentWidget = ({
     }
   }, []);
 
+  const initiateWarmTransfer = useCallback(async () => {
+    const callId = callIdRef.current;
+    if (!callId) return;
+
+    try {
+      const { data, error } = await supabase.functions.invoke("retell-web-call", {
+        body: {
+          action: "warm-transfer",
+          callId,
+          businessName,
+          callerName: callerName || "a caller",
+          transferTo: ownerPhone || "",
+        },
+      });
+
+      if (error || !data?.success) {
+        throw new Error(error?.message || data?.error || "Transfer failed");
+      }
+
+      toast({
+        title: `Connecting to ${data.transferTitle || "AI Solutions Specialist"}`,
+        description: `Calling ${data.transferTo}... The specialist will be briefed before you're connected.`,
+      });
+    } catch (err) {
+      console.error("Warm transfer failed:", err);
+      toast({
+        title: "Transfer unavailable",
+        description: "We'll capture a callback request instead and have someone reach out shortly.",
+        variant: "destructive",
+      });
+    }
+  }, [businessName, callerName, ownerPhone, toast]);
+
   const queueCallSummary = useCallback(async () => {
     const callId = callIdRef.current;
     if (!callId || summaryQueuedRef.current) return;
@@ -74,6 +107,11 @@ const VoiceAgentWidget = ({
         throw new Error(error?.message || data?.error || "Couldn't finish the call recap.");
       }
 
+      // If a transfer was requested, attempt warm transfer
+      if (data.transferRequested) {
+        await initiateWarmTransfer();
+      }
+
       const appointmentBooked = Boolean(data.calendarEventId);
 
       const headline = data.appointmentRequested
@@ -91,7 +129,7 @@ const VoiceAgentWidget = ({
           ? `Confirmed for ${data.appointmentScheduledFor}.`
           : `Aspen captured appointment intent and flagged it for ${resolvedOwnerName}.`
         : data.transferRequested
-          ? `Aspen marked this for an immediate follow-up with ${resolvedOwnerName}.`
+          ? `Aspen is connecting you with an AI Solutions Specialist now.`
           : data.callbackRequested
             ? `${resolvedOwnerName} now has the callback request details.`
             : null;
@@ -121,7 +159,7 @@ const VoiceAgentWidget = ({
         variant: "destructive",
       });
     }
-  }, [businessName, ownerEmail, ownerPhone, resolvedOwnerName, toast, websiteUrl]);
+  }, [businessName, ownerEmail, ownerPhone, resolvedOwnerName, toast, websiteUrl, initiateWarmTransfer]);
 
   useEffect(() => {
     return () => {
