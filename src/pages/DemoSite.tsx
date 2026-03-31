@@ -117,19 +117,20 @@ const DemoSite = () => {
   }, [latestLeadData]);
 
   // Iframe block detection: timeout fallback + onLoad check
+  const iframeLoadedRef = useRef(false);
   useEffect(() => {
     if (!leadData || iframeBlocked || !leadData.websiteUrl) return;
+    iframeLoadedRef.current = false;
     setIframeLoaded(false);
 
     const timer = setTimeout(() => {
-      if (!iframeLoaded) {
-        // If iframe hasn't confirmed successful load after 3.5s, fall back to screenshot
+      if (!iframeLoadedRef.current) {
         setIframeBlocked(true);
       }
     }, 3500);
 
     return () => clearTimeout(timer);
-  }, [leadData?.websiteUrl]);
+  }, [leadData?.websiteUrl, iframeBlocked]);
 
   const handleIframeLoad = () => {
     setIframeLoaded(true);
