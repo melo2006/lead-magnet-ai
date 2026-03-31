@@ -62,6 +62,7 @@ const VoiceAgentWidget = ({
           callId,
           businessName,
           callerName: callerName || "a caller",
+          callerPhone: ownerPhone || "",
           transferTo: ownerPhone || "",
         },
       });
@@ -71,8 +72,8 @@ const VoiceAgentWidget = ({
       }
 
       toast({
-        title: `Connecting to ${data.transferTitle || "AI Solutions Specialist"}`,
-        description: `Calling ${data.transferTo}... The specialist will be briefed before you're connected.`,
+        title: `Callback alert sent to ${resolvedOwnerName}`,
+        description: `${resolvedOwnerName} will call back shortly.`,
       });
     } catch (err) {
       console.error("Warm transfer failed:", err);
@@ -82,7 +83,7 @@ const VoiceAgentWidget = ({
         variant: "destructive",
       });
     }
-  }, [businessName, callerName, ownerPhone, toast]);
+  }, [businessName, callerName, ownerPhone, resolvedOwnerName, toast]);
 
   const queueCallSummary = useCallback(async () => {
     const callId = callIdRef.current;

@@ -936,8 +936,14 @@ Deno.serve(async (req) => {
 
       console.log(`Initiating warm transfer to ${transferTo} for call ${callId}`);
 
-      // Use Twilio TwiML to announce and connect
-      const twimlMessage = `Hello, this is Aspen, the AI assistant for ${businessName}. I have ${callerName} on the line who would like to speak with an ${TRANSFER_TITLE}. Connecting you now.`;
+      // Caller's phone for Ron to call back
+      const callerPhone = typeof body.callerPhone === 'string' ? normalizePhoneNumber(body.callerPhone) : '';
+
+      // Use Twilio TwiML to announce caller details so Ron can call them back immediately
+      const callerPhoneAnnouncement = callerPhone
+        ? ` Their phone number is ${callerPhone.split('').join(' ')}. Again, ${callerPhone.split('').join(' ')}.`
+        : ' Their phone number was not captured — check the email recap for details.';
+      const twimlMessage = `Hello ${resolvedOwnerName}, this is Aspen, the AI assistant for ${businessName}. ${callerName} just finished a demo call and would like to speak with you right away.${callerPhoneAnnouncement} Please call them back as soon as possible. Thank you!`;
       const twimlUrl = `http://twimlets.com/message?Message%5B0%5D=${encodeURIComponent(twimlMessage)}`;
 
       try {
@@ -1053,10 +1059,11 @@ APPOINTMENT & CALLBACK:
 - When offering to schedule, say something like: "I can request a time for you to chat with ${resolvedOwnerName}. What day and time works best for you?"
 - At the end of the call, confirm: "I'll make sure ${resolvedOwnerName} gets all the details from our chat, and we'll confirm the timing by email if needed!"
 
-LIVE TRANSFER:
-- If the caller asks to speak with someone right now, a live person, or requests a transfer, say: "Absolutely! Let me connect you with our ${TRANSFER_TITLE} right now. One moment please!"
-- Mark this as a transfer request so the system can initiate a warm handoff.
-- The transfer will ring ${resolvedOwnerName} and announce the caller before connecting.
+LIVE TRANSFER / CALLBACK:
+- If the caller asks to speak with someone right now, a live person, or requests a transfer, FIRST make sure you have their phone number. Ask: "Absolutely! Before I get ${resolvedOwnerName} on the line, can I grab your phone number so they can reach you right away?"
+- Once you have their phone number, say: "Perfect! I'll have ${resolvedOwnerName} call you right back — usually within a minute or two. Hang tight!"
+- Mark this as a transfer request so the system can alert ${resolvedOwnerName} immediately.
+- Do NOT say you are "connecting" or "transferring" them live — instead frame it as an immediate callback.
 
 DEMO CONTEXT: This is a demonstration of AI voice capabilities. If the caller asks about signing up for the AI service itself, you can mention they can speak with Ron Melo, our Director of Sales, about getting this for their own business.`,
         },
