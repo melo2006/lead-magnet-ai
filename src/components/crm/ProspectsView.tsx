@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Filter, Search, ChevronDown } from "lucide-react";
+import { Filter, Search } from "lucide-react";
 import ProspectSearchForm from "@/components/crm/ProspectSearchForm";
 import ProspectTable from "@/components/crm/ProspectTable";
 import CRMStats from "@/components/crm/CRMStats";
