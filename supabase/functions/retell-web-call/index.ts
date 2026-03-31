@@ -9,9 +9,13 @@ const RETELL_BASE = 'https://api.retellai.com';
 const LOVABLE_AI_BASE = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 const RESEND_BASE = 'https://api.resend.com/emails';
 const GOOGLE_CALENDAR_API = 'https://www.googleapis.com/calendar/v3';
+const TWILIO_GATEWAY_URL = 'https://connector-gateway.lovable.dev/twilio';
 const DEFAULT_OWNER_NAME = 'Ron Melo';
 const TESTING_INBOX_EMAIL = 'melo2006@gmail.com';
 const DEFAULT_TIME_ZONE = 'America/New_York';
+const DEFAULT_TRANSFER_NUMBER = '+19547706622';
+const TWILIO_CALLER_ID = '+15612755757';
+const TRANSFER_TITLE = 'AI Solutions Specialist';
 
 // Service account credentials for aspen-calendar-bot
 const SERVICE_ACCOUNT = {
