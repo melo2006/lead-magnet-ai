@@ -57,13 +57,26 @@ const ProspectsView = () => {
 
       <CRMStats prospects={displayProspects} />
 
-      <ProspectSearchForm
-        onSearch={async (params) => {
-          await search(params);
-          refetch();
-        }}
-        isSearching={isSearching}
-      />
+      <Accordion type="single" collapsible className="w-full">
+        <AccordionItem value="search" className="border border-border rounded-xl overflow-hidden bg-card">
+          <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-secondary/30">
+            <div className="flex items-center gap-2">
+              <Search className="w-4 h-4 text-primary" />
+              <span className="text-sm font-semibold text-foreground">Find Prospects</span>
+              {isSearching && <span className="text-[10px] text-primary animate-pulse">Searching...</span>}
+            </div>
+          </AccordionTrigger>
+          <AccordionContent className="px-0 pb-0">
+            <ProspectSearchForm
+              onSearch={async (params) => {
+                await search(params);
+                refetch();
+              }}
+              isSearching={isSearching}
+            />
+          </AccordionContent>
+        </AccordionItem>
+      </Accordion>
 
       <AnimatePresence>
         {showFilters && (

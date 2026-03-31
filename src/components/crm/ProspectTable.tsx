@@ -398,6 +398,26 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) =
             {!(p as any).linkedin_url && !(p as any).facebook_url && !(p as any).instagram_url && <span className="text-[10px] text-muted-foreground">—</span>}
           </div>
         );
+      case "voiceai_candidate": {
+        // Voice AI candidate = has website (we can read it & install widget)
+        const isCandidate = !!p.has_website;
+        const hasIt = !!(p as any).has_voice_ai;
+        if (hasIt) return <span className="text-[10px] font-semibold text-muted-foreground bg-secondary px-1.5 py-0.5 rounded">Has AI</span>;
+        return isCandidate ? (
+          <span className="text-[10px] font-bold text-emerald-400 bg-emerald-400/10 border border-emerald-400/30 px-1.5 py-0.5 rounded inline-flex items-center gap-0.5"><Mic className="w-2.5 h-2.5" />Ready</span>
+        ) : (
+          <span className="text-[10px] font-semibold text-red-400 bg-red-400/10 px-1.5 py-0.5 rounded">No Site</span>
+        );
+      }
+      case "webdev_candidate": {
+        // Web dev candidate = no website (opportunity to build one)
+        const needsWebsite = !p.has_website;
+        return needsWebsite ? (
+          <span className="text-[10px] font-bold text-amber-400 bg-amber-400/10 border border-amber-400/30 px-1.5 py-0.5 rounded inline-flex items-center gap-0.5"><Globe className="w-2.5 h-2.5" />Hot</span>
+        ) : (
+          <span className="text-[10px] text-muted-foreground">—</span>
+        );
+      }
       default:
         return null;
     }
