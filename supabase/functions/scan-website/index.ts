@@ -149,9 +149,15 @@ async function browserlessScreenshot(url: string, apiKey: string): Promise<strin
       return null;
     }
 
-    // Browserless returns raw PNG bytes
+    // Browserless returns raw PNG bytes — encode in chunks to avoid stack overflow
     const buffer = await response.arrayBuffer();
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+    const bytes = new Uint8Array(buffer);
+    let binary = '';
+    const chunkSize = 8192;
+    for (let i = 0; i < bytes.length; i += chunkSize) {
+      binary += String.fromCharCode(...bytes.subarray(i, Math.min(i + chunkSize, bytes.length)));
+    }
+    const base64 = btoa(binary);
     console.log('[Browserless] Screenshot captured successfully, size:', buffer.byteLength);
     return `data:image/png;base64,${base64}`;
   } catch (err) {
