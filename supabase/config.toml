@@ -17,3 +17,6 @@ verify_jwt = false
 
 [functions.send-outreach-sms]
 verify_jwt = false
+
+[functions.live-transfer-bridge]
+verify_jwt = false
