@@ -102,7 +102,99 @@ const BUSINESS_SCHEMA = {
   required: ['business_name'],
 };
 
-Deno.serve(async (req) => {
+/** Search Exa for company/owner intelligence (FREE — 1,000 requests/month) */
+async function exaResearch(
+  apiKey: string,
+  businessName: string,
+  websiteUrl: string,
+): Promise<{
+  linkedinUrl: string | null;
+  facebookUrl: string | null;
+  instagramUrl: string | null;
+  snippets: string[];
+}> {
+  const result = {
+    linkedinUrl: null as string | null,
+    facebookUrl: null as string | null,
+    instagramUrl: null as string | null,
+    snippets: [] as string[],
+  };
+
+  const domain = (() => {
+    try { return new URL(websiteUrl.startsWith('http') ? websiteUrl : `https://${websiteUrl}`).hostname.replace(/^www\./, ''); } catch { return ''; }
+  })();
+
+  // Search 1: Find owner/manager info + company details
+  try {
+    console.log('[Exa] Searching for owner info:', businessName, domain);
+    const ownerRes = await fetch(`${EXA_BASE}/search`, {
+      method: 'POST',
+      headers: { 'x-api-key': apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: `"${businessName}" owner OR founder OR manager OR CEO ${domain}`,
+        num_results: 5,
+        type: 'auto',
+        contents: { text: { max_characters: 500 }, highlights: { num_sentences: 3 } },
+      }),
+    });
+
+    if (ownerRes.ok) {
+      const ownerData = await ownerRes.json();
+      for (const r of ownerData.results || []) {
+        const text = (r.text || '') + ' ' + ((r.highlights || []).join(' '));
+        result.snippets.push(text.slice(0, 400));
+        if (!result.linkedinUrl && r.url?.includes('linkedin.com/in/')) {
+          result.linkedinUrl = r.url;
+        }
+      }
+    } else {
+      console.warn('[Exa] Owner search failed:', ownerRes.status);
+    }
+  } catch (err) {
+    console.warn('[Exa] Owner search error:', err);
+  }
+
+  // Search 2: Find social media profiles
+  try {
+    console.log('[Exa] Searching for social profiles:', businessName);
+    const socialRes = await fetch(`${EXA_BASE}/search`, {
+      method: 'POST',
+      headers: { 'x-api-key': apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: `"${businessName}" ${domain}`,
+        num_results: 5,
+        type: 'auto',
+        include_domains: ['linkedin.com', 'facebook.com', 'instagram.com', 'yelp.com'],
+        contents: { text: { max_characters: 200 } },
+      }),
+    });
+
+    if (socialRes.ok) {
+      const socialData = await socialRes.json();
+      for (const r of socialData.results || []) {
+        const url = r.url || '';
+        if (!result.linkedinUrl && url.includes('linkedin.com')) result.linkedinUrl = url;
+        if (!result.facebookUrl && url.includes('facebook.com')) result.facebookUrl = url;
+        if (!result.instagramUrl && url.includes('instagram.com')) result.instagramUrl = url;
+      }
+    } else {
+      console.warn('[Exa] Social search failed:', socialRes.status);
+    }
+  } catch (err) {
+    console.warn('[Exa] Social search error:', err);
+  }
+
+  console.log('[Exa] Research complete:', {
+    linkedinFound: !!result.linkedinUrl,
+    facebookFound: !!result.facebookUrl,
+    instagramFound: !!result.instagramUrl,
+    snippets: result.snippets.length,
+  });
+
+  return result;
+}
+
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
