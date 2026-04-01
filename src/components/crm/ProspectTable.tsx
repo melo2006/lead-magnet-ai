@@ -71,6 +71,7 @@ const ALL_COLUMNS: ColumnDef[] = [
   { id: "owner", label: "Owner", sortKey: "owner_name", minWidth: "100px", removable: true },
   { id: "contact", label: "Contact", sortKey: "contact_method", minWidth: "90px", removable: true },
   { id: "social", label: "Social", minWidth: "80px", removable: true },
+  { id: "sources", label: "Sources", minWidth: "110px", removable: true },
 ];
 
 const DEFAULT_ORDER: ColumnId[] = ALL_COLUMNS.map(c => c.id);
