@@ -429,6 +429,11 @@ Be direct and specific. Return ONLY valid JSON, no markdown formatting or code b
       }
     }
 
+    // If AI didn't run but Exa found social profiles, still use them
+    if (!enrichmentData.linkedin_url && exaData?.linkedinUrl) enrichmentData.linkedin_url = exaData.linkedinUrl;
+    if (!enrichmentData.facebook_url && exaData?.facebookUrl) enrichmentData.facebook_url = exaData.facebookUrl;
+    if (!enrichmentData.instagram_url && exaData?.instagramUrl) enrichmentData.instagram_url = exaData.instagramUrl;
+
     // Step 3: Build voice agent context from structured data
     const voiceAgentContext = buildVoiceAgentContext(businessData, business_name, niche);
 
@@ -445,6 +450,7 @@ Be direct and specific. Return ONLY valid JSON, no markdown formatting or code b
         ...businessData,
         branding: brandingData,
         voice_agent_context: voiceAgentContext,
+        exa_research: exaData?.snippets || [],
       },
       ...enrichmentData,
     };
