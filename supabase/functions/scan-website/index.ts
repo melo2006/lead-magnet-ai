@@ -685,6 +685,15 @@ Deno.serve(async (req) => {
     const title = cleanText(metadata.title) || profile.businessName || getHost(formattedUrl);
     const description = cleanText(metadata.description) || profile.summary;
 
+    // Extract phone and email from all scraped content
+    const allTextForExtraction = [homepageMarkdown, combinedPageContent, secondaryContent, filesContent].join('\n');
+    const extractedPhones = extractPhones(allTextForExtraction);
+    const extractedEmails = extractEmails(allTextForExtraction);
+    const primaryPhone = extractedPhones[0] || null;
+    const primaryEmail = extractedEmails[0] || null;
+
+    console.log('Extracted contact info — phones:', extractedPhones, 'emails:', extractedEmails);
+
     // Save initial results immediately so the demo can load
     const updateResult = await supabase.from('leads').update({
       niche: profile.detectedNiche,
@@ -696,6 +705,8 @@ Deno.serve(async (req) => {
       website_title: title || null,
       website_description: description || null,
       scan_status: 'completed',
+      ...(primaryPhone ? { phone: primaryPhone } : {}),
+      ...(primaryEmail ? { email: primaryEmail } : {}),
     }).eq('id', leadId);
 
     if (updateResult.error) {
