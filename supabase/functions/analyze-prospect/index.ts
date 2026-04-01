@@ -240,12 +240,8 @@ Deno.serve(async (req) => {
           },
           body: JSON.stringify({
             url,
-            formats: [
-              'markdown',
-              'screenshot',
-              'branding',
-            ],
-            jsonOptions: {
+            formats: ['markdown', 'screenshot', 'branding', 'extract'],
+            extract: {
               schema: BUSINESS_SCHEMA,
             },
             onlyMainContent: false,
