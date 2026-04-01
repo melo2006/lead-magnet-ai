@@ -262,16 +262,18 @@ const DemoSite = () => {
                   sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
                   onError={() => setIframeBlocked(true)}
                   onLoad={handleIframeLoad}
+                  style={{ width: "100%", height: "100%", minHeight: "calc(100vh - 11rem)" }}
                 />
               ) : screenshotSrc ? (
                 <div className="relative h-full min-h-[calc(100vh-11rem)] w-full overflow-hidden bg-muted">
                   <img
                     src={screenshotSrc}
                     alt={`${siteName} website`}
-                    className="block h-full min-h-[calc(100vh-11rem)] w-full origin-top object-cover object-top scale-[1.22] sm:scale-[1.16] lg:scale-[1.12]"
+                    className="block w-full h-auto"
                     loading="lazy"
                     decoding="async"
                     draggable={false}
+                    style={{ maxWidth: "100%", objectFit: "contain" }}
                   />
                 </div>
               ) : (
