@@ -254,6 +254,17 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) =
 
   const sorted = useMemo(() => {
     return [...prospects].sort((a, b) => {
+      // Computed sort keys for fit columns
+      if (sortBy === "voiceai_fit") {
+        const aVal = a.has_website && !(a as any).has_voice_ai ? 2 : (a as any).has_voice_ai ? 0 : 1;
+        const bVal = b.has_website && !(b as any).has_voice_ai ? 2 : (b as any).has_voice_ai ? 0 : 1;
+        return sortDir === "desc" ? bVal - aVal : aVal - bVal;
+      }
+      if (sortBy === "webdev_fit") {
+        const aVal = a.has_website ? 0 : 1;
+        const bVal = b.has_website ? 0 : 1;
+        return sortDir === "desc" ? bVal - aVal : aVal - bVal;
+      }
       const aRaw = (a as any)[sortBy];
       const bRaw = (b as any)[sortBy];
       if (typeof aRaw === "boolean" || typeof bRaw === "boolean") {
