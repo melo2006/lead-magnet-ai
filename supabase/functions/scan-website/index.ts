@@ -99,6 +99,68 @@ const pickRelevantLinks = (links: string[], rootUrl: string) => {
     .slice(0, 5);
 };
 
+/** Take a pixel-perfect screenshot via Browserless headless Chrome */
+async function browserlessScreenshot(url: string, apiKey: string): Promise<string | null> {
+  try {
+    console.log('[Browserless] Taking screenshot of:', url);
+    const response = await fetch(`https://production-sfo.browserless.io/screenshot?token=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url,
+        options: {
+          fullPage: false,
+          type: 'png',
+          quality: 80,
+        },
+        viewport: {
+          width: 1280,
+          height: 800,
+          deviceScaleFactor: 2,
+        },
+        waitForTimeout: 5000,
+        gotoOptions: {
+          waitUntil: 'networkidle2',
+          timeout: 30000,
+        },
+        // Dismiss cookie banners and popups
+        addScriptTag: [{
+          content: `
+            setTimeout(() => {
+              // Try to close common cookie/popup elements
+              const selectors = [
+                '[class*="cookie"] button', '[id*="cookie"] button',
+                '[class*="consent"] button', '[class*="popup"] [class*="close"]',
+                '[class*="modal"] [class*="close"]', '[class*="banner"] [class*="close"]',
+                'button[class*="accept"]', 'button[class*="agree"]',
+              ];
+              for (const sel of selectors) {
+                const el = document.querySelector(sel);
+                if (el) { el.click(); break; }
+              }
+            }, 2000);
+          `
+        }],
+      }),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error('[Browserless] Screenshot failed:', response.status, errText);
+      return null;
+    }
+
+    // Browserless returns raw PNG bytes
+    const buffer = await response.arrayBuffer();
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+    console.log('[Browserless] Screenshot captured successfully, size:', buffer.byteLength);
+    return `data:image/png;base64,${base64}`;
+  } catch (err) {
+    console.error('[Browserless] Screenshot error:', err);
+    return null;
+  }
+}
+
 async function firecrawlRequest(path: string, apiKey: string, body: Record<string, unknown>, retries = 1): Promise<any> {
   let lastError: Error | null = null;
 
