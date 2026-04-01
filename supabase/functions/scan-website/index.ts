@@ -99,8 +99,14 @@ const pickRelevantLinks = (links: string[], rootUrl: string) => {
     .slice(0, 5);
 };
 
-/** Take a pixel-perfect screenshot via Browserless headless Chrome */
-async function browserlessScreenshot(url: string, apiKey: string): Promise<string | null> {
+/** Take a pixel-perfect screenshot via Browserless headless Chrome, upload to storage */
+async function browserlessScreenshot(
+  url: string,
+  apiKey: string,
+  leadId: string,
+  supabaseUrl: string,
+  supabaseServiceKey: string,
+): Promise<string | null> {
   try {
     console.log('[Browserless] Taking screenshot of:', url);
     const response = await fetch(`https://production-sfo.browserless.io/screenshot?token=${apiKey}`, {
@@ -111,7 +117,6 @@ async function browserlessScreenshot(url: string, apiKey: string): Promise<strin
         options: {
           fullPage: false,
           type: 'png',
-          quality: 80,
         },
         viewport: {
           width: 1920,
@@ -123,11 +128,9 @@ async function browserlessScreenshot(url: string, apiKey: string): Promise<strin
           waitUntil: 'networkidle2',
           timeout: 30000,
         },
-        // Dismiss cookie banners and popups
         addScriptTag: [{
           content: `
             setTimeout(() => {
-              // Try to close common cookie/popup elements
               const selectors = [
                 '[class*="cookie"] button', '[id*="cookie"] button',
                 '[class*="consent"] button', '[class*="popup"] [class*="close"]',
@@ -150,11 +153,30 @@ async function browserlessScreenshot(url: string, apiKey: string): Promise<strin
       return null;
     }
 
-    // Browserless returns raw PNG bytes
     const buffer = await response.arrayBuffer();
-    const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
-    console.log('[Browserless] Screenshot captured successfully, size:', buffer.byteLength);
-    return `data:image/png;base64,${base64}`;
+    console.log('[Browserless] Screenshot captured, size:', buffer.byteLength);
+
+    // Upload to Supabase Storage
+    const supabase = createClient(supabaseUrl, supabaseServiceKey);
+    const filePath = `${leadId}.png`;
+    const { error: uploadError } = await supabase.storage
+      .from('website-screenshots')
+      .upload(filePath, buffer, {
+        contentType: 'image/png',
+        upsert: true,
+      });
+
+    if (uploadError) {
+      console.error('[Browserless] Storage upload failed:', uploadError);
+      return null;
+    }
+
+    const { data: publicUrlData } = supabase.storage
+      .from('website-screenshots')
+      .getPublicUrl(filePath);
+
+    console.log('[Browserless] Screenshot uploaded to storage:', publicUrlData.publicUrl);
+    return publicUrlData.publicUrl;
   } catch (err) {
     console.error('[Browserless] Screenshot error:', err);
     return null;
@@ -630,7 +652,7 @@ Deno.serve(async (req) => {
     
     // Start Browserless screenshot in parallel with Firecrawl scrape
     const browserlessPromise = browserlessKey
-      ? browserlessScreenshot(formattedUrl, browserlessKey)
+      ? browserlessScreenshot(formattedUrl, browserlessKey, leadId, supabaseUrl, supabaseServiceKey)
       : Promise.resolve(null);
 
     // Firecrawl scrape — skip screenshot format since Browserless handles it
