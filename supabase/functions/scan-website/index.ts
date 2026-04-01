@@ -114,8 +114,8 @@ async function browserlessScreenshot(url: string, apiKey: string): Promise<strin
           quality: 80,
         },
         viewport: {
-          width: 1280,
-          height: 800,
+          width: 1920,
+          height: 1080,
           deviceScaleFactor: 2,
         },
         waitForTimeout: 5000,
