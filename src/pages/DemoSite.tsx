@@ -1,21 +1,13 @@
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
-import { MessageSquare, Mic, ArrowLeft, Globe, Sparkles } from "lucide-react";
+import { MessageSquare, Mic, ArrowLeft } from "lucide-react";
 import type { DemoLeadData } from "@/components/landing/demo-results/demoResultsUtils";
 import { getImageSrc, getSiteName } from "@/components/landing/demo-results/demoResultsUtils";
 import VoiceAgentWidget from "@/components/landing/demo-results/VoiceAgentWidget";
 import ChatWidget from "@/components/landing/demo-results/ChatWidget";
-import RedesignedWebsite from "@/components/landing/demo-results/RedesignedWebsite";
 import ScanningAnimation from "@/components/landing/ScanningAnimation";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
-
-const getPreviewCanvasWidth = (containerWidth: number) => {
-  if (containerWidth <= 0) return 1280;
-  if (containerWidth < 640) return 1200;
-  if (containerWidth < 1024) return 1280;
-  return Math.max(1280, Math.floor(containerWidth));
-};
 
 const DemoSite = () => {
   const location = useLocation();
@@ -27,35 +19,7 @@ const DemoSite = () => {
   const [leadData, setLeadData] = useState<DemoLeadData | undefined>(latestLeadData);
   const [chatOpen, setChatOpen] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
-  const [previewMode, setPreviewMode] = useState<"smart" | "original" | "redesign">("smart");
-  const [iframeBlocked, setIframeBlocked] = useState(false);
-  const [, setIframeLoaded] = useState(false);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
-  const previewFrameRef = useRef<HTMLDivElement>(null);
-  const [previewFrameSize, setPreviewFrameSize] = useState({ width: 0, height: 0 });
   const returnTo = searchParams.get("returnTo");
-  const previewUrl = leadData?.websiteUrl
-    ? leadData.websiteUrl.startsWith("http://")
-      ? leadData.websiteUrl.replace(/^http:\/\//i, "https://")
-      : leadData.websiteUrl.startsWith("http")
-        ? leadData.websiteUrl
-        : `https://${leadData.websiteUrl}`
-    : "";
-
-  const previewCanvasWidth = getPreviewCanvasWidth(previewFrameSize.width);
-  const previewScale = previewFrameSize.width > 0
-    ? Math.min(1, previewFrameSize.width / previewCanvasWidth)
-    : 1;
-  const previewCanvasHeight = previewFrameSize.height > 0
-    ? Math.max(previewFrameSize.height / previewScale, previewFrameSize.height)
-    : 900;
-  const shouldPreferRedesign = iframeBlocked || (previewFrameSize.width > 0 && previewFrameSize.width < 1024);
-  const showRedesignPreview = previewMode === "redesign" || (previewMode === "smart" && shouldPreferRedesign);
-  const previewStatusLabel = showRedesignPreview
-    ? "AI Redesign"
-    : iframeBlocked
-      ? "Original Screenshot"
-      : "Live Site";
 
   // Handle URL params from CRM (e.g. /demo?url=...&name=...&niche=...)
   useEffect(() => {
@@ -67,7 +31,6 @@ const DemoSite = () => {
 
     let cancelled = false;
 
-    // Always clear when opening a lead from CRM so stale demos never bleed into a new one
     setLeadData(undefined);
     setChatOpen(false);
     setVoiceOpen(false);
@@ -124,7 +87,6 @@ const DemoSite = () => {
         };
 
         setLeadData(newLeadData);
-
         toast.success(`Demo generated for ${nameParam || "this business"}`);
       } catch (err: any) {
         console.error("Scan error:", err);
@@ -141,7 +103,6 @@ const DemoSite = () => {
     };
   }, [searchParams.toString(), latestLeadData]);
 
-  // Save state data to localStorage
   useEffect(() => {
     if (!latestLeadData) return;
     setLeadData(latestLeadData);
@@ -149,102 +110,15 @@ const DemoSite = () => {
     setVoiceOpen(false);
   }, [latestLeadData]);
 
-  useEffect(() => {
-    if (!leadData?.websiteUrl) return;
-    setPreviewMode("smart");
-  }, [leadData?.websiteUrl]);
-
-  useEffect(() => {
-    if (!showRedesignPreview) return;
-    setChatOpen(false);
-    setVoiceOpen(false);
-  }, [showRedesignPreview]);
-
-  useEffect(() => {
-    setIframeBlocked(false);
-    iframeLoadedRef.current = false;
-    setIframeLoaded(false);
-  }, [previewUrl]);
-
-  useEffect(() => {
-    if (!leadData) return;
-
-    const frame = previewFrameRef.current;
-    if (!frame) return;
-
-    const updatePreviewFrameSize = () => {
-      const rect = frame.getBoundingClientRect();
-      setPreviewFrameSize((prev) => {
-        const next = { width: rect.width, height: rect.height };
-        return prev.width === next.width && prev.height === next.height ? prev : next;
-      });
-    };
-
-    updatePreviewFrameSize();
-
-    if (typeof ResizeObserver === "undefined") {
-      window.addEventListener("resize", updatePreviewFrameSize);
-      return () => window.removeEventListener("resize", updatePreviewFrameSize);
-    }
-
-    const observer = new ResizeObserver(() => updatePreviewFrameSize());
-    observer.observe(frame);
-    window.addEventListener("resize", updatePreviewFrameSize);
-
-    return () => {
-      observer.disconnect();
-      window.removeEventListener("resize", updatePreviewFrameSize);
-    };
-  }, [leadData, previewUrl]);
-
-  // Iframe block detection: timeout fallback + onLoad check
-  const iframeLoadedRef = useRef(false);
-  useEffect(() => {
-    if (!leadData || iframeBlocked || !previewUrl || showRedesignPreview) return;
-    iframeLoadedRef.current = false;
-    setIframeLoaded(false);
-
-    const timer = setTimeout(() => {
-      if (!iframeLoadedRef.current) {
-        setIframeBlocked(true);
-      }
-    }, 3500);
-
-    return () => clearTimeout(timer);
-  }, [previewUrl, iframeBlocked, leadData, showRedesignPreview]);
-
-  const handleIframeLoad = () => {
-    iframeLoadedRef.current = true;
-    setIframeLoaded(true);
-    try {
-      // If contentDocument is accessible, iframe loaded same-origin content successfully
-      const doc = iframeRef.current?.contentDocument;
-      if (doc) {
-        // Same-origin: check if body is empty (blocked)
-        const bodyContent = doc.body?.innerHTML || "";
-        if (!bodyContent.trim()) {
-          setIframeBlocked(true);
-        }
-      }
-      // If doc is null, it's cross-origin. We can't tell if it's blocked or loaded.
-      // The timeout will handle truly blocked cases (blank page).
-    } catch {
-      // Cross-origin access throws — this is normal for successfully loaded cross-origin pages
-      // Cancel the timeout since the iframe did load something
-    }
-  };
-
   const handleBack = () => {
     if (returnTo && returnTo.startsWith("/")) {
       navigate(returnTo);
       return;
     }
-
     if (window.history.length > 1) {
       navigate(-1);
       return;
     }
-
     navigate("/prospects");
   };
 
@@ -269,7 +143,7 @@ const DemoSite = () => {
               Select a lead to open the live demo
             </h1>
             <p className="mt-3 text-sm leading-6 text-muted-foreground">
-              This page is meant to preview a specific business website with the Aspen voice and chat widgets overlaid on top. Open a lead from Prospects to generate the demo for that company.
+              This page is meant to preview a specific business website with the Aspen voice and chat widgets overlaid on top.
             </p>
             <div className="mt-6 flex flex-col gap-3 sm:flex-row sm:justify-center">
               <button
@@ -277,12 +151,6 @@ const DemoSite = () => {
                 className="inline-flex items-center justify-center rounded-xl bg-primary px-5 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
               >
                 Go to Prospects
-              </button>
-              <button
-                onClick={() => navigate("/landing")}
-                className="inline-flex items-center justify-center rounded-xl border border-border bg-secondary px-5 py-3 text-sm font-semibold text-secondary-foreground transition-colors hover:bg-secondary/80"
-              >
-                View Landing Page
               </button>
             </div>
           </div>
@@ -311,194 +179,99 @@ const DemoSite = () => {
           <span className="text-sm font-medium text-foreground">{siteName}</span>
         </div>
         <span className="hidden rounded-full border border-border bg-background/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground sm:inline-flex">
-          {previewStatusLabel}
+          Demo Preview
         </span>
       </div>
 
-      {/* Website display area — live iframe with screenshot fallback */}
-      <div className="relative flex-1 overflow-hidden bg-muted/20">
-        <div className="absolute inset-0 overflow-y-auto overflow-x-hidden">
-          <div className="min-h-full w-full px-0 py-0 sm:px-4 sm:py-4 lg:px-6">
-            <div className="mx-auto flex max-w-[1400px] flex-col gap-3 px-3 py-3 sm:px-0 sm:py-0 sm:pb-4">
-              <div className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-card/95 px-4 py-3 shadow-sm backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between">
-                <div className="space-y-1">
-                  <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-primary">
-                    <Sparkles className="h-3.5 w-3.5" />
-                    Better preview mode
-                  </p>
-                  <p className="text-sm text-muted-foreground">
-                    {showRedesignPreview
-                      ? "Using the rebuilt version so older, extra-wide sites look clean on phones and tablets."
-                      : "Showing the original site. Switch to redesign if the scraped page feels broken or too wide."}
-                  </p>
-                </div>
+      {/* Website screenshot displayed as a responsive full-width image */}
+      <div className="relative flex-1">
+        {screenshotSrc ? (
+          <div className="relative w-full">
+            <img
+              src={screenshotSrc}
+              alt={`${siteName} website`}
+              className="block w-full h-auto"
+              loading="lazy"
+              decoding="async"
+              draggable={false}
+            />
 
-                <div className="flex flex-wrap gap-2">
-                  <button
-                    onClick={() => setPreviewMode("smart")}
-                    className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold transition-colors ${
-                      previewMode === "smart"
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border bg-background text-foreground hover:bg-secondary"
-                    }`}
-                  >
-                    Smart
-                  </button>
-                  <button
-                    onClick={() => setPreviewMode("original")}
-                    className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold transition-colors ${
-                      previewMode === "original"
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border bg-background text-foreground hover:bg-secondary"
-                    }`}
-                  >
-                    <Globe className="h-3.5 w-3.5" />
-                    Original
-                  </button>
-                  <button
-                    onClick={() => setPreviewMode("redesign")}
-                    className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold transition-colors ${
-                      previewMode === "redesign"
-                        ? "border-primary bg-primary text-primary-foreground"
-                        : "border-border bg-background text-foreground hover:bg-secondary"
-                    }`}
-                  >
-                    <Sparkles className="h-3.5 w-3.5" />
-                    Redesign
-                  </button>
+            {/* DEMO watermark */}
+            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
+              <p className="select-none text-[clamp(2.5rem,10vw,8rem)] font-black tracking-[0.35em] text-foreground/[0.04]">
+                DEMO
+              </p>
+            </div>
+          </div>
+        ) : (
+          <div className="flex h-[60vh] w-full items-center justify-center bg-muted">
+            <p className="text-lg text-muted-foreground">Website preview unavailable</p>
+          </div>
+        )}
+
+        {/* ===== AI Widget buttons — fixed to the bottom of the viewport ===== */}
+        <div className="pointer-events-none fixed inset-x-0 bottom-20 z-50 px-3 sm:px-6">
+          <div className="relative mx-auto h-0 w-full max-w-[1100px]">
+            <div className="pointer-events-auto absolute bottom-0 left-0">
+              {chatOpen ? (
+                <div className="w-[min(20rem,calc(100vw-2.5rem))] max-h-[60vh] overflow-y-auto animate-in slide-in-from-bottom-4 fade-in duration-300">
+                  <ChatWidget
+                    key={`chat-${leadData.websiteUrl}`}
+                    businessName={siteName}
+                    businessNiche={leadData.niche || "general"}
+                    websiteUrl={leadData.websiteUrl}
+                    businessInfo={leadData.websiteContent || leadData.description || ""}
+                    ownerName={leadData.fullName}
+                    callerPhone={leadData.phone}
+                    onClose={() => setChatOpen(false)}
+                  />
                 </div>
-              </div>
+              ) : (
+                <button
+                  onClick={() => { setChatOpen(true); setVoiceOpen(false); }}
+                  className="group flex items-center gap-2 rounded-xl bg-accent px-3 py-2 text-accent-foreground shadow-lg transition-all hover:scale-105 hover:shadow-xl sm:px-4 sm:py-2.5"
+                >
+                  <div className="relative">
+                    <MessageSquare className="h-4 w-4" />
+                    <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-primary ring-2 ring-accent" />
+                  </div>
+                  <div className="text-left">
+                    <p className="text-xs font-semibold leading-tight sm:text-sm">Chat with Aspen</p>
+                    <p className="hidden text-[9px] opacity-80 sm:block">AI Chat</p>
+                  </div>
+                </button>
+              )}
             </div>
 
-            <div
-              ref={previewFrameRef}
-              className="relative mx-auto h-[calc(100vh-11rem)] w-full max-w-[1400px] overflow-hidden bg-background shadow-2xl sm:rounded-[1.75rem] sm:border sm:border-border/70"
-            >
-              {/* Preview content */}
-              <div className="h-full w-full overflow-y-auto overflow-x-hidden bg-background">
-                {showRedesignPreview ? (
-                  <div className="min-h-full w-full bg-background">
-                    <RedesignedWebsite leadData={leadData} />
-                  </div>
-                ) : !iframeBlocked && previewUrl ? (
-                  <div
-                    className="relative w-full"
-                    style={{
-                      height: `${previewCanvasHeight}px`,
-                    }}
-                  >
-                    <iframe
-                      ref={iframeRef}
-                      key={previewUrl}
-                      src={previewUrl}
-                      title={`${siteName} website`}
-                      className="absolute top-0 left-0 border-0 bg-background"
-                      style={{
-                        width: `${previewCanvasWidth}px`,
-                        height: `${previewCanvasHeight / previewScale}px`,
-                        transform: `scale(${previewScale})`,
-                        transformOrigin: "top left",
-                      }}
-                      sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-                      onError={() => setIframeBlocked(true)}
-                      onLoad={handleIframeLoad}
-                    />
-                  </div>
-                ) : screenshotSrc ? (
-                  <div className="relative w-full min-h-full bg-white">
-                    <img
-                      src={screenshotSrc}
-                      alt={`${siteName} website`}
-                      className="block w-full h-auto"
-                      loading="lazy"
-                      decoding="async"
-                      draggable={false}
-                    />
-                  </div>
-                ) : (
-                  <div className="flex h-full w-full items-center justify-center bg-muted">
-                    <p className="text-lg text-muted-foreground">Website preview unavailable</p>
-                  </div>
-                )}
-              </div>
-
-              {/* DEMO watermark — only show on screenshot fallback */}
-              {!showRedesignPreview && iframeBlocked && (
-                <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-                  <p className="select-none text-[clamp(2.5rem,10vw,8rem)] font-black tracking-[0.35em] text-foreground/[0.06]">
-                    DEMO
-                  </p>
+            <div className="pointer-events-auto absolute bottom-0 right-0">
+              {voiceOpen ? (
+                <div className="w-[min(20rem,calc(100vw-2.5rem))] max-h-[60vh] overflow-y-auto animate-in slide-in-from-bottom-4 fade-in duration-300">
+                  <VoiceAgentWidget
+                    key={`voice-${leadData.websiteUrl}`}
+                    businessName={siteName}
+                    businessNiche={leadData.niche || "general"}
+                    ownerName={leadData.fullName}
+                    ownerEmail={leadData.email}
+                    ownerPhone={leadData.phone}
+                    websiteUrl={leadData.websiteUrl}
+                    businessInfo={leadData.websiteContent || leadData.description || ""}
+                    onClose={() => setVoiceOpen(false)}
+                  />
                 </div>
-              )}
-
-              {/* ===== AI Widget buttons — anchored inside the website frame ===== */}
-              {!showRedesignPreview && (
-                <div className="pointer-events-none absolute inset-x-0 bottom-4 z-50 px-3 sm:bottom-6 sm:px-6">
-                  <div className="relative mx-auto h-0 w-full max-w-[1100px]">
-                    <div className="pointer-events-auto absolute bottom-0 left-0">
-                      {chatOpen ? (
-                        <div className="w-[min(20rem,calc(100vw-2.5rem))] max-h-[60vh] overflow-y-auto animate-in slide-in-from-bottom-4 fade-in duration-300">
-                          <ChatWidget
-                            key={`chat-${leadData.websiteUrl}`}
-                            businessName={siteName}
-                            businessNiche={leadData.niche || "general"}
-                            websiteUrl={leadData.websiteUrl}
-                            businessInfo={leadData.websiteContent || leadData.description || ""}
-                            ownerName={leadData.fullName}
-                            callerPhone={leadData.phone}
-                            onClose={() => setChatOpen(false)}
-                          />
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => { setChatOpen(true); setVoiceOpen(false); }}
-                          className="group flex items-center gap-2 rounded-xl bg-accent px-3 py-2 text-accent-foreground shadow-lg transition-all hover:scale-105 hover:shadow-xl sm:px-4 sm:py-2.5"
-                        >
-                          <div className="relative">
-                            <MessageSquare className="h-4 w-4" />
-                            <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-primary ring-2 ring-accent" />
-                          </div>
-                          <div className="text-left">
-                            <p className="text-xs font-semibold leading-tight sm:text-sm">Chat with Aspen</p>
-                            <p className="hidden text-[9px] opacity-80 sm:block">AI Chat</p>
-                          </div>
-                        </button>
-                      )}
-                    </div>
-
-                    <div className="pointer-events-auto absolute bottom-0 right-0">
-                      {voiceOpen ? (
-                        <div className="w-[min(20rem,calc(100vw-2.5rem))] max-h-[60vh] overflow-y-auto animate-in slide-in-from-bottom-4 fade-in duration-300">
-                          <VoiceAgentWidget
-                            key={`voice-${leadData.websiteUrl}`}
-                            businessName={siteName}
-                            businessNiche={leadData.niche || "general"}
-                            ownerName={leadData.fullName}
-                            ownerEmail={leadData.email}
-                            ownerPhone={leadData.phone}
-                            websiteUrl={leadData.websiteUrl}
-                            businessInfo={leadData.websiteContent || leadData.description || ""}
-                            onClose={() => setVoiceOpen(false)}
-                          />
-                        </div>
-                      ) : (
-                        <button
-                          onClick={() => { setVoiceOpen(true); setChatOpen(false); }}
-                          className="group flex items-center gap-2 rounded-xl bg-primary px-3 py-2 text-primary-foreground shadow-lg transition-all hover:scale-105 hover:shadow-xl sm:px-4 sm:py-2.5"
-                        >
-                          <div className="relative">
-                            <Mic className="h-4 w-4" />
-                            <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-accent ring-2 ring-primary" />
-                          </div>
-                          <div className="text-left">
-                            <p className="text-xs font-semibold leading-tight sm:text-sm">Talk to Aspen</p>
-                            <p className="hidden text-[9px] opacity-80 sm:block">AI Voice</p>
-                          </div>
-                        </button>
-                      )}
-                    </div>
+              ) : (
+                <button
+                  onClick={() => { setVoiceOpen(true); setChatOpen(false); }}
+                  className="group flex items-center gap-2 rounded-xl bg-primary px-3 py-2 text-primary-foreground shadow-lg transition-all hover:scale-105 hover:shadow-xl sm:px-4 sm:py-2.5"
+                >
+                  <div className="relative">
+                    <Mic className="h-4 w-4" />
+                    <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-accent ring-2 ring-primary" />
                   </div>
-                </div>
+                  <div className="text-left">
+                    <p className="text-xs font-semibold leading-tight sm:text-sm">Talk to Aspen</p>
+                    <p className="hidden text-[9px] opacity-80 sm:block">AI Voice</p>
+                  </div>
+                </button>
               )}
             </div>
           </div>
