@@ -1,10 +1,11 @@
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useEffect, useRef, useState } from "react";
-import { MessageSquare, Mic, ArrowLeft } from "lucide-react";
+import { MessageSquare, Mic, ArrowLeft, Globe, Sparkles } from "lucide-react";
 import type { DemoLeadData } from "@/components/landing/demo-results/demoResultsUtils";
 import { getImageSrc, getSiteName } from "@/components/landing/demo-results/demoResultsUtils";
 import VoiceAgentWidget from "@/components/landing/demo-results/VoiceAgentWidget";
 import ChatWidget from "@/components/landing/demo-results/ChatWidget";
+import RedesignedWebsite from "@/components/landing/demo-results/RedesignedWebsite";
 import ScanningAnimation from "@/components/landing/ScanningAnimation";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -26,6 +27,7 @@ const DemoSite = () => {
   const [leadData, setLeadData] = useState<DemoLeadData | undefined>(latestLeadData);
   const [chatOpen, setChatOpen] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
+  const [previewMode, setPreviewMode] = useState<"smart" | "original" | "redesign">("smart");
   const [iframeBlocked, setIframeBlocked] = useState(false);
   const [, setIframeLoaded] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
@@ -47,6 +49,13 @@ const DemoSite = () => {
   const previewCanvasHeight = previewFrameSize.height > 0
     ? Math.max(previewFrameSize.height / previewScale, previewFrameSize.height)
     : 900;
+  const shouldPreferRedesign = iframeBlocked || (previewFrameSize.width > 0 && previewFrameSize.width < 1024);
+  const showRedesignPreview = previewMode === "redesign" || (previewMode === "smart" && shouldPreferRedesign);
+  const previewStatusLabel = showRedesignPreview
+    ? "AI Redesign"
+    : iframeBlocked
+      ? "Original Screenshot"
+      : "Live Site";
 
   // Handle URL params from CRM (e.g. /demo?url=...&name=...&niche=...)
   useEffect(() => {
@@ -141,6 +150,17 @@ const DemoSite = () => {
   }, [latestLeadData]);
 
   useEffect(() => {
+    if (!leadData?.websiteUrl) return;
+    setPreviewMode("smart");
+  }, [leadData?.websiteUrl]);
+
+  useEffect(() => {
+    if (!showRedesignPreview) return;
+    setChatOpen(false);
+    setVoiceOpen(false);
+  }, [showRedesignPreview]);
+
+  useEffect(() => {
     setIframeBlocked(false);
     iframeLoadedRef.current = false;
     setIframeLoaded(false);
@@ -180,7 +200,7 @@ const DemoSite = () => {
   // Iframe block detection: timeout fallback + onLoad check
   const iframeLoadedRef = useRef(false);
   useEffect(() => {
-    if (!leadData || iframeBlocked || !previewUrl) return;
+    if (!leadData || iframeBlocked || !previewUrl || showRedesignPreview) return;
     iframeLoadedRef.current = false;
     setIframeLoaded(false);
 
@@ -191,7 +211,7 @@ const DemoSite = () => {
     }, 3500);
 
     return () => clearTimeout(timer);
-  }, [previewUrl, iframeBlocked, leadData]);
+  }, [previewUrl, iframeBlocked, leadData, showRedesignPreview]);
 
   const handleIframeLoad = () => {
     iframeLoadedRef.current = true;
@@ -290,8 +310,8 @@ const DemoSite = () => {
           <span className="text-xs text-muted-foreground">|</span>
           <span className="text-sm font-medium text-foreground">{siteName}</span>
         </div>
-        <span className="hidden text-xs text-muted-foreground sm:block">
-          AI-Enhanced Demo Preview
+        <span className="hidden rounded-full border border-border bg-background/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground sm:inline-flex">
+          {previewStatusLabel}
         </span>
       </div>
 
@@ -299,13 +319,68 @@ const DemoSite = () => {
       <div className="relative flex-1 overflow-hidden bg-muted/20">
         <div className="absolute inset-0 overflow-y-auto overflow-x-hidden">
           <div className="min-h-full w-full px-0 py-0 sm:px-4 sm:py-4 lg:px-6">
+            <div className="mx-auto flex max-w-[1400px] flex-col gap-3 px-3 py-3 sm:px-0 sm:py-0 sm:pb-4">
+              <div className="flex flex-col gap-3 rounded-2xl border border-border/70 bg-card/95 px-4 py-3 shadow-sm backdrop-blur-sm sm:flex-row sm:items-center sm:justify-between">
+                <div className="space-y-1">
+                  <p className="inline-flex items-center gap-2 text-xs font-semibold uppercase tracking-[0.22em] text-primary">
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Better preview mode
+                  </p>
+                  <p className="text-sm text-muted-foreground">
+                    {showRedesignPreview
+                      ? "Using the rebuilt version so older, extra-wide sites look clean on phones and tablets."
+                      : "Showing the original site. Switch to redesign if the scraped page feels broken or too wide."}
+                  </p>
+                </div>
+
+                <div className="flex flex-wrap gap-2">
+                  <button
+                    onClick={() => setPreviewMode("smart")}
+                    className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold transition-colors ${
+                      previewMode === "smart"
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-background text-foreground hover:bg-secondary"
+                    }`}
+                  >
+                    Smart
+                  </button>
+                  <button
+                    onClick={() => setPreviewMode("original")}
+                    className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold transition-colors ${
+                      previewMode === "original"
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-background text-foreground hover:bg-secondary"
+                    }`}
+                  >
+                    <Globe className="h-3.5 w-3.5" />
+                    Original
+                  </button>
+                  <button
+                    onClick={() => setPreviewMode("redesign")}
+                    className={`inline-flex items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold transition-colors ${
+                      previewMode === "redesign"
+                        ? "border-primary bg-primary text-primary-foreground"
+                        : "border-border bg-background text-foreground hover:bg-secondary"
+                    }`}
+                  >
+                    <Sparkles className="h-3.5 w-3.5" />
+                    Redesign
+                  </button>
+                </div>
+              </div>
+            </div>
+
             <div
               ref={previewFrameRef}
               className="relative mx-auto h-[calc(100vh-11rem)] w-full max-w-[1400px] overflow-hidden bg-background shadow-2xl sm:rounded-[1.75rem] sm:border sm:border-border/70"
             >
               {/* Preview content */}
               <div className="h-full w-full overflow-y-auto overflow-x-hidden bg-background">
-                {!iframeBlocked && previewUrl ? (
+                {showRedesignPreview ? (
+                  <div className="min-h-full w-full bg-background">
+                    <RedesignedWebsite leadData={leadData} />
+                  </div>
+                ) : !iframeBlocked && previewUrl ? (
                   <div
                     className="relative w-full"
                     style={{
@@ -348,7 +423,7 @@ const DemoSite = () => {
               </div>
 
               {/* DEMO watermark — only show on screenshot fallback */}
-              {iframeBlocked && (
+              {!showRedesignPreview && iframeBlocked && (
                 <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
                   <p className="select-none text-[clamp(2.5rem,10vw,8rem)] font-black tracking-[0.35em] text-foreground/[0.06]">
                     DEMO
@@ -357,72 +432,74 @@ const DemoSite = () => {
               )}
 
               {/* ===== AI Widget buttons — anchored inside the website frame ===== */}
-              <div className="pointer-events-none absolute inset-x-0 bottom-4 z-50 px-3 sm:bottom-6 sm:px-6">
-                <div className="relative mx-auto h-0 w-full max-w-[1100px]">
-                  <div className="pointer-events-auto absolute bottom-0 left-0">
-                    {chatOpen ? (
-                      <div className="w-[min(20rem,calc(100vw-2.5rem))] max-h-[60vh] overflow-y-auto animate-in slide-in-from-bottom-4 fade-in duration-300">
-                        <ChatWidget
-                          key={`chat-${leadData.websiteUrl}`}
-                          businessName={siteName}
-                          businessNiche={leadData.niche || "general"}
-                          websiteUrl={leadData.websiteUrl}
-                          businessInfo={leadData.websiteContent || leadData.description || ""}
-                          ownerName={leadData.fullName}
-                          callerPhone={leadData.phone}
-                          onClose={() => setChatOpen(false)}
-                        />
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => { setChatOpen(true); setVoiceOpen(false); }}
-                        className="group flex items-center gap-2 rounded-xl bg-accent px-3 py-2 text-accent-foreground shadow-lg transition-all hover:scale-105 hover:shadow-xl sm:px-4 sm:py-2.5"
-                      >
-                        <div className="relative">
-                          <MessageSquare className="h-4 w-4" />
-                          <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-primary ring-2 ring-accent" />
+              {!showRedesignPreview && (
+                <div className="pointer-events-none absolute inset-x-0 bottom-4 z-50 px-3 sm:bottom-6 sm:px-6">
+                  <div className="relative mx-auto h-0 w-full max-w-[1100px]">
+                    <div className="pointer-events-auto absolute bottom-0 left-0">
+                      {chatOpen ? (
+                        <div className="w-[min(20rem,calc(100vw-2.5rem))] max-h-[60vh] overflow-y-auto animate-in slide-in-from-bottom-4 fade-in duration-300">
+                          <ChatWidget
+                            key={`chat-${leadData.websiteUrl}`}
+                            businessName={siteName}
+                            businessNiche={leadData.niche || "general"}
+                            websiteUrl={leadData.websiteUrl}
+                            businessInfo={leadData.websiteContent || leadData.description || ""}
+                            ownerName={leadData.fullName}
+                            callerPhone={leadData.phone}
+                            onClose={() => setChatOpen(false)}
+                          />
                         </div>
-                        <div className="text-left">
-                          <p className="text-xs font-semibold leading-tight sm:text-sm">Chat with Aspen</p>
-                          <p className="hidden text-[9px] opacity-80 sm:block">AI Chat</p>
-                        </div>
-                      </button>
-                    )}
-                  </div>
+                      ) : (
+                        <button
+                          onClick={() => { setChatOpen(true); setVoiceOpen(false); }}
+                          className="group flex items-center gap-2 rounded-xl bg-accent px-3 py-2 text-accent-foreground shadow-lg transition-all hover:scale-105 hover:shadow-xl sm:px-4 sm:py-2.5"
+                        >
+                          <div className="relative">
+                            <MessageSquare className="h-4 w-4" />
+                            <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-primary ring-2 ring-accent" />
+                          </div>
+                          <div className="text-left">
+                            <p className="text-xs font-semibold leading-tight sm:text-sm">Chat with Aspen</p>
+                            <p className="hidden text-[9px] opacity-80 sm:block">AI Chat</p>
+                          </div>
+                        </button>
+                      )}
+                    </div>
 
-                  <div className="pointer-events-auto absolute bottom-0 right-0">
-                    {voiceOpen ? (
-                      <div className="w-[min(20rem,calc(100vw-2.5rem))] max-h-[60vh] overflow-y-auto animate-in slide-in-from-bottom-4 fade-in duration-300">
-                        <VoiceAgentWidget
-                          key={`voice-${leadData.websiteUrl}`}
-                          businessName={siteName}
-                          businessNiche={leadData.niche || "general"}
-                          ownerName={leadData.fullName}
-                          ownerEmail={leadData.email}
-                          ownerPhone={leadData.phone}
-                          websiteUrl={leadData.websiteUrl}
-                          businessInfo={leadData.websiteContent || leadData.description || ""}
-                          onClose={() => setVoiceOpen(false)}
-                        />
-                      </div>
-                    ) : (
-                      <button
-                        onClick={() => { setVoiceOpen(true); setChatOpen(false); }}
-                        className="group flex items-center gap-2 rounded-xl bg-primary px-3 py-2 text-primary-foreground shadow-lg transition-all hover:scale-105 hover:shadow-xl sm:px-4 sm:py-2.5"
-                      >
-                        <div className="relative">
-                          <Mic className="h-4 w-4" />
-                          <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-accent ring-2 ring-primary" />
+                    <div className="pointer-events-auto absolute bottom-0 right-0">
+                      {voiceOpen ? (
+                        <div className="w-[min(20rem,calc(100vw-2.5rem))] max-h-[60vh] overflow-y-auto animate-in slide-in-from-bottom-4 fade-in duration-300">
+                          <VoiceAgentWidget
+                            key={`voice-${leadData.websiteUrl}`}
+                            businessName={siteName}
+                            businessNiche={leadData.niche || "general"}
+                            ownerName={leadData.fullName}
+                            ownerEmail={leadData.email}
+                            ownerPhone={leadData.phone}
+                            websiteUrl={leadData.websiteUrl}
+                            businessInfo={leadData.websiteContent || leadData.description || ""}
+                            onClose={() => setVoiceOpen(false)}
+                          />
                         </div>
-                        <div className="text-left">
-                          <p className="text-xs font-semibold leading-tight sm:text-sm">Talk to Aspen</p>
-                          <p className="hidden text-[9px] opacity-80 sm:block">AI Voice</p>
-                        </div>
-                      </button>
-                    )}
+                      ) : (
+                        <button
+                          onClick={() => { setVoiceOpen(true); setChatOpen(false); }}
+                          className="group flex items-center gap-2 rounded-xl bg-primary px-3 py-2 text-primary-foreground shadow-lg transition-all hover:scale-105 hover:shadow-xl sm:px-4 sm:py-2.5"
+                        >
+                          <div className="relative">
+                            <Mic className="h-4 w-4" />
+                            <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-accent ring-2 ring-primary" />
+                          </div>
+                          <div className="text-left">
+                            <p className="text-xs font-semibold leading-tight sm:text-sm">Talk to Aspen</p>
+                            <p className="hidden text-[9px] opacity-80 sm:block">AI Voice</p>
+                          </div>
+                        </button>
+                      )}
+                    </div>
                   </div>
                 </div>
-              </div>
+              )}
             </div>
           </div>
         </div>

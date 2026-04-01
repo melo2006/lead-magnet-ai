@@ -264,7 +264,7 @@ const WebsiteShowcase = ({ leadData, compact = false }: WebsiteShowcaseProps) =>
           <VoiceAgentWidget
             businessName={siteName}
             businessNiche={leadData.niche || "general"}
-            ownerName="Ron Melo"
+            ownerName={leadData.fullName || "Business Owner"}
             ownerEmail={leadData.email}
             ownerPhone={leadData.phone}
             websiteUrl={leadData.websiteUrl}

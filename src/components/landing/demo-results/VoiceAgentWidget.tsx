@@ -249,12 +249,28 @@ const VoiceAgentWidget = ({
   }, []);
 
   const toggleMute = useCallback(() => {
-    if (retellClientRef.current) {
-      const newMuted = !isMuted;
-      retellClientRef.current.toggleMicrophone?.(!newMuted);
-      setIsMuted(newMuted);
+    const client = retellClientRef.current;
+    if (!client) return;
+
+    const nextMuted = !isMuted;
+
+    try {
+      if (nextMuted) {
+        client.mute?.();
+      } else {
+        client.unmute?.();
+      }
+
+      setIsMuted(nextMuted);
+    } catch (error) {
+      console.error("Failed to toggle mute:", error);
+      toast({
+        title: "Mute unavailable",
+        description: "We couldn't update the microphone state. Please try again.",
+        variant: "destructive",
+      });
     }
-  }, [isMuted]);
+  }, [isMuted, toast]);
 
   const formatDuration = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
   const callIsLive = callStatus === "active" || callStatus === "ending";
