@@ -26,7 +26,8 @@ type SortKey =
   | "lead_score" | "rating" | "review_count" | "business_name"
   | "has_website" | "has_chat_widget" | "has_voice_ai"
   | "has_online_booking" | "website_quality_score" | "lead_temperature"
-  | "city" | "ai_analyzed" | "niche" | "contact_method" | "owner_name";
+  | "city" | "ai_analyzed" | "niche" | "contact_method" | "owner_name"
+  | "voiceai_fit" | "webdev_fit";
 
 const tempIcons: Record<string, any> = {
   hot: Flame, warm: Thermometer, cold: Snowflake,
@@ -55,7 +56,9 @@ const ALL_COLUMNS: ColumnDef[] = [
   { id: "niche", label: "Niche", sortKey: "niche", minWidth: "100px", removable: true },
   { id: "temp", label: "Temp", sortKey: "lead_temperature", minWidth: "60px", removable: true },
   { id: "location", label: "Location", sortKey: "city", minWidth: "120px", removable: true },
-  { id: "actions", label: "Actions", minWidth: "100px", removable: false },
+  { id: "actions", label: "Actions", minWidth: "120px", removable: false },
+  { id: "voiceai_candidate", label: "Voice AI Fit", sortKey: "voiceai_fit", minWidth: "85px", removable: true },
+  { id: "webdev_candidate", label: "Web Dev Fit", sortKey: "webdev_fit", minWidth: "85px", removable: true },
   { id: "rating", label: "Rating", sortKey: "rating", minWidth: "60px", removable: true },
   { id: "reviews", label: "Reviews", sortKey: "review_count", minWidth: "70px", removable: true },
   { id: "score", label: "Score", sortKey: "lead_score", minWidth: "70px", removable: true },
@@ -68,8 +71,6 @@ const ALL_COLUMNS: ColumnDef[] = [
   { id: "owner", label: "Owner", sortKey: "owner_name", minWidth: "100px", removable: true },
   { id: "contact", label: "Contact", sortKey: "contact_method", minWidth: "90px", removable: true },
   { id: "social", label: "Social", minWidth: "80px", removable: true },
-  { id: "voiceai_candidate", label: "Voice AI Fit", minWidth: "85px", removable: true },
-  { id: "webdev_candidate", label: "Web Dev Fit", minWidth: "85px", removable: true },
 ];
 
 const DEFAULT_ORDER: ColumnId[] = ALL_COLUMNS.map(c => c.id);
@@ -253,6 +254,17 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) =
 
   const sorted = useMemo(() => {
     return [...prospects].sort((a, b) => {
+      // Computed sort keys for fit columns
+      if (sortBy === "voiceai_fit") {
+        const aVal = a.has_website && !(a as any).has_voice_ai ? 2 : (a as any).has_voice_ai ? 0 : 1;
+        const bVal = b.has_website && !(b as any).has_voice_ai ? 2 : (b as any).has_voice_ai ? 0 : 1;
+        return sortDir === "desc" ? bVal - aVal : aVal - bVal;
+      }
+      if (sortBy === "webdev_fit") {
+        const aVal = a.has_website ? 0 : 1;
+        const bVal = b.has_website ? 0 : 1;
+        return sortDir === "desc" ? bVal - aVal : aVal - bVal;
+      }
       const aRaw = (a as any)[sortBy];
       const bRaw = (b as any)[sortBy];
       if (typeof aRaw === "boolean" || typeof bRaw === "boolean") {
@@ -335,7 +347,7 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) =
         return <span className="text-muted-foreground truncate max-w-[120px] block">{p.city}{p.state ? `, ${p.state}` : ""}</span>;
       case "actions":
         return (
-          <div className="flex items-center gap-1">
+          <div className="flex items-center gap-2.5">
             {p.website_url && (
               <a href={p.website_url} target="_blank" rel="noopener noreferrer" onClick={(e) => e.stopPropagation()} className="p-1 rounded hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors" title="Visit website"><ExternalLink className="w-3.5 h-3.5" /></a>
             )}
