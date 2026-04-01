@@ -434,7 +434,7 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) =
       case "sources": {
         const bd = (p as any).business_data || {};
         const hasExa = !!bd.exa_research && Array.isArray(bd.exa_research) && bd.exa_research.length > 0;
-        const hasFirecrawl = !!bd.services || !!bd.tagline || !!bd.about || !!(p as any).website_screenshot;
+        const hasFirecrawl = !!bd.services || !!bd.tagline || !!bd.about || !!bd.branding || !!bd.voice_agent_context || !!(p as any).website_screenshot || ((p as any).website_quality_score || 0) > 0;
         const hasAi = !!(p as any).ai_analyzed;
         if (!hasExa && !hasFirecrawl && !hasAi) return <span className="text-[10px] text-muted-foreground">—</span>;
         return (
