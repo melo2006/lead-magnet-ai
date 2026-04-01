@@ -347,6 +347,10 @@ async function exaResearch(
           `Has Online Booking: ${hasOnlineBooking}`,
           `Website Quality Score: ${websiteQualityScore}/100`,
           markdown ? `Additional context (first 2000 chars):\n${markdown.slice(0, 2000)}` : '',
+          exaData?.snippets?.length ? `\nExternal research (from Exa):\n${exaData.snippets.join('\n---\n')}` : '',
+          exaData?.linkedinUrl ? `LinkedIn found: ${exaData.linkedinUrl}` : '',
+          exaData?.facebookUrl ? `Facebook found: ${exaData.facebookUrl}` : '',
+          exaData?.instagramUrl ? `Instagram found: ${exaData.instagramUrl}` : '',
         ].filter(Boolean).join('\n');
 
         const response = await fetch(LOVABLE_AI_BASE, {
