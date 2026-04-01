@@ -111,7 +111,6 @@ async function browserlessScreenshot(url: string, apiKey: string): Promise<strin
         options: {
           fullPage: false,
           type: 'png',
-          quality: 80,
         },
         viewport: {
           width: 1920,
