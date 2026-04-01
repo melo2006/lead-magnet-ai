@@ -15,6 +15,31 @@ const normalizeUrl = (value: string) => {
   return trimmed.startsWith('http://') || trimmed.startsWith('https://') ? trimmed : `https://${trimmed}`;
 };
 
+/** Strip any path/query from a URL so we always scrape the homepage */
+const toHomepageUrl = (value: string) => {
+  try {
+    const url = new URL(normalizeUrl(value));
+    return `${url.protocol}//${url.host}`;
+  } catch {
+    return normalizeUrl(value);
+  }
+};
+
+/** Extract phone numbers from text content */
+const extractPhones = (text: string): string[] => {
+  const phoneRegex = /(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g;
+  const matches = text.match(phoneRegex) || [];
+  return unique(matches.map((p) => p.replace(/[^\d+]/g, '').replace(/^1(\d{10})$/, '$1')).filter((p) => p.length >= 10)).slice(0, 5);
+};
+
+/** Extract email addresses from text content */
+const extractEmails = (text: string): string[] => {
+  const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+  const excluded = /example\.com|test\.com|email\.com|domain\.com|sentry|google|facebook|twitter|recaptcha/i;
+  const matches = text.match(emailRegex) || [];
+  return unique(matches.filter((e) => !excluded.test(e)).map((e) => e.toLowerCase())).slice(0, 5);
+};
+
 const unwrapFirecrawlPayload = (payload: any) => payload?.data?.data ?? payload?.data ?? payload ?? {};
 
 const cleanText = (value?: string | null) => (typeof value === 'string' ? value.replace(/\s+/g, ' ').trim() : '');
