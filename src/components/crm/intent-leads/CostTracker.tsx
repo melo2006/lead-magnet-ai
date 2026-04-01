@@ -33,7 +33,7 @@ export function CostEstimate({ platformCount }: { platformCount: number }) {
       <Calculator className="w-3.5 h-3.5 text-primary" />
       <span>
         Est. cost: <strong className="text-foreground">${minCost.toFixed(2)}</strong>
-        {" "}({firecrawlCalls} Firecrawl calls × ${FIRECRAWL_COST_PER_SEARCH} + AI scoring included free)
+        {" "}({firecrawlCalls} search calls — Tavily free tier used first, Firecrawl as fallback)
       </span>
     </div>
   );
