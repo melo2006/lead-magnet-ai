@@ -39,15 +39,18 @@ export function CostEstimate({ platformCount }: { platformCount: number }) {
   );
 }
 
-export function LastScanCost({ usage }: { usage: { firecrawl_calls: number; ai_calls: number; estimated_cost_usd: number } | null }) {
+export function LastScanCost({ usage }: { usage: { provider?: string; firecrawl_calls: number; tavily_calls?: number; search_calls?: number; ai_calls: number; estimated_cost_usd: number } | null }) {
   if (!usage) return null;
+
+  const providerLabel = usage.provider === "tavily" ? "Tavily (free)" : "Firecrawl";
+  const totalSearches = usage.search_calls || usage.firecrawl_calls;
 
   return (
     <div className="flex items-center gap-2 text-xs bg-green-500/10 text-green-700 dark:text-green-400 rounded-md px-3 py-2">
       <DollarSign className="w-3.5 h-3.5" />
       <span>
-        Last scan cost: <strong>${usage.estimated_cost_usd.toFixed(4)}</strong>
-        {" "}({usage.firecrawl_calls} searches, {usage.ai_calls} AI batches)
+        Last scan: <strong>${usage.estimated_cost_usd.toFixed(4)}</strong>
+        {" "}via {providerLabel} ({totalSearches} searches, {usage.ai_calls} AI batches)
       </span>
     </div>
   );
