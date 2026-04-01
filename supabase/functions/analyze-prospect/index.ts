@@ -7,6 +7,7 @@ const corsHeaders = {
 
 const FIRECRAWL_BASE = 'https://api.firecrawl.dev/v1';
 const LOVABLE_AI_BASE = 'https://ai.gateway.lovable.dev/v1/chat/completions';
+const EXA_BASE = 'https://api.exa.ai';
 
 // Structured schema for Firecrawl AI JSON extraction
 const BUSINESS_SCHEMA = {
@@ -101,7 +102,99 @@ const BUSINESS_SCHEMA = {
   required: ['business_name'],
 };
 
-Deno.serve(async (req) => {
+/** Search Exa for company/owner intelligence (FREE — 1,000 requests/month) */
+async function exaResearch(
+  apiKey: string,
+  businessName: string,
+  websiteUrl: string,
+): Promise<{
+  linkedinUrl: string | null;
+  facebookUrl: string | null;
+  instagramUrl: string | null;
+  snippets: string[];
+}> {
+  const result = {
+    linkedinUrl: null as string | null,
+    facebookUrl: null as string | null,
+    instagramUrl: null as string | null,
+    snippets: [] as string[],
+  };
+
+  const domain = (() => {
+    try { return new URL(websiteUrl.startsWith('http') ? websiteUrl : `https://${websiteUrl}`).hostname.replace(/^www\./, ''); } catch { return ''; }
+  })();
+
+  // Search 1: Find owner/manager info + company details
+  try {
+    console.log('[Exa] Searching for owner info:', businessName, domain);
+    const ownerRes = await fetch(`${EXA_BASE}/search`, {
+      method: 'POST',
+      headers: { 'x-api-key': apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: `"${businessName}" owner OR founder OR manager OR CEO ${domain}`,
+        num_results: 5,
+        type: 'auto',
+        contents: { text: { max_characters: 500 }, highlights: { num_sentences: 3 } },
+      }),
+    });
+
+    if (ownerRes.ok) {
+      const ownerData = await ownerRes.json();
+      for (const r of ownerData.results || []) {
+        const text = (r.text || '') + ' ' + ((r.highlights || []).join(' '));
+        result.snippets.push(text.slice(0, 400));
+        if (!result.linkedinUrl && r.url?.includes('linkedin.com/in/')) {
+          result.linkedinUrl = r.url;
+        }
+      }
+    } else {
+      console.warn('[Exa] Owner search failed:', ownerRes.status);
+    }
+  } catch (err) {
+    console.warn('[Exa] Owner search error:', err);
+  }
+
+  // Search 2: Find social media profiles
+  try {
+    console.log('[Exa] Searching for social profiles:', businessName);
+    const socialRes = await fetch(`${EXA_BASE}/search`, {
+      method: 'POST',
+      headers: { 'x-api-key': apiKey, 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        query: `"${businessName}" ${domain}`,
+        num_results: 5,
+        type: 'auto',
+        include_domains: ['linkedin.com', 'facebook.com', 'instagram.com', 'yelp.com'],
+        contents: { text: { max_characters: 200 } },
+      }),
+    });
+
+    if (socialRes.ok) {
+      const socialData = await socialRes.json();
+      for (const r of socialData.results || []) {
+        const url = r.url || '';
+        if (!result.linkedinUrl && url.includes('linkedin.com')) result.linkedinUrl = url;
+        if (!result.facebookUrl && url.includes('facebook.com')) result.facebookUrl = url;
+        if (!result.instagramUrl && url.includes('instagram.com')) result.instagramUrl = url;
+      }
+    } else {
+      console.warn('[Exa] Social search failed:', socialRes.status);
+    }
+  } catch (err) {
+    console.warn('[Exa] Social search error:', err);
+  }
+
+  console.log('[Exa] Research complete:', {
+    linkedinFound: !!result.linkedinUrl,
+    facebookFound: !!result.facebookUrl,
+    instagramFound: !!result.instagramUrl,
+    snippets: result.snippets.length,
+  });
+
+  return result;
+}
+
+
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
@@ -118,6 +211,8 @@ Deno.serve(async (req) => {
 
     const firecrawlKey = Deno.env.get('FIRECRAWL_API_KEY');
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+    const exaApiKey = Deno.env.get('EXA_API_KEY');
+    const browserlessKey = Deno.env.get('BROWSERLESS_API_KEY');
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -223,7 +318,17 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Step 2: AI Sales Analysis (uses structured data for richer assessment)
+    // Step 1.5: Exa Research (FREE) — find owner info + social profiles in parallel
+    let exaData: Awaited<ReturnType<typeof exaResearch>> | null = null;
+    if (exaApiKey) {
+      try {
+        exaData = await exaResearch(exaApiKey, business_name, website_url);
+      } catch (err) {
+        console.warn('Exa research failed (non-fatal):', err);
+      }
+    }
+
+    // Step 2: AI Sales Analysis (uses structured data + Exa research for richer assessment)
     let aiAnalysis = '';
     let enrichmentData: Record<string, any> = {};
     if (lovableApiKey) {
@@ -242,6 +347,10 @@ Deno.serve(async (req) => {
           `Has Online Booking: ${hasOnlineBooking}`,
           `Website Quality Score: ${websiteQualityScore}/100`,
           markdown ? `Additional context (first 2000 chars):\n${markdown.slice(0, 2000)}` : '',
+          exaData?.snippets?.length ? `\nExternal research (from Exa):\n${exaData.snippets.join('\n---\n')}` : '',
+          exaData?.linkedinUrl ? `LinkedIn found: ${exaData.linkedinUrl}` : '',
+          exaData?.facebookUrl ? `Facebook found: ${exaData.facebookUrl}` : '',
+          exaData?.instagramUrl ? `Instagram found: ${exaData.instagramUrl}` : '',
         ].filter(Boolean).join('\n');
 
         const response = await fetch(LOVABLE_AI_BASE, {
@@ -299,6 +408,13 @@ Be direct and specific. Return ONLY valid JSON, no markdown formatting or code b
             if (!enrichmentData.facebook_url && socialLinks.facebook) enrichmentData.facebook_url = socialLinks.facebook;
             if (!enrichmentData.instagram_url && socialLinks.instagram) enrichmentData.instagram_url = socialLinks.instagram;
             if (!enrichmentData.linkedin_url && socialLinks.linkedin) enrichmentData.linkedin_url = socialLinks.linkedin;
+
+            // Merge Exa research findings (highest priority for social profiles)
+            if (exaData) {
+              if (!enrichmentData.linkedin_url && exaData.linkedinUrl) enrichmentData.linkedin_url = exaData.linkedinUrl;
+              if (!enrichmentData.facebook_url && exaData.facebookUrl) enrichmentData.facebook_url = exaData.facebookUrl;
+              if (!enrichmentData.instagram_url && exaData.instagramUrl) enrichmentData.instagram_url = exaData.instagramUrl;
+            }
           } catch {
             aiAnalysis = raw;
           }
@@ -312,6 +428,11 @@ Be direct and specific. Return ONLY valid JSON, no markdown formatting or code b
         aiAnalysis = 'AI analysis unavailable.';
       }
     }
+
+    // If AI didn't run but Exa found social profiles, still use them
+    if (!enrichmentData.linkedin_url && exaData?.linkedinUrl) enrichmentData.linkedin_url = exaData.linkedinUrl;
+    if (!enrichmentData.facebook_url && exaData?.facebookUrl) enrichmentData.facebook_url = exaData.facebookUrl;
+    if (!enrichmentData.instagram_url && exaData?.instagramUrl) enrichmentData.instagram_url = exaData.instagramUrl;
 
     // Step 3: Build voice agent context from structured data
     const voiceAgentContext = buildVoiceAgentContext(businessData, business_name, niche);
@@ -329,6 +450,7 @@ Be direct and specific. Return ONLY valid JSON, no markdown formatting or code b
         ...businessData,
         branding: brandingData,
         voice_agent_context: voiceAgentContext,
+        exa_research: exaData?.snippets || [],
       },
       ...enrichmentData,
     };
