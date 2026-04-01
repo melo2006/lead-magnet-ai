@@ -783,7 +783,7 @@ Deno.serve(async (req) => {
       brand_colors: branding.colors || null,
       brand_logo: branding.images?.logo || branding.logo || null,
       brand_fonts: branding.fonts || branding.typography || null,
-      website_screenshot: homepage.screenshot || null,
+      website_screenshot: finalScreenshot,
       website_content: initialContent || null,
       website_title: title || null,
       website_description: description || null,
