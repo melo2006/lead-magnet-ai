@@ -318,7 +318,17 @@ async function exaResearch(
       }
     }
 
-    // Step 2: AI Sales Analysis (uses structured data for richer assessment)
+    // Step 1.5: Exa Research (FREE) — find owner info + social profiles in parallel
+    let exaData: Awaited<ReturnType<typeof exaResearch>> | null = null;
+    if (exaApiKey) {
+      try {
+        exaData = await exaResearch(exaApiKey, business_name, website_url);
+      } catch (err) {
+        console.warn('Exa research failed (non-fatal):', err);
+      }
+    }
+
+    // Step 2: AI Sales Analysis (uses structured data + Exa research for richer assessment)
     let aiAnalysis = '';
     let enrichmentData: Record<string, any> = {};
     if (lovableApiKey) {
