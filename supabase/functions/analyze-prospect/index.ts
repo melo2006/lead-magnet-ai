@@ -408,6 +408,13 @@ Be direct and specific. Return ONLY valid JSON, no markdown formatting or code b
             if (!enrichmentData.facebook_url && socialLinks.facebook) enrichmentData.facebook_url = socialLinks.facebook;
             if (!enrichmentData.instagram_url && socialLinks.instagram) enrichmentData.instagram_url = socialLinks.instagram;
             if (!enrichmentData.linkedin_url && socialLinks.linkedin) enrichmentData.linkedin_url = socialLinks.linkedin;
+
+            // Merge Exa research findings (highest priority for social profiles)
+            if (exaData) {
+              if (!enrichmentData.linkedin_url && exaData.linkedinUrl) enrichmentData.linkedin_url = exaData.linkedinUrl;
+              if (!enrichmentData.facebook_url && exaData.facebookUrl) enrichmentData.facebook_url = exaData.facebookUrl;
+              if (!enrichmentData.instagram_url && exaData.instagramUrl) enrichmentData.instagram_url = exaData.instagramUrl;
+            }
           } catch {
             aiAnalysis = raw;
           }
