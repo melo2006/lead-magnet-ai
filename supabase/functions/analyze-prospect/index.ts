@@ -211,6 +211,8 @@ async function exaResearch(
 
     const firecrawlKey = Deno.env.get('FIRECRAWL_API_KEY');
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+    const exaApiKey = Deno.env.get('EXA_API_KEY');
+    const browserlessKey = Deno.env.get('BROWSERLESS_API_KEY');
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
