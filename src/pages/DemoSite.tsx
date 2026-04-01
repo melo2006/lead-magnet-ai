@@ -9,6 +9,13 @@ import ScanningAnimation from "@/components/landing/ScanningAnimation";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+const getPreviewCanvasWidth = (containerWidth: number) => {
+  if (containerWidth <= 0) return 1280;
+  if (containerWidth < 640) return 1200;
+  if (containerWidth < 1024) return 1280;
+  return Math.max(1280, Math.floor(containerWidth));
+};
+
 const DemoSite = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -22,6 +29,8 @@ const DemoSite = () => {
   const [iframeBlocked, setIframeBlocked] = useState(false);
   const [, setIframeLoaded] = useState(false);
   const iframeRef = useRef<HTMLIFrameElement>(null);
+  const previewFrameRef = useRef<HTMLDivElement>(null);
+  const [previewFrameSize, setPreviewFrameSize] = useState({ width: 0, height: 0 });
   const returnTo = searchParams.get("returnTo");
   const previewUrl = leadData?.websiteUrl
     ? leadData.websiteUrl.startsWith("http://")
@@ -30,6 +39,14 @@ const DemoSite = () => {
         ? leadData.websiteUrl
         : `https://${leadData.websiteUrl}`
     : "";
+
+  const previewCanvasWidth = getPreviewCanvasWidth(previewFrameSize.width);
+  const previewScale = previewFrameSize.width > 0
+    ? Math.min(1, previewFrameSize.width / previewCanvasWidth)
+    : 1;
+  const previewCanvasHeight = previewFrameSize.height > 0
+    ? Math.max(previewFrameSize.height / previewScale, previewFrameSize.height)
+    : 900;
 
   // Handle URL params from CRM (e.g. /demo?url=...&name=...&niche=...)
   useEffect(() => {
@@ -128,6 +145,37 @@ const DemoSite = () => {
     iframeLoadedRef.current = false;
     setIframeLoaded(false);
   }, [previewUrl]);
+
+  useEffect(() => {
+    if (!leadData) return;
+
+    const frame = previewFrameRef.current;
+    if (!frame) return;
+
+    const updatePreviewFrameSize = () => {
+      const rect = frame.getBoundingClientRect();
+      setPreviewFrameSize((prev) => {
+        const next = { width: rect.width, height: rect.height };
+        return prev.width === next.width && prev.height === next.height ? prev : next;
+      });
+    };
+
+    updatePreviewFrameSize();
+
+    if (typeof ResizeObserver === "undefined") {
+      window.addEventListener("resize", updatePreviewFrameSize);
+      return () => window.removeEventListener("resize", updatePreviewFrameSize);
+    }
+
+    const observer = new ResizeObserver(() => updatePreviewFrameSize());
+    observer.observe(frame);
+    window.addEventListener("resize", updatePreviewFrameSize);
+
+    return () => {
+      observer.disconnect();
+      window.removeEventListener("resize", updatePreviewFrameSize);
+    };
+  }, [leadData, previewUrl]);
 
   // Iframe block detection: timeout fallback + onLoad check
   const iframeLoadedRef = useRef(false);
@@ -249,38 +297,51 @@ const DemoSite = () => {
 
       {/* Website display area — live iframe with screenshot fallback */}
       <div className="relative flex-1 overflow-hidden bg-muted/20">
-        <div className="absolute inset-0 overflow-auto">
+        <div className="absolute inset-0 overflow-y-auto overflow-x-hidden">
           <div className="min-h-full w-full px-0 py-0 sm:px-4 sm:py-4 lg:px-6">
-            <div className="relative mx-auto min-h-[calc(100vh-11rem)] w-full max-w-[1400px] overflow-hidden bg-background shadow-2xl sm:rounded-[1.75rem] sm:border sm:border-border/70">
-              {!iframeBlocked && previewUrl ? (
-                <iframe
-                  ref={iframeRef}
-                  key={previewUrl}
-                  src={previewUrl}
-                  title={`${siteName} website`}
-                  className="h-full min-h-[calc(100vh-11rem)] w-full border-0 bg-background"
-                  sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
-                  onError={() => setIframeBlocked(true)}
-                  onLoad={handleIframeLoad}
-                  style={{ width: "100%", height: "100%", minHeight: "calc(100vh - 11rem)" }}
-                />
-              ) : screenshotSrc ? (
-                <div className="relative h-full min-h-[calc(100vh-11rem)] w-full overflow-hidden bg-muted">
-                  <img
-                    src={screenshotSrc}
-                    alt={`${siteName} website`}
-                    className="block w-full h-auto"
-                    loading="lazy"
-                    decoding="async"
-                    draggable={false}
-                    style={{ maxWidth: "100%", objectFit: "contain" }}
-                  />
+            <div
+              ref={previewFrameRef}
+              className="relative mx-auto h-[calc(100vh-11rem)] w-full max-w-[1400px] overflow-hidden bg-background shadow-2xl sm:rounded-[1.75rem] sm:border sm:border-border/70"
+            >
+              <div className="flex h-full w-full items-start justify-center overflow-hidden bg-background">
+                <div
+                  className="shrink-0"
+                  style={{
+                    width: `${previewCanvasWidth}px`,
+                    height: `${previewCanvasHeight}px`,
+                    transform: `scale(${previewScale})`,
+                    transformOrigin: "top center",
+                  }}
+                >
+                  {!iframeBlocked && previewUrl ? (
+                    <iframe
+                      ref={iframeRef}
+                      key={previewUrl}
+                      src={previewUrl}
+                      title={`${siteName} website`}
+                      className="h-full w-full border-0 bg-background"
+                      sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
+                      onError={() => setIframeBlocked(true)}
+                      onLoad={handleIframeLoad}
+                    />
+                  ) : screenshotSrc ? (
+                    <div className="relative h-full w-full overflow-hidden bg-muted">
+                      <img
+                        src={screenshotSrc}
+                        alt={`${siteName} website`}
+                        className="block h-full w-full object-contain object-top"
+                        loading="lazy"
+                        decoding="async"
+                        draggable={false}
+                      />
+                    </div>
+                  ) : (
+                    <div className="flex h-full w-full items-center justify-center bg-muted">
+                      <p className="text-lg text-muted-foreground">Website preview unavailable</p>
+                    </div>
+                  )}
                 </div>
-              ) : (
-                <div className="flex h-full min-h-[calc(100vh-11rem)] items-center justify-center bg-muted">
-                  <p className="text-lg text-muted-foreground">Website preview unavailable</p>
-                </div>
-              )}
+              </div>
 
               {/* DEMO watermark — only show on screenshot fallback */}
               {iframeBlocked && (
