@@ -7,6 +7,7 @@ const corsHeaders = {
 
 const FIRECRAWL_BASE = 'https://api.firecrawl.dev/v1';
 const LOVABLE_AI_BASE = 'https://ai.gateway.lovable.dev/v1/chat/completions';
+const EXA_BASE = 'https://api.exa.ai';
 
 // Structured schema for Firecrawl AI JSON extraction
 const BUSINESS_SCHEMA = {
