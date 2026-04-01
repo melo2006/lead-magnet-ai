@@ -6,6 +6,7 @@ import { Slider } from "@/components/ui/slider";
 
 const RETELL_AGENT_ID = "agent_ea256ca8441689051b9aa2b183";
 const DEFAULT_OWNER_NAME = "Ron Melo";
+const LIVE_TRANSFER_READY_PHRASE = "i'm starting the live transfer now. please stay on the line while i connect you.";
 
 interface VoiceAgentWidgetProps {
   leadId?: string;
@@ -46,6 +47,73 @@ const deviceIcon = (kind: AudioDevice["kind"]) => {
   }
 };
 
+const normalizePhoneNumber = (value?: string | null) => {
+  if (!value) return "";
+
+  const digits = value.replace(/\D/g, "");
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  if (value.trim().startsWith("+")) return value.trim();
+  return "";
+};
+
+const normalizeEmailCandidate = (value?: string | null) => {
+  if (!value) return "";
+
+  const normalized = value
+    .toLowerCase()
+    .replace(/\s+/g, "")
+    .replace(/\(at\)|\[at\]/g, "@")
+    .replace(/\(dot\)|\[dot\]/g, ".")
+    .replace(/@+/g, "@");
+
+  const match = normalized.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i);
+  return match ? match[0] : "";
+};
+
+const extractCallerPhoneFromText = (value: string) => {
+  const matches = Array.from(value.matchAll(/(?:\+?\d[\d\s().-]{8,}\d)/g))
+    .map((match) => normalizePhoneNumber(match[0]))
+    .filter(Boolean);
+
+  return matches.length > 0 ? matches[matches.length - 1] : "";
+};
+
+const extractCallerEmailFromText = (value: string) => {
+  const directMatches = Array.from(value.matchAll(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi))
+    .map((match) => normalizeEmailCandidate(match[0]))
+    .filter(Boolean);
+
+  if (directMatches.length > 0) return directMatches[directMatches.length - 1];
+
+  const flattened = value
+    .toLowerCase()
+    .replace(/\bg\s*mail\b/g, "gmail")
+    .replace(/\s+at\s+/g, "@")
+    .replace(/\s+dot\s+/g, ".")
+    .replace(/[^a-z0-9@._%+-]/g, " ")
+    .replace(/\s+/g, "");
+
+  return normalizeEmailCandidate(flattened);
+};
+
+const extractCallerNameFromText = (value: string) => {
+  const matches = Array.from(
+    value.matchAll(/(?:my name is|this is|i am|i'm)\s+([A-Za-z][A-Za-z'-]*(?:\s+[A-Za-z][A-Za-z'-]*)?)/gi),
+  );
+
+  return matches.length > 0 ? matches[matches.length - 1][1].trim() : "";
+};
+
+const extractEventText = (event: unknown) => {
+  if (typeof event === "string") return event;
+  try {
+    return JSON.stringify(event);
+  } catch {
+    return "";
+  }
+};
+
 const VoiceAgentWidget = ({
   leadId,
   prospectId,
@@ -75,6 +143,8 @@ const VoiceAgentWidget = ({
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const callIdRef = useRef<string | null>(null);
   const summaryQueuedRef = useRef(false);
+  const transferTriggeredRef = useRef(false);
+  const liveTranscriptRef = useRef("");
   const resolvedOwnerName = ownerName || DEFAULT_OWNER_NAME;
 
   const clearTimer = useCallback(() => {
@@ -137,8 +207,9 @@ const VoiceAgentWidget = ({
 
   const initiateLiveTransfer = useCallback(async (capturedContact?: { callerName?: string; callerEmail?: string; callerPhone?: string }) => {
     const callId = callIdRef.current;
-    if (!callId) return;
+    if (!callId || transferInProgress) return;
 
+    transferTriggeredRef.current = true;
     setTransferInProgress(true);
 
     try {
@@ -193,7 +264,29 @@ const VoiceAgentWidget = ({
     } finally {
       setTransferInProgress(false);
     }
-  }, [businessName, callerEmail, callerName, callerPhone, ownerPhone, resolvedOwnerName, toast]);
+  }, [businessName, callerEmail, callerName, callerPhone, ownerPhone, resolvedOwnerName, toast, transferInProgress]);
+
+  const maybeStartTransferFromLiveCall = useCallback((event: unknown) => {
+    if (transferTriggeredRef.current) return;
+
+    const eventText = extractEventText(event);
+    if (!eventText) return;
+
+    liveTranscriptRef.current = `${liveTranscriptRef.current}\n${eventText}`.slice(-16000);
+    const normalizedEventText = eventText.toLowerCase();
+    const looksLikeTransferStart =
+      normalizedEventText.includes(LIVE_TRANSFER_READY_PHRASE) ||
+      (normalizedEventText.includes("stay on the line") &&
+        (normalizedEventText.includes("connect you") || normalizedEventText.includes("connecting you")));
+
+    if (!looksLikeTransferStart) return;
+
+    void initiateLiveTransfer({
+      callerName: extractCallerNameFromText(liveTranscriptRef.current) || callerName || "a caller",
+      callerEmail: extractCallerEmailFromText(liveTranscriptRef.current) || callerEmail || "",
+      callerPhone: extractCallerPhoneFromText(liveTranscriptRef.current) || callerPhone || "",
+    });
+  }, [callerEmail, callerName, callerPhone, initiateLiveTransfer]);
 
   const queueCallSummary = useCallback(async () => {
     const callId = callIdRef.current;
@@ -220,8 +313,8 @@ const VoiceAgentWidget = ({
         throw new Error(error?.message || data?.error || "Couldn't finish the call recap.");
       }
 
-      // If a transfer was requested, attempt live transfer
-      if (data.transferRequested) {
+      // If a transfer was requested but wasn't already triggered live, attempt it as a fallback
+      if (data.transferRequested && !transferTriggeredRef.current) {
         await initiateLiveTransfer({
           callerName: data.callerName,
           callerEmail: data.callerEmail,
@@ -296,6 +389,8 @@ const VoiceAgentWidget = ({
     setIsMinimized(false);
     callIdRef.current = null;
     summaryQueuedRef.current = false;
+    transferTriggeredRef.current = false;
+    liveTranscriptRef.current = "";
     setTransferInProgress(false);
 
     try {
@@ -349,6 +444,14 @@ const VoiceAgentWidget = ({
         void queueCallSummary();
       });
 
+      retellClient.on("update", (event: unknown) => {
+        maybeStartTransferFromLiveCall(event);
+      });
+
+      retellClient.on("node_transition", (event: unknown) => {
+        maybeStartTransferFromLiveCall(event);
+      });
+
       retellClient.on("error", (err: any) => {
         console.error("Retell error:", err);
         clearTimer();
@@ -364,7 +467,7 @@ const VoiceAgentWidget = ({
       setCallStatus("idle");
       clearTimer();
     }
-  }, [businessInfo, businessName, businessNiche, callerEmail, callerName, callerPhone, clearTimer, ownerEmail, ownerPhone, resolvedOwnerName, toast, websiteUrl, queueCallSummary, volume, selectedDevice]);
+  }, [businessInfo, businessName, businessNiche, callerEmail, callerName, callerPhone, clearTimer, ownerEmail, ownerPhone, resolvedOwnerName, toast, websiteUrl, queueCallSummary, volume, selectedDevice, maybeStartTransferFromLiveCall]);
 
   const endCall = useCallback(() => {
     setCallStatus("ending");
