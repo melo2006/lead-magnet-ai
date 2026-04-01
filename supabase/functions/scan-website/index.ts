@@ -15,6 +15,31 @@ const normalizeUrl = (value: string) => {
   return trimmed.startsWith('http://') || trimmed.startsWith('https://') ? trimmed : `https://${trimmed}`;
 };
 
+/** Strip any path/query from a URL so we always scrape the homepage */
+const toHomepageUrl = (value: string) => {
+  try {
+    const url = new URL(normalizeUrl(value));
+    return `${url.protocol}//${url.host}`;
+  } catch {
+    return normalizeUrl(value);
+  }
+};
+
+/** Extract phone numbers from text content */
+const extractPhones = (text: string): string[] => {
+  const phoneRegex = /(?:\+?1[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4}/g;
+  const matches = text.match(phoneRegex) || [];
+  return unique(matches.map((p) => p.replace(/[^\d+]/g, '').replace(/^1(\d{10})$/, '$1')).filter((p) => p.length >= 10)).slice(0, 5);
+};
+
+/** Extract email addresses from text content */
+const extractEmails = (text: string): string[] => {
+  const emailRegex = /[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}/g;
+  const excluded = /example\.com|test\.com|email\.com|domain\.com|sentry|google|facebook|twitter|recaptcha/i;
+  const matches = text.match(emailRegex) || [];
+  return unique(matches.filter((e) => !excluded.test(e)).map((e) => e.toLowerCase())).slice(0, 5);
+};
+
 const unwrapFirecrawlPayload = (payload: any) => payload?.data?.data ?? payload?.data ?? payload ?? {};
 
 const cleanText = (value?: string | null) => (typeof value === 'string' ? value.replace(/\s+/g, ' ').trim() : '');
@@ -534,8 +559,8 @@ Deno.serve(async (req) => {
     supabase = createClient(supabaseUrl, supabaseServiceKey);
     await supabase.from('leads').update({ scan_status: 'scanning' }).eq('id', leadId);
 
-    const formattedUrl = normalizeUrl(websiteUrl);
-    console.log('Scanning website:', formattedUrl);
+    const formattedUrl = toHomepageUrl(websiteUrl);
+    console.log('Scanning website homepage:', formattedUrl, '(original:', websiteUrl, ')');
 
     // === PHASE 1: Homepage scrape (fast, synchronous) ===
     let homepageResponse: any;
@@ -660,6 +685,15 @@ Deno.serve(async (req) => {
     const title = cleanText(metadata.title) || profile.businessName || getHost(formattedUrl);
     const description = cleanText(metadata.description) || profile.summary;
 
+    // Extract phone and email from all scraped content
+    const allTextForExtraction = [homepageMarkdown, combinedPageContent, secondaryContent, filesContent].join('\n');
+    const extractedPhones = extractPhones(allTextForExtraction);
+    const extractedEmails = extractEmails(allTextForExtraction);
+    const primaryPhone = extractedPhones[0] || null;
+    const primaryEmail = extractedEmails[0] || null;
+
+    console.log('Extracted contact info — phones:', extractedPhones, 'emails:', extractedEmails);
+
     // Save initial results immediately so the demo can load
     const updateResult = await supabase.from('leads').update({
       niche: profile.detectedNiche,
@@ -671,6 +705,8 @@ Deno.serve(async (req) => {
       website_title: title || null,
       website_description: description || null,
       scan_status: 'completed',
+      ...(primaryPhone ? { phone: primaryPhone } : {}),
+      ...(primaryEmail ? { email: primaryEmail } : {}),
     }).eq('id', leadId);
 
     if (updateResult.error) {
