@@ -559,8 +559,8 @@ Deno.serve(async (req) => {
     supabase = createClient(supabaseUrl, supabaseServiceKey);
     await supabase.from('leads').update({ scan_status: 'scanning' }).eq('id', leadId);
 
-    const formattedUrl = normalizeUrl(websiteUrl);
-    console.log('Scanning website:', formattedUrl);
+    const formattedUrl = toHomepageUrl(websiteUrl);
+    console.log('Scanning website homepage:', formattedUrl, '(original:', websiteUrl, ')');
 
     // === PHASE 1: Homepage scrape (fast, synchronous) ===
     let homepageResponse: any;
