@@ -412,7 +412,7 @@ const RedesignedWebsite = ({ leadData }: Props) => {
               <VoiceAgentWidget
                 businessName={siteName}
                 businessNiche={leadData.niche || "general"}
-                ownerName="Ron Melo"
+                ownerName={leadData.fullName || "Business Owner"}
                 ownerEmail={leadData.email}
                 ownerPhone={leadData.phone}
                 websiteUrl={leadData.websiteUrl}
