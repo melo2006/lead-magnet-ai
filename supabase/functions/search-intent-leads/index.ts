@@ -23,10 +23,240 @@ function buildSearchQueries(niche: string, location: string): string[] {
   };
 
   const keywords = nicheKeywords[niche] || [`need ${niche}`, `looking for ${niche}`, `recommend ${niche}`];
-
   return keywords.map((kw) => `${kw} ${location}`);
 }
 
+// Platform-specific site filters
+const platformSites: Record<string, string> = {
+  reddit: "site:reddit.com",
+  google_reviews: "site:google.com/maps",
+  yelp: "site:yelp.com",
+  facebook: "site:facebook.com",
+  nextdoor: "site:nextdoor.com",
+  forums: "",
+};
+
+// Map time range for Tavily
+function tavilyDays(timeRange: string): string {
+  const map: Record<string, string> = { "24h": "d", "week": "w", "month": "m", "3months": "m" };
+  return map[timeRange] || "m";
+}
+
+// Map time range for Firecrawl
+function firecrawlTbs(timeRange: string): string {
+  const map: Record<string, string> = { "24h": "qdr:d", "week": "qdr:w", "month": "qdr:m", "3months": "qdr:m" };
+  return map[timeRange] || "qdr:m";
+}
+
+// --- TAVILY SEARCH PROVIDER ---
+async function searchWithTavily(
+  apiKey: string,
+  query: string,
+  limit: number,
+  timeRange: string,
+  platform: string,
+): Promise<{ results: any[]; provider: string }> {
+  const siteFilter = platformSites[platform] || "";
+  const searchQuery = `${query} ${siteFilter}`.trim();
+
+  console.log(`[Tavily] Searching: ${searchQuery}`);
+  const response = await fetch("https://api.tavily.com/search", {
+    method: "POST",
+    headers: { "Content-Type": "application/json" },
+    body: JSON.stringify({
+      api_key: apiKey,
+      query: searchQuery,
+      max_results: limit,
+      search_depth: "advanced",
+      include_raw_content: false,
+      time_range: tavilyDays(timeRange),
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok || !data.results) {
+    console.error(`[Tavily] Search failed:`, data);
+    return { results: [], provider: "tavily" };
+  }
+
+  return {
+    provider: "tavily",
+    results: data.results.map((r: any) => ({
+      url: r.url,
+      title: r.title || "",
+      markdown: r.content || "",
+      description: r.content || "",
+      platform,
+      searchQuery: query,
+    })),
+  };
+}
+
+// --- FIRECRAWL SEARCH PROVIDER (fallback) ---
+async function searchWithFirecrawl(
+  apiKey: string,
+  query: string,
+  limit: number,
+  timeRange: string,
+  platform: string,
+): Promise<{ results: any[]; provider: string }> {
+  const siteFilter = platformSites[platform] || "";
+  const searchQuery = `${query} ${siteFilter}`.trim();
+
+  console.log(`[Firecrawl] Searching: ${searchQuery}`);
+  const response = await fetch("https://api.firecrawl.dev/v1/search", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      query: searchQuery,
+      limit,
+      tbs: firecrawlTbs(timeRange),
+      scrapeOptions: { formats: ["markdown"] },
+    }),
+  });
+
+  const data = await response.json();
+  if (!response.ok || !data.success || !data.data) {
+    console.error(`[Firecrawl] Search failed:`, data);
+    return { results: [], provider: "firecrawl" };
+  }
+
+  return {
+    provider: "firecrawl",
+    results: data.data.map((r: any) => ({
+      url: r.url,
+      title: r.title || "",
+      markdown: r.markdown || r.description || "",
+      description: r.description || "",
+      platform,
+      searchQuery: query,
+    })),
+  };
+}
+
+// --- AI SCORING ---
+async function scoreLeadsBatch(
+  lovableKey: string,
+  batch: any[],
+  niche: string,
+  location: string,
+): Promise<any[]> {
+  const batchPrompt = batch.map((r, idx) =>
+    `[RESULT ${idx + 1}]\nURL: ${r.url}\nTitle: ${r.title || "N/A"}\nContent: ${(r.markdown || r.description || "").substring(0, 500)}\n`
+  ).join("\n---\n");
+
+  const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${lovableKey}`,
+      "Content-Type": "application/json",
+    },
+    body: JSON.stringify({
+      model: "google/gemini-3-flash-preview",
+      messages: [
+        {
+          role: "system",
+          content: `You are a lead scoring AI. Analyze each result and determine if the author is actively looking for a ${niche} service in or near ${location}. Score each result.`,
+        },
+        {
+          role: "user",
+          content: `Score these search results for purchase intent for "${niche}" services in "${location}". For each result, provide a JSON array.\n\n${batchPrompt}`,
+        },
+      ],
+      tools: [
+        {
+          type: "function",
+          function: {
+            name: "score_leads",
+            description: "Score leads for purchase intent",
+            parameters: {
+              type: "object",
+              properties: {
+                leads: {
+                  type: "array",
+                  items: {
+                    type: "object",
+                    properties: {
+                      result_index: { type: "number", description: "0-based index" },
+                      intent_score: { type: "number", description: "0-100 purchase intent score" },
+                      intent_category: {
+                        type: "string",
+                        enum: ["active_search", "complaint", "recommendation_request", "review", "discussion", "irrelevant"],
+                      },
+                      summary: { type: "string", description: "1-2 sentence summary of what the person needs" },
+                      recommended_services: { type: "string", description: "Comma-separated services to pitch" },
+                      author_name: { type: "string", description: "Author name if found" },
+                    },
+                    required: ["result_index", "intent_score", "intent_category", "summary", "recommended_services"],
+                    additionalProperties: false,
+                  },
+                },
+              },
+              required: ["leads"],
+              additionalProperties: false,
+            },
+          },
+        },
+      ],
+      tool_choice: { type: "function", function: { name: "score_leads" } },
+    }),
+  });
+
+  if (!aiResponse.ok) {
+    const errText = await aiResponse.text();
+    console.error("AI scoring error:", aiResponse.status, errText);
+    return batch.map((result) => ({
+      source_url: result.url,
+      source_platform: result.platform,
+      post_content: (result.markdown || result.description || "").substring(0, 2000),
+      post_title: result.title || null,
+      niche,
+      location,
+      intent_score: 0,
+      intent_category: "unknown",
+      lead_temperature: "cold",
+      ai_summary: "AI scoring unavailable",
+      ai_recommended_services: "",
+      search_query: result.searchQuery,
+      search_niche: niche,
+      search_location: location,
+    }));
+  }
+
+  const aiData = await aiResponse.json();
+  const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
+  if (!toolCall) return [];
+
+  const parsed = JSON.parse(toolCall.function.arguments);
+  return parsed.leads.map((lead: any) => {
+    const result = batch[lead.result_index];
+    if (!result) return null;
+    const temperature = lead.intent_score >= 80 ? "hot" : lead.intent_score >= 50 ? "warm" : "cold";
+    return {
+      source_url: result.url,
+      source_platform: result.platform,
+      post_content: (result.markdown || result.description || "").substring(0, 2000),
+      post_title: result.title || null,
+      author_name: lead.author_name || null,
+      author_profile_url: null,
+      niche,
+      location,
+      intent_score: lead.intent_score,
+      intent_category: lead.intent_category,
+      lead_temperature: temperature,
+      ai_summary: lead.summary,
+      ai_recommended_services: lead.recommended_services,
+      search_query: result.searchQuery,
+      search_niche: niche,
+      search_location: location,
+    };
+  }).filter(Boolean);
+}
+
+// --- MAIN HANDLER ---
 serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response(null, { headers: corsHeaders });
@@ -42,15 +272,16 @@ serve(async (req) => {
       );
     }
 
+    const TAVILY_API_KEY = Deno.env.get("TAVILY_API_KEY");
     const FIRECRAWL_API_KEY = Deno.env.get("FIRECRAWL_API_KEY");
-    if (!FIRECRAWL_API_KEY) {
+    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
+
+    if (!TAVILY_API_KEY && !FIRECRAWL_API_KEY) {
       return new Response(
-        JSON.stringify({ success: false, error: "Firecrawl connector not configured" }),
+        JSON.stringify({ success: false, error: "No search provider configured (Tavily or Firecrawl)" }),
         { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
       );
     }
-
-    const LOVABLE_API_KEY = Deno.env.get("LOVABLE_API_KEY");
     if (!LOVABLE_API_KEY) {
       return new Response(
         JSON.stringify({ success: false, error: "AI scoring not configured" }),
@@ -58,69 +289,44 @@ serve(async (req) => {
       );
     }
 
-    // Map time range to Firecrawl tbs parameter
-    const tbsMap: Record<string, string> = {
-      "24h": "qdr:d",
-      "week": "qdr:w",
-      "month": "qdr:m",
-      "3months": "qdr:m", // Firecrawl doesn't have 3mo, use month
-    };
-    const tbs = tbsMap[timeRange] || "qdr:m";
+    // Determine provider: Tavily first (free), Firecrawl fallback
+    const useTavily = !!TAVILY_API_KEY;
+    const provider = useTavily ? "tavily" : "firecrawl";
+    console.log(`Using search provider: ${provider}`);
 
-    // Build platform-specific site filters
-    const platformSites: Record<string, string> = {
-      reddit: "site:reddit.com",
-      google_reviews: "site:google.com/maps",
-      yelp: "site:yelp.com",
-      facebook: "site:facebook.com",
-      nextdoor: "site:nextdoor.com",
-      forums: "", // no site filter
-    };
-
-    const selectedPlatforms: string[] = platforms && platforms.length > 0 
-      ? platforms 
+    const selectedPlatforms: string[] = platforms && platforms.length > 0
+      ? platforms
       : ["reddit", "google_reviews", "yelp", "forums"];
 
     const queries = buildSearchQueries(niche, location);
     const allResults: any[] = [];
-
-    // Search across platforms (limit queries to avoid excessive API calls)
     const maxQueries = Math.min(queries.length, 3);
+    let searchCalls = 0;
+
     for (let i = 0; i < maxQueries; i++) {
       for (const platform of selectedPlatforms) {
-        const siteFilter = platformSites[platform] || "";
-        const searchQuery = `${queries[i]} ${siteFilter}`.trim();
-
         try {
-          console.log(`Searching: ${searchQuery}`);
-          const response = await fetch("https://api.firecrawl.dev/v1/search", {
-            method: "POST",
-            headers: {
-              Authorization: `Bearer ${FIRECRAWL_API_KEY}`,
-              "Content-Type": "application/json",
-            },
-            body: JSON.stringify({
-              query: searchQuery,
-              limit: limit || 5,
-              tbs,
-              scrapeOptions: { formats: ["markdown"] },
-            }),
-          });
-
-          const data = await response.json();
-          if (response.ok && data.success && data.data) {
-            for (const result of data.data) {
-              allResults.push({
-                ...result,
-                platform,
-                searchQuery: queries[i],
-              });
-            }
+          let searchResult;
+          if (useTavily) {
+            searchResult = await searchWithTavily(TAVILY_API_KEY!, queries[i], limit || 5, timeRange, platform);
           } else {
-            console.error(`Search failed for "${searchQuery}":`, data);
+            searchResult = await searchWithFirecrawl(FIRECRAWL_API_KEY!, queries[i], limit || 5, timeRange, platform);
           }
+          searchCalls++;
+          allResults.push(...searchResult.results);
         } catch (err) {
-          console.error(`Error searching "${searchQuery}":`, err);
+          console.error(`Search error for "${queries[i]}" on ${platform}:`, err);
+          // If Tavily fails, try Firecrawl as fallback for this query
+          if (useTavily && FIRECRAWL_API_KEY) {
+            try {
+              console.log(`[Fallback] Trying Firecrawl for: ${queries[i]} ${platform}`);
+              const fallback = await searchWithFirecrawl(FIRECRAWL_API_KEY, queries[i], limit || 5, timeRange, platform);
+              searchCalls++;
+              allResults.push(...fallback.results);
+            } catch (fbErr) {
+              console.error(`Firecrawl fallback also failed:`, fbErr);
+            }
+          }
         }
       }
     }
@@ -140,130 +346,17 @@ serve(async (req) => {
       return true;
     });
 
-    // AI scoring - batch process with Lovable AI
+    // AI scoring in batches
     const scoredLeads: any[] = [];
     const batchSize = 5;
-    
+
     for (let i = 0; i < uniqueResults.length; i += batchSize) {
       const batch = uniqueResults.slice(i, i + batchSize);
-      const batchPrompt = batch.map((r, idx) => 
-        `[RESULT ${idx + 1}]\nURL: ${r.url}\nTitle: ${r.title || "N/A"}\nContent: ${(r.markdown || r.description || "").substring(0, 500)}\n`
-      ).join("\n---\n");
-
       try {
-        const aiResponse = await fetch("https://ai.gateway.lovable.dev/v1/chat/completions", {
-          method: "POST",
-          headers: {
-            Authorization: `Bearer ${LOVABLE_API_KEY}`,
-            "Content-Type": "application/json",
-          },
-          body: JSON.stringify({
-            model: "google/gemini-3-flash-preview",
-            messages: [
-              {
-                role: "system",
-                content: `You are a lead scoring AI. Analyze each result and determine if the author is actively looking for a ${niche} service in or near ${location}. Score each result.`,
-              },
-              {
-                role: "user",
-                content: `Score these search results for purchase intent for "${niche}" services in "${location}". For each result, provide a JSON array.\n\n${batchPrompt}`,
-              },
-            ],
-            tools: [
-              {
-                type: "function",
-                function: {
-                  name: "score_leads",
-                  description: "Score leads for purchase intent",
-                  parameters: {
-                    type: "object",
-                    properties: {
-                      leads: {
-                        type: "array",
-                        items: {
-                          type: "object",
-                          properties: {
-                            result_index: { type: "number", description: "0-based index" },
-                            intent_score: { type: "number", description: "0-100 purchase intent score" },
-                            intent_category: {
-                              type: "string",
-                              enum: ["active_search", "complaint", "recommendation_request", "review", "discussion", "irrelevant"],
-                            },
-                            summary: { type: "string", description: "1-2 sentence summary of what the person needs" },
-                            recommended_services: { type: "string", description: "Comma-separated services to pitch" },
-                            author_name: { type: "string", description: "Author name if found" },
-                          },
-                          required: ["result_index", "intent_score", "intent_category", "summary", "recommended_services"],
-                          additionalProperties: false,
-                        },
-                      },
-                    },
-                    required: ["leads"],
-                    additionalProperties: false,
-                  },
-                },
-              },
-            ],
-            tool_choice: { type: "function", function: { name: "score_leads" } },
-          }),
-        });
-
-        if (aiResponse.ok) {
-          const aiData = await aiResponse.json();
-          const toolCall = aiData.choices?.[0]?.message?.tool_calls?.[0];
-          if (toolCall) {
-            const parsed = JSON.parse(toolCall.function.arguments);
-            for (const lead of parsed.leads) {
-              const result = batch[lead.result_index];
-              if (!result) continue;
-
-              const temperature = lead.intent_score >= 80 ? "hot" : lead.intent_score >= 50 ? "warm" : "cold";
-
-              scoredLeads.push({
-                source_url: result.url,
-                source_platform: result.platform,
-                post_content: (result.markdown || result.description || "").substring(0, 2000),
-                post_title: result.title || null,
-                author_name: lead.author_name || null,
-                author_profile_url: null,
-                niche,
-                location,
-                intent_score: lead.intent_score,
-                intent_category: lead.intent_category,
-                lead_temperature: temperature,
-                ai_summary: lead.summary,
-                ai_recommended_services: lead.recommended_services,
-                search_query: result.searchQuery,
-                search_niche: niche,
-                search_location: location,
-              });
-            }
-          }
-        } else {
-          const errText = await aiResponse.text();
-          console.error("AI scoring error:", aiResponse.status, errText);
-          // Fall back: add results without AI scoring
-          for (const result of batch) {
-            scoredLeads.push({
-              source_url: result.url,
-              source_platform: result.platform,
-              post_content: (result.markdown || result.description || "").substring(0, 2000),
-              post_title: result.title || null,
-              niche,
-              location,
-              intent_score: 0,
-              intent_category: "unknown",
-              lead_temperature: "cold",
-              ai_summary: "AI scoring unavailable",
-              ai_recommended_services: "",
-              search_query: result.searchQuery,
-              search_niche: niche,
-              search_location: location,
-            });
-          }
-        }
+        const scored = await scoreLeadsBatch(LOVABLE_API_KEY, batch, niche, location);
+        scoredLeads.push(...scored);
       } catch (err) {
-        console.error("AI scoring failed:", err);
+        console.error("AI scoring failed for batch:", err);
       }
     }
 
@@ -274,19 +367,17 @@ serve(async (req) => {
 
     if (scoredLeads.length > 0) {
       const { error: insertError } = await supabase.from("intent_leads").insert(scoredLeads);
-      if (insertError) {
-        console.error("Insert error:", insertError);
-      }
+      if (insertError) console.error("Insert error:", insertError);
     }
 
-    // Sort by score descending
     scoredLeads.sort((a, b) => b.intent_score - a.intent_score);
 
-    // Track usage costs
-    const firecrawlCalls = maxQueries * selectedPlatforms.length;
+    // Track usage
     const aiCalls = Math.ceil(uniqueResults.length / batchSize);
-    const FIRECRAWL_COST_PER_SEARCH = 0.01; // ~$0.01 per search call
-    const estimatedCost = firecrawlCalls * FIRECRAWL_COST_PER_SEARCH;
+    const TAVILY_COST_PER_SEARCH = 0; // Free tier
+    const FIRECRAWL_COST_PER_SEARCH = 0.01;
+    const costPerCall = useTavily ? TAVILY_COST_PER_SEARCH : FIRECRAWL_COST_PER_SEARCH;
+    const estimatedCost = searchCalls * costPerCall;
 
     try {
       await supabase.from("scraping_usage").insert({
@@ -294,7 +385,7 @@ serve(async (req) => {
         niche,
         location,
         platforms_used: selectedPlatforms,
-        firecrawl_calls: firecrawlCalls,
+        firecrawl_calls: useTavily ? 0 : searchCalls,
         ai_calls: aiCalls,
         leads_found: scoredLeads.length,
         estimated_cost_usd: estimatedCost,
@@ -308,8 +399,12 @@ serve(async (req) => {
         success: true,
         data: scoredLeads,
         count: scoredLeads.length,
+        provider,
         usage: {
-          firecrawl_calls: firecrawlCalls,
+          provider,
+          search_calls: searchCalls,
+          firecrawl_calls: useTavily ? 0 : searchCalls,
+          tavily_calls: useTavily ? searchCalls : 0,
           ai_calls: aiCalls,
           estimated_cost_usd: Number(estimatedCost.toFixed(4)),
         },
