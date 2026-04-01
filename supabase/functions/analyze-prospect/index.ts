@@ -244,11 +244,10 @@ Deno.serve(async (req) => {
               'markdown',
               'screenshot',
               'branding',
-              {
-                type: 'json',
-                schema: BUSINESS_SCHEMA,
-              },
             ],
+            jsonOptions: {
+              schema: BUSINESS_SCHEMA,
+            },
             onlyMainContent: false,
             waitFor: 3000,
             timeout: 30000,
