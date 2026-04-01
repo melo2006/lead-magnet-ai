@@ -303,44 +303,48 @@ const DemoSite = () => {
               ref={previewFrameRef}
               className="relative mx-auto h-[calc(100vh-11rem)] w-full max-w-[1400px] overflow-hidden bg-background shadow-2xl sm:rounded-[1.75rem] sm:border sm:border-border/70"
             >
-              <div className="flex h-full w-full items-start justify-center overflow-hidden bg-background">
-                <div
-                  className="shrink-0"
-                  style={{
-                    width: `${previewCanvasWidth}px`,
-                    height: `${previewCanvasHeight}px`,
-                    transform: `scale(${previewScale})`,
-                    transformOrigin: "top center",
-                  }}
-                >
-                  {!iframeBlocked && previewUrl ? (
+              {/* Preview content */}
+              <div className="h-full w-full overflow-y-auto overflow-x-hidden bg-background">
+                {!iframeBlocked && previewUrl ? (
+                  <div
+                    className="relative w-full"
+                    style={{
+                      height: `${previewCanvasHeight}px`,
+                    }}
+                  >
                     <iframe
                       ref={iframeRef}
                       key={previewUrl}
                       src={previewUrl}
                       title={`${siteName} website`}
-                      className="h-full w-full border-0 bg-background"
+                      className="absolute top-0 left-0 border-0 bg-background"
+                      style={{
+                        width: `${previewCanvasWidth}px`,
+                        height: `${previewCanvasHeight / previewScale}px`,
+                        transform: `scale(${previewScale})`,
+                        transformOrigin: "top left",
+                      }}
                       sandbox="allow-scripts allow-same-origin allow-popups allow-forms"
                       onError={() => setIframeBlocked(true)}
                       onLoad={handleIframeLoad}
                     />
-                  ) : screenshotSrc ? (
-                    <div className="relative h-full w-full overflow-hidden bg-muted">
-                      <img
-                        src={screenshotSrc}
-                        alt={`${siteName} website`}
-                        className="block h-full w-full object-contain object-top"
-                        loading="lazy"
-                        decoding="async"
-                        draggable={false}
-                      />
-                    </div>
-                  ) : (
-                    <div className="flex h-full w-full items-center justify-center bg-muted">
-                      <p className="text-lg text-muted-foreground">Website preview unavailable</p>
-                    </div>
-                  )}
-                </div>
+                  </div>
+                ) : screenshotSrc ? (
+                  <div className="relative w-full min-h-full bg-white">
+                    <img
+                      src={screenshotSrc}
+                      alt={`${siteName} website`}
+                      className="block w-full h-auto"
+                      loading="lazy"
+                      decoding="async"
+                      draggable={false}
+                    />
+                  </div>
+                ) : (
+                  <div className="flex h-full w-full items-center justify-center bg-muted">
+                    <p className="text-lg text-muted-foreground">Website preview unavailable</p>
+                  </div>
+                )}
               </div>
 
               {/* DEMO watermark — only show on screenshot fallback */}
