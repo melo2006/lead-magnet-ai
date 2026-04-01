@@ -194,7 +194,7 @@ async function exaResearch(
   return result;
 }
 
-
+Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
   }
