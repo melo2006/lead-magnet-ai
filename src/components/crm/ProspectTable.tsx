@@ -431,6 +431,20 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) =
           <span className="text-[10px] text-muted-foreground">—</span>
         );
       }
+      case "sources": {
+        const bd = (p as any).business_data || {};
+        const hasExa = !!bd.exa_research && Array.isArray(bd.exa_research) && bd.exa_research.length > 0;
+        const hasFirecrawl = !!bd.services || !!bd.tagline || !!bd.about || !!(p as any).website_screenshot;
+        const hasAi = !!(p as any).ai_analyzed;
+        if (!hasExa && !hasFirecrawl && !hasAi) return <span className="text-[10px] text-muted-foreground">—</span>;
+        return (
+          <div className="flex items-center gap-1 flex-wrap">
+            {hasExa && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-400 border border-violet-500/25">Exa</span>}
+            {hasFirecrawl && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-orange-500/15 text-orange-400 border border-orange-500/25">FC</span>}
+            {hasAi && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-primary/15 text-primary border border-primary/25">AI</span>}
+          </div>
+        );
+      }
       default:
         return null;
     }
