@@ -1,5 +1,5 @@
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { MessageSquare, Mic, ArrowLeft } from "lucide-react";
 import type { DemoLeadData } from "@/components/landing/demo-results/demoResultsUtils";
 import { getImageSrc, getSiteName } from "@/components/landing/demo-results/demoResultsUtils";
@@ -20,6 +20,7 @@ const DemoSite = () => {
   const [chatOpen, setChatOpen] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
   const returnTo = searchParams.get("returnTo");
+  const prospectIdParam = searchParams.get("prospectId");
 
   // Handle URL params from CRM (e.g. /demo?url=...&name=...&niche=...)
   useEffect(() => {
@@ -74,9 +75,13 @@ const DemoSite = () => {
         if (cancelled) return;
 
         const newLeadData: DemoLeadData = {
-          fullName: "CRM Prospect",
+          leadId: insertedLead.id,
+          prospectId: prospectIdParam || undefined,
+          fullName: fullLead.full_name || "CRM Prospect",
           businessName: fullLead.business_name || nameParam || "Business",
-          websiteUrl: urlParam,
+          email: fullLead.email || undefined,
+          websiteUrl: fullLead.website_url || urlParam,
+          phone: fullLead.phone || undefined,
           niche: fullLead.niche || nicheParam || "general",
           screenshot: fullLead.website_screenshot || null,
           title: fullLead.website_title || "",
@@ -161,7 +166,23 @@ const DemoSite = () => {
   }
 
   const screenshotSrc = getImageSrc(leadData.screenshot);
-  const siteName = leadData.businessName?.trim() || getSiteName(leadData.websiteUrl, leadData.title);
+  const homepageUrl = (() => {
+    try {
+      const normalizedUrl = leadData.websiteUrl.startsWith("http") ? leadData.websiteUrl : `https://${leadData.websiteUrl}`;
+      const url = new URL(normalizedUrl);
+      return `${url.protocol}//${url.host}`;
+    } catch {
+      return leadData.websiteUrl;
+    }
+  })();
+  const hasCrmContext = Boolean(leadData.prospectId || prospectIdParam);
+  const knownCallerName = !hasCrmContext && leadData.fullName !== "CRM Prospect" ? leadData.fullName : undefined;
+  const knownCallerEmail = !hasCrmContext ? leadData.email : undefined;
+  const knownCallerPhone = !hasCrmContext ? leadData.phone : undefined;
+  const followUpName = hasCrmContext ? "Ron Melo" : knownCallerName;
+  const followUpEmail = hasCrmContext ? undefined : knownCallerEmail;
+  const followUpPhone = hasCrmContext ? undefined : knownCallerPhone;
+  const siteName = leadData.businessName?.trim() || getSiteName(homepageUrl, leadData.title);
 
   return (
     <div className="relative flex min-h-screen flex-col bg-background">
@@ -178,15 +199,25 @@ const DemoSite = () => {
           <span className="text-xs text-muted-foreground">|</span>
           <span className="text-sm font-medium text-foreground">{siteName}</span>
         </div>
-        <span className="hidden rounded-full border border-border bg-background/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground sm:inline-flex">
-          Demo Preview
-        </span>
+        <div className="flex items-center gap-2">
+          <a
+            href={homepageUrl}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="hidden rounded-full border border-border bg-background/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-foreground sm:inline-flex"
+          >
+            Open Homepage
+          </a>
+          <span className="hidden rounded-full border border-border bg-background/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground sm:inline-flex">
+            Live Demo
+          </span>
+        </div>
       </div>
 
       {/* Website screenshot displayed as a responsive full-width image */}
       <div className="relative flex-1">
         {screenshotSrc ? (
-          <div className="relative w-full">
+          <div className="relative mx-auto w-full max-w-[1600px]">
             <img
               src={screenshotSrc}
               alt={`${siteName} website`}
@@ -195,13 +226,6 @@ const DemoSite = () => {
               decoding="async"
               draggable={false}
             />
-
-            {/* DEMO watermark */}
-            <div className="pointer-events-none absolute inset-0 flex items-center justify-center">
-              <p className="select-none text-[clamp(2.5rem,10vw,8rem)] font-black tracking-[0.35em] text-foreground/[0.04]">
-                DEMO
-              </p>
-            </div>
           </div>
         ) : (
           <div className="flex h-[60vh] w-full items-center justify-center bg-muted">
@@ -210,7 +234,7 @@ const DemoSite = () => {
         )}
 
         {/* ===== AI Widget buttons — fixed to the bottom of the viewport ===== */}
-        <div className="pointer-events-none fixed inset-x-0 bottom-20 z-50 px-3 sm:px-6">
+        <div className="pointer-events-none fixed inset-x-0 bottom-4 z-50 px-3 sm:bottom-6 sm:px-6">
           <div className="relative mx-auto h-0 w-full max-w-[1100px]">
             <div className="pointer-events-auto absolute bottom-0 left-0">
               {chatOpen ? (
@@ -219,10 +243,12 @@ const DemoSite = () => {
                     key={`chat-${leadData.websiteUrl}`}
                     businessName={siteName}
                     businessNiche={leadData.niche || "general"}
-                    websiteUrl={leadData.websiteUrl}
+                    websiteUrl={homepageUrl}
                     businessInfo={leadData.websiteContent || leadData.description || ""}
-                    ownerName={leadData.fullName}
-                    callerPhone={leadData.phone}
+                    ownerName={followUpName}
+                    callerName={knownCallerName}
+                    callerEmail={knownCallerEmail}
+                    callerPhone={knownCallerPhone}
                     onClose={() => setChatOpen(false)}
                   />
                 </div>
@@ -248,13 +274,18 @@ const DemoSite = () => {
                 <div className="w-[min(20rem,calc(100vw-2.5rem))] max-h-[60vh] overflow-y-auto animate-in slide-in-from-bottom-4 fade-in duration-300">
                   <VoiceAgentWidget
                     key={`voice-${leadData.websiteUrl}`}
+                    leadId={leadData.leadId}
+                    prospectId={leadData.prospectId}
                     businessName={siteName}
                     businessNiche={leadData.niche || "general"}
-                    ownerName={leadData.fullName}
-                    ownerEmail={leadData.email}
-                    ownerPhone={leadData.phone}
-                    websiteUrl={leadData.websiteUrl}
+                    ownerName={followUpName}
+                    ownerEmail={followUpEmail}
+                    ownerPhone={followUpPhone}
+                    websiteUrl={homepageUrl}
                     businessInfo={leadData.websiteContent || leadData.description || ""}
+                    callerName={knownCallerName}
+                    callerEmail={knownCallerEmail}
+                    callerPhone={knownCallerPhone}
                     onClose={() => setVoiceOpen(false)}
                   />
                 </div>
@@ -278,18 +309,6 @@ const DemoSite = () => {
         </div>
       </div>
 
-      {/* Bottom CTA bar */}
-      <div className="border-t border-border bg-card px-6 py-6 text-center">
-        <p className="mb-3 text-sm text-muted-foreground">
-          Impressed? These AI assistants can be added to any website in minutes.
-        </p>
-        <button
-          onClick={() => navigate("/")}
-          className="inline-flex items-center gap-2 rounded-xl bg-primary px-6 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-        >
-          Get Started — Contact Us
-        </button>
-      </div>
     </div>
   );
 };

@@ -1,3 +1,4 @@
+import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 import { encode as base64url } from "https://deno.land/std@0.203.0/encoding/base64url.ts";
 
 const corsHeaders = {
@@ -461,6 +462,47 @@ const normalizeEmailCandidate = (value?: string | null) => {
   return match ? match[0] : '';
 };
 
+const extractCallerPhoneFromTranscript = (transcript: string) => {
+  if (!transcript) return '';
+
+  const matches = Array.from(transcript.matchAll(/(?:\+?\d[\d\s().-]{8,}\d)/g))
+    .map((match) => normalizePhoneNumber(match[0]))
+    .filter((value) => /^\+\d{11,15}$/.test(value));
+
+  return matches.length > 0 ? matches[matches.length - 1] : '';
+};
+
+const formatPhoneForSpeech = (value?: string) => {
+  const normalized = normalizePhoneNumber(value);
+  if (!normalized) return '';
+
+  const digits = normalized.replace(/^\+1/, '').replace(/\D/g, '');
+  if (digits.length === 10) {
+    return `${digits.slice(0, 3).split('').join(' ')}. ${digits.slice(3, 6).split('').join(' ')}. ${digits.slice(6).split('').join(' ')}`;
+  }
+
+  return normalized.split('').join(' ');
+};
+
+const formatEmailForSpeech = (value?: string | null) => {
+  const normalized = normalizeEmailCandidate(value);
+  if (!normalized) return '';
+
+  return normalized
+    .replace(/@/g, ' at ')
+    .replace(/\./g, ' dot ')
+    .replace(/-/g, ' dash ')
+    .replace(/_/g, ' underscore ');
+};
+
+const escapeXml = (value: string) =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+
 const extractCallerEmailFromTranscript = (transcript: string) => {
   if (!transcript) return '';
 
@@ -487,6 +529,91 @@ const extractCallerNameFromTranscript = (transcript: string) => {
 
   return matches.length > 0 ? matches[matches.length - 1][1] : '';
 };
+
+async function persistCapturedCallerDetails({
+  supabase,
+  callId,
+  leadId,
+  prospectId,
+  businessName,
+  callerName,
+  callerEmail,
+  callerPhone,
+}: {
+  supabase: any;
+  callId: string;
+  leadId?: string;
+  prospectId?: string;
+  businessName: string;
+  callerName: string;
+  callerEmail: string;
+  callerPhone: string;
+}) {
+  const safeName = callerName.trim();
+  const safeEmail = normalizeEmailCandidate(callerEmail);
+  const safePhone = normalizePhoneNumber(callerPhone);
+
+  let leadUpdated = false;
+  let prospectUpdated = false;
+
+  if (leadId) {
+    const leadUpdates: Record<string, string> = {};
+    if (safeName && !/crm prospect/i.test(safeName)) leadUpdates.full_name = safeName;
+    if (safeEmail) leadUpdates.email = safeEmail;
+    if (safePhone) leadUpdates.phone = safePhone;
+
+    if (Object.keys(leadUpdates).length > 0) {
+      const { error } = await supabase.from('leads').update(leadUpdates).eq('id', leadId);
+      if (error) throw error;
+      leadUpdated = true;
+    }
+  }
+
+  if (prospectId) {
+    const { data: existingProspect, error: prospectFetchError } = await supabase
+      .from('prospects')
+      .select('owner_name, owner_email, owner_phone, notes, contact_method')
+      .eq('id', prospectId)
+      .maybeSingle();
+
+    if (prospectFetchError) throw prospectFetchError;
+
+    if (existingProspect) {
+      const prospectUpdates: Record<string, string> = {};
+
+      if (safeName && !existingProspect.owner_name) prospectUpdates.owner_name = safeName;
+      if (safeEmail && !existingProspect.owner_email) prospectUpdates.owner_email = safeEmail;
+      if (safePhone && !existingProspect.owner_phone) prospectUpdates.owner_phone = safePhone;
+
+      if ((!existingProspect.contact_method || existingProspect.contact_method === 'unknown') && (safePhone || safeEmail)) {
+        prospectUpdates.contact_method = safePhone ? 'phone' : 'email';
+      }
+
+      const noteParts = [
+        `Demo callback request captured (${callId})`,
+        businessName ? `business: ${businessName}` : '',
+        safeName ? `name: ${safeName}` : '',
+        safeEmail ? `email: ${safeEmail}` : '',
+        safePhone ? `phone: ${safePhone}` : '',
+      ].filter(Boolean);
+
+      const noteEntry = noteParts.join(' · ');
+      if (noteEntry && !existingProspect.notes?.includes(callId)) {
+        prospectUpdates.notes = existingProspect.notes?.trim()
+          ? `${existingProspect.notes.trim()}\n\n${noteEntry}`
+          : noteEntry;
+      }
+
+      if (Object.keys(prospectUpdates).length > 0) {
+        const { error } = await supabase.from('prospects').update(prospectUpdates).eq('id', prospectId);
+        if (error) throw error;
+        prospectUpdated = true;
+      }
+    }
+  }
+
+  return { leadUpdated, prospectUpdated };
+}
 
 const parseJsonContent = (value: string) => {
   const cleaned = value
@@ -525,6 +652,7 @@ async function summarizeTranscript({
   const fallbackAppointmentTimeText = extractAppointmentTimeHint(transcript);
   const fallbackCallerName = extractCallerNameFromTranscript(transcript);
   const fallbackCallerEmail = extractCallerEmailFromTranscript(transcript);
+  const fallbackCallerPhone = extractCallerPhoneFromTranscript(transcript);
 
   if (!lovableApiKey) {
     return {
@@ -532,7 +660,7 @@ async function summarizeTranscript({
       nextStep: fallbackFlags.appointmentRequested
         ? 'Confirm the requested appointment time and send the owner the details.'
         : fallbackFlags.transferRequested
-          ? `Attempt an immediate handoff to ${ownerName}.`
+          ? `Send an immediate callback alert to ${ownerName}.`
           : fallbackFlags.callbackRequested
             ? 'Call the lead back directly.'
             : 'Review the transcript and follow up if needed.',
@@ -540,6 +668,7 @@ async function summarizeTranscript({
       appointmentTimeText: fallbackAppointmentTimeText,
       callerName: fallbackCallerName,
       callerEmail: fallbackCallerEmail,
+      callerPhone: fallbackCallerPhone,
       keyPoints: [],
     };
   }
@@ -558,7 +687,7 @@ async function summarizeTranscript({
         {
           role: 'system',
           content:
-            'You summarize demo call transcripts for business owners. Return strict JSON with these keys only: summary (string), nextStep (string), callbackRequested (boolean), appointmentRequested (boolean), transferRequested (boolean), appointmentTimeText (string), callerName (string), callerEmail (string), keyPoints (array of up to 4 short strings). callerName must be the final confirmed caller name, not the business owner. callerEmail must be the final corrected caller email address if one was provided. appointmentTimeText must capture the exact requested appointment slot or time window if one was mentioned, otherwise return an empty string. Keep the summary practical and concise.',
+            'You summarize demo call transcripts for business owners. Return strict JSON with these keys only: summary (string), nextStep (string), callbackRequested (boolean), appointmentRequested (boolean), transferRequested (boolean), appointmentTimeText (string), callerName (string), callerEmail (string), callerPhone (string), keyPoints (array of up to 4 short strings). callerName must be the final confirmed caller name, not the business owner. callerEmail must be the final corrected caller email address if one was provided. callerPhone must be the final confirmed callback phone number in digits if one was provided. appointmentTimeText must capture the exact requested appointment slot or time window if one was mentioned, otherwise return an empty string. Keep the summary practical and concise.',
         },
         {
           role: 'user',
@@ -587,7 +716,7 @@ async function summarizeTranscript({
       (fallbackFlags.appointmentRequested
         ? 'Confirm the requested appointment time and send the owner the details.'
         : fallbackFlags.transferRequested
-          ? `Attempt an immediate handoff to ${ownerName}.`
+          ? `Send an immediate callback alert to ${ownerName}.`
           : fallbackFlags.callbackRequested
             ? 'Call the lead back directly.'
             : 'Review the transcript and follow up if needed.'),
@@ -603,6 +732,10 @@ async function summarizeTranscript({
       typeof parsed.callerEmail === 'string' && parsed.callerEmail.trim()
         ? normalizeEmailCandidate(parsed.callerEmail)
         : fallbackCallerEmail,
+    callerPhone:
+      typeof parsed.callerPhone === 'string' && parsed.callerPhone.trim()
+        ? normalizePhoneNumber(parsed.callerPhone)
+        : fallbackCallerPhone,
     keyPoints: Array.isArray(parsed.keyPoints) ? parsed.keyPoints.slice(0, 4) : [],
   };
 }
@@ -611,6 +744,7 @@ async function sendSummaryEmail({
   resendApiKey,
   callerName,
   callerEmail,
+  callerPhone,
   ownerName,
   ownerEmail,
   ownerPhone,
@@ -629,6 +763,7 @@ async function sendSummaryEmail({
   resendApiKey: string;
   callerName: string;
   callerEmail: string;
+  callerPhone: string;
   ownerName: string;
   ownerEmail: string;
   ownerPhone: string;
@@ -661,6 +796,7 @@ async function sendSummaryEmail({
         <h2 style="font-size: 18px; margin: 0 0 8px;">Caller details</h2>
         <p style="margin: 4px 0;"><strong>Name:</strong> ${escapeHtml(callerName || 'Not captured')}</p>
         <p style="margin: 4px 0;"><strong>Email:</strong> ${escapeHtml(callerEmail || 'Not captured')}</p>
+        <p style="margin: 4px 0;"><strong>Phone:</strong> ${escapeHtml(callerPhone || 'Not captured')}</p>
         <p style="margin: 4px 0;"><strong>Business owner on file:</strong> ${escapeHtml(ownerName)}</p>
         <p style="margin: 4px 0;"><strong>Owner email on file:</strong> ${escapeHtml(ownerEmail)}</p>
         <p style="margin: 4px 0;"><strong>Owner phone on file:</strong> ${escapeHtml(ownerPhone || 'Not provided')}</p>
@@ -673,7 +809,7 @@ async function sendSummaryEmail({
         <p style="margin: 0 0 12px;"><strong>Next step:</strong> ${escapeHtml(nextStep)}</p>
         <p style="margin: 0 0 8px;"><strong>Callback requested:</strong> ${callbackRequested ? 'Yes' : 'No'}</p>
         <p style="margin: 0 0 8px;"><strong>Appointment requested:</strong> ${appointmentRequested ? 'Yes' : 'No'}</p>
-        <p style="margin: 0 0 8px;"><strong>Immediate transfer requested:</strong> ${transferRequested ? 'Yes' : 'No'}</p>
+        <p style="margin: 0 0 8px;"><strong>Immediate callback requested:</strong> ${transferRequested ? 'Yes' : 'No'}</p>
         ${appointmentHtml}
         <div><strong>Key points:</strong>${pointsHtml}</div>
       </div>
@@ -699,7 +835,7 @@ async function sendSummaryEmail({
         to,
         subject: `Aspen demo recap for ${businessName}`,
         html,
-        text: `Aspen demo call recap\n\nBusiness: ${businessName}\nWebsite: ${websiteUrl}\nCaller name: ${callerName || 'Not captured'}\nCaller email: ${callerEmail || 'Not captured'}\nBusiness owner: ${ownerName}\nOwner email: ${ownerEmail}\nOwner phone: ${ownerPhone || 'Not provided'}\n\nSummary: ${summary}\nNext step: ${nextStep}\nCallback requested: ${callbackRequested ? 'Yes' : 'No'}\nAppointment requested: ${appointmentRequested ? 'Yes' : 'No'}\nImmediate transfer requested: ${transferRequested ? 'Yes' : 'No'}\n${appointmentScheduledFor ? `Confirmed time: ${appointmentScheduledFor}\n` : ''}\nTranscript:\n${transcript || 'Transcript was not available yet.'}`,
+        text: `Aspen demo call recap\n\nBusiness: ${businessName}\nWebsite: ${websiteUrl}\nCaller name: ${callerName || 'Not captured'}\nCaller email: ${callerEmail || 'Not captured'}\nCaller phone: ${callerPhone || 'Not captured'}\nBusiness owner: ${ownerName}\nOwner email: ${ownerEmail}\nOwner phone: ${ownerPhone || 'Not provided'}\n\nSummary: ${summary}\nNext step: ${nextStep}\nCallback requested: ${callbackRequested ? 'Yes' : 'No'}\nAppointment requested: ${appointmentRequested ? 'Yes' : 'No'}\nImmediate callback requested: ${transferRequested ? 'Yes' : 'No'}\n${appointmentScheduledFor ? `Confirmed time: ${appointmentScheduledFor}\n` : ''}\nTranscript:\n${transcript || 'Transcript was not available yet.'}`,
       }),
     });
 
@@ -794,7 +930,11 @@ Deno.serve(async (req) => {
       }
 
       const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+      const supabaseUrl = Deno.env.get('SUPABASE_URL');
+      const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
       const callId = typeof body.callId === 'string' ? body.callId : '';
+      const leadId = typeof body.leadId === 'string' ? body.leadId.trim() : '';
+      const prospectId = typeof body.prospectId === 'string' ? body.prospectId.trim() : '';
       const ownerEmail = typeof body.ownerEmail === 'string' ? body.ownerEmail.trim() : '';
       const ownerNameInput = typeof body.ownerName === 'string' ? body.ownerName.trim() : '';
       const ownerPhone = typeof body.ownerPhone === 'string' ? body.ownerPhone.trim() : '';
@@ -828,6 +968,29 @@ Deno.serve(async (req) => {
         lovableApiKey: lovableApiKey || undefined,
         existingSummary: callData?.call_analysis?.call_summary || callData?.call_analysis?.summary,
       });
+
+      let contactPersisted = false;
+      let contactPersistWarning: string | null = null;
+
+      if (supabaseUrl && supabaseServiceRoleKey && (leadId || prospectId)) {
+        try {
+          const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey);
+          const persistResult = await persistCapturedCallerDetails({
+            supabase: adminClient,
+            callId,
+            leadId: leadId || undefined,
+            prospectId: prospectId || undefined,
+            businessName,
+            callerName: aiSummary.callerName || '',
+            callerEmail: aiSummary.callerEmail || '',
+            callerPhone: aiSummary.callerPhone || '',
+          });
+          contactPersisted = persistResult.leadUpdated || persistResult.prospectUpdated;
+        } catch (persistError) {
+          contactPersistWarning = persistError instanceof Error ? persistError.message : 'Unable to save caller contact details.';
+          console.error('Failed to persist caller details (non-fatal):', persistError);
+        }
+      }
 
       let calendarEventId: string | null = null;
       let appointmentScheduledFor: string | null = null;
@@ -880,6 +1043,7 @@ Deno.serve(async (req) => {
           resendApiKey,
           callerName: aiSummary.callerName || '',
           callerEmail: aiSummary.callerEmail || '',
+          callerPhone: aiSummary.callerPhone || '',
           ownerName: resolvedOwnerName,
           ownerEmail: effectiveOwnerEmail,
           ownerPhone,
@@ -915,6 +1079,11 @@ Deno.serve(async (req) => {
         calendarEventId,
         appointmentScheduledFor,
         calendarWarning,
+        callerName: aiSummary.callerName || '',
+        callerEmail: aiSummary.callerEmail || '',
+        callerPhone: aiSummary.callerPhone || '',
+        contactPersisted,
+        contactPersistWarning,
       });
     }
 
@@ -931,21 +1100,25 @@ Deno.serve(async (req) => {
 
       const transferTo = normalizePhoneNumber(body.transferTo) || DEFAULT_TRANSFER_NUMBER;
       const callerName = typeof body.callerName === 'string' ? body.callerName.trim() : 'a caller';
+      const callerEmail = typeof body.callerEmail === 'string' ? normalizeEmailCandidate(body.callerEmail) : '';
       const businessName = typeof body.businessName === 'string' ? body.businessName.trim() : 'Demo Business';
       const resolvedOwnerName = typeof body.ownerName === 'string' && body.ownerName.trim() ? body.ownerName.trim() : DEFAULT_OWNER_NAME;
       const callId = typeof body.callId === 'string' ? body.callId : '';
 
       console.log(`Initiating warm transfer to ${transferTo} for call ${callId}`);
 
-      // Caller's phone for Ron to call back
       const callerPhone = typeof body.callerPhone === 'string' ? normalizePhoneNumber(body.callerPhone) : '';
-
-      // Use Twilio TwiML to announce caller details so Ron can call them back immediately
-      const callerPhoneAnnouncement = callerPhone
-        ? ` Their phone number is ${callerPhone.split('').join(' ')}. Again, ${callerPhone.split('').join(' ')}.`
-        : ' Their phone number was not captured — check the email recap for details.';
-      const twimlMessage = `Hello ${resolvedOwnerName}, this is Aspen, the AI assistant for ${businessName}. ${callerName} just finished a demo call and would like to speak with you right away.${callerPhoneAnnouncement} Please call them back as soon as possible. Thank you!`;
-      const twimlUrl = `http://twimlets.com/message?Message%5B0%5D=${encodeURIComponent(twimlMessage)}`;
+      const callbackSummary = [
+        `${callerName || 'A caller'} requested an immediate callback after the ${businessName} web demo.`,
+        callerPhone
+          ? `Their confirmed phone number is ${formatPhoneForSpeech(callerPhone)}.`
+          : 'I do not have a confirmed callback phone number yet.',
+        callerEmail
+          ? `Their confirmed email is ${formatEmailForSpeech(callerEmail)}.`
+          : 'I do not have a confirmed email address yet.',
+        'Please call them back as soon as possible.',
+      ].join(' ');
+      const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="Polly.Joanna-Neural" language="en-US">${escapeXml(`Hello ${resolvedOwnerName}. This is Aspen.`)}</Say><Pause length="1"/><Say voice="Polly.Joanna-Neural" language="en-US">${escapeXml(callbackSummary)}</Say></Response>`;
 
       try {
         const response = await fetch(`${TWILIO_GATEWAY_URL}/Calls.json`, {
@@ -958,7 +1131,7 @@ Deno.serve(async (req) => {
           body: new URLSearchParams({
             To: transferTo,
             From: TWILIO_CALLER_ID,
-            Url: twimlUrl,
+            Twiml: twiml,
           }),
         });
 
@@ -993,6 +1166,9 @@ Deno.serve(async (req) => {
       websiteUrl,
       businessInfo,
       ownerPhone,
+      callerName,
+      callerEmail,
+      callerPhone,
     } = body;
 
     if (!agentId) {
@@ -1001,6 +1177,9 @@ Deno.serve(async (req) => {
 
     const resolvedOwnerName = typeof ownerName === 'string' && ownerName.trim() ? ownerName.trim() : DEFAULT_OWNER_NAME;
     const normalizedOwnerPhone = normalizePhoneNumber(ownerPhone);
+    const resolvedCallerName = typeof callerName === 'string' ? callerName.trim() : '';
+    const resolvedCallerEmail = typeof callerEmail === 'string' ? normalizeEmailCandidate(callerEmail) : '';
+    const resolvedCallerPhone = normalizePhoneNumber(callerPhone);
 
     console.log('Creating web call for agent:', agentId, 'niche:', businessNiche, 'callbackPhone:', normalizedOwnerPhone);
 
@@ -1020,19 +1199,26 @@ Deno.serve(async (req) => {
           website_url: websiteUrl || '',
           business_info: (businessInfo || 'A professional business offering quality services.').substring(0, 12000),
           owner_phone: normalizedOwnerPhone || '',
-          caller_name: '',
-          caller_email: '',
+          caller_name: resolvedCallerName,
+          caller_email: resolvedCallerEmail,
+          caller_phone: resolvedCallerPhone || '',
           voice_persona: `You are Aspen, the AI voice assistant for ${businessName || 'this business'}. You are FUNNY, CORDIAL, and CONVERSATIONAL — like a witty, charming receptionist who genuinely loves helping people.
 
 CRITICAL OPENING RULE:
-- When the call starts, greet the caller warmly and IMMEDIATELY ask for their name. Example: "Hey there! Thanks for calling ${businessName || 'us'}! Before we dive in, who do I have the pleasure of speaking with today?"
-- Once they tell you their name, USE IT naturally throughout the conversation.
-- NEVER assume the caller's name. ALWAYS ask first.
+- If caller_name is blank, greet the caller warmly and IMMEDIATELY ask for their name. Example: "Hey there! Thanks for calling ${businessName || 'us'}! Before we dive in, who do I have the pleasure of speaking with today?"
+- If caller_name is already available, greet them by name and keep using it naturally.
+- NEVER invent a caller name. If you're unsure, ask.
 
 TWO PEOPLE IN EVERY CALL:
 - The CALLER is the person on the phone right now — a potential customer/lead. You do NOT know their name until they tell you.
 - The BUSINESS OWNER is ${resolvedOwnerName} — the person who owns ${businessName || 'this business'}. When offering callbacks, appointments, or transfers, always refer to ${resolvedOwnerName} by name.
 - These are DIFFERENT people. Never confuse them.
+
+KNOWN CALLER DETAILS:
+- caller_name = ${resolvedCallerName || 'not provided'}
+- caller_email = ${resolvedCallerEmail || 'not provided'}
+- caller_phone = ${resolvedCallerPhone || 'not provided'}
+- If any caller contact detail is already available, read it back and confirm whether it is still correct before relying on it.
 
 PERSONALITY RULES:
 - Be warm and playful. Use light humor and casual language.
@@ -1048,12 +1234,14 @@ LIVE CALENDAR HONESTY:
 - If someone asks about availability, say you can REQUEST their preferred time and the calendar will be checked right after the call.
 - If the caller gives a preferred time, confirm it as a requested slot, not a guaranteed booking.
 
-EMAIL CAPTURE RULES:
-- Never use owner_email as the caller's email. owner_email belongs only to the business owner.
-- If you promise to send anything by email, explicitly ask for the caller's best email address.
-- After they say it, repeat it back slowly and clearly, character by character.
-- Always confirm gmail as "g-m-a-i-l dot com" when that is the domain.
-- If the caller corrects any part of the email, discard the old version and restate only the corrected one.
+CONTACT CAPTURE RULES:
+- Never use owner_email or owner_phone as the caller's contact information.
+- Before promising any callback, follow-up email, or post-call recap, make sure you have BOTH the caller's best callback phone number and best email address.
+- If caller_phone or caller_email is already available, read each one back and ask if it is still correct.
+- If either detail is missing or wrong, ask for the corrected version.
+- Repeat the phone number back in short chunks and get an explicit yes before moving on.
+- Repeat the email back slowly using "at" and "dot", and get an explicit yes before moving on.
+- If the caller corrects any part of the phone or email, discard the old version and restate only the corrected one.
 - If you are not fully sure, ask them to repeat it once more instead of guessing.
 
 APPOINTMENT & CALLBACK:
@@ -1061,10 +1249,12 @@ APPOINTMENT & CALLBACK:
 - At the end of the call, confirm: "I'll make sure ${resolvedOwnerName} gets all the details from our chat, and we'll confirm the timing by email if needed!"
 
 LIVE TRANSFER / CALLBACK:
-- If the caller asks to speak with someone right now, a live person, or requests a transfer, FIRST make sure you have their phone number. Ask: "Absolutely! Before I get ${resolvedOwnerName} on the line, can I grab your phone number so they can reach you right away?"
-- Once you have their phone number, say: "Perfect! I'll have ${resolvedOwnerName} call you right back — usually within a minute or two. Hang tight!"
-- Mark this as a transfer request so the system can alert ${resolvedOwnerName} immediately.
-- Do NOT say you are "connecting" or "transferring" them live — instead frame it as an immediate callback.
+- If the caller asks to speak with someone right now, a live person, or requests a transfer, do NOT promise a live bridge on this web demo.
+- Instead say you can alert ${resolvedOwnerName} for an immediate callback right after the call.
+- Before ending the call, capture and confirm BOTH the callback phone number and email address.
+- Once both are confirmed, say: "Perfect — I'm sending that to ${resolvedOwnerName} now so they can reach you shortly."
+- Mark this as a transfer request so the system can alert ${resolvedOwnerName} immediately after the call ends.
+- After confirming the contact info and next step, wrap up the call cleanly. Do not keep asking whether they want the transfer again.
 
 DEMO CONTEXT: This is a demonstration of AI voice capabilities. If the caller asks about signing up for the AI service itself, you can mention they can speak with Ron Melo, our Director of Sales, about getting this for their own business.`,
         },

@@ -4,9 +4,11 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 
 const RETELL_AGENT_ID = "agent_ea256ca8441689051b9aa2b183";
-const DEFAULT_OWNER_NAME = "Business Owner";
+const DEFAULT_OWNER_NAME = "Ron Melo";
 
 interface VoiceAgentWidgetProps {
+  leadId?: string;
+  prospectId?: string;
   businessName: string;
   businessNiche: string;
   ownerName: string;
@@ -16,12 +18,15 @@ interface VoiceAgentWidgetProps {
   businessInfo: string;
   callerName?: string;
   callerEmail?: string;
+  callerPhone?: string;
   onClose?: () => void;
 }
 
 type CallStatus = "idle" | "connecting" | "active" | "ending";
 
 const VoiceAgentWidget = ({
+  leadId,
+  prospectId,
   businessName,
   businessNiche,
   ownerName,
@@ -31,6 +36,7 @@ const VoiceAgentWidget = ({
   businessInfo,
   callerName,
   callerEmail,
+  callerPhone,
   onClose,
 }: VoiceAgentWidgetProps) => {
   const { toast } = useToast();
@@ -51,7 +57,7 @@ const VoiceAgentWidget = ({
     }
   }, []);
 
-  const initiateWarmTransfer = useCallback(async () => {
+  const initiateWarmTransfer = useCallback(async (capturedContact?: { callerName?: string; callerEmail?: string; callerPhone?: string }) => {
     const callId = callIdRef.current;
     if (!callId) return;
 
@@ -61,8 +67,10 @@ const VoiceAgentWidget = ({
           action: "warm-transfer",
           callId,
           businessName,
-          callerName: callerName || "a caller",
-          callerPhone: ownerPhone || "",
+          ownerName: resolvedOwnerName,
+          callerName: capturedContact?.callerName || callerName || "a caller",
+          callerEmail: capturedContact?.callerEmail || callerEmail || "",
+          callerPhone: capturedContact?.callerPhone || callerPhone || "",
           transferTo: ownerPhone || "",
         },
       });
@@ -83,7 +91,7 @@ const VoiceAgentWidget = ({
         variant: "destructive",
       });
     }
-  }, [businessName, callerName, ownerPhone, resolvedOwnerName, toast]);
+  }, [businessName, callerEmail, callerName, callerPhone, ownerPhone, resolvedOwnerName, toast]);
 
   const queueCallSummary = useCallback(async () => {
     const callId = callIdRef.current;
@@ -96,6 +104,8 @@ const VoiceAgentWidget = ({
         body: {
           action: "email-call-summary",
           callId,
+          leadId,
+          prospectId,
           businessName,
           ownerName: resolvedOwnerName,
           ownerEmail,
@@ -110,7 +120,11 @@ const VoiceAgentWidget = ({
 
       // If a transfer was requested, attempt warm transfer
       if (data.transferRequested) {
-        await initiateWarmTransfer();
+        await initiateWarmTransfer({
+          callerName: data.callerName,
+          callerEmail: data.callerEmail,
+          callerPhone: data.callerPhone,
+        });
       }
 
       const appointmentBooked = Boolean(data.calendarEventId);
@@ -120,7 +134,7 @@ const VoiceAgentWidget = ({
           ? "Appointment confirmed"
           : "Appointment requested"
         : data.transferRequested
-          ? "Live handoff requested"
+          ? "Immediate callback requested"
           : data.callbackRequested
             ? "Callback request captured"
             : "Call summary sent";
@@ -130,7 +144,7 @@ const VoiceAgentWidget = ({
           ? `Confirmed for ${data.appointmentScheduledFor}.`
           : `Aspen captured appointment intent and flagged it for ${resolvedOwnerName}.`
         : data.transferRequested
-          ? `Aspen is connecting you with an AI Solutions Specialist now.`
+          ? `Aspen sent your confirmed details to ${resolvedOwnerName} for a callback shortly.`
           : data.callbackRequested
             ? `${resolvedOwnerName} now has the callback request details.`
             : null;
@@ -160,7 +174,7 @@ const VoiceAgentWidget = ({
         variant: "destructive",
       });
     }
-  }, [businessName, ownerEmail, ownerPhone, resolvedOwnerName, toast, websiteUrl, initiateWarmTransfer]);
+  }, [businessName, leadId, ownerEmail, ownerPhone, prospectId, resolvedOwnerName, toast, websiteUrl, initiateWarmTransfer]);
 
   useEffect(() => {
     return () => {
@@ -194,6 +208,7 @@ const VoiceAgentWidget = ({
           businessInfo: businessInfo?.substring(0, 6000) || "",
           callerName: callerName || "",
           callerEmail: callerEmail || "",
+          callerPhone: callerPhone || "",
         },
       });
 
@@ -236,7 +251,7 @@ const VoiceAgentWidget = ({
       setCallStatus("idle");
       clearTimer();
     }
-  }, [businessInfo, businessName, businessNiche, callerName, callerEmail, clearTimer, ownerEmail, ownerPhone, resolvedOwnerName, toast, websiteUrl, queueCallSummary]);
+  }, [businessInfo, businessName, businessNiche, callerEmail, callerName, callerPhone, clearTimer, ownerEmail, ownerPhone, resolvedOwnerName, toast, websiteUrl, queueCallSummary]);
 
   const endCall = useCallback(() => {
     setCallStatus("ending");
@@ -345,8 +360,8 @@ const VoiceAgentWidget = ({
         <div className="p-4">
         <p className="text-xs text-muted-foreground mb-3">
           {callStatus === "active"
-            ? `Ask about ${businessName}, request a callback from ${resolvedOwnerName}, or book a 15-minute appointment.`
-            : `This is a live demo of AI voice for ${businessName}. Aspen can answer questions, capture handoff requests, and schedule appointments.`}
+            ? `Ask about ${businessName}, request an immediate callback from ${resolvedOwnerName}, or book a 15-minute appointment.`
+            : `This is a live demo of AI voice for ${businessName}. Aspen can answer questions, confirm your contact details, and arrange a callback or appointment.`}
         </p>
 
         {callStatus === "idle" && (
