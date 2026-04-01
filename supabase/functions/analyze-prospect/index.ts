@@ -240,15 +240,10 @@ Deno.serve(async (req) => {
           },
           body: JSON.stringify({
             url,
-            formats: [
-              'markdown',
-              'screenshot',
-              'branding',
-              {
-                type: 'json',
-                schema: BUSINESS_SCHEMA,
-              },
-            ],
+            formats: ['markdown', 'screenshot', 'branding', 'extract'],
+            extract: {
+              schema: BUSINESS_SCHEMA,
+            },
             onlyMainContent: false,
             waitFor: 3000,
             timeout: 30000,
@@ -260,7 +255,7 @@ Deno.serve(async (req) => {
           const payload = data?.data ?? data ?? {};
           markdown = payload.markdown || '';
           websiteScreenshot = payload.screenshot || '';
-          businessData = payload.json || {};
+          businessData = payload.extract || payload.json || {};
           brandingData = payload.branding || {};
 
           // Merge social links from structured extraction
