@@ -41,7 +41,7 @@ const tempColors: Record<string, string> = {
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 // Column definitions
-type ColumnId = "business" | "niche" | "temp" | "location" | "actions" | "rating" | "reviews" | "score" | "website" | "chat" | "voiceai" | "booking" | "sitequality" | "ai" | "owner" | "contact" | "social" | "voiceai_candidate" | "webdev_candidate";
+type ColumnId = "business" | "niche" | "temp" | "location" | "actions" | "rating" | "reviews" | "score" | "website" | "chat" | "voiceai" | "booking" | "sitequality" | "ai" | "owner" | "contact" | "social" | "voiceai_candidate" | "webdev_candidate" | "sources";
 
 interface ColumnDef {
   id: ColumnId;
@@ -71,6 +71,7 @@ const ALL_COLUMNS: ColumnDef[] = [
   { id: "owner", label: "Owner", sortKey: "owner_name", minWidth: "100px", removable: true },
   { id: "contact", label: "Contact", sortKey: "contact_method", minWidth: "90px", removable: true },
   { id: "social", label: "Social", minWidth: "80px", removable: true },
+  { id: "sources", label: "Sources", minWidth: "110px", removable: true },
 ];
 
 const DEFAULT_ORDER: ColumnId[] = ALL_COLUMNS.map(c => c.id);
@@ -428,6 +429,20 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) =
           <span className="text-[10px] font-bold text-amber-400 bg-amber-400/10 border border-amber-400/30 px-1.5 py-0.5 rounded inline-flex items-center gap-0.5"><Globe className="w-2.5 h-2.5" />Hot</span>
         ) : (
           <span className="text-[10px] text-muted-foreground">—</span>
+        );
+      }
+      case "sources": {
+        const bd = (p as any).business_data || {};
+        const hasExa = !!bd.exa_research && Array.isArray(bd.exa_research) && bd.exa_research.length > 0;
+        const hasFirecrawl = !!bd.services || !!bd.tagline || !!bd.about || !!(p as any).website_screenshot;
+        const hasAi = !!(p as any).ai_analyzed;
+        if (!hasExa && !hasFirecrawl && !hasAi) return <span className="text-[10px] text-muted-foreground">—</span>;
+        return (
+          <div className="flex items-center gap-1 flex-wrap">
+            {hasExa && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-violet-500/15 text-violet-400 border border-violet-500/25">Exa</span>}
+            {hasFirecrawl && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-orange-500/15 text-orange-400 border border-orange-500/25">FC</span>}
+            {hasAi && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-primary/15 text-primary border border-primary/25">AI</span>}
+          </div>
         );
       }
       default:
