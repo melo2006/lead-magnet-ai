@@ -626,19 +626,29 @@ Deno.serve(async (req) => {
     const formattedUrl = toHomepageUrl(websiteUrl);
     console.log('Scanning website homepage:', formattedUrl, '(original:', websiteUrl, ')');
 
-    // === PHASE 1: Homepage scrape (fast, synchronous) ===
+    // === PHASE 1: Homepage scrape + Browserless screenshot (parallel) ===
+    
+    // Start Browserless screenshot in parallel with Firecrawl scrape
+    const browserlessPromise = browserlessKey
+      ? browserlessScreenshot(formattedUrl, browserlessKey)
+      : Promise.resolve(null);
+
+    // Firecrawl scrape — skip screenshot format since Browserless handles it
     let homepageResponse: any;
+    const firecrawlFormats = browserlessKey
+      ? ['markdown', 'branding', 'links', 'summary']
+      : ['markdown', 'screenshot', 'branding', 'links', 'summary'];
 
     try {
       homepageResponse = await firecrawlRequest('/scrape', firecrawlKey, {
         url: formattedUrl,
-        formats: ['markdown', 'screenshot', 'branding', 'links', 'summary'],
+        formats: firecrawlFormats,
         onlyMainContent: true,
         waitFor: 4500,
         timeout: 30000,
       }, 1);
     } catch (screenshotErr) {
-      console.warn('Screenshot scrape failed, retrying without:', screenshotErr);
+      console.warn('Scrape failed, retrying simplified:', screenshotErr);
       homepageResponse = await firecrawlRequest('/scrape', firecrawlKey, {
         url: formattedUrl,
         formats: ['markdown', 'branding', 'links', 'summary'],
@@ -648,11 +658,19 @@ Deno.serve(async (req) => {
       }, 1);
     }
 
+    // Await Browserless screenshot
+    const browserlessScreenshotResult = await browserlessPromise;
+
     const homepage = unwrapFirecrawlPayload(homepageResponse);
     const homepageMarkdown = cleanText(homepage.markdown);
     const homepageSummary = cleanText(homepage.summary);
     const branding = homepage.branding || {};
     const metadata = homepage.metadata || {};
+
+    // Use Browserless screenshot (higher quality), fall back to Firecrawl
+    const finalScreenshot = browserlessScreenshotResult || homepage.screenshot || null;
+    const screenshotProvider = browserlessScreenshotResult ? 'browserless' : (homepage.screenshot ? 'firecrawl' : 'none');
+    console.log('Screenshot provider used:', screenshotProvider);
 
     // === PHASE 2: Sub-pages (parallel, with short timeout) ===
     const linkPool = new Set<string>();
