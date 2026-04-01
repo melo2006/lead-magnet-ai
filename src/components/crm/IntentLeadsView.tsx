@@ -23,7 +23,7 @@ export default function IntentLeadsView() {
   const [isScanning, setIsScanning] = useState(false);
   const [results, setResults] = useState<IntentLead[]>([]);
   const [hasSearched, setHasSearched] = useState(false);
-  const [lastUsage, setLastUsage] = useState<{ firecrawl_calls: number; ai_calls: number; estimated_cost_usd: number } | null>(null);
+  const [lastUsage, setLastUsage] = useState<{ provider?: string; firecrawl_calls: number; tavily_calls?: number; search_calls?: number; ai_calls: number; estimated_cost_usd: number } | null>(null);
   const [activeTab, setActiveTab] = useState("scan");
   const abortRef = useRef<AbortController | null>(null);
 
