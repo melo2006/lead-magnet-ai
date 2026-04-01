@@ -67,21 +67,37 @@ const OutreachDialog = ({ prospects, onClose, onSent }: Props) => {
       }
 
       if (channel === "sms" || channel === "both") {
-        // SMS: just update timestamps for now
-        for (const p of prospects) {
-          await supabase
-            .from("prospects")
-            .update({
-              sms_sent_at: new Date().toISOString(),
-              demo_link: demoUrl(p),
-              pipeline_stage: "contacted",
-            } as any)
-            .eq("id", p.id);
-        }
-        if (channel === "sms") {
-          toast.success(`SMS queued for ${prospects.length} prospects`, {
-            description: "Connect Twilio to deliver SMS.",
-          });
+        const smsProspects = prospects.map((p) => ({
+          id: p.id!,
+          business_name: p.business_name,
+          phone: p.phone || null,
+          owner_name: p.owner_name || null,
+          website_url: p.website_url || null,
+          niche: p.niche || null,
+        }));
+
+        const { data: smsData, error: smsError } = await supabase.functions.invoke("send-outreach-sms", {
+          body: {
+            prospects: smsProspects,
+            customMessage,
+            baseUrl: window.location.origin,
+          },
+        });
+
+        if (smsError) {
+          toast.error("SMS sending failed", { description: smsError.message });
+        } else {
+          const smsSent = smsData?.sent || 0;
+          const smsFailed = smsData?.failed || 0;
+          const noPhone = smsData?.results?.filter((r: any) => r.error === "No phone number").length || 0;
+
+          if (smsSent > 0) {
+            toast.success(`Sent ${smsSent} SMS${smsSent > 1 ? "es" : ""} via Twilio!`, {
+              description: smsFailed > 0 ? `${smsFailed} failed (${noPhone} missing phone)` : undefined,
+            });
+          } else if (channel === "sms") {
+            toast.error(`No SMS sent. ${noPhone} prospects have no phone number.`);
+          }
         }
       }
 
