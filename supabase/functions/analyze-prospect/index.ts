@@ -255,7 +255,7 @@ Deno.serve(async (req) => {
           const payload = data?.data ?? data ?? {};
           markdown = payload.markdown || '';
           websiteScreenshot = payload.screenshot || '';
-          businessData = payload.json || {};
+          businessData = payload.extract || payload.json || {};
           brandingData = payload.branding || {};
 
           // Merge social links from structured extraction
