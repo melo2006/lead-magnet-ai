@@ -652,7 +652,7 @@ Deno.serve(async (req) => {
     
     // Start Browserless screenshot in parallel with Firecrawl scrape
     const browserlessPromise = browserlessKey
-      ? browserlessScreenshot(formattedUrl, browserlessKey)
+      ? browserlessScreenshot(formattedUrl, browserlessKey, leadId, supabaseUrl, supabaseServiceKey)
       : Promise.resolve(null);
 
     // Firecrawl scrape — skip screenshot format since Browserless handles it
