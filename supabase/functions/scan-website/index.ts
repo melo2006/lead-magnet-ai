@@ -99,6 +99,68 @@ const pickRelevantLinks = (links: string[], rootUrl: string) => {
     .slice(0, 5);
 };
 
+/** Take a pixel-perfect screenshot via Browserless headless Chrome */
+async function browserlessScreenshot(url: string, apiKey: string): Promise<string | null> {
+  try {
+    console.log('[Browserless] Taking screenshot of:', url);
+    const response = await fetch(`https://production-sfo.browserless.io/screenshot?token=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url,
+        options: {
+          fullPage: false,
+          type: 'png',
+          quality: 80,
+        },
+        viewport: {
+          width: 1280,
+          height: 800,
+          deviceScaleFactor: 2,
+        },
+        waitForTimeout: 5000,
+        gotoOptions: {
+          waitUntil: 'networkidle2',
+          timeout: 30000,
+        },
+        // Dismiss cookie banners and popups
+        addScriptTag: [{
+          content: `
+            setTimeout(() => {
+              // Try to close common cookie/popup elements
+              const selectors = [
+                '[class*="cookie"] button', '[id*="cookie"] button',
+                '[class*="consent"] button', '[class*="popup"] [class*="close"]',
+                '[class*="modal"] [class*="close"]', '[class*="banner"] [class*="close"]',
+                'button[class*="accept"]', 'button[class*="agree"]',
+              ];
+              for (const sel of selectors) {
+                const el = document.querySelector(sel);
+                if (el) { el.click(); break; }
+              }
+            }, 2000);
+          `
+        }],
+      }),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error('[Browserless] Screenshot failed:', response.status, errText);
+      return null;
+    }
+
+    // Browserless returns raw PNG bytes
+    const buffer = await response.arrayBuffer();
+    const base64 = btoa(String.fromCharCode(...new Uint8Array(buffer)));
+    console.log('[Browserless] Screenshot captured successfully, size:', buffer.byteLength);
+    return `data:image/png;base64,${base64}`;
+  } catch (err) {
+    console.error('[Browserless] Screenshot error:', err);
+    return null;
+  }
+}
+
 async function firecrawlRequest(path: string, apiKey: string, body: Record<string, unknown>, retries = 1): Promise<any> {
   let lastError: Error | null = null;
 
@@ -545,6 +607,8 @@ Deno.serve(async (req) => {
       );
     }
 
+    const browserlessKey = Deno.env.get('BROWSERLESS_API_KEY');
+
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseServiceKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
@@ -562,19 +626,29 @@ Deno.serve(async (req) => {
     const formattedUrl = toHomepageUrl(websiteUrl);
     console.log('Scanning website homepage:', formattedUrl, '(original:', websiteUrl, ')');
 
-    // === PHASE 1: Homepage scrape (fast, synchronous) ===
+    // === PHASE 1: Homepage scrape + Browserless screenshot (parallel) ===
+    
+    // Start Browserless screenshot in parallel with Firecrawl scrape
+    const browserlessPromise = browserlessKey
+      ? browserlessScreenshot(formattedUrl, browserlessKey)
+      : Promise.resolve(null);
+
+    // Firecrawl scrape — skip screenshot format since Browserless handles it
     let homepageResponse: any;
+    const firecrawlFormats = browserlessKey
+      ? ['markdown', 'branding', 'links', 'summary']
+      : ['markdown', 'screenshot', 'branding', 'links', 'summary'];
 
     try {
       homepageResponse = await firecrawlRequest('/scrape', firecrawlKey, {
         url: formattedUrl,
-        formats: ['markdown', 'screenshot', 'branding', 'links', 'summary'],
+        formats: firecrawlFormats,
         onlyMainContent: true,
         waitFor: 4500,
         timeout: 30000,
       }, 1);
     } catch (screenshotErr) {
-      console.warn('Screenshot scrape failed, retrying without:', screenshotErr);
+      console.warn('Scrape failed, retrying simplified:', screenshotErr);
       homepageResponse = await firecrawlRequest('/scrape', firecrawlKey, {
         url: formattedUrl,
         formats: ['markdown', 'branding', 'links', 'summary'],
@@ -584,11 +658,19 @@ Deno.serve(async (req) => {
       }, 1);
     }
 
+    // Await Browserless screenshot
+    const browserlessScreenshotResult = await browserlessPromise;
+
     const homepage = unwrapFirecrawlPayload(homepageResponse);
     const homepageMarkdown = cleanText(homepage.markdown);
     const homepageSummary = cleanText(homepage.summary);
     const branding = homepage.branding || {};
     const metadata = homepage.metadata || {};
+
+    // Use Browserless screenshot (higher quality), fall back to Firecrawl
+    const finalScreenshot = browserlessScreenshotResult || homepage.screenshot || null;
+    const screenshotProvider = browserlessScreenshotResult ? 'browserless' : (homepage.screenshot ? 'firecrawl' : 'none');
+    console.log('Screenshot provider used:', screenshotProvider);
 
     // === PHASE 2: Sub-pages (parallel, with short timeout) ===
     const linkPool = new Set<string>();
@@ -701,7 +783,7 @@ Deno.serve(async (req) => {
       brand_colors: branding.colors || null,
       brand_logo: branding.images?.logo || branding.logo || null,
       brand_fonts: branding.fonts || branding.typography || null,
-      website_screenshot: homepage.screenshot || null,
+      website_screenshot: finalScreenshot,
       website_content: initialContent || null,
       website_title: title || null,
       website_description: description || null,
@@ -748,7 +830,8 @@ Deno.serve(async (req) => {
           description,
           colors: branding.colors,
           logo: branding.images?.logo || branding.logo,
-          screenshot: Boolean(homepage.screenshot),
+          screenshot: Boolean(finalScreenshot),
+          screenshotProvider,
           pagesScraped: successfulPages.length + 1,
           detectedNiche: profile.detectedNiche,
         },
