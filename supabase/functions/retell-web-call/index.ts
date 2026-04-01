@@ -932,6 +932,7 @@ Deno.serve(async (req) => {
       const transferTo = normalizePhoneNumber(body.transferTo) || DEFAULT_TRANSFER_NUMBER;
       const callerName = typeof body.callerName === 'string' ? body.callerName.trim() : 'a caller';
       const businessName = typeof body.businessName === 'string' ? body.businessName.trim() : 'Demo Business';
+      const resolvedOwnerName = typeof body.ownerName === 'string' && body.ownerName.trim() ? body.ownerName.trim() : DEFAULT_OWNER_NAME;
       const callId = typeof body.callId === 'string' ? body.callId : '';
 
       console.log(`Initiating warm transfer to ${transferTo} for call ${callId}`);
