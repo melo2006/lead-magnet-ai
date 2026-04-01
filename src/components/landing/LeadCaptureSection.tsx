@@ -200,6 +200,7 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
       }
 
       const fallbackScanData: DemoLeadData = {
+        leadId: lead.id,
         fullName: parsed.data.name,
         businessName: parsed.data.businessName,
         email: parsed.data.email || undefined,
@@ -229,6 +230,7 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
             : undefined;
 
         storeDemoLeadData({
+          leadId: updatedLead.id,
           fullName: updatedLead.full_name,
           businessName: updatedLead.business_name || parsed.data.businessName,
           email: updatedLead.email || parsed.data.email || undefined,

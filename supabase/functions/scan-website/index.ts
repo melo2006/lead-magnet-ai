@@ -697,6 +697,7 @@ Deno.serve(async (req) => {
     // Save initial results immediately so the demo can load
     const updateResult = await supabase.from('leads').update({
       niche: profile.detectedNiche,
+      website_url: formattedUrl,
       brand_colors: branding.colors || null,
       brand_logo: branding.images?.logo || branding.logo || null,
       brand_fonts: branding.fonts || branding.typography || null,
