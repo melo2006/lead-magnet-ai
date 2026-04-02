@@ -174,22 +174,47 @@ const VoiceAgentWidget = ({
 
   const applyLiveCallVolume = useCallback((nextVolume: number) => {
     const normalizedVolume = Math.max(0, Math.min(1, nextVolume / 100));
-    const room = retellClientRef.current?.room;
 
+    // Approach 1: LiveKit track-level volume (used by Retell SDK internally)
+    const room = retellClientRef.current?.room;
     if (room?.remoteParticipants instanceof Map) {
       room.remoteParticipants.forEach((participant: any) => {
         try {
-          participant.setVolume?.(normalizedVolume);
+          // Iterate audio track publications and set volume on each track
+          const pubs = participant.audioTrackPublications ?? participant.audioTracks;
+          if (pubs instanceof Map) {
+            pubs.forEach((pub: any) => {
+              const track = pub.track ?? pub.audioTrack;
+              if (track && typeof track.setVolume === "function") {
+                track.setVolume(normalizedVolume);
+              }
+            });
+          }
+          // Fallback: some SDK versions expose setVolume on participant
+          if (typeof participant.setVolume === "function") {
+            participant.setVolume(normalizedVolume);
+          }
         } catch (error) {
-          console.warn("Could not apply live call volume:", error);
+          console.warn("Could not apply live call volume via tracks:", error);
         }
       });
     }
 
+    // Approach 2: Direct DOM audio/video elements
     const elements = document.querySelectorAll("audio, video");
     elements.forEach((element) => {
       (element as HTMLMediaElement).volume = normalizedVolume;
     });
+
+    // Approach 3: Web Audio API gain nodes (Retell may use these)
+    try {
+      const client = retellClientRef.current;
+      if (client?.audioContext && client?.gainNode) {
+        client.gainNode.gain.value = normalizedVolume;
+      }
+    } catch {
+      // Not available
+    }
   }, []);
 
   const applyAudioOutputDevice = useCallback(async (deviceId: string) => {
