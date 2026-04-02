@@ -28,6 +28,7 @@ const CRM = () => {
               <Route path="campaigns" element={<CampaignsView />} />
               <Route path="campaigns/:id" element={<CampaignDetailView />} />
               <Route path="pipeline" element={<PipelinePageView />} />
+              <Route path="calls" element={<CallHistoryView />} />
               <Route path="templates" element={<TemplatesView />} />
               <Route path="landing" element={null} />
               <Route path="demo" element={null} />

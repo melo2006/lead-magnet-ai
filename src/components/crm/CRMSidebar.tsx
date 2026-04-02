@@ -15,6 +15,7 @@ const navItems = [
   { title: "Intent Leads", url: "/intent-leads", icon: Radar },
   { title: "Campaigns", url: "/campaigns", icon: Megaphone },
   { title: "Pipeline", url: "/pipeline", icon: LayoutGrid },
+  { title: "Call History", url: "/calls", icon: PhoneIncoming },
   { title: "Templates", url: "/templates", icon: FileText },
 ];
 
