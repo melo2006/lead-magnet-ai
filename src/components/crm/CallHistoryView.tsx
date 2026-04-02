@@ -52,6 +52,15 @@ const formatDate = (d: string) => {
 
 const CallRow = ({ call }: { call: CallRecord }) => {
   const [expanded, setExpanded] = useState(false);
+  const navigate = useNavigate();
+
+  const handleRedemo = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const params = new URLSearchParams();
+    if (call.website_url) params.set("url", call.website_url);
+    params.set("name", call.business_name);
+    navigate(`/demo?${params.toString()}`);
+  };
 
   return (
     <div className="border border-border rounded-lg bg-card overflow-hidden">
