@@ -1177,7 +1177,7 @@ Deno.serve(async (req) => {
       if (aiSummary.transferRequested && !transferAlreadyStarted) {
         if (resolvedCallerPhone) {
           try {
-            await invokeLiveTransferBridge({
+            const bridgeResult = await invokeLiveTransferBridge({
               supabaseUrl: supabaseUrl || '',
               supabaseServiceRoleKey,
               transferTo: ownerPhone,
@@ -1190,9 +1190,38 @@ Deno.serve(async (req) => {
             });
             liveTransferStarted = true;
             console.log('Fallback live transfer initiated for call:', callId);
+
+            // Update call_history with transfer details
+            if (callHistoryId && supabaseUrl && supabaseServiceRoleKey) {
+              try {
+                const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey);
+                await adminClient.from('call_history').update({
+                  transfer_status: 'dialing_caller',
+                  transfer_conference_name: bridgeResult?.conferenceName || null,
+                  transfer_caller_call_sid: bridgeResult?.callerCallSid || null,
+                  transfer_owner_call_sid: bridgeResult?.ownerCallSid || null,
+                  transfer_target_phone: bridgeResult?.transferTo || ownerPhone || null,
+                }).eq('id', callHistoryId);
+              } catch (updateErr) {
+                console.warn('Failed to update call_history with transfer details:', updateErr);
+              }
+            }
           } catch (transferErr) {
             transferWarning = transferErr instanceof Error ? transferErr.message : 'Unable to start live transfer.';
             console.error('Fallback live transfer failed (non-fatal):', transferErr);
+
+            // Record transfer failure in call_history
+            if (callHistoryId && supabaseUrl && supabaseServiceRoleKey) {
+              try {
+                const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey);
+                await adminClient.from('call_history').update({
+                  transfer_status: 'failed',
+                  transfer_error: transferWarning,
+                }).eq('id', callHistoryId);
+              } catch (updateErr) {
+                console.warn('Failed to record transfer failure:', updateErr);
+              }
+            }
           }
         } else {
           transferWarning = 'Transfer was requested, but Aspen could not confirm the caller phone number.';
