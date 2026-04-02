@@ -90,7 +90,7 @@ Deno.serve(async (req) => {
       else if (digits.length === 11 && digits.startsWith('1')) normalizedPhone = `+${digits}`;
       else if (!normalizedPhone.startsWith('+')) normalizedPhone = `+${digits}`;
 
-      const demoUrl = `${baseUrl}/demo?url=${encodeURIComponent(prospect.website_url || '')}&name=${encodeURIComponent(prospect.business_name)}&niche=${encodeURIComponent(prospect.niche || '')}`;
+      const demoUrl = `${baseUrl}/demo?url=${encodeURIComponent(prospect.website_url || '')}&name=${encodeURIComponent(prospect.business_name)}&niche=${encodeURIComponent(prospect.niche || '')}&prospectId=${encodeURIComponent(prospect.id)}`;
       const smsBody = buildSmsBody(prospect, customMessage, demoUrl);
 
       try {

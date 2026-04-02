@@ -24,7 +24,7 @@ const OutreachDialog = ({ prospects, onClose, onSent }: Props) => {
   const previewProspect = prospects[previewIndex] || null;
 
   const demoUrl = (p: Prospect) =>
-    `${window.location.origin}/demo?url=${encodeURIComponent(p.website_url || "")}&name=${encodeURIComponent(p.business_name)}&niche=${encodeURIComponent(p.niche || "")}`;
+    `${window.location.origin}/demo?url=${encodeURIComponent(p.website_url || "")}&name=${encodeURIComponent(p.business_name)}&niche=${encodeURIComponent(p.niche || "")}&prospectId=${encodeURIComponent(p.id || "")}`;
 
   const handleSend = async () => {
     setSending(true);
