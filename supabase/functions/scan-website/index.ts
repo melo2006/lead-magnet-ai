@@ -796,6 +796,19 @@ Deno.serve(async (req) => {
     const primaryPhone = extractedPhones[0] || null;
     const primaryEmail = extractedEmails[0] || null;
 
+    const { data: existingLead, error: existingLeadError } = await supabase
+      .from('leads')
+      .select('phone, email')
+      .eq('id', leadId)
+      .maybeSingle();
+
+    if (existingLeadError) {
+      console.warn('Could not read existing lead contact details:', existingLeadError);
+    }
+
+    const existingLeadPhone = cleanText(existingLead?.phone);
+    const existingLeadEmail = cleanText(existingLead?.email);
+
     console.log('Extracted contact info — phones:', extractedPhones, 'emails:', extractedEmails);
 
     // Save initial results immediately so the demo can load
@@ -810,8 +823,8 @@ Deno.serve(async (req) => {
       website_title: title || null,
       website_description: description || null,
       scan_status: 'completed',
-      ...(primaryPhone ? { phone: primaryPhone } : {}),
-      ...(primaryEmail ? { email: primaryEmail } : {}),
+      ...(primaryPhone && !existingLeadPhone ? { phone: primaryPhone } : {}),
+      ...(primaryEmail && !existingLeadEmail ? { email: primaryEmail } : {}),
     }).eq('id', leadId);
 
     if (updateResult.error) {

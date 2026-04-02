@@ -126,6 +126,34 @@ const collectTextFragments = (value: unknown, fragments: string[] = []) => {
 
 const extractEventText = (event: unknown) => collectTextFragments(event).join(" ");
 
+const extractLatestAgentUtterance = (event: unknown) => {
+  const raw = event as Record<string, unknown> | null;
+
+  if (raw?.role === "agent" && typeof raw.content === "string") {
+    return raw.content.trim();
+  }
+
+  if (typeof raw?.transcript === "string") {
+    const agentSegments = Array.from(raw.transcript.matchAll(/agent:\s*(.+?)(?=\n(?:user:|agent:)|$)/gis));
+    if (agentSegments.length > 0) {
+      return agentSegments[agentSegments.length - 1][1].trim();
+    }
+  }
+
+  return "";
+};
+
+const isTransferStartUtterance = (value: string) => {
+  const normalized = value.toLowerCase().trim();
+  if (!normalized) return false;
+  if (normalized.includes(LIVE_TRANSFER_READY_PHRASE)) return true;
+
+  const transferCommitment = /(?:connecting you|let me connect you|i(?:'m| am) connecting you|i(?:'ll| will) connect you|transferring you|putting you through|bringing .* on the line)/.test(normalized);
+  const transferTiming = /(?:stay on the line|one moment|please hold|right away|right now|just a moment|\bnow\b)/.test(normalized);
+
+  return transferCommitment && transferTiming;
+};
+
 const VoiceAgentWidget = ({
   leadId,
   prospectId,
@@ -397,23 +425,12 @@ const VoiceAgentWidget = ({
 
     // Capture last agent message for replay — agent role is typically in "agent" field
     // or the event contains the agent response text as the main content
-    const raw = event as any;
-    if (raw?.role === "agent" && typeof raw?.content === "string" && raw.content.trim()) {
-      setLastAgentMessage(raw.content.trim());
-    } else if (typeof raw?.transcript === "string" && raw.transcript.trim()) {
-      // Some Retell events send full transcript; extract last agent segment
-      const agentSegments = raw.transcript.match(/agent:\s*(.+?)(?=\n(?:user:|agent:)|$)/gis);
-      if (agentSegments?.length) {
-        const lastSeg = agentSegments[agentSegments.length - 1].replace(/^agent:\s*/i, "").trim();
-        if (lastSeg) setLastAgentMessage(lastSeg);
-      }
+    const agentUtterance = extractLatestAgentUtterance(event);
+    if (agentUtterance) {
+      setLastAgentMessage(agentUtterance);
     }
 
-    const normalizedEventText = eventText.toLowerCase();
-    const looksLikeTransferStart =
-      normalizedEventText.includes(LIVE_TRANSFER_READY_PHRASE) ||
-      (normalizedEventText.includes("stay on the line") &&
-        (normalizedEventText.includes("connect you") || normalizedEventText.includes("connecting you")));
+    const looksLikeTransferStart = isTransferStartUtterance(agentUtterance || eventText);
 
     if (!looksLikeTransferStart) return;
 
@@ -442,6 +459,10 @@ const VoiceAgentWidget = ({
           ownerEmail,
           ownerPhone: ownerPhone || "",
           websiteUrl,
+          callerName: extractCallerNameFromText(liveTranscriptRef.current) || callerName || "",
+          callerEmail: extractCallerEmailFromText(liveTranscriptRef.current) || callerEmail || "",
+          callerPhone: extractCallerPhoneFromText(liveTranscriptRef.current) || callerPhone || "",
+          transferAlreadyStarted: transferTriggeredRef.current,
         },
       });
 
@@ -449,7 +470,7 @@ const VoiceAgentWidget = ({
         throw new Error(error?.message || data?.error || "Couldn't finish the call recap.");
       }
 
-      const transferWasAttempted = Boolean(data.transferRequested && transferTriggeredRef.current);
+      const transferWasAttempted = Boolean(data.transferRequested && (transferTriggeredRef.current || data.liveTransferStarted));
 
       const appointmentBooked = Boolean(data.calendarEventId);
 
