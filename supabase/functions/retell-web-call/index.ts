@@ -417,6 +417,58 @@ async function retellFetch(path: string, apiKey: string, options: RequestInit = 
   return data;
 }
 
+async function invokeLiveTransferBridge({
+  supabaseUrl,
+  supabaseServiceRoleKey,
+  transferTo,
+  callerName,
+  callerEmail,
+  callerPhone,
+  businessName,
+  ownerName,
+  callId,
+}: {
+  supabaseUrl: string;
+  supabaseServiceRoleKey?: string | null;
+  transferTo: string;
+  callerName: string;
+  callerEmail: string;
+  callerPhone: string;
+  businessName: string;
+  ownerName: string;
+  callId: string;
+}) {
+  const headers: Record<string, string> = {
+    'Content-Type': 'application/json',
+  };
+
+  if (supabaseServiceRoleKey) {
+    headers.Authorization = `Bearer ${supabaseServiceRoleKey}`;
+    headers.apikey = supabaseServiceRoleKey;
+  }
+
+  const response = await fetch(`${supabaseUrl}/functions/v1/live-transfer-bridge`, {
+    method: 'POST',
+    headers,
+    body: JSON.stringify({
+      transferTo,
+      callerPhone,
+      callerName,
+      callerEmail,
+      businessName,
+      ownerName,
+      callId,
+    }),
+  });
+
+  const data = await response.json().catch(() => null);
+  if (!response.ok || !data?.success) {
+    throw new Error(`Live transfer bridge failed [${response.status}]: ${JSON.stringify(data)}`);
+  }
+
+  return data;
+}
+
 const getTranscriptText = (callData: any) => {
   if (!callData) return '';
 
@@ -960,6 +1012,10 @@ Deno.serve(async (req) => {
       const ownerEmail = typeof body.ownerEmail === 'string' ? body.ownerEmail.trim() : '';
       const ownerNameInput = typeof body.ownerName === 'string' ? body.ownerName.trim() : '';
       const ownerPhone = typeof body.ownerPhone === 'string' ? body.ownerPhone.trim() : '';
+      const fallbackCallerName = typeof body.callerName === 'string' ? body.callerName.trim() : '';
+      const fallbackCallerEmail = typeof body.callerEmail === 'string' ? normalizeEmailCandidate(body.callerEmail) : '';
+      const fallbackCallerPhone = typeof body.callerPhone === 'string' ? normalizePhoneNumber(body.callerPhone) : '';
+      const transferAlreadyStarted = body.transferAlreadyStarted === true;
       const businessName = typeof body.businessName === 'string' ? body.businessName.trim() : 'Demo Business';
       const websiteUrl = typeof body.websiteUrl === 'string' ? body.websiteUrl.trim() : '';
       const resolvedOwnerName = ownerNameInput || DEFAULT_OWNER_NAME;
@@ -991,6 +1047,10 @@ Deno.serve(async (req) => {
         existingSummary: callData?.call_analysis?.call_summary || callData?.call_analysis?.summary,
       });
 
+      const resolvedCallerName = aiSummary.callerName || fallbackCallerName;
+      const resolvedCallerEmail = aiSummary.callerEmail || fallbackCallerEmail;
+      const resolvedCallerPhone = aiSummary.callerPhone || fallbackCallerPhone;
+
       let contactPersisted = false;
       let contactPersistWarning: string | null = null;
 
@@ -1003,9 +1063,9 @@ Deno.serve(async (req) => {
             leadId: leadId || undefined,
             prospectId: prospectId || undefined,
             businessName,
-            callerName: aiSummary.callerName || '',
-            callerEmail: aiSummary.callerEmail || '',
-            callerPhone: aiSummary.callerPhone || '',
+            callerName: resolvedCallerName,
+            callerEmail: resolvedCallerEmail,
+            callerPhone: resolvedCallerPhone,
           });
           contactPersisted = persistResult.leadUpdated || persistResult.prospectUpdated;
         } catch (persistError) {
@@ -1022,7 +1082,7 @@ Deno.serve(async (req) => {
         try {
           const preferredStart =
             parseRequestedAppointmentStart(aiSummary.appointmentTimeText, transcript) ?? getDefaultAppointmentStart();
-          const attendeeEmail = aiSummary.callerEmail || undefined;
+          const attendeeEmail = resolvedCallerEmail || undefined;
           const bookingContext = await findAvailableSlotAcrossCalendars([effectiveOwnerEmail, TESTING_INBOX_EMAIL], preferredStart, 15);
           const calendarIdForBooking = bookingContext.calendarId;
           const appointmentStart = bookingContext.slot;
@@ -1057,15 +1117,43 @@ Deno.serve(async (req) => {
         }
       }
 
+      let liveTransferStarted = false;
+      let transferWarning: string | null = null;
+
+      if (aiSummary.transferRequested && !transferAlreadyStarted) {
+        if (resolvedCallerPhone) {
+          try {
+            await invokeLiveTransferBridge({
+              supabaseUrl: supabaseUrl || '',
+              supabaseServiceRoleKey,
+              transferTo: ownerPhone,
+              callerName: resolvedCallerName || 'a caller',
+              callerEmail: resolvedCallerEmail,
+              callerPhone: resolvedCallerPhone,
+              businessName,
+              ownerName: resolvedOwnerName,
+              callId,
+            });
+            liveTransferStarted = true;
+            console.log('Fallback live transfer initiated for call:', callId);
+          } catch (transferErr) {
+            transferWarning = transferErr instanceof Error ? transferErr.message : 'Unable to start live transfer.';
+            console.error('Fallback live transfer failed (non-fatal):', transferErr);
+          }
+        } else {
+          transferWarning = 'Transfer was requested, but Aspen could not confirm the caller phone number.';
+        }
+      }
+
       let emailResult: { id: string | null; deliveredTo: string[]; warning: string | null } | null = null;
       let emailWarning: string | null = null;
 
       try {
         emailResult = await sendSummaryEmail({
           resendApiKey,
-          callerName: aiSummary.callerName || '',
-          callerEmail: aiSummary.callerEmail || '',
-          callerPhone: aiSummary.callerPhone || '',
+          callerName: resolvedCallerName,
+          callerEmail: resolvedCallerEmail,
+          callerPhone: resolvedCallerPhone,
           ownerName: resolvedOwnerName,
           ownerEmail: effectiveOwnerEmail,
           ownerPhone,
@@ -1101,9 +1189,11 @@ Deno.serve(async (req) => {
         calendarEventId,
         appointmentScheduledFor,
         calendarWarning,
-        callerName: aiSummary.callerName || '',
-        callerEmail: aiSummary.callerEmail || '',
-        callerPhone: aiSummary.callerPhone || '',
+        callerName: resolvedCallerName,
+        callerEmail: resolvedCallerEmail,
+        callerPhone: resolvedCallerPhone,
+        liveTransferStarted,
+        transferWarning,
         contactPersisted,
         contactPersistWarning,
       });
