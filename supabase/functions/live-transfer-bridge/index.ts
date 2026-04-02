@@ -152,6 +152,9 @@ Deno.serve(async (req) => {
   const requestUrl = new URL(req.url);
   const action = requestUrl.searchParams.get('action') || 'init';
   const baseFunctionUrl = `${requestUrl.origin}${requestUrl.pathname}`;
+  const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') || Deno.env.get('SUPABASE_PUBLISHABLE_KEY') || '';
+  const anonParam = SUPABASE_ANON_KEY ? `&apikey=${encodeURIComponent(SUPABASE_ANON_KEY)}` : '';
+  const anonParamFirst = SUPABASE_ANON_KEY ? `?apikey=${encodeURIComponent(SUPABASE_ANON_KEY)}` : '';
 
   if (action === 'wait-twiml') {
     const loopUrl = `${baseFunctionUrl}?action=wait-twiml`;
