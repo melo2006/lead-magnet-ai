@@ -1,5 +1,5 @@
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { MessageSquare, Mic, ArrowLeft } from "lucide-react";
 import type { DemoLeadData } from "@/components/landing/demo-results/demoResultsUtils";
 import { getImageSrc, getSiteName } from "@/components/landing/demo-results/demoResultsUtils";
@@ -19,6 +19,9 @@ const DemoSite = () => {
   const [leadData, setLeadData] = useState<DemoLeadData | undefined>(latestLeadData);
   const [chatOpen, setChatOpen] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
+  const [iframeBlocked, setIframeBlocked] = useState(false);
+  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [prospectOwner, setProspectOwner] = useState<{name?: string; email?: string; phone?: string} | null>(null);
   const returnTo = searchParams.get("returnTo");
   const prospectIdParam = searchParams.get("prospectId");
 
@@ -35,6 +38,8 @@ const DemoSite = () => {
     setLeadData(undefined);
     setChatOpen(false);
     setVoiceOpen(false);
+    setIframeBlocked(false);
+    setProspectOwner(null);
 
     const scanWebsite = async () => {
       setIsScanning(true);
@@ -113,7 +118,43 @@ const DemoSite = () => {
     setLeadData(latestLeadData);
     setChatOpen(false);
     setVoiceOpen(false);
+    setIframeBlocked(false);
+    setProspectOwner(null);
   }, [latestLeadData]);
+
+  // Fetch prospect owner data when prospectId is available
+  useEffect(() => {
+    const pid = leadData?.prospectId || prospectIdParam;
+    if (!pid) return;
+    supabase.from('prospects')
+      .select('owner_name, owner_email, owner_phone')
+      .eq('id', pid)
+      .maybeSingle()
+      .then(({ data }) => {
+        if (data) {
+          setProspectOwner({
+            name: data.owner_name || undefined,
+            email: data.owner_email || undefined,
+            phone: data.owner_phone || undefined,
+          });
+        }
+      });
+  }, [leadData?.prospectId, prospectIdParam]);
+
+  // Iframe embed-blocking detection
+  useEffect(() => {
+    if (!leadData || iframeBlocked) return;
+    const timer = setTimeout(() => {
+      const iframe = iframeRef.current;
+      if (!iframe) return;
+      try {
+        if (iframe.contentDocument === null) setIframeBlocked(true);
+      } catch {
+        // Cross-origin error means the site loaded successfully
+      }
+    }, 3500);
+    return () => clearTimeout(timer);
+  }, [leadData, iframeBlocked]);
 
   const handleBack = () => {
     if (returnTo && returnTo.startsWith("/")) {
@@ -179,9 +220,9 @@ const DemoSite = () => {
   const knownCallerName = !hasCrmContext && leadData.fullName !== "CRM Prospect" ? leadData.fullName : undefined;
   const knownCallerEmail = !hasCrmContext ? leadData.email : undefined;
   const knownCallerPhone = !hasCrmContext ? leadData.phone : undefined;
-  const followUpName = hasCrmContext ? "Ron Melo" : knownCallerName;
-  const followUpEmail = hasCrmContext ? undefined : knownCallerEmail;
-  const followUpPhone = hasCrmContext ? undefined : knownCallerPhone;
+  const followUpName = prospectOwner?.name || (hasCrmContext ? "Ron Melo" : knownCallerName);
+  const followUpEmail = prospectOwner?.email || (hasCrmContext ? undefined : knownCallerEmail);
+  const followUpPhone = prospectOwner?.phone || (hasCrmContext ? undefined : knownCallerPhone);
   const siteName = leadData.businessName?.trim() || getSiteName(homepageUrl, leadData.title);
 
   return (
@@ -214,9 +255,24 @@ const DemoSite = () => {
         </div>
       </div>
 
-      {/* Website screenshot displayed as a responsive full-width image */}
+      {/* Website — iframe first, screenshot fallback */}
       <div className="relative flex-1">
-        {screenshotSrc ? (
+        {!iframeBlocked && (
+          <iframe
+            ref={iframeRef}
+            src={homepageUrl}
+            className="w-full border-0"
+            style={{ minHeight: '100vh' }}
+            title={`${siteName} website`}
+            onLoad={() => {
+              try {
+                if (iframeRef.current?.contentDocument === null) setIframeBlocked(true);
+              } catch { /* cross-origin = loaded fine */ }
+            }}
+            onError={() => setIframeBlocked(true)}
+          />
+        )}
+        {iframeBlocked && (screenshotSrc ? (
           <div className="relative mx-auto w-full max-w-[1600px]">
             <img
               src={screenshotSrc}
@@ -231,7 +287,7 @@ const DemoSite = () => {
           <div className="flex h-[60vh] w-full items-center justify-center bg-muted">
             <p className="text-lg text-muted-foreground">Website preview unavailable</p>
           </div>
-        )}
+        ))}
 
         {/* ===== AI Widget buttons — fixed to the bottom of the viewport ===== */}
         <div className="pointer-events-none fixed inset-x-0 bottom-4 z-50 px-3 sm:bottom-6 sm:px-6">

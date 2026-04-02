@@ -153,7 +153,7 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      const demoUrl = `${baseUrl}/demo?url=${encodeURIComponent(prospect.website_url || '')}&name=${encodeURIComponent(prospect.business_name)}&niche=${encodeURIComponent(prospect.niche || '')}`;
+      const demoUrl = `${baseUrl}/demo?url=${encodeURIComponent(prospect.website_url || '')}&name=${encodeURIComponent(prospect.business_name)}&niche=${encodeURIComponent(prospect.niche || '')}&prospectId=${encodeURIComponent(prospect.id)}`;
       const html = buildEmailHtml(prospect, subject, customMessage, templateStyle, demoUrl);
 
       try {
