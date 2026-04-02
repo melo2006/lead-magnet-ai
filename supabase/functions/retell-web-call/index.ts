@@ -1074,7 +1074,61 @@ Deno.serve(async (req) => {
         }
       }
 
-      let calendarEventId: string | null = null;
+      // Persist call history record
+      let callHistoryId: string | null = null;
+      if (supabaseUrl && supabaseServiceRoleKey) {
+        try {
+          const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey);
+          const callDurationSeconds = typeof callData?.duration_ms === 'number' ? Math.round(callData.duration_ms / 1000) : null;
+          
+          const { data: historyRow, error: historyError } = await adminClient
+            .from('call_history')
+            .insert({
+              retell_call_id: callId,
+              lead_id: leadId || null,
+              prospect_id: prospectId || null,
+              business_name: businessName,
+              website_url: websiteUrl || null,
+              owner_name: resolvedOwnerName,
+              owner_email: effectiveOwnerEmail,
+              owner_phone: ownerPhone || null,
+              caller_name: resolvedCallerName || null,
+              caller_email: resolvedCallerEmail || null,
+              caller_phone: resolvedCallerPhone || null,
+              caller_phone_source: resolvedCallerPhone ? 'transcript' : null,
+              call_status: 'completed',
+              transfer_requested: aiSummary.transferRequested,
+              transfer_status: aiSummary.transferRequested
+                ? (transferAlreadyStarted ? 'dialing_caller' : 'queued')
+                : 'not_requested',
+              summary: aiSummary.summary,
+              next_step: aiSummary.nextStep,
+              transcript: transcript || null,
+              key_points: aiSummary.keyPoints || [],
+              duration_seconds: callDurationSeconds,
+              started_at: callData?.start_timestamp ? new Date(callData.start_timestamp).toISOString() : new Date().toISOString(),
+              ended_at: callData?.end_timestamp ? new Date(callData.end_timestamp).toISOString() : new Date().toISOString(),
+              metadata: {
+                callbackRequested: aiSummary.callbackRequested,
+                appointmentRequested: aiSummary.appointmentRequested,
+                appointmentTimeText: aiSummary.appointmentTimeText || null,
+                contactPersisted,
+              },
+            })
+            .select('id')
+            .single();
+
+          if (historyError) {
+            console.error('Failed to persist call history (non-fatal):', historyError);
+          } else {
+            callHistoryId = historyRow?.id || null;
+            console.log('Call history persisted:', callHistoryId);
+          }
+        } catch (histErr) {
+          console.error('Call history persistence error (non-fatal):', histErr);
+        }
+      }
+
       let appointmentScheduledFor: string | null = null;
       let calendarWarning: string | null = null;
 
