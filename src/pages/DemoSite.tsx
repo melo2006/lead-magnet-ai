@@ -9,6 +9,8 @@ import ScanningAnimation from "@/components/landing/ScanningAnimation";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+const DEFAULT_DEMO_OWNER_NAME = "Ron Melo";
+
 const getHomepageUrl = (websiteUrl: string) => {
   try {
     const normalizedUrl = websiteUrl.startsWith("http") ? websiteUrl : `https://${websiteUrl}`;
@@ -263,9 +265,9 @@ const DemoSite = () => {
   const knownCallerName = !hasCrmContext && leadData.fullName !== "CRM Prospect" ? leadData.fullName : undefined;
   const knownCallerEmail = !hasCrmContext ? leadData.email : undefined;
   const knownCallerPhone = !hasCrmContext ? leadData.phone : undefined;
-  const followUpName = prospectOwner?.name || (hasCrmContext ? "Ron Melo" : knownCallerName);
-  const followUpEmail = prospectOwner?.email || (hasCrmContext ? undefined : knownCallerEmail);
-  const followUpPhone = prospectOwner?.phone || (hasCrmContext ? undefined : knownCallerPhone);
+  const followUpName = prospectOwner?.name || DEFAULT_DEMO_OWNER_NAME;
+  const followUpEmail = prospectOwner?.email || undefined;
+  const followUpPhone = prospectOwner?.phone || undefined;
   const siteName = leadData.businessName?.trim() || getSiteName(homepageUrl, leadData.title);
 
   return (

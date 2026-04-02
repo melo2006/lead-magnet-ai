@@ -1,12 +1,11 @@
 /**
- * Live Transfer Bridge — Owner-Only Dial
+ * Live Transfer Bridge — conference handoff
  *
  * Flow:
- * 1) Web app invokes this function while the Retell web call stays alive.
- * 2) We dial ONLY the owner via Twilio.
- * 3) Owner hears a whisper with caller details and presses any key.
- * 4) Twilio then dials the caller's phone and patches them together.
- * 5) The web call naturally ends when the caller picks up their phone.
+ * 1) Web app invokes this function while the voice demo stays live.
+ * 2) We call the caller's confirmed phone and place them into a holding conference.
+ * 3) We call the owner, whisper the caller details, and wait for a keypress.
+ * 4) Once the owner confirms, both legs join the same conference.
  */
 
 const corsHeaders = {
@@ -18,6 +17,7 @@ const TWILIO_GATEWAY_URL = 'https://connector-gateway.lovable.dev/twilio';
 const TWILIO_CALLER_ID = '+15612755757';
 const DEFAULT_OWNER_NAME = 'Ron Melo';
 const DEFAULT_TRANSFER_NUMBER = '+19547706622';
+const HOLD_MUSIC_URL = 'https://com.twilio.music.classical.s3.amazonaws.com/BusyStrings.mp3';
 
 const jsonResponse = (body: Record<string, unknown>, status = 200) =>
   new Response(JSON.stringify(body), {
@@ -42,7 +42,14 @@ const normalizePhoneNumber = (value?: string | null) => {
 
 const normalizeEmailCandidate = (value?: string | null) => {
   if (!value) return '';
-  const normalized = value.toLowerCase().replace(/\s+/g, '').replace(/\(at\)|\[at\]/g, '@').replace(/\(dot\)|\[dot\]/g, '.').replace(/@+/g, '@');
+
+  const normalized = value
+    .toLowerCase()
+    .replace(/\s+/g, '')
+    .replace(/\(at\)|\[at\]/g, '@')
+    .replace(/\(dot\)|\[dot\]/g, '.')
+    .replace(/@+/g, '@');
+
   const match = normalized.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i);
   return match ? match[0] : '';
 };
@@ -50,21 +57,92 @@ const normalizeEmailCandidate = (value?: string | null) => {
 const formatPhoneForSpeech = (value?: string | null) => {
   const normalized = normalizePhoneNumber(value);
   if (!normalized) return '';
+
   const digits = normalized.replace(/^\+1/, '').replace(/\D/g, '');
   if (digits.length === 10) {
     return `${digits.slice(0, 3).split('').join(' ')}. ${digits.slice(3, 6).split('').join(' ')}. ${digits.slice(6).split('').join(' ')}`;
   }
+
   return normalized.split('').join(' ');
 };
 
 const formatEmailForSpeech = (value?: string | null) => {
   const normalized = normalizeEmailCandidate(value);
   if (!normalized) return '';
-  return normalized.replace(/@/g, ' at ').replace(/\./g, ' dot ').replace(/-/g, ' dash ').replace(/_/g, ' underscore ');
+
+  return normalized
+    .replace(/@/g, ' at ')
+    .replace(/\./g, ' dot ')
+    .replace(/-/g, ' dash ')
+    .replace(/_/g, ' underscore ');
 };
 
 const escapeXml = (value: string) =>
-  value.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;');
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&apos;');
+
+const buildConferenceName = (seed?: string | null) => {
+  const normalizedSeed = (seed || crypto.randomUUID())
+    .toLowerCase()
+    .replace(/[^a-z0-9_-]/g, '')
+    .slice(0, 40);
+
+  return `live-transfer-${normalizedSeed || crypto.randomUUID().replace(/-/g, '').slice(0, 16)}`;
+};
+
+const parseFormBody = async (req: Request) => {
+  const contentType = req.headers.get('content-type') || '';
+  if (!contentType.includes('application/x-www-form-urlencoded')) {
+    return new URLSearchParams();
+  }
+
+  const rawBody = await req.text().catch(() => '');
+  return new URLSearchParams(rawBody);
+};
+
+const twilioRequest = (
+  lovableApiKey: string,
+  twilioApiKey: string,
+  path: string,
+  body: URLSearchParams,
+) =>
+  fetch(`${TWILIO_GATEWAY_URL}${path}`, {
+    method: 'POST',
+    headers: {
+      'Authorization': `Bearer ${lovableApiKey}`,
+      'X-Connection-Api-Key': twilioApiKey,
+      'Content-Type': 'application/x-www-form-urlencoded',
+    },
+    body,
+  });
+
+const completeTwilioCall = async (
+  lovableApiKey: string,
+  twilioApiKey: string,
+  callSid?: string | null,
+) => {
+  if (!callSid) return;
+
+  try {
+    const response = await twilioRequest(
+      lovableApiKey,
+      twilioApiKey,
+      `/Calls/${encodeURIComponent(callSid)}.json`,
+      new URLSearchParams({ Status: 'completed' }),
+    );
+
+    if (!response.ok) {
+      const payload = await response.text().catch(() => '');
+      console.warn('Failed to complete Twilio call leg:', callSid, payload.slice(0, 500));
+    }
+  } catch (error) {
+    console.warn('Error completing Twilio call leg:', callSid, error);
+  }
+};
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -73,53 +151,85 @@ Deno.serve(async (req) => {
 
   const requestUrl = new URL(req.url);
   const action = requestUrl.searchParams.get('action') || 'init';
+  const baseFunctionUrl = `${requestUrl.origin}${requestUrl.pathname}`;
 
-  // ── TwiML: Owner hears whisper, presses key to connect ──
+  if (action === 'wait-twiml') {
+    const loopUrl = `${baseFunctionUrl}?action=wait-twiml`;
+    const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Play>${escapeXml(HOLD_MUSIC_URL)}</Play><Redirect method="POST">${escapeXml(loopUrl)}</Redirect></Response>`;
+    return twimlResponse(twiml);
+  }
+
+  if (action === 'caller-twiml') {
+    const conferenceName = requestUrl.searchParams.get('conference') || buildConferenceName();
+    const waitUrl = `${baseFunctionUrl}?action=wait-twiml`;
+    const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="Polly.Joanna-Neural" language="en-US">Please stay on the line while I connect you now.</Say><Dial><Conference waitUrl="${escapeXml(waitUrl)}" waitMethod="POST" startConferenceOnEnter="false" endConferenceOnExit="true" beep="false">${escapeXml(conferenceName)}</Conference></Dial></Response>`;
+    return twimlResponse(twiml);
+  }
+
   if (action === 'owner-twiml') {
     const ownerName = requestUrl.searchParams.get('owner_name') || DEFAULT_OWNER_NAME;
     const callerName = requestUrl.searchParams.get('caller_name') || 'the caller';
     const callerPhone = normalizePhoneNumber(requestUrl.searchParams.get('caller_phone') || '');
     const callerEmail = normalizeEmailCandidate(requestUrl.searchParams.get('caller_email') || '');
     const businessName = requestUrl.searchParams.get('business_name') || 'the business';
-
-    const connectUrl = `${requestUrl.origin}${requestUrl.pathname}?action=connect-caller&caller_phone=${encodeURIComponent(callerPhone)}`;
+    const conferenceName = requestUrl.searchParams.get('conference') || buildConferenceName();
+    const callerCallSid = requestUrl.searchParams.get('caller_call_sid') || '';
+    const joinUrl = `${baseFunctionUrl}?action=join-conference&conference=${encodeURIComponent(conferenceName)}&caller_call_sid=${encodeURIComponent(callerCallSid)}`;
 
     const whisperText = [
-      `Hello ${ownerName}. This is Aspen with a live handoff from the ${businessName} demo.`,
-      `${callerName} is on the line and ready to speak with you.`,
-      callerPhone ? `Their phone number is ${formatPhoneForSpeech(callerPhone)}.` : 'I do not have a confirmed callback number on file.',
+      `Hello ${ownerName}. This is Aspen with a live transfer from the ${businessName} demo.`,
+      `${callerName} is waiting for you now.`,
+      callerPhone ? `Their phone number is ${formatPhoneForSpeech(callerPhone)}.` : 'I do not have a confirmed callback phone number on file.',
       callerEmail ? `Their email is ${formatEmailForSpeech(callerEmail)}.` : '',
-      callerPhone ? 'Press any key to be connected now.' : 'Their details have been sent to your email. Goodbye.',
+      'Press any key now to join the live transfer.',
     ].filter(Boolean).join(' ');
 
-    if (!callerPhone) {
-      const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="Polly.Joanna-Neural" language="en-US">${escapeXml(whisperText)}</Say><Hangup/></Response>`;
-      return twimlResponse(twiml);
-    }
-
-    const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Gather input="dtmf" numDigits="1" timeout="15" action="${escapeXml(connectUrl)}" method="POST"><Say voice="Polly.Joanna-Neural" language="en-US">${escapeXml(whisperText)}</Say></Gather><Say voice="Polly.Joanna-Neural" language="en-US">No response received. The caller details have been sent to your email. Goodbye.</Say><Hangup/></Response>`;
+    const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Gather input="dtmf" numDigits="1" timeout="20" action="${escapeXml(joinUrl)}" actionOnEmptyResult="true" method="POST"><Say voice="Polly.Joanna-Neural" language="en-US">${escapeXml(whisperText)}</Say></Gather><Say voice="Polly.Joanna-Neural" language="en-US">No response received. Goodbye.</Say><Hangup/></Response>`;
     return twimlResponse(twiml);
   }
 
-  // ── TwiML: After owner presses key, dial the caller's phone directly ──
-  if (action === 'connect-caller') {
-    const callerPhone = normalizePhoneNumber(requestUrl.searchParams.get('caller_phone') || '');
-    if (!callerPhone) {
-      const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="Polly.Joanna-Neural" language="en-US">Sorry, I don't have the caller's phone number on file. Their details have been sent to your email.</Say><Hangup/></Response>`;
+  if (action === 'join-conference') {
+    const conferenceName = requestUrl.searchParams.get('conference') || buildConferenceName();
+    const callerCallSid = requestUrl.searchParams.get('caller_call_sid') || '';
+    const formBody = await parseFormBody(req);
+    const digits = formBody.get('Digits')?.trim() || '';
+
+    if (!digits) {
+      const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+      const twilioApiKey = Deno.env.get('TWILIO_API_KEY');
+
+      if (lovableApiKey && twilioApiKey && callerCallSid) {
+        await completeTwilioCall(lovableApiKey, twilioApiKey, callerCallSid);
+      }
+
+      const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="Polly.Joanna-Neural" language="en-US">No response received. I am ending this transfer request now.</Say><Hangup/></Response>`;
       return twimlResponse(twiml);
     }
-    const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="Polly.Joanna-Neural" language="en-US">Connecting you now.</Say><Dial callerId="${escapeXml(TWILIO_CALLER_ID)}"><Number>${escapeXml(callerPhone)}</Number></Dial></Response>`;
+
+    const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="Polly.Joanna-Neural" language="en-US">Connecting you now.</Say><Dial><Conference startConferenceOnEnter="true" endConferenceOnExit="true" beep="false">${escapeXml(conferenceName)}</Conference></Dial></Response>`;
     return twimlResponse(twiml);
   }
 
-  // ── Status callback (logging only) ──
   if (action === 'status') {
-    const statusBody = await req.text().catch(() => '');
-    console.log('Live transfer status:', statusBody.slice(0, 500));
+    const role = requestUrl.searchParams.get('role') || 'unknown';
+    const callerCallSid = requestUrl.searchParams.get('caller_call_sid') || '';
+    const body = await parseFormBody(req);
+    const callStatus = body.get('CallStatus')?.toLowerCase() || '';
+
+    console.log(`Live transfer status (${role}):`, body.toString().slice(0, 500));
+
+    if (role === 'owner' && callerCallSid && ['busy', 'failed', 'no-answer', 'canceled', 'completed'].includes(callStatus)) {
+      const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
+      const twilioApiKey = Deno.env.get('TWILIO_API_KEY');
+
+      if (lovableApiKey && twilioApiKey) {
+        await completeTwilioCall(lovableApiKey, twilioApiKey, callerCallSid);
+      }
+    }
+
     return new Response('ok', { headers: corsHeaders });
   }
 
-  // ── Main: dial the owner only ──
   try {
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
     if (!lovableApiKey) return jsonResponse({ success: false, error: 'LOVABLE_API_KEY not configured' }, 500);
@@ -134,41 +244,81 @@ Deno.serve(async (req) => {
     const callerEmail = normalizeEmailCandidate(typeof body.callerEmail === 'string' ? body.callerEmail : '');
     const businessName = typeof body.businessName === 'string' && body.businessName.trim() ? body.businessName.trim() : 'Demo Business';
     const ownerName = typeof body.ownerName === 'string' && body.ownerName.trim() ? body.ownerName.trim() : DEFAULT_OWNER_NAME;
+    const callId = typeof body.callId === 'string' ? body.callId.trim() : '';
 
-    console.log('Live transfer: dialing owner', { transferTo, callerPhone: callerPhone ? `***${callerPhone.slice(-4)}` : 'none' });
+    if (!callerPhone) {
+      return jsonResponse({ success: false, error: 'A confirmed caller phone number is required for live transfer.' }, 400);
+    }
 
-    const baseFunctionUrl = `${requestUrl.origin}${requestUrl.pathname}`;
-    const ownerTwimlUrl = `${baseFunctionUrl}?action=owner-twiml&owner_name=${encodeURIComponent(ownerName)}&caller_name=${encodeURIComponent(callerName)}&caller_phone=${encodeURIComponent(callerPhone)}&caller_email=${encodeURIComponent(callerEmail)}&business_name=${encodeURIComponent(businessName)}`;
-    const statusUrl = `${baseFunctionUrl}?action=status`;
+    const conferenceName = buildConferenceName(callId);
+    const callerTwimlUrl = `${baseFunctionUrl}?action=caller-twiml&conference=${encodeURIComponent(conferenceName)}`;
+    const callerStatusUrl = `${baseFunctionUrl}?action=status&role=caller`;
 
-    const ownerResponse = await fetch(`${TWILIO_GATEWAY_URL}/Calls.json`, {
-      method: 'POST',
-      headers: {
-        'Authorization': `Bearer ${lovableApiKey}`,
-        'X-Connection-Api-Key': twilioApiKey,
-        'Content-Type': 'application/x-www-form-urlencoded',
-      },
-      body: new URLSearchParams({
+    console.log('Live transfer: starting conference bridge', {
+      conferenceName,
+      transferTo,
+      callerPhone: `***${callerPhone.slice(-4)}`,
+    });
+
+    const callerResponse = await twilioRequest(
+      lovableApiKey,
+      twilioApiKey,
+      '/Calls.json',
+      new URLSearchParams({
+        To: callerPhone,
+        From: TWILIO_CALLER_ID,
+        Url: callerTwimlUrl,
+        Method: 'POST',
+        StatusCallback: callerStatusUrl,
+        StatusCallbackMethod: 'POST',
+        StatusCallbackEvent: 'initiated ringing answered completed',
+        Timeout: '30',
+      }),
+    );
+
+    const callerData = await callerResponse.json().catch(() => null);
+    if (!callerResponse.ok) {
+      throw new Error(`Twilio call to caller failed [${callerResponse.status}]: ${JSON.stringify(callerData)}`);
+    }
+
+    const callerCallSid = typeof callerData?.sid === 'string' ? callerData.sid : '';
+    const ownerTwimlUrl = `${baseFunctionUrl}?action=owner-twiml&owner_name=${encodeURIComponent(ownerName)}&caller_name=${encodeURIComponent(callerName)}&caller_phone=${encodeURIComponent(callerPhone)}&caller_email=${encodeURIComponent(callerEmail)}&business_name=${encodeURIComponent(businessName)}&conference=${encodeURIComponent(conferenceName)}&caller_call_sid=${encodeURIComponent(callerCallSid)}`;
+    const ownerStatusUrl = `${baseFunctionUrl}?action=status&role=owner&caller_call_sid=${encodeURIComponent(callerCallSid)}`;
+
+    const ownerResponse = await twilioRequest(
+      lovableApiKey,
+      twilioApiKey,
+      '/Calls.json',
+      new URLSearchParams({
         To: transferTo,
         From: TWILIO_CALLER_ID,
         Url: ownerTwimlUrl,
         Method: 'POST',
-        StatusCallback: statusUrl,
+        StatusCallback: ownerStatusUrl,
         StatusCallbackMethod: 'POST',
         StatusCallbackEvent: 'initiated ringing answered completed',
+        Timeout: '30',
       }),
-    });
+    );
 
     const ownerData = await ownerResponse.json().catch(() => null);
     if (!ownerResponse.ok) {
+      await completeTwilioCall(lovableApiKey, twilioApiKey, callerCallSid);
       throw new Error(`Twilio call to owner failed [${ownerResponse.status}]: ${JSON.stringify(ownerData)}`);
     }
 
-    console.log('Live transfer: owner dialed', { ownerCallSid: ownerData?.sid, transferTo });
+    console.log('Live transfer: conference bridge ready', {
+      conferenceName,
+      callerCallSid,
+      ownerCallSid: ownerData?.sid ?? null,
+      transferTo,
+    });
 
     return jsonResponse({
       success: true,
-      bridgeMode: 'owner_dial',
+      bridgeMode: 'conference',
+      conferenceName,
+      callerCallSid,
       ownerCallSid: ownerData?.sid ?? null,
       transferTo,
     });
