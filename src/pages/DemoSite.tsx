@@ -21,6 +21,30 @@ const getHomepageUrl = (websiteUrl: string) => {
   }
 };
 
+const normalizePhoneNumber = (value?: string | null) => {
+  if (!value) return "";
+
+  const digits = value.replace(/\D/g, "");
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  if (value.trim().startsWith("+")) return value.trim();
+  return "";
+};
+
+const isLikelyCallablePhoneNumber = (value?: string | null) => {
+  const normalized = normalizePhoneNumber(value);
+  if (!/^\+\d{11,15}$/.test(normalized)) return false;
+
+  if (!normalized.startsWith("+1")) return true;
+
+  const digits = normalized.slice(2);
+  if (digits.length !== 10) return false;
+
+  const areaCode = digits.slice(0, 3);
+  const exchange = digits.slice(3, 6);
+  return /^[2-9]\d{2}$/.test(areaCode) && /^[2-9]\d{2}$/.test(exchange);
+};
+
 const DemoSite = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -39,7 +63,10 @@ const DemoSite = () => {
   const prospectIdParam = searchParams.get("prospectId");
   const callerNameParam = searchParams.get("callerName") || undefined;
   const callerEmailParam = searchParams.get("callerEmail") || undefined;
-  const callerPhoneParam = searchParams.get("callerPhone") || undefined;
+  const callerPhoneParam = (() => {
+    const rawPhone = searchParams.get("callerPhone");
+    return isLikelyCallablePhoneNumber(rawPhone) ? normalizePhoneNumber(rawPhone) : undefined;
+  })();
 
   // Handle URL params from CRM (e.g. /demo?url=...&name=...&niche=...)
   useEffect(() => {
@@ -267,7 +294,9 @@ const DemoSite = () => {
   const hasCrmContext = Boolean(leadData.prospectId || prospectIdParam);
   const knownCallerName = callerNameParam || (!hasCrmContext && leadData.fullName !== "CRM Prospect" ? leadData.fullName : undefined);
   const knownCallerEmail = callerEmailParam || (!hasCrmContext ? leadData.email : undefined);
-  const knownCallerPhone = callerPhoneParam || (!hasCrmContext ? leadData.phone : undefined);
+  const knownCallerPhone = callerPhoneParam || (!hasCrmContext && isLikelyCallablePhoneNumber(leadData.phone)
+    ? normalizePhoneNumber(leadData.phone)
+    : undefined);
   const followUpName = prospectOwner?.name || DEFAULT_DEMO_OWNER_NAME;
   const followUpEmail = prospectOwner?.email || undefined;
   const followUpPhone = prospectOwner?.phone || undefined;
@@ -276,7 +305,7 @@ const DemoSite = () => {
   return (
     <div className="relative flex min-h-screen flex-col bg-background">
       {/* Top bar */}
-      <div className="sticky top-0 z-50 flex items-center justify-between border-b border-border bg-card/95 px-4 py-2.5 backdrop-blur-md">
+      <div className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-card/95 px-4 py-2.5 backdrop-blur-md">
         <div className="flex items-center gap-3">
           <button
             onClick={handleBack}
@@ -337,7 +366,7 @@ const DemoSite = () => {
         ))}
 
         {/* ===== AI Widget buttons — fixed to the bottom of the viewport ===== */}
-        <div className="pointer-events-none fixed inset-x-0 bottom-4 z-50 px-3 sm:bottom-6 sm:px-6">
+        <div className="pointer-events-none fixed inset-x-0 bottom-4 z-20 px-3 sm:bottom-6 sm:px-6">
           <div className="relative mx-auto h-0 w-full max-w-[1100px]">
             <div className="pointer-events-auto absolute bottom-0 left-0">
               {chatOpen ? (

@@ -528,12 +528,17 @@ const normalizeEmailCandidate = (value?: string | null) => {
   return match ? match[0] : '';
 };
 
+const sanitizeCallerPhone = (value?: string | null) => {
+  const normalized = normalizePhoneNumber(value);
+  return isLikelyCallablePhoneNumber(normalized) ? normalized : '';
+};
+
 const extractCallerPhoneFromTranscript = (transcript: string) => {
   if (!transcript) return '';
 
   const matches = Array.from(transcript.matchAll(/(?:\+?\d[\d\s().-]{8,}\d)/g))
     .map((match) => normalizePhoneNumber(match[0]))
-    .filter((value) => /^\+\d{11,15}$/.test(value));
+    .filter((value) => isLikelyCallablePhoneNumber(value));
 
   return matches.length > 0 ? matches[matches.length - 1] : '';
 };
@@ -617,7 +622,7 @@ async function persistCapturedCallerDetails({
 }) {
   const safeName = callerName.trim();
   const safeEmail = normalizeEmailCandidate(callerEmail);
-  const safePhone = normalizePhoneNumber(callerPhone);
+  const safePhone = sanitizeCallerPhone(callerPhone);
 
   let leadUpdated = false;
   let prospectUpdated = false;
@@ -997,15 +1002,13 @@ Deno.serve(async (req) => {
 
       const fallbackCallerName = typeof body.callerName === 'string' ? body.callerName.trim() : '';
       const fallbackCallerEmail = typeof body.callerEmail === 'string' ? normalizeEmailCandidate(body.callerEmail) : '';
-      const fallbackCallerPhone = typeof body.callerPhone === 'string' ? normalizePhoneNumber(body.callerPhone) : '';
+      const fallbackCallerPhone = typeof body.callerPhone === 'string' ? sanitizeCallerPhone(body.callerPhone) : '';
 
       const callData = await retellFetch(`/v2/get-call/${callId}`, retellApiKey, { method: 'GET' });
       const transcript = getTranscriptText(callData);
 
-      const transcriptCallerPhone = extractCallerPhoneFromTranscript(transcript);
-      const resolvedCallerPhone = isLikelyCallablePhoneNumber(transcriptCallerPhone)
-        ? transcriptCallerPhone
-        : fallbackCallerPhone;
+      const transcriptCallerPhone = sanitizeCallerPhone(extractCallerPhoneFromTranscript(transcript));
+      const resolvedCallerPhone = transcriptCallerPhone || fallbackCallerPhone;
 
       return jsonResponse({
         success: true,
@@ -1033,7 +1036,7 @@ Deno.serve(async (req) => {
       const ownerPhone = typeof body.ownerPhone === 'string' ? body.ownerPhone.trim() : '';
       const fallbackCallerName = typeof body.callerName === 'string' ? body.callerName.trim() : '';
       const fallbackCallerEmail = typeof body.callerEmail === 'string' ? normalizeEmailCandidate(body.callerEmail) : '';
-      const fallbackCallerPhone = typeof body.callerPhone === 'string' ? normalizePhoneNumber(body.callerPhone) : '';
+      const fallbackCallerPhone = typeof body.callerPhone === 'string' ? sanitizeCallerPhone(body.callerPhone) : '';
       const transferAlreadyStarted = body.transferAlreadyStarted === true;
       const businessName = typeof body.businessName === 'string' ? body.businessName.trim() : 'Demo Business';
       const websiteUrl = typeof body.websiteUrl === 'string' ? body.websiteUrl.trim() : '';
@@ -1068,9 +1071,7 @@ Deno.serve(async (req) => {
 
       const resolvedCallerName = aiSummary.callerName || fallbackCallerName;
       const resolvedCallerEmail = aiSummary.callerEmail || fallbackCallerEmail;
-      const resolvedCallerPhone = isLikelyCallablePhoneNumber(aiSummary.callerPhone)
-        ? aiSummary.callerPhone
-        : fallbackCallerPhone;
+      const resolvedCallerPhone = sanitizeCallerPhone(aiSummary.callerPhone) || fallbackCallerPhone;
 
       let contactPersisted = false;
       let contactPersistWarning: string | null = null;
@@ -1396,7 +1397,7 @@ Deno.serve(async (req) => {
     const normalizedOwnerPhone = normalizePhoneNumber(ownerPhone);
     const resolvedCallerName = typeof callerName === 'string' ? callerName.trim() : '';
     const resolvedCallerEmail = typeof callerEmail === 'string' ? normalizeEmailCandidate(callerEmail) : '';
-    const resolvedCallerPhone = normalizePhoneNumber(callerPhone);
+    const resolvedCallerPhone = sanitizeCallerPhone(callerPhone);
 
     console.log('Creating web call for agent:', agentId, 'niche:', businessNiche, 'callbackPhone:', normalizedOwnerPhone);
 
@@ -1424,6 +1425,7 @@ Deno.serve(async (req) => {
 CRITICAL OPENING RULE:
 - If caller_name is blank, greet the caller warmly and IMMEDIATELY ask for their name. Example: "Hey there! Thanks for calling ${businessName || 'us'}! Before we dive in, who do I have the pleasure of speaking with today?"
 - If caller_name is already available, greet them by name and keep using it naturally.
+- In your first reply, briefly disclose that this is a quick demo based on the website plus general ${businessNiche || 'industry'} standards, so the caller knows this is a simulation.
 - NEVER invent a caller name. If you're unsure, ask.
 
 TWO PEOPLE IN EVERY CALL:
@@ -1470,12 +1472,13 @@ LIVE TRANSFER (CRITICAL — READ EVERY WORD):
 - Before initiating a transfer, you MUST capture and verbally confirm BOTH the caller's phone number and email address. This is non-negotiable.
 - Once both are confirmed and the caller says yes, acknowledge it ONCE with a short commitment like: "Perfect — I'm transferring you now. Hold tight while I connect you."
 - After that, do NOT ask again whether they want to be connected, do NOT re-offer the transfer, and do NOT repeat the same transfer question.
+- If you've already committed to the transfer once, never restart the transfer conversation even if the caller repeats themselves or says it didn't go through yet; just calmly say the transfer is in progress and ask them to stay on the line.
 - While the bridge starts, you may give at most ONE brief reassurance like: "You're all set. Stay with me for a moment."
 - Do NOT end the call or hang up. The system will handle the conference bridge in the background. Once you've committed to the transfer, stay calm and brief instead of restarting the conversation.
 - If the caller doesn't want to wait, offer the callback alternative: "No problem! I can have ${resolvedOwnerName} call you back within minutes instead."
 - Mark this as a transfer request internally so the system bridges the call after the conversation.
 
-DEMO CONTEXT: This is a demonstration of AI voice capabilities. If the caller asks about signing up for the AI service itself, you can mention they can speak with Ron Melo, our Director of Sales, about getting this for their own business.`,
+DEMO CONTEXT: This is a short simulated demo based on what you learned from the website and general industry standards, so keep that framing honest and concise. If the caller asks about signing up for the AI service itself, you can mention they can speak with Ron Melo, our Director of Sales, about getting this for their own business.`,
         },
         metadata: {
           niche: businessNiche || 'general',

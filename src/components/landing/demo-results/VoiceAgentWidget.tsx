@@ -337,13 +337,15 @@ const VoiceAgentWidget = ({
     const fallbackContact = {
       callerName: callerName?.trim() || "a caller",
       callerEmail: normalizeEmailCandidate(callerEmail || ""),
-      callerPhone: normalizePhoneNumber(callerPhone || ""),
+      callerPhone: isLikelyCallablePhoneNumber(callerPhone) ? normalizePhoneNumber(callerPhone || "") : "",
     };
+
+    const optimisticCallerPhone = normalizePhoneNumber(capturedContact?.callerPhone || "");
 
     const optimisticContact = {
       callerName: capturedContact?.callerName?.trim() || fallbackContact.callerName,
       callerEmail: normalizeEmailCandidate(capturedContact?.callerEmail || fallbackContact.callerEmail),
-      callerPhone: fallbackContact.callerPhone,
+      callerPhone: isLikelyCallablePhoneNumber(optimisticCallerPhone) ? optimisticCallerPhone : fallbackContact.callerPhone,
     };
 
     if (!callId || (optimisticContact.callerPhone && optimisticContact.callerEmail)) {
@@ -501,7 +503,7 @@ const VoiceAgentWidget = ({
           websiteUrl,
           callerName: callerName || "",
           callerEmail: callerEmail || "",
-          callerPhone: callerPhone || "",
+          callerPhone: isLikelyCallablePhoneNumber(callerPhone) ? normalizePhoneNumber(callerPhone || "") : "",
           transferAlreadyStarted: transferTriggeredRef.current,
         },
       });
@@ -596,7 +598,7 @@ const VoiceAgentWidget = ({
           businessInfo: businessInfo?.substring(0, 6000) || "",
           callerName: callerName || "",
           callerEmail: callerEmail || "",
-          callerPhone: callerPhone || "",
+          callerPhone: isLikelyCallablePhoneNumber(callerPhone) ? normalizePhoneNumber(callerPhone || "") : "",
         },
       });
 
