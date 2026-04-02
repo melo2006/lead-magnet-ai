@@ -254,8 +254,8 @@ Deno.serve(async (req) => {
     }
 
     const conferenceName = buildConferenceName(callId);
-    const callerTwimlUrl = `${baseFunctionUrl}?action=caller-twiml&conference=${encodeURIComponent(conferenceName)}`;
-    const callerStatusUrl = `${baseFunctionUrl}?action=status&role=caller`;
+    const callerTwimlUrl = `${baseFunctionUrl}?action=caller-twiml&conference=${encodeURIComponent(conferenceName)}${anonParam}`;
+    const callerStatusUrl = `${baseFunctionUrl}?action=status&role=caller${anonParam}`;
 
     console.log('Live transfer: starting conference bridge', {
       conferenceName,
