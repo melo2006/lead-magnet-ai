@@ -54,10 +54,10 @@ interface ColumnDef {
 const ALL_COLUMNS: ColumnDef[] = [
   { id: "business", label: "Business", sortKey: "business_name", minWidth: "200px", removable: false },
   { id: "niche", label: "Niche", sortKey: "niche", minWidth: "100px", removable: true },
+  { id: "voiceai_candidate", label: "Voice AI Fit", sortKey: "voiceai_fit", minWidth: "85px", removable: true },
   { id: "temp", label: "Temp", sortKey: "lead_temperature", minWidth: "60px", removable: true },
   { id: "location", label: "Location", sortKey: "city", minWidth: "120px", removable: true },
   { id: "actions", label: "Actions", minWidth: "120px", removable: false },
-  { id: "voiceai_candidate", label: "Voice AI Fit", sortKey: "voiceai_fit", minWidth: "85px", removable: true },
   { id: "webdev_candidate", label: "Web Dev Fit", sortKey: "webdev_fit", minWidth: "85px", removable: true },
   { id: "rating", label: "Rating", sortKey: "rating", minWidth: "60px", removable: true },
   { id: "reviews", label: "Reviews", sortKey: "review_count", minWidth: "70px", removable: true },
@@ -232,7 +232,7 @@ const ColumnManager = ({
 
 const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
-  const [sortBy, setSortBy] = useState<SortKey>("lead_score");
+  const [sortBy, setSortBy] = useState<SortKey>("voiceai_fit");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
   const [selectedIds, setSelectedIds] = useState<Set<string>>(new Set());
   const [page, setPage] = useState(1);
@@ -358,7 +358,7 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) =
             {!aiAnalyzed && p.has_website && (
               <button onClick={(e) => { e.stopPropagation(); handleAnalyze(p); }} disabled={isAnalyzing} className="p-1 rounded hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors disabled:opacity-50" title="AI Analyze"><Brain className="w-3.5 h-3.5" /></button>
             )}
-            <Link to={`/demo?url=${encodeURIComponent(p.website_url || "")}&name=${encodeURIComponent(p.business_name)}&niche=${encodeURIComponent(p.niche || "")}&prospectId=${encodeURIComponent(p.id || "")}&returnTo=${returnTo}`} onClick={(e) => e.stopPropagation()} className="p-1 rounded hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors" title="Generate Demo"><Zap className="w-3.5 h-3.5" /></Link>
+            <Link to={`/demo?url=${encodeURIComponent(p.website_url || "")}&name=${encodeURIComponent(p.business_name)}&niche=${encodeURIComponent(p.niche || "")}&prospectId=${encodeURIComponent(p.id || "")}&callerName=${encodeURIComponent("Our AI specialist Ron")}&returnTo=${returnTo}`} onClick={(e) => e.stopPropagation()} className="p-1 rounded hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors" title="Generate Demo"><Zap className="w-3.5 h-3.5" /></Link>
           </div>
         );
       case "rating":
