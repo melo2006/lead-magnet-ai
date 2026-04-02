@@ -144,6 +144,7 @@ const VoiceAgentWidget = ({
   const { toast } = useToast();
   const [callStatus, setCallStatus] = useState<CallStatus>("idle");
   const [isMuted, setIsMuted] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(100);
@@ -151,6 +152,8 @@ const VoiceAgentWidget = ({
   const [audioDevices, setAudioDevices] = useState<AudioDevice[]>([]);
   const [selectedDevice, setSelectedDevice] = useState<string>("");
   const [transferInProgress, setTransferInProgress] = useState(false);
+  const [lastAgentMessage, setLastAgentMessage] = useState<string>("");
+  const [isReplaying, setIsReplaying] = useState(false);
   const retellClientRef = useRef<any>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const callIdRef = useRef<string | null>(null);
@@ -158,6 +161,7 @@ const VoiceAgentWidget = ({
   const transferTriggeredRef = useRef(false);
   const transferInProgressRef = useRef(false);
   const liveTranscriptRef = useRef("");
+  const pausedVolumeRef = useRef(100);
   const resolvedOwnerName = ownerName || DEFAULT_OWNER_NAME;
 
   const setTransferState = useCallback((nextValue: boolean) => {
