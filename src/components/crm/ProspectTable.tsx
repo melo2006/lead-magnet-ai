@@ -54,10 +54,10 @@ interface ColumnDef {
 const ALL_COLUMNS: ColumnDef[] = [
   { id: "business", label: "Business", sortKey: "business_name", minWidth: "200px", removable: false },
   { id: "niche", label: "Niche", sortKey: "niche", minWidth: "100px", removable: true },
+  { id: "voiceai_candidate", label: "Voice AI Fit", sortKey: "voiceai_fit", minWidth: "85px", removable: true },
   { id: "temp", label: "Temp", sortKey: "lead_temperature", minWidth: "60px", removable: true },
   { id: "location", label: "Location", sortKey: "city", minWidth: "120px", removable: true },
   { id: "actions", label: "Actions", minWidth: "120px", removable: false },
-  { id: "voiceai_candidate", label: "Voice AI Fit", sortKey: "voiceai_fit", minWidth: "85px", removable: true },
   { id: "webdev_candidate", label: "Web Dev Fit", sortKey: "webdev_fit", minWidth: "85px", removable: true },
   { id: "rating", label: "Rating", sortKey: "rating", minWidth: "60px", removable: true },
   { id: "reviews", label: "Reviews", sortKey: "review_count", minWidth: "70px", removable: true },
