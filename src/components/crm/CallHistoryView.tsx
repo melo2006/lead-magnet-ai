@@ -8,6 +8,8 @@ import { useNavigate } from "react-router-dom";
 interface CallRecord {
   id: string;
   retell_call_id: string;
+  lead_id?: string | null;
+  prospect_id?: string | null;
   business_name: string;
   website_url: string | null;
   owner_name: string | null;
@@ -50,6 +52,30 @@ const formatDate = (d: string) => {
   return date.toLocaleDateString("en-US", { month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 };
 
+const normalizePhoneNumber = (value?: string | null) => {
+  if (!value) return "";
+
+  const digits = value.replace(/\D/g, "");
+  if (digits.length === 10) return `+1${digits}`;
+  if (digits.length === 11 && digits.startsWith("1")) return `+${digits}`;
+  if (value.trim().startsWith("+")) return value.trim();
+  return "";
+};
+
+const isLikelyCallablePhoneNumber = (value?: string | null) => {
+  const normalized = normalizePhoneNumber(value);
+  if (!/^\+\d{11,15}$/.test(normalized)) return false;
+
+  if (!normalized.startsWith("+1")) return true;
+
+  const digits = normalized.slice(2);
+  if (digits.length !== 10) return false;
+
+  const areaCode = digits.slice(0, 3);
+  const exchange = digits.slice(3, 6);
+  return /^[2-9]\d{2}$/.test(areaCode) && /^[2-9]\d{2}$/.test(exchange);
+};
+
 const CallRow = ({ call }: { call: CallRecord }) => {
   const [expanded, setExpanded] = useState(false);
   const navigate = useNavigate();
@@ -59,6 +85,16 @@ const CallRow = ({ call }: { call: CallRecord }) => {
     const params = new URLSearchParams();
     if (call.website_url) params.set("url", call.website_url);
     params.set("name", call.business_name);
+
+    if (call.prospect_id) params.set("prospectId", call.prospect_id);
+    if (call.lead_id) params.set("leadId", call.lead_id);
+    if (call.caller_name) params.set("callerName", call.caller_name);
+    if (call.caller_email) params.set("callerEmail", call.caller_email);
+    if (isLikelyCallablePhoneNumber(call.caller_phone)) {
+      params.set("callerPhone", normalizePhoneNumber(call.caller_phone));
+    }
+    params.set("returnTo", "/calls");
+
     navigate(`/demo?${params.toString()}`);
   };
 
