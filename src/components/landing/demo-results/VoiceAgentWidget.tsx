@@ -799,12 +799,37 @@ const VoiceAgentWidget = ({
               <div className="flex gap-2 mb-3">
                 <button
                   onClick={toggleMute}
-                  className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
+                  className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-semibold transition-colors ${
                     isMuted ? "bg-destructive/20 text-destructive" : "bg-secondary text-foreground hover:bg-secondary/80"
                   }`}
                 >
                   {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                   {isMuted ? "Unmute" : "Mute"}
+                </button>
+                <button
+                  onClick={togglePause}
+                  className={`flex items-center justify-center rounded-xl px-3 py-3 text-sm font-semibold transition-colors ${
+                    isPaused ? "bg-amber-500/20 text-amber-400" : "bg-secondary text-foreground hover:bg-secondary/80"
+                  }`}
+                  aria-label={isPaused ? "Resume Aspen" : "Pause Aspen"}
+                  title={isPaused ? "Resume audio" : "Pause agent audio"}
+                >
+                  {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+                </button>
+                <button
+                  onClick={replayLastMessage}
+                  disabled={!lastAgentMessage || isReplaying}
+                  className={`flex items-center justify-center rounded-xl px-3 py-3 text-sm font-semibold transition-colors ${
+                    isReplaying
+                      ? "bg-primary/20 text-primary"
+                      : lastAgentMessage
+                        ? "bg-secondary text-foreground hover:bg-secondary/80"
+                        : "bg-secondary/50 text-muted-foreground cursor-not-allowed"
+                  }`}
+                  aria-label="Replay last message"
+                  title={lastAgentMessage ? "Replay Aspen's last response" : "No message to replay yet"}
+                >
+                  {isReplaying ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
                 </button>
                 <button
                   onClick={() => setShowAudioControls((prev) => !prev)}
@@ -817,7 +842,7 @@ const VoiceAgentWidget = ({
                 </button>
                 <button
                   onClick={endCall}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-destructive px-4 py-3 text-sm font-semibold text-destructive-foreground transition-colors hover:bg-destructive/90"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-destructive px-3 py-3 text-sm font-semibold text-destructive-foreground transition-colors hover:bg-destructive/90"
                 >
                   <PhoneOff className="h-4 w-4" />
                   End
