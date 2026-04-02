@@ -105,14 +105,26 @@ const extractCallerNameFromText = (value: string) => {
   return matches.length > 0 ? matches[matches.length - 1][1].trim() : "";
 };
 
-const extractEventText = (event: unknown) => {
-  if (typeof event === "string") return event;
-  try {
-    return JSON.stringify(event);
-  } catch {
-    return "";
+const collectTextFragments = (value: unknown, fragments: string[] = []) => {
+  if (typeof value === "string") {
+    const trimmed = value.trim();
+    if (trimmed) fragments.push(trimmed);
+    return fragments;
   }
+
+  if (Array.isArray(value)) {
+    value.forEach((item) => collectTextFragments(item, fragments));
+    return fragments;
+  }
+
+  if (value && typeof value === "object") {
+    Object.values(value as Record<string, unknown>).forEach((item) => collectTextFragments(item, fragments));
+  }
+
+  return fragments;
 };
+
+const extractEventText = (event: unknown) => collectTextFragments(event).join(" ");
 
 const VoiceAgentWidget = ({
   leadId,
@@ -134,7 +146,7 @@ const VoiceAgentWidget = ({
   const [isMuted, setIsMuted] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [duration, setDuration] = useState(0);
-  const [volume, setVolume] = useState(80);
+  const [volume, setVolume] = useState(100);
   const [showAudioControls, setShowAudioControls] = useState(false);
   const [audioDevices, setAudioDevices] = useState<AudioDevice[]>([]);
   const [selectedDevice, setSelectedDevice] = useState<string>("");
@@ -144,13 +156,68 @@ const VoiceAgentWidget = ({
   const callIdRef = useRef<string | null>(null);
   const summaryQueuedRef = useRef(false);
   const transferTriggeredRef = useRef(false);
+  const transferInProgressRef = useRef(false);
   const liveTranscriptRef = useRef("");
   const resolvedOwnerName = ownerName || DEFAULT_OWNER_NAME;
+
+  const setTransferState = useCallback((nextValue: boolean) => {
+    transferInProgressRef.current = nextValue;
+    setTransferInProgress(nextValue);
+  }, []);
 
   const clearTimer = useCallback(() => {
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
+    }
+  }, []);
+
+  const applyLiveCallVolume = useCallback((nextVolume: number) => {
+    const normalizedVolume = Math.max(0, Math.min(1, nextVolume / 100));
+    const room = retellClientRef.current?.room;
+
+    if (room?.remoteParticipants instanceof Map) {
+      room.remoteParticipants.forEach((participant: any) => {
+        try {
+          participant.setVolume?.(normalizedVolume);
+        } catch (error) {
+          console.warn("Could not apply live call volume:", error);
+        }
+      });
+    }
+
+    const elements = document.querySelectorAll("audio, video");
+    elements.forEach((element) => {
+      (element as HTMLMediaElement).volume = normalizedVolume;
+    });
+  }, []);
+
+  const applyAudioOutputDevice = useCallback(async (deviceId: string) => {
+    if (!deviceId) return;
+
+    const room = retellClientRef.current?.room;
+
+    try {
+      if (typeof room?.switchActiveDevice === "function") {
+        await room.switchActiveDevice("audiooutput", deviceId);
+        return;
+      }
+    } catch (error) {
+      console.warn("Could not switch live call audio output:", error);
+    }
+
+    try {
+      const elements = document.querySelectorAll("audio, video");
+      await Promise.all(
+        Array.from(elements).map((element) => {
+          if (typeof (element as any).setSinkId === "function") {
+            return (element as any).setSinkId(deviceId);
+          }
+          return Promise.resolve();
+        }),
+      );
+    } catch (error) {
+      console.warn("Could not switch browser audio output:", error);
     }
   }, []);
 
@@ -182,43 +249,89 @@ const VoiceAgentWidget = ({
     };
   }, [refreshAudioDevices]);
 
-  // Apply volume changes to all audio/video elements on page
   useEffect(() => {
-    const els = document.querySelectorAll("audio, video");
-    els.forEach((el) => {
-      (el as HTMLMediaElement).volume = volume / 100;
-    });
-  }, [volume]);
+    applyLiveCallVolume(volume);
+  }, [applyLiveCallVolume, volume]);
 
-  // Apply audio output device selection
   const switchAudioOutput = useCallback(async (deviceId: string) => {
     setSelectedDevice(deviceId);
-    try {
-      const els = document.querySelectorAll("audio, video");
-      for (const el of els) {
-        if (typeof (el as any).setSinkId === "function") {
-          await (el as any).setSinkId(deviceId);
-        }
-      }
-    } catch (err) {
-      console.warn("Could not switch audio output:", err);
+    await applyAudioOutputDevice(deviceId);
+  }, [applyAudioOutputDevice]);
+
+  useEffect(() => {
+    if (!selectedDevice) return;
+    void applyAudioOutputDevice(selectedDevice);
+  }, [applyAudioOutputDevice, selectedDevice]);
+
+  const resolveTransferContact = useCallback(async (capturedContact?: { callerName?: string; callerEmail?: string; callerPhone?: string }) => {
+    const callId = callIdRef.current;
+    const fallbackContact = {
+      callerName: capturedContact?.callerName?.trim() || callerName || "a caller",
+      callerEmail: normalizeEmailCandidate(capturedContact?.callerEmail || callerEmail || ""),
+      callerPhone: normalizePhoneNumber(capturedContact?.callerPhone || callerPhone || ""),
+    };
+
+    if (!callId || (fallbackContact.callerPhone && fallbackContact.callerEmail)) {
+      return fallbackContact;
     }
-  }, []);
+
+    try {
+      const { data, error } = await supabase.functions.invoke("retell-web-call", {
+        body: {
+          action: "get-call-transfer-context",
+          callId,
+          callerName: fallbackContact.callerName,
+          callerEmail: fallbackContact.callerEmail,
+          callerPhone: fallbackContact.callerPhone,
+        },
+      });
+
+      if (error || !data?.success) {
+        throw new Error(error?.message || data?.error || "Unable to read live call details");
+      }
+
+      return {
+        callerName:
+          typeof data.callerName === "string" && data.callerName.trim()
+            ? data.callerName.trim()
+            : fallbackContact.callerName,
+        callerEmail: normalizeEmailCandidate(
+          typeof data.callerEmail === "string" ? data.callerEmail : fallbackContact.callerEmail,
+        ),
+        callerPhone: normalizePhoneNumber(
+          typeof data.callerPhone === "string" ? data.callerPhone : fallbackContact.callerPhone,
+        ),
+      };
+    } catch (error) {
+      console.warn("Could not resolve live transfer contact:", error);
+      return fallbackContact;
+    }
+  }, [callerEmail, callerName, callerPhone]);
 
   const initiateLiveTransfer = useCallback(async (capturedContact?: { callerName?: string; callerEmail?: string; callerPhone?: string }) => {
     const callId = callIdRef.current;
-    if (!callId || transferInProgress) return;
+    if (!callId || transferInProgressRef.current) return;
+
+    const resolvedContact = await resolveTransferContact(capturedContact);
+    if (!resolvedContact.callerPhone) {
+      toast({
+        title: "Need caller phone first",
+        description: "Aspen needs the caller's confirmed phone number before starting the live transfer.",
+        variant: "destructive",
+      });
+      return;
+    }
 
     transferTriggeredRef.current = true;
-    setTransferInProgress(true);
+    setTransferState(true);
 
     try {
       const { data, error } = await supabase.functions.invoke("live-transfer-bridge", {
         body: {
           transferTo: ownerPhone || "",
-          callerPhone: capturedContact?.callerPhone || callerPhone || "",
-          callerName: capturedContact?.callerName || callerName || "a caller",
-          callerEmail: capturedContact?.callerEmail || callerEmail || "",
+          callerPhone: resolvedContact.callerPhone,
+          callerName: resolvedContact.callerName,
+          callerEmail: resolvedContact.callerEmail,
           businessName,
           ownerName: resolvedOwnerName,
           callId,
@@ -235,36 +348,15 @@ const VoiceAgentWidget = ({
       });
     } catch (err) {
       console.error("Live transfer failed:", err);
-      // Fall back to warm-transfer (callback alert)
-      try {
-        const { data, error } = await supabase.functions.invoke("retell-web-call", {
-          body: {
-            action: "warm-transfer",
-            callId,
-            businessName,
-            ownerName: resolvedOwnerName,
-            callerName: capturedContact?.callerName || callerName || "a caller",
-            callerEmail: capturedContact?.callerEmail || callerEmail || "",
-            callerPhone: capturedContact?.callerPhone || callerPhone || "",
-            transferTo: ownerPhone || "",
-          },
-        });
-        if (error || !data?.success) throw new Error("Fallback also failed");
-        toast({
-          title: `Callback alert sent to ${resolvedOwnerName}`,
-          description: `${resolvedOwnerName} will call back shortly.`,
-        });
-      } catch {
-        toast({
-          title: "Transfer unavailable",
-          description: "We'll capture a callback request instead.",
-          variant: "destructive",
-        });
-      }
-    } finally {
-      setTransferInProgress(false);
+      transferTriggeredRef.current = false;
+      setTransferState(false);
+      toast({
+        title: "Live transfer failed",
+        description: err instanceof Error ? err.message : "Aspen couldn't complete the live transfer yet.",
+        variant: "destructive",
+      });
     }
-  }, [businessName, callerEmail, callerName, callerPhone, ownerPhone, resolvedOwnerName, toast, transferInProgress]);
+  }, [businessName, ownerPhone, resolvedOwnerName, resolveTransferContact, setTransferState, toast]);
 
   const maybeStartTransferFromLiveCall = useCallback((event: unknown) => {
     if (transferTriggeredRef.current) return;
@@ -313,14 +405,7 @@ const VoiceAgentWidget = ({
         throw new Error(error?.message || data?.error || "Couldn't finish the call recap.");
       }
 
-      // If a transfer was requested but wasn't already triggered live, attempt it as a fallback
-      if (data.transferRequested && !transferTriggeredRef.current) {
-        await initiateLiveTransfer({
-          callerName: data.callerName,
-          callerEmail: data.callerEmail,
-          callerPhone: data.callerPhone,
-        });
-      }
+      const transferWasAttempted = Boolean(data.transferRequested && transferTriggeredRef.current);
 
       const appointmentBooked = Boolean(data.calendarEventId);
 
@@ -328,7 +413,7 @@ const VoiceAgentWidget = ({
         ? appointmentBooked
           ? "Appointment confirmed"
           : "Appointment requested"
-        : data.transferRequested
+        : transferWasAttempted
           ? "Live transfer initiated"
           : data.callbackRequested
             ? "Callback request captured"
@@ -338,7 +423,7 @@ const VoiceAgentWidget = ({
         ? appointmentBooked && data.appointmentScheduledFor
           ? `Confirmed for ${data.appointmentScheduledFor}.`
           : `Aspen captured appointment intent and flagged it for ${resolvedOwnerName}.`
-        : data.transferRequested
+        : transferWasAttempted
           ? `${resolvedOwnerName} is being connected to you now.`
           : data.callbackRequested
             ? `${resolvedOwnerName} now has the callback request details.`
@@ -369,7 +454,7 @@ const VoiceAgentWidget = ({
         variant: "destructive",
       });
     }
-  }, [businessName, leadId, ownerEmail, ownerPhone, prospectId, resolvedOwnerName, toast, websiteUrl, initiateLiveTransfer]);
+  }, [businessName, leadId, ownerEmail, ownerPhone, prospectId, resolvedOwnerName, toast, websiteUrl]);
 
   useEffect(() => {
     return () => {
@@ -425,19 +510,23 @@ const VoiceAgentWidget = ({
         setIsMuted(false);
         clearTimer();
         timerRef.current = setInterval(() => setDuration((prev) => prev + 1), 1000);
-        // Apply current volume and device
         setTimeout(() => {
-          const els = document.querySelectorAll("audio, video");
-          els.forEach((el) => {
-            (el as HTMLMediaElement).volume = volume / 100;
-            if (selectedDevice && typeof (el as any).setSinkId === "function") {
-              (el as any).setSinkId(selectedDevice).catch(() => {});
-            }
-          });
-        }, 500);
+          applyLiveCallVolume(volume);
+          if (selectedDevice) {
+            void applyAudioOutputDevice(selectedDevice);
+          }
+        }, 250);
+      });
+
+      retellClient.on("call_ready", () => {
+        applyLiveCallVolume(volume);
+        if (selectedDevice) {
+          void applyAudioOutputDevice(selectedDevice);
+        }
       });
 
       retellClient.on("call_ended", () => {
+        setTransferState(false);
         setCallStatus("idle");
         setIsMuted(false);
         clearTimer();
@@ -455,29 +544,38 @@ const VoiceAgentWidget = ({
       retellClient.on("error", (err: any) => {
         console.error("Retell error:", err);
         clearTimer();
+        setTransferState(false);
         setIsMuted(false);
         setCallStatus("idle");
         toast({ title: "Call error", description: "Something went wrong.", variant: "destructive" });
       });
 
-      await retellClient.startCall({ accessToken: data.access_token, sampleRate: 24000, emitRawAudioSamples: false });
+      await retellClient.startCall({
+        accessToken: data.access_token,
+        sampleRate: 24000,
+        emitRawAudioSamples: false,
+        playbackDeviceId: selectedDevice || undefined,
+      });
+      await retellClient.startAudioPlayback?.().catch(() => {});
     } catch (err) {
       console.error("Failed to start call:", err);
       toast({ title: "Could not start call", description: err instanceof Error ? err.message : "Please try again.", variant: "destructive" });
       setCallStatus("idle");
+      setTransferState(false);
       clearTimer();
     }
-  }, [businessInfo, businessName, businessNiche, callerEmail, callerName, callerPhone, clearTimer, ownerEmail, ownerPhone, resolvedOwnerName, toast, websiteUrl, queueCallSummary, volume, selectedDevice, maybeStartTransferFromLiveCall]);
+  }, [applyAudioOutputDevice, applyLiveCallVolume, businessInfo, businessName, businessNiche, callerEmail, callerName, callerPhone, clearTimer, ownerEmail, ownerPhone, resolvedOwnerName, toast, websiteUrl, queueCallSummary, volume, selectedDevice, maybeStartTransferFromLiveCall, setTransferState]);
 
   const endCall = useCallback(() => {
     setCallStatus("ending");
+    setTransferState(false);
     try {
       retellClientRef.current?.stopCall();
     } catch {
       /* noop */
     }
     window.setTimeout(() => setCallStatus((c) => (c === "ending" ? "idle" : c)), 1500);
-  }, []);
+  }, [setTransferState]);
 
   const toggleMute = useCallback(() => {
     const client = retellClientRef.current;
