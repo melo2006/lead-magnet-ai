@@ -591,10 +591,21 @@ const VoiceAgentWidget = ({
       });
 
       retellClient.on("call_ended", () => {
-        setTransferState(false);
-        setCallStatus("idle");
         setIsMuted(false);
         clearTimer();
+
+        // If a live transfer is in progress, keep the widget in "active" state
+        // so the user doesn't think the call dropped. The conference bridge
+        // is handling the rest via PSTN.
+        if (transferTriggeredRef.current || transferInProgressRef.current) {
+          console.log("[VoiceWidget] Retell call ended but transfer is active — keeping widget alive");
+          // Queue summary but do NOT reset the UI to idle
+          void queueCallSummary();
+          return;
+        }
+
+        setTransferState(false);
+        setCallStatus("idle");
         void queueCallSummary();
       });
 
