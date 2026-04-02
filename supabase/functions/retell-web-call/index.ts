@@ -1074,7 +1074,61 @@ Deno.serve(async (req) => {
         }
       }
 
-      let calendarEventId: string | null = null;
+      // Persist call history record
+      let callHistoryId: string | null = null;
+      if (supabaseUrl && supabaseServiceRoleKey) {
+        try {
+          const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey);
+          const callDurationSeconds = typeof callData?.duration_ms === 'number' ? Math.round(callData.duration_ms / 1000) : null;
+          
+          const { data: historyRow, error: historyError } = await adminClient
+            .from('call_history')
+            .insert({
+              retell_call_id: callId,
+              lead_id: leadId || null,
+              prospect_id: prospectId || null,
+              business_name: businessName,
+              website_url: websiteUrl || null,
+              owner_name: resolvedOwnerName,
+              owner_email: effectiveOwnerEmail,
+              owner_phone: ownerPhone || null,
+              caller_name: resolvedCallerName || null,
+              caller_email: resolvedCallerEmail || null,
+              caller_phone: resolvedCallerPhone || null,
+              caller_phone_source: resolvedCallerPhone ? 'transcript' : null,
+              call_status: 'completed',
+              transfer_requested: aiSummary.transferRequested,
+              transfer_status: aiSummary.transferRequested
+                ? (transferAlreadyStarted ? 'dialing_caller' : 'queued')
+                : 'not_requested',
+              summary: aiSummary.summary,
+              next_step: aiSummary.nextStep,
+              transcript: transcript || null,
+              key_points: aiSummary.keyPoints || [],
+              duration_seconds: callDurationSeconds,
+              started_at: callData?.start_timestamp ? new Date(callData.start_timestamp).toISOString() : new Date().toISOString(),
+              ended_at: callData?.end_timestamp ? new Date(callData.end_timestamp).toISOString() : new Date().toISOString(),
+              metadata: {
+                callbackRequested: aiSummary.callbackRequested,
+                appointmentRequested: aiSummary.appointmentRequested,
+                appointmentTimeText: aiSummary.appointmentTimeText || null,
+                contactPersisted,
+              },
+            })
+            .select('id')
+            .single();
+
+          if (historyError) {
+            console.error('Failed to persist call history (non-fatal):', historyError);
+          } else {
+            callHistoryId = historyRow?.id || null;
+            console.log('Call history persisted:', callHistoryId);
+          }
+        } catch (histErr) {
+          console.error('Call history persistence error (non-fatal):', histErr);
+        }
+      }
+
       let appointmentScheduledFor: string | null = null;
       let calendarWarning: string | null = null;
 
@@ -1123,7 +1177,7 @@ Deno.serve(async (req) => {
       if (aiSummary.transferRequested && !transferAlreadyStarted) {
         if (resolvedCallerPhone) {
           try {
-            await invokeLiveTransferBridge({
+            const bridgeResult = await invokeLiveTransferBridge({
               supabaseUrl: supabaseUrl || '',
               supabaseServiceRoleKey,
               transferTo: ownerPhone,
@@ -1136,9 +1190,38 @@ Deno.serve(async (req) => {
             });
             liveTransferStarted = true;
             console.log('Fallback live transfer initiated for call:', callId);
+
+            // Update call_history with transfer details
+            if (callHistoryId && supabaseUrl && supabaseServiceRoleKey) {
+              try {
+                const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey);
+                await adminClient.from('call_history').update({
+                  transfer_status: 'dialing_caller',
+                  transfer_conference_name: bridgeResult?.conferenceName || null,
+                  transfer_caller_call_sid: bridgeResult?.callerCallSid || null,
+                  transfer_owner_call_sid: bridgeResult?.ownerCallSid || null,
+                  transfer_target_phone: bridgeResult?.transferTo || ownerPhone || null,
+                }).eq('id', callHistoryId);
+              } catch (updateErr) {
+                console.warn('Failed to update call_history with transfer details:', updateErr);
+              }
+            }
           } catch (transferErr) {
             transferWarning = transferErr instanceof Error ? transferErr.message : 'Unable to start live transfer.';
             console.error('Fallback live transfer failed (non-fatal):', transferErr);
+
+            // Record transfer failure in call_history
+            if (callHistoryId && supabaseUrl && supabaseServiceRoleKey) {
+              try {
+                const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey);
+                await adminClient.from('call_history').update({
+                  transfer_status: 'failed',
+                  transfer_error: transferWarning,
+                }).eq('id', callHistoryId);
+              } catch (updateErr) {
+                console.warn('Failed to record transfer failure:', updateErr);
+              }
+            }
           }
         } else {
           transferWarning = 'Transfer was requested, but Aspen could not confirm the caller phone number.';
