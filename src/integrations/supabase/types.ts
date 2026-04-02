@@ -14,6 +14,232 @@ export type Database = {
   }
   public: {
     Tables: {
+      call_event_logs: {
+        Row: {
+          call_history_id: string
+          created_at: string
+          event_source: string
+          event_type: string
+          id: string
+          message: string | null
+          occurred_at: string
+          payload: Json
+        }
+        Insert: {
+          call_history_id: string
+          created_at?: string
+          event_source?: string
+          event_type: string
+          id?: string
+          message?: string | null
+          occurred_at?: string
+          payload?: Json
+        }
+        Update: {
+          call_history_id?: string
+          created_at?: string
+          event_source?: string
+          event_type?: string
+          id?: string
+          message?: string | null
+          occurred_at?: string
+          payload?: Json
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_event_logs_call_history_id_fkey"
+            columns: ["call_history_id"]
+            isOneToOne: false
+            referencedRelation: "call_history"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      call_history: {
+        Row: {
+          business_name: string
+          call_status: string
+          caller_email: string | null
+          caller_name: string | null
+          caller_phone: string | null
+          caller_phone_source: string | null
+          created_at: string
+          duration_seconds: number | null
+          ended_at: string | null
+          id: string
+          key_points: Json
+          lead_id: string | null
+          metadata: Json
+          next_step: string | null
+          owner_email: string | null
+          owner_name: string | null
+          owner_phone: string | null
+          prospect_id: string | null
+          recording_url: string | null
+          retell_call_id: string
+          started_at: string
+          summary: string | null
+          transcript: string | null
+          transfer_caller_call_sid: string | null
+          transfer_conference_name: string | null
+          transfer_error: string | null
+          transfer_owner_call_sid: string | null
+          transfer_requested: boolean
+          transfer_status: Database["public"]["Enums"]["call_transfer_status"]
+          transfer_target_phone: string | null
+          updated_at: string
+          website_url: string | null
+        }
+        Insert: {
+          business_name: string
+          call_status?: string
+          caller_email?: string | null
+          caller_name?: string | null
+          caller_phone?: string | null
+          caller_phone_source?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          key_points?: Json
+          lead_id?: string | null
+          metadata?: Json
+          next_step?: string | null
+          owner_email?: string | null
+          owner_name?: string | null
+          owner_phone?: string | null
+          prospect_id?: string | null
+          recording_url?: string | null
+          retell_call_id: string
+          started_at?: string
+          summary?: string | null
+          transcript?: string | null
+          transfer_caller_call_sid?: string | null
+          transfer_conference_name?: string | null
+          transfer_error?: string | null
+          transfer_owner_call_sid?: string | null
+          transfer_requested?: boolean
+          transfer_status?: Database["public"]["Enums"]["call_transfer_status"]
+          transfer_target_phone?: string | null
+          updated_at?: string
+          website_url?: string | null
+        }
+        Update: {
+          business_name?: string
+          call_status?: string
+          caller_email?: string | null
+          caller_name?: string | null
+          caller_phone?: string | null
+          caller_phone_source?: string | null
+          created_at?: string
+          duration_seconds?: number | null
+          ended_at?: string | null
+          id?: string
+          key_points?: Json
+          lead_id?: string | null
+          metadata?: Json
+          next_step?: string | null
+          owner_email?: string | null
+          owner_name?: string | null
+          owner_phone?: string | null
+          prospect_id?: string | null
+          recording_url?: string | null
+          retell_call_id?: string
+          started_at?: string
+          summary?: string | null
+          transcript?: string | null
+          transfer_caller_call_sid?: string | null
+          transfer_conference_name?: string | null
+          transfer_error?: string | null
+          transfer_owner_call_sid?: string | null
+          transfer_requested?: boolean
+          transfer_status?: Database["public"]["Enums"]["call_transfer_status"]
+          transfer_target_phone?: string | null
+          updated_at?: string
+          website_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_history_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "call_history_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      call_transfer_jobs: {
+        Row: {
+          attempts: number
+          call_history_id: string
+          caller_call_sid: string | null
+          caller_phone: string | null
+          conference_name: string | null
+          created_at: string
+          id: string
+          last_error: string | null
+          metadata: Json
+          owner_call_sid: string | null
+          processed_at: string | null
+          requested_at: string
+          retell_call_id: string
+          status: Database["public"]["Enums"]["call_transfer_status"]
+          target_phone: string
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          call_history_id: string
+          caller_call_sid?: string | null
+          caller_phone?: string | null
+          conference_name?: string | null
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          metadata?: Json
+          owner_call_sid?: string | null
+          processed_at?: string | null
+          requested_at?: string
+          retell_call_id: string
+          status?: Database["public"]["Enums"]["call_transfer_status"]
+          target_phone: string
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          call_history_id?: string
+          caller_call_sid?: string | null
+          caller_phone?: string | null
+          conference_name?: string | null
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          metadata?: Json
+          owner_call_sid?: string | null
+          processed_at?: string | null
+          requested_at?: string
+          retell_call_id?: string
+          status?: Database["public"]["Enums"]["call_transfer_status"]
+          target_phone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "call_transfer_jobs_call_history_id_fkey"
+            columns: ["call_history_id"]
+            isOneToOne: false
+            referencedRelation: "call_history"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaigns: {
         Row: {
           created_at: string
@@ -442,7 +668,16 @@ export type Database = {
       [_ in never]: never
     }
     Enums: {
-      [_ in never]: never
+      call_transfer_status:
+        | "not_requested"
+        | "queued"
+        | "dialing_caller"
+        | "dialing_owner"
+        | "awaiting_owner"
+        | "joined"
+        | "completed"
+        | "failed"
+        | "cancelled"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -569,6 +804,18 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      call_transfer_status: [
+        "not_requested",
+        "queued",
+        "dialing_caller",
+        "dialing_owner",
+        "awaiting_owner",
+        "joined",
+        "completed",
+        "failed",
+        "cancelled",
+      ],
+    },
   },
 } as const
