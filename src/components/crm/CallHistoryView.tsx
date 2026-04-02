@@ -77,7 +77,18 @@ const CallRow = ({ call }: { call: CallRecord }) => {
         </div>
 
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium truncate">{call.business_name}</p>
+          <div className="flex items-center gap-1.5">
+            <p className="text-sm font-medium truncate">{call.business_name}</p>
+            {call.website_url && (
+              <button
+                onClick={handleRedemo}
+                title="Re-launch demo"
+                className="shrink-0 flex items-center justify-center w-5 h-5 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+              >
+                <Play className="h-3 w-3" />
+              </button>
+            )}
+          </div>
           <p className="text-[11px] text-muted-foreground truncate">
             {call.caller_name || "Unknown caller"}
             {call.caller_phone ? ` · ${call.caller_phone}` : ""}
