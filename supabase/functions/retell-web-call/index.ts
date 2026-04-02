@@ -1131,6 +1131,7 @@ Deno.serve(async (req) => {
 
       let appointmentScheduledFor: string | null = null;
       let calendarWarning: string | null = null;
+      let calendarEventId: string | null = null;
 
       if (aiSummary.appointmentRequested) {
         try {
