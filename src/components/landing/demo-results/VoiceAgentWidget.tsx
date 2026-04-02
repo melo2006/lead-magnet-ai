@@ -371,6 +371,7 @@ const VoiceAgentWidget = ({
 
     const resolvedContact = await resolveTransferContact(capturedContact);
     if (!resolvedContact.callerPhone) {
+      console.warn("[VoiceWidget] Transfer blocked — no caller phone captured");
       toast({
         title: "Need caller phone first",
         description: "Aspen needs the caller's confirmed phone number before starting the live transfer.",
@@ -381,6 +382,11 @@ const VoiceAgentWidget = ({
 
     transferTriggeredRef.current = true;
     setTransferState(true);
+    console.log("[VoiceWidget] Initiating live transfer bridge", {
+      callId,
+      callerPhone: `***${resolvedContact.callerPhone.slice(-4)}`,
+      ownerPhone: ownerPhone ? `***${ownerPhone.slice(-4)}` : "DEFAULT",
+    });
 
     try {
       const { data, error } = await supabase.functions.invoke("live-transfer-bridge", {
@@ -399,12 +405,18 @@ const VoiceAgentWidget = ({
         throw new Error(error?.message || data?.error || "Transfer failed");
       }
 
+      console.log("[VoiceWidget] Transfer bridge created successfully", {
+        conferenceName: data.conferenceName,
+        callerCallSid: data.callerCallSid,
+        ownerCallSid: data.ownerCallSid,
+      });
+
       toast({
         title: `Live transfer initiated`,
-        description: `Connecting ${resolvedOwnerName} now. Stay on the line.`,
+        description: `Connecting ${resolvedOwnerName} now. Your phone will ring shortly — please answer it to join the call.`,
       });
     } catch (err) {
-      console.error("Live transfer failed:", err);
+      console.error("[VoiceWidget] Live transfer failed:", err);
       transferTriggeredRef.current = false;
       setTransferState(false);
       toast({
