@@ -376,9 +376,13 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
                   <Globe className="w-4 h-4 text-muted-foreground" /> Website URL <span className="text-destructive">*</span>
                 </label>
                 <Input
-                  placeholder="https://yourwebsite.com"
+                  placeholder="bankunited.com"
                   value={formData.website}
                   onChange={(e) => updateFormData({ website: e.target.value })}
+                  onBlur={() => {
+                    const normalized = normalizeUrl(formData.website);
+                    if (normalized !== formData.website) updateFormData({ website: normalized });
+                  }}
                   className="bg-secondary border-border"
                   required
                 />
