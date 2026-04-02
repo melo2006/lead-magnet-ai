@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { Mic, MicOff, Phone, PhoneOff, Loader2, Maximize2, Minimize2, X, Volume2, VolumeX, Bluetooth, Speaker, Smartphone } from "lucide-react";
+import { Mic, MicOff, Phone, PhoneOff, Loader2, Maximize2, Minimize2, X, Volume2, VolumeX, Bluetooth, Speaker, Smartphone, Pause, Play, RotateCcw } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Slider } from "@/components/ui/slider";
@@ -144,6 +144,7 @@ const VoiceAgentWidget = ({
   const { toast } = useToast();
   const [callStatus, setCallStatus] = useState<CallStatus>("idle");
   const [isMuted, setIsMuted] = useState(false);
+  const [isPaused, setIsPaused] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [duration, setDuration] = useState(0);
   const [volume, setVolume] = useState(100);
@@ -151,6 +152,8 @@ const VoiceAgentWidget = ({
   const [audioDevices, setAudioDevices] = useState<AudioDevice[]>([]);
   const [selectedDevice, setSelectedDevice] = useState<string>("");
   const [transferInProgress, setTransferInProgress] = useState(false);
+  const [lastAgentMessage, setLastAgentMessage] = useState<string>("");
+  const [isReplaying, setIsReplaying] = useState(false);
   const retellClientRef = useRef<any>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const callIdRef = useRef<string | null>(null);
@@ -158,6 +161,7 @@ const VoiceAgentWidget = ({
   const transferTriggeredRef = useRef(false);
   const transferInProgressRef = useRef(false);
   const liveTranscriptRef = useRef("");
+  const pausedVolumeRef = useRef(100);
   const resolvedOwnerName = ownerName || DEFAULT_OWNER_NAME;
 
   const setTransferState = useCallback((nextValue: boolean) => {
@@ -390,6 +394,21 @@ const VoiceAgentWidget = ({
     if (!eventText) return;
 
     liveTranscriptRef.current = `${liveTranscriptRef.current}\n${eventText}`.slice(-16000);
+
+    // Capture last agent message for replay — agent role is typically in "agent" field
+    // or the event contains the agent response text as the main content
+    const raw = event as any;
+    if (raw?.role === "agent" && typeof raw?.content === "string" && raw.content.trim()) {
+      setLastAgentMessage(raw.content.trim());
+    } else if (typeof raw?.transcript === "string" && raw.transcript.trim()) {
+      // Some Retell events send full transcript; extract last agent segment
+      const agentSegments = raw.transcript.match(/agent:\s*(.+?)(?=\n(?:user:|agent:)|$)/gis);
+      if (agentSegments?.length) {
+        const lastSeg = agentSegments[agentSegments.length - 1].replace(/^agent:\s*/i, "").trim();
+        if (lastSeg) setLastAgentMessage(lastSeg);
+      }
+    }
+
     const normalizedEventText = eventText.toLowerCase();
     const looksLikeTransferStart =
       normalizedEventText.includes(LIVE_TRANSFER_READY_PHRASE) ||
@@ -626,6 +645,57 @@ const VoiceAgentWidget = ({
     }
   }, [isMuted, toast]);
 
+  const togglePause = useCallback(() => {
+    if (isPaused) {
+      // Resume: restore saved volume
+      setVolume(pausedVolumeRef.current);
+      applyLiveCallVolume(pausedVolumeRef.current);
+      setIsPaused(false);
+    } else {
+      // Pause: save current volume, set to 0
+      pausedVolumeRef.current = volume;
+      setVolume(0);
+      applyLiveCallVolume(0);
+      setIsPaused(true);
+    }
+  }, [applyLiveCallVolume, isPaused, volume]);
+
+  const replayLastMessage = useCallback(() => {
+    if (!lastAgentMessage || isReplaying) return;
+
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
+
+    setIsReplaying(true);
+    const utterance = new SpeechSynthesisUtterance(lastAgentMessage);
+    utterance.rate = 0.95;
+    utterance.pitch = 1.0;
+
+    // Try to pick a good voice
+    const voices = window.speechSynthesis.getVoices();
+    const preferred = voices.find(
+      (v) => v.name.includes("Samantha") || v.name.includes("Google US English") || (v.lang === "en-US" && v.localService),
+    );
+    if (preferred) utterance.voice = preferred;
+
+    utterance.onend = () => setIsReplaying(false);
+    utterance.onerror = () => setIsReplaying(false);
+
+    // Pause agent audio while replaying so they don't overlap
+    const prevVolume = volume;
+    applyLiveCallVolume(0);
+    utterance.onend = () => {
+      setIsReplaying(false);
+      applyLiveCallVolume(prevVolume);
+    };
+    utterance.onerror = () => {
+      setIsReplaying(false);
+      applyLiveCallVolume(prevVolume);
+    };
+
+    window.speechSynthesis.speak(utterance);
+  }, [applyLiveCallVolume, isReplaying, lastAgentMessage, volume]);
+
   const formatDuration = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
   const callIsLive = callStatus === "active" || callStatus === "ending";
 
@@ -729,12 +799,37 @@ const VoiceAgentWidget = ({
               <div className="flex gap-2 mb-3">
                 <button
                   onClick={toggleMute}
-                  className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-4 py-3 text-sm font-semibold transition-colors ${
+                  className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-semibold transition-colors ${
                     isMuted ? "bg-destructive/20 text-destructive" : "bg-secondary text-foreground hover:bg-secondary/80"
                   }`}
                 >
                   {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                   {isMuted ? "Unmute" : "Mute"}
+                </button>
+                <button
+                  onClick={togglePause}
+                  className={`flex items-center justify-center rounded-xl px-3 py-3 text-sm font-semibold transition-colors ${
+                    isPaused ? "bg-amber-500/20 text-amber-400" : "bg-secondary text-foreground hover:bg-secondary/80"
+                  }`}
+                  aria-label={isPaused ? "Resume Aspen" : "Pause Aspen"}
+                  title={isPaused ? "Resume audio" : "Pause agent audio"}
+                >
+                  {isPaused ? <Play className="h-4 w-4" /> : <Pause className="h-4 w-4" />}
+                </button>
+                <button
+                  onClick={replayLastMessage}
+                  disabled={!lastAgentMessage || isReplaying}
+                  className={`flex items-center justify-center rounded-xl px-3 py-3 text-sm font-semibold transition-colors ${
+                    isReplaying
+                      ? "bg-primary/20 text-primary"
+                      : lastAgentMessage
+                        ? "bg-secondary text-foreground hover:bg-secondary/80"
+                        : "bg-secondary/50 text-muted-foreground cursor-not-allowed"
+                  }`}
+                  aria-label="Replay last message"
+                  title={lastAgentMessage ? "Replay Aspen's last response" : "No message to replay yet"}
+                >
+                  {isReplaying ? <Loader2 className="h-4 w-4 animate-spin" /> : <RotateCcw className="h-4 w-4" />}
                 </button>
                 <button
                   onClick={() => setShowAudioControls((prev) => !prev)}
@@ -747,7 +842,7 @@ const VoiceAgentWidget = ({
                 </button>
                 <button
                   onClick={endCall}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-destructive px-4 py-3 text-sm font-semibold text-destructive-foreground transition-colors hover:bg-destructive/90"
+                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-destructive px-3 py-3 text-sm font-semibold text-destructive-foreground transition-colors hover:bg-destructive/90"
                 >
                   <PhoneOff className="h-4 w-4" />
                   End
