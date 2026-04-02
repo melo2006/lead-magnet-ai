@@ -20,3 +20,6 @@ verify_jwt = false
 
 [functions.live-transfer-bridge]
 verify_jwt = false
+
+[functions.check-iframe-embed]
+verify_jwt = false
