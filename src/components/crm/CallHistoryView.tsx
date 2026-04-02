@@ -1,8 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Phone, PhoneForwarded, Clock, User, Mail, Globe, ChevronDown, ChevronUp } from "lucide-react";
+import { Phone, PhoneForwarded, Clock, User, Mail, Globe, ChevronDown, ChevronUp, Play } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 
 interface CallRecord {
   id: string;
@@ -51,6 +52,15 @@ const formatDate = (d: string) => {
 
 const CallRow = ({ call }: { call: CallRecord }) => {
   const [expanded, setExpanded] = useState(false);
+  const navigate = useNavigate();
+
+  const handleRedemo = (e: React.MouseEvent) => {
+    e.stopPropagation();
+    const params = new URLSearchParams();
+    if (call.website_url) params.set("url", call.website_url);
+    params.set("name", call.business_name);
+    navigate(`/demo?${params.toString()}`);
+  };
 
   return (
     <div className="border border-border rounded-lg bg-card overflow-hidden">
@@ -67,7 +77,18 @@ const CallRow = ({ call }: { call: CallRecord }) => {
         </div>
 
         <div className="flex-1 min-w-0">
-          <p className="text-sm font-medium truncate">{call.business_name}</p>
+          <div className="flex items-center gap-1.5">
+            <p className="text-sm font-medium truncate">{call.business_name}</p>
+            {call.website_url && (
+              <button
+                onClick={handleRedemo}
+                title="Re-launch demo"
+                className="shrink-0 flex items-center justify-center w-5 h-5 rounded bg-primary/10 text-primary hover:bg-primary/20 transition-colors"
+              >
+                <Play className="h-3 w-3" />
+              </button>
+            )}
+          </div>
           <p className="text-[11px] text-muted-foreground truncate">
             {call.caller_name || "Unknown caller"}
             {call.caller_phone ? ` · ${call.caller_phone}` : ""}
