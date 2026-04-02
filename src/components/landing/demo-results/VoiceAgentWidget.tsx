@@ -632,8 +632,16 @@ const VoiceAgentWidget = ({
       retellClient.on("error", (err: any) => {
         console.error("Retell error:", err);
         clearTimer();
-        setTransferState(false);
         setIsMuted(false);
+
+        // If a live transfer is in progress, keep the widget alive —
+        // the PSTN conference bridge is handling the call now.
+        if (transferTriggeredRef.current || transferInProgressRef.current) {
+          console.log("[VoiceWidget] Retell error during active transfer — keeping widget alive for PSTN bridge");
+          return;
+        }
+
+        setTransferState(false);
         setCallStatus("idle");
         toast({ title: "Call error", description: "Something went wrong.", variant: "destructive" });
       });
