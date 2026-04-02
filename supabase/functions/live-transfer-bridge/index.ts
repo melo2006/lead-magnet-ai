@@ -157,7 +157,7 @@ Deno.serve(async (req) => {
   const anonParamFirst = SUPABASE_ANON_KEY ? `?apikey=${encodeURIComponent(SUPABASE_ANON_KEY)}` : '';
 
   if (action === 'wait-twiml') {
-    const loopUrl = `${baseFunctionUrl}?action=wait-twiml`;
+    const loopUrl = `${baseFunctionUrl}?action=wait-twiml${anonParam}`;
     const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Play>${escapeXml(HOLD_MUSIC_URL)}</Play><Redirect method="POST">${escapeXml(loopUrl)}</Redirect></Response>`;
     return twimlResponse(twiml);
   }
