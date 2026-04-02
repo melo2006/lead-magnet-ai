@@ -164,7 +164,7 @@ Deno.serve(async (req) => {
 
   if (action === 'caller-twiml') {
     const conferenceName = requestUrl.searchParams.get('conference') || buildConferenceName();
-    const waitUrl = `${baseFunctionUrl}?action=wait-twiml`;
+    const waitUrl = `${baseFunctionUrl}?action=wait-twiml${anonParam}`;
     const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="Polly.Joanna-Neural" language="en-US">Please stay on the line while I connect you now.</Say><Dial><Conference waitUrl="${escapeXml(waitUrl)}" waitMethod="POST" startConferenceOnEnter="false" endConferenceOnExit="true" beep="false">${escapeXml(conferenceName)}</Conference></Dial></Response>`;
     return twimlResponse(twiml);
   }
