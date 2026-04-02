@@ -40,6 +40,20 @@ const normalizePhoneNumber = (value?: string | null) => {
   return '';
 };
 
+const isLikelyCallablePhoneNumber = (value?: string | null) => {
+  const normalized = normalizePhoneNumber(value);
+  if (!/^\+\d{11,15}$/.test(normalized)) return false;
+
+  if (!normalized.startsWith('+1')) return true;
+
+  const digits = normalized.slice(2);
+  if (digits.length !== 10) return false;
+
+  const areaCode = digits.slice(0, 3);
+  const exchange = digits.slice(3, 6);
+  return /^[2-9]\d{2}$/.test(areaCode) && /^[2-9]\d{2}$/.test(exchange);
+};
+
 const normalizeEmailCandidate = (value?: string | null) => {
   if (!value) return '';
 
@@ -250,8 +264,8 @@ Deno.serve(async (req) => {
     const ownerName = typeof body.ownerName === 'string' && body.ownerName.trim() ? body.ownerName.trim() : DEFAULT_OWNER_NAME;
     const callId = typeof body.callId === 'string' ? body.callId.trim() : '';
 
-    if (!callerPhone) {
-      return jsonResponse({ success: false, error: 'A confirmed caller phone number is required for live transfer.' }, 400);
+    if (!isLikelyCallablePhoneNumber(callerPhone)) {
+      return jsonResponse({ success: false, error: 'A valid confirmed caller phone number is required for live transfer.' }, 400);
     }
 
     const conferenceName = buildConferenceName(callId);

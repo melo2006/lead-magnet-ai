@@ -338,7 +338,7 @@ const DemoSite = () => {
           <div className="relative mx-auto h-0 w-full max-w-[1100px]">
             <div className="pointer-events-auto absolute bottom-0 left-0">
               {chatOpen ? (
-                <div className="w-[min(20rem,calc(100vw-2.5rem))] max-h-[60vh] overflow-y-auto animate-in slide-in-from-bottom-4 fade-in duration-300">
+                <div className="w-[min(20rem,calc(100vw-1.5rem))] max-h-[60vh] overflow-y-auto animate-in slide-in-from-bottom-4 fade-in duration-300">
                   <ChatWidget
                     key={`chat-${leadData.websiteUrl}`}
                     businessName={siteName}
@@ -371,7 +371,7 @@ const DemoSite = () => {
 
             <div className="pointer-events-auto absolute bottom-0 right-0">
               {voiceOpen ? (
-                <div className="w-[min(20rem,calc(100vw-2.5rem))] max-h-[60vh] overflow-y-auto animate-in slide-in-from-bottom-4 fade-in duration-300">
+                <div className="w-[min(20rem,calc(100vw-1.5rem))] max-h-[60vh] overflow-y-auto animate-in slide-in-from-bottom-4 fade-in duration-300">
                   <VoiceAgentWidget
                     key={`voice-${leadData.websiteUrl}`}
                     leadId={leadData.leadId}

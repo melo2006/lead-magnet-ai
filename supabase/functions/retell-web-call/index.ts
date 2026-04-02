@@ -1447,9 +1447,10 @@ APPOINTMENT & CALLBACK:
 LIVE TRANSFER (CRITICAL — READ EVERY WORD):
 - This demo supports LIVE call transfers. When the caller asks to speak with ${resolvedOwnerName} or requests a transfer, you CAN connect them.
 - Before initiating a transfer, you MUST capture and verbally confirm BOTH the caller's phone number and email address. This is non-negotiable.
-- Once both are confirmed, say something like: "Perfect! I'm connecting you with ${resolvedOwnerName} right now. Stay on the line — they'll join in just a moment."
-- After saying you're connecting them, give a brief warm summary: "While we wait, just to recap — I'll make sure ${resolvedOwnerName} has all the details from our conversation."
-- Do NOT end the call or hang up. The system will handle the conference bridge in the background. Keep the caller engaged until the transfer completes.
+- Once both are confirmed and the caller says yes, acknowledge it ONCE with a short commitment like: "Perfect — I'm transferring you now. Hold tight while I connect you."
+- After that, do NOT ask again whether they want to be connected, do NOT re-offer the transfer, and do NOT repeat the same transfer question.
+- While the bridge starts, you may give at most ONE brief reassurance like: "You're all set. Stay with me for a moment."
+- Do NOT end the call or hang up. The system will handle the conference bridge in the background. Once you've committed to the transfer, stay calm and brief instead of restarting the conversation.
 - If the caller doesn't want to wait, offer the callback alternative: "No problem! I can have ${resolvedOwnerName} call you back within minutes instead."
 - Mark this as a transfer request internally so the system bridges the call after the conversation.
 

@@ -57,6 +57,20 @@ const normalizePhoneNumber = (value?: string | null) => {
   return "";
 };
 
+const isLikelyCallablePhoneNumber = (value?: string | null) => {
+  const normalized = normalizePhoneNumber(value);
+  if (!/^\+\d{11,15}$/.test(normalized)) return false;
+
+  if (!normalized.startsWith("+1")) return true;
+
+  const digits = normalized.slice(2);
+  if (digits.length !== 10) return false;
+
+  const areaCode = digits.slice(0, 3);
+  const exchange = digits.slice(3, 6);
+  return /^[2-9]\d{2}$/.test(areaCode) && /^[2-9]\d{2}$/.test(exchange);
+};
+
 const normalizeEmailCandidate = (value?: string | null) => {
   if (!value) return "";
 
@@ -71,38 +85,37 @@ const normalizeEmailCandidate = (value?: string | null) => {
   return match ? match[0] : "";
 };
 
-const extractCallerPhoneFromText = (value: string) => {
-  const matches = Array.from(value.matchAll(/(?:\+?\d[\d\s().-]{8,}\d)/g))
-    .map((match) => normalizePhoneNumber(match[0]))
-    .filter(Boolean);
+const getInvokeErrorMessage = async (error: unknown) => {
+  const fallbackMessage = error instanceof Error ? error.message : "";
+  const response =
+    typeof error === "object" && error !== null && "context" in error
+      ? (error as { context?: Response }).context
+      : undefined;
 
-  return matches.length > 0 ? matches[matches.length - 1] : "";
-};
+  if (!response) return fallbackMessage;
 
-const extractCallerEmailFromText = (value: string) => {
-  const directMatches = Array.from(value.matchAll(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi))
-    .map((match) => normalizeEmailCandidate(match[0]))
-    .filter(Boolean);
+  try {
+    const clone = typeof response.clone === "function" ? response.clone() : response;
+    const payload = await clone.json().catch(async () => {
+      const text = await clone.text().catch(() => "");
+      if (!text) return null;
 
-  if (directMatches.length > 0) return directMatches[directMatches.length - 1];
+      try {
+        return JSON.parse(text) as Record<string, unknown>;
+      } catch {
+        return { error: text };
+      }
+    });
 
-  const flattened = value
-    .toLowerCase()
-    .replace(/\bg\s*mail\b/g, "gmail")
-    .replace(/\s+at\s+/g, "@")
-    .replace(/\s+dot\s+/g, ".")
-    .replace(/[^a-z0-9@._%+-]/g, " ")
-    .replace(/\s+/g, "");
+    if (payload && typeof payload === "object") {
+      if (typeof payload.error === "string" && payload.error.trim()) return payload.error;
+      if (typeof payload.message === "string" && payload.message.trim()) return payload.message;
+    }
+  } catch {
+    return fallbackMessage;
+  }
 
-  return normalizeEmailCandidate(flattened);
-};
-
-const extractCallerNameFromText = (value: string) => {
-  const matches = Array.from(
-    value.matchAll(/(?:my name is|this is|i am|i'm)\s+([A-Za-z][A-Za-z'-]*(?:\s+[A-Za-z][A-Za-z'-]*)?)/gi),
-  );
-
-  return matches.length > 0 ? matches[matches.length - 1][1].trim() : "";
+  return fallbackMessage;
 };
 
 const collectTextFragments = (value: unknown, fragments: string[] = []) => {
@@ -186,9 +199,9 @@ const VoiceAgentWidget = ({
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const callIdRef = useRef<string | null>(null);
   const summaryQueuedRef = useRef(false);
+  const transferAttemptedRef = useRef(false);
   const transferTriggeredRef = useRef(false);
   const transferInProgressRef = useRef(false);
-  const liveTranscriptRef = useRef("");
   const pausedVolumeRef = useRef(100);
   const resolvedOwnerName = ownerName || DEFAULT_OWNER_NAME;
 
@@ -323,13 +336,19 @@ const VoiceAgentWidget = ({
   const resolveTransferContact = useCallback(async (capturedContact?: { callerName?: string; callerEmail?: string; callerPhone?: string }) => {
     const callId = callIdRef.current;
     const fallbackContact = {
-      callerName: capturedContact?.callerName?.trim() || callerName || "a caller",
-      callerEmail: normalizeEmailCandidate(capturedContact?.callerEmail || callerEmail || ""),
-      callerPhone: normalizePhoneNumber(capturedContact?.callerPhone || callerPhone || ""),
+      callerName: callerName?.trim() || "a caller",
+      callerEmail: normalizeEmailCandidate(callerEmail || ""),
+      callerPhone: normalizePhoneNumber(callerPhone || ""),
     };
 
-    if (!callId || (fallbackContact.callerPhone && fallbackContact.callerEmail)) {
-      return fallbackContact;
+    const optimisticContact = {
+      callerName: capturedContact?.callerName?.trim() || fallbackContact.callerName,
+      callerEmail: normalizeEmailCandidate(capturedContact?.callerEmail || fallbackContact.callerEmail),
+      callerPhone: fallbackContact.callerPhone,
+    };
+
+    if (!callId || (optimisticContact.callerPhone && optimisticContact.callerEmail)) {
+      return optimisticContact;
     }
 
     try {
@@ -337,9 +356,9 @@ const VoiceAgentWidget = ({
         body: {
           action: "get-call-transfer-context",
           callId,
-          callerName: fallbackContact.callerName,
-          callerEmail: fallbackContact.callerEmail,
-          callerPhone: fallbackContact.callerPhone,
+          callerName: optimisticContact.callerName,
+          callerEmail: optimisticContact.callerEmail,
+          callerPhone: optimisticContact.callerPhone,
         },
       });
 
@@ -351,17 +370,17 @@ const VoiceAgentWidget = ({
         callerName:
           typeof data.callerName === "string" && data.callerName.trim()
             ? data.callerName.trim()
-            : fallbackContact.callerName,
+            : optimisticContact.callerName,
         callerEmail: normalizeEmailCandidate(
-          typeof data.callerEmail === "string" ? data.callerEmail : fallbackContact.callerEmail,
+          typeof data.callerEmail === "string" ? data.callerEmail : optimisticContact.callerEmail,
         ),
         callerPhone: normalizePhoneNumber(
-          typeof data.callerPhone === "string" ? data.callerPhone : fallbackContact.callerPhone,
+          typeof data.callerPhone === "string" ? data.callerPhone : optimisticContact.callerPhone,
         ),
       };
     } catch (error) {
       console.warn("Could not resolve live transfer contact:", error);
-      return fallbackContact;
+      return optimisticContact;
     }
   }, [callerEmail, callerName, callerPhone]);
 
@@ -369,18 +388,21 @@ const VoiceAgentWidget = ({
     const callId = callIdRef.current;
     if (!callId || transferInProgressRef.current) return;
 
+    transferTriggeredRef.current = true;
     const resolvedContact = await resolveTransferContact(capturedContact);
-    if (!resolvedContact.callerPhone) {
-      console.warn("[VoiceWidget] Transfer blocked — no caller phone captured");
+
+    if (!isLikelyCallablePhoneNumber(resolvedContact.callerPhone)) {
+      console.warn("[VoiceWidget] Transfer blocked — no valid caller phone captured");
+      transferTriggeredRef.current = false;
+      setTransferState(false);
       toast({
-        title: "Need caller phone first",
-        description: "Aspen needs the caller's confirmed phone number before starting the live transfer.",
+        title: "Live transfer unavailable",
+        description: "Aspen couldn't confirm a valid callback phone number clearly enough to place the transfer call.",
         variant: "destructive",
       });
       return;
     }
 
-    transferTriggeredRef.current = true;
     setTransferState(true);
     console.log("[VoiceWidget] Initiating live transfer bridge", {
       callId,
@@ -401,8 +423,9 @@ const VoiceAgentWidget = ({
         },
       });
 
+      const invokeErrorMessage = error ? await getInvokeErrorMessage(error) : "";
       if (error || !data?.success) {
-        throw new Error(error?.message || data?.error || "Transfer failed");
+        throw new Error(invokeErrorMessage || data?.error || "Transfer failed");
       }
 
       console.log("[VoiceWidget] Transfer bridge created successfully", {
@@ -415,6 +438,12 @@ const VoiceAgentWidget = ({
         title: `Live transfer initiated`,
         description: `Connecting ${resolvedOwnerName} now. Your phone will ring shortly — please answer it to join the call.`,
       });
+
+      try {
+        retellClientRef.current?.stopCall();
+      } catch (stopError) {
+        console.warn("[VoiceWidget] Could not stop Retell call after transfer started:", stopError);
+      }
     } catch (err) {
       console.error("[VoiceWidget] Live transfer failed:", err);
       transferTriggeredRef.current = false;
@@ -428,12 +457,10 @@ const VoiceAgentWidget = ({
   }, [businessName, ownerPhone, resolvedOwnerName, resolveTransferContact, setTransferState, toast]);
 
   const maybeStartTransferFromLiveCall = useCallback((event: unknown) => {
-    if (transferTriggeredRef.current) return;
+    if (transferTriggeredRef.current || transferAttemptedRef.current) return;
 
     const eventText = extractEventText(event);
     if (!eventText) return;
-
-    liveTranscriptRef.current = `${liveTranscriptRef.current}\n${eventText}`.slice(-16000);
 
     // Capture last agent message for replay — agent role is typically in "agent" field
     // or the event contains the agent response text as the main content
@@ -446,11 +473,8 @@ const VoiceAgentWidget = ({
 
     if (!looksLikeTransferStart) return;
 
-    void initiateLiveTransfer({
-      callerName: extractCallerNameFromText(liveTranscriptRef.current) || callerName || "a caller",
-      callerEmail: extractCallerEmailFromText(liveTranscriptRef.current) || callerEmail || "",
-      callerPhone: extractCallerPhoneFromText(liveTranscriptRef.current) || callerPhone || "",
-    });
+    transferAttemptedRef.current = true;
+    void initiateLiveTransfer();
   }, [callerEmail, callerName, callerPhone, initiateLiveTransfer]);
 
   const queueCallSummary = useCallback(async () => {
@@ -471,9 +495,9 @@ const VoiceAgentWidget = ({
           ownerEmail,
           ownerPhone: ownerPhone || "",
           websiteUrl,
-          callerName: extractCallerNameFromText(liveTranscriptRef.current) || callerName || "",
-          callerEmail: extractCallerEmailFromText(liveTranscriptRef.current) || callerEmail || "",
-          callerPhone: extractCallerPhoneFromText(liveTranscriptRef.current) || callerPhone || "",
+          callerName: callerName || "",
+          callerEmail: callerEmail || "",
+          callerPhone: callerPhone || "",
           transferAlreadyStarted: transferTriggeredRef.current,
         },
       });
@@ -551,8 +575,8 @@ const VoiceAgentWidget = ({
     setIsMinimized(false);
     callIdRef.current = null;
     summaryQueuedRef.current = false;
+    transferAttemptedRef.current = false;
     transferTriggeredRef.current = false;
-    liveTranscriptRef.current = "";
     setTransferInProgress(false);
 
     try {
@@ -848,19 +872,19 @@ const VoiceAgentWidget = ({
           {(callStatus === "active" || callStatus === "ending") && (
             <>
               {/* Main call controls */}
-              <div className="flex gap-2 mb-3">
+              <div className="mb-3 grid grid-cols-[minmax(0,1fr)_2.75rem_2.75rem_2.75rem_minmax(0,1fr)] gap-1.5 sm:grid-cols-[minmax(0,1fr)_3rem_3rem_3rem_minmax(0,1fr)] sm:gap-2">
                 <button
                   onClick={toggleMute}
-                  className={`flex flex-1 items-center justify-center gap-2 rounded-xl px-3 py-3 text-sm font-semibold transition-colors ${
+                  className={`min-w-0 flex items-center justify-center gap-1.5 rounded-xl px-2.5 py-3 text-xs font-semibold transition-colors sm:gap-2 sm:px-3 sm:text-sm ${
                     isMuted ? "bg-destructive/20 text-destructive" : "bg-secondary text-foreground hover:bg-secondary/80"
                   }`}
                 >
                   {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                  {isMuted ? "Unmute" : "Mute"}
+                  <span className="hidden min-[360px]:inline">{isMuted ? "Unmute" : "Mute"}</span>
                 </button>
                 <button
                   onClick={togglePause}
-                  className={`flex items-center justify-center rounded-xl px-3 py-3 text-sm font-semibold transition-colors ${
+                  className={`flex h-11 w-11 items-center justify-center rounded-xl text-sm font-semibold transition-colors sm:h-12 sm:w-12 ${
                     isPaused ? "bg-amber-500/20 text-amber-400" : "bg-secondary text-foreground hover:bg-secondary/80"
                   }`}
                   aria-label={isPaused ? "Resume Aspen" : "Pause Aspen"}
@@ -871,7 +895,7 @@ const VoiceAgentWidget = ({
                 <button
                   onClick={replayLastMessage}
                   disabled={!lastAgentMessage || isReplaying}
-                  className={`flex items-center justify-center rounded-xl px-3 py-3 text-sm font-semibold transition-colors ${
+                  className={`flex h-11 w-11 items-center justify-center rounded-xl text-sm font-semibold transition-colors sm:h-12 sm:w-12 ${
                     isReplaying
                       ? "bg-primary/20 text-primary"
                       : lastAgentMessage
@@ -885,7 +909,7 @@ const VoiceAgentWidget = ({
                 </button>
                 <button
                   onClick={() => setShowAudioControls((prev) => !prev)}
-                  className={`flex items-center justify-center rounded-xl px-3 py-3 text-sm font-semibold transition-colors ${
+                  className={`flex h-11 w-11 items-center justify-center rounded-xl text-sm font-semibold transition-colors sm:h-12 sm:w-12 ${
                     showAudioControls ? "bg-primary/20 text-primary" : "bg-secondary text-foreground hover:bg-secondary/80"
                   }`}
                   aria-label="Audio controls"
@@ -894,10 +918,10 @@ const VoiceAgentWidget = ({
                 </button>
                 <button
                   onClick={endCall}
-                  className="flex flex-1 items-center justify-center gap-2 rounded-xl bg-destructive px-3 py-3 text-sm font-semibold text-destructive-foreground transition-colors hover:bg-destructive/90"
+                  className="min-w-0 flex items-center justify-center gap-1.5 rounded-xl bg-destructive px-2.5 py-3 text-xs font-semibold text-destructive-foreground transition-colors hover:bg-destructive/90 sm:gap-2 sm:px-3 sm:text-sm"
                 >
                   <PhoneOff className="h-4 w-4" />
-                  End
+                  <span className="hidden min-[360px]:inline">End</span>
                 </button>
               </div>
 
