@@ -260,6 +260,20 @@ const normalizePhoneNumber = (value?: string) => {
   return value.trim();
 };
 
+const isLikelyCallablePhoneNumber = (value?: string | null) => {
+  const normalized = normalizePhoneNumber(value ?? '');
+  if (!/^\+\d{11,15}$/.test(normalized)) return false;
+
+  if (!normalized.startsWith('+1')) return true;
+
+  const digits = normalized.slice(2);
+  if (digits.length !== 10) return false;
+
+  const areaCode = digits.slice(0, 3);
+  const exchange = digits.slice(3, 6);
+  return /^[2-9]\d{2}$/.test(areaCode) && /^[2-9]\d{2}$/.test(exchange);
+};
+
 const escapeHtml = (value: string) =>
   value
     .replace(/&/g, '&amp;')
@@ -988,12 +1002,17 @@ Deno.serve(async (req) => {
       const callData = await retellFetch(`/v2/get-call/${callId}`, retellApiKey, { method: 'GET' });
       const transcript = getTranscriptText(callData);
 
+      const transcriptCallerPhone = extractCallerPhoneFromTranscript(transcript);
+      const resolvedCallerPhone = isLikelyCallablePhoneNumber(transcriptCallerPhone)
+        ? transcriptCallerPhone
+        : fallbackCallerPhone;
+
       return jsonResponse({
         success: true,
         transcriptAvailable: Boolean(transcript),
         callerName: extractCallerNameFromTranscript(transcript) || fallbackCallerName,
         callerEmail: extractCallerEmailFromTranscript(transcript) || fallbackCallerEmail,
-        callerPhone: extractCallerPhoneFromTranscript(transcript) || fallbackCallerPhone,
+        callerPhone: resolvedCallerPhone,
       });
     }
 
@@ -1049,7 +1068,9 @@ Deno.serve(async (req) => {
 
       const resolvedCallerName = aiSummary.callerName || fallbackCallerName;
       const resolvedCallerEmail = aiSummary.callerEmail || fallbackCallerEmail;
-      const resolvedCallerPhone = aiSummary.callerPhone || fallbackCallerPhone;
+      const resolvedCallerPhone = isLikelyCallablePhoneNumber(aiSummary.callerPhone)
+        ? aiSummary.callerPhone
+        : fallbackCallerPhone;
 
       let contactPersisted = false;
       let contactPersistWarning: string | null = null;
@@ -1447,9 +1468,10 @@ APPOINTMENT & CALLBACK:
 LIVE TRANSFER (CRITICAL — READ EVERY WORD):
 - This demo supports LIVE call transfers. When the caller asks to speak with ${resolvedOwnerName} or requests a transfer, you CAN connect them.
 - Before initiating a transfer, you MUST capture and verbally confirm BOTH the caller's phone number and email address. This is non-negotiable.
-- Once both are confirmed, say something like: "Perfect! I'm connecting you with ${resolvedOwnerName} right now. Stay on the line — they'll join in just a moment."
-- After saying you're connecting them, give a brief warm summary: "While we wait, just to recap — I'll make sure ${resolvedOwnerName} has all the details from our conversation."
-- Do NOT end the call or hang up. The system will handle the conference bridge in the background. Keep the caller engaged until the transfer completes.
+- Once both are confirmed and the caller says yes, acknowledge it ONCE with a short commitment like: "Perfect — I'm transferring you now. Hold tight while I connect you."
+- After that, do NOT ask again whether they want to be connected, do NOT re-offer the transfer, and do NOT repeat the same transfer question.
+- While the bridge starts, you may give at most ONE brief reassurance like: "You're all set. Stay with me for a moment."
+- Do NOT end the call or hang up. The system will handle the conference bridge in the background. Once you've committed to the transfer, stay calm and brief instead of restarting the conversation.
 - If the caller doesn't want to wait, offer the callback alternative: "No problem! I can have ${resolvedOwnerName} call you back within minutes instead."
 - Mark this as a transfer request internally so the system bridges the call after the conversation.
 
