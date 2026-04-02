@@ -169,8 +169,6 @@ Deno.serve(async (req) => {
   const baseFunctionUrl = `${supabaseUrl}/functions/v1/live-transfer-bridge`;
   const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') || Deno.env.get('SUPABASE_PUBLISHABLE_KEY') || '';
   const anonParam = SUPABASE_ANON_KEY ? `&apikey=${encodeURIComponent(SUPABASE_ANON_KEY)}` : '';
-  const anonParamFirst = SUPABASE_ANON_KEY ? `?apikey=${encodeURIComponent(SUPABASE_ANON_KEY)}` : '';
-
   if (action === 'wait-twiml') {
     const loopUrl = `${baseFunctionUrl}?action=wait-twiml${anonParam}`;
     const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Play>${escapeXml(HOLD_MUSIC_URL)}</Play><Redirect method="POST">${escapeXml(loopUrl)}</Redirect></Response>`;

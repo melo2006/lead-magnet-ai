@@ -260,6 +260,20 @@ const normalizePhoneNumber = (value?: string) => {
   return value.trim();
 };
 
+const isLikelyCallablePhoneNumber = (value?: string | null) => {
+  const normalized = normalizePhoneNumber(value ?? '');
+  if (!/^\+\d{11,15}$/.test(normalized)) return false;
+
+  if (!normalized.startsWith('+1')) return true;
+
+  const digits = normalized.slice(2);
+  if (digits.length !== 10) return false;
+
+  const areaCode = digits.slice(0, 3);
+  const exchange = digits.slice(3, 6);
+  return /^[2-9]\d{2}$/.test(areaCode) && /^[2-9]\d{2}$/.test(exchange);
+};
+
 const escapeHtml = (value: string) =>
   value
     .replace(/&/g, '&amp;')
@@ -988,12 +1002,17 @@ Deno.serve(async (req) => {
       const callData = await retellFetch(`/v2/get-call/${callId}`, retellApiKey, { method: 'GET' });
       const transcript = getTranscriptText(callData);
 
+      const transcriptCallerPhone = extractCallerPhoneFromTranscript(transcript);
+      const resolvedCallerPhone = isLikelyCallablePhoneNumber(transcriptCallerPhone)
+        ? transcriptCallerPhone
+        : fallbackCallerPhone;
+
       return jsonResponse({
         success: true,
         transcriptAvailable: Boolean(transcript),
         callerName: extractCallerNameFromTranscript(transcript) || fallbackCallerName,
         callerEmail: extractCallerEmailFromTranscript(transcript) || fallbackCallerEmail,
-        callerPhone: extractCallerPhoneFromTranscript(transcript) || fallbackCallerPhone,
+        callerPhone: resolvedCallerPhone,
       });
     }
 
@@ -1049,7 +1068,9 @@ Deno.serve(async (req) => {
 
       const resolvedCallerName = aiSummary.callerName || fallbackCallerName;
       const resolvedCallerEmail = aiSummary.callerEmail || fallbackCallerEmail;
-      const resolvedCallerPhone = aiSummary.callerPhone || fallbackCallerPhone;
+      const resolvedCallerPhone = isLikelyCallablePhoneNumber(aiSummary.callerPhone)
+        ? aiSummary.callerPhone
+        : fallbackCallerPhone;
 
       let contactPersisted = false;
       let contactPersistWarning: string | null = null;

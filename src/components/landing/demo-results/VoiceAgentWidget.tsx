@@ -96,16 +96,15 @@ const getInvokeErrorMessage = async (error: unknown) => {
 
   try {
     const clone = typeof response.clone === "function" ? response.clone() : response;
-    const payload = await clone.json().catch(async () => {
-      const text = await clone.text().catch(() => "");
-      if (!text) return null;
+    const text = await clone.text().catch(() => "");
+    if (!text) return fallbackMessage;
 
-      try {
-        return JSON.parse(text) as Record<string, unknown>;
-      } catch {
-        return { error: text };
-      }
-    });
+    let payload: Record<string, unknown> | null = null;
+    try {
+      payload = JSON.parse(text) as Record<string, unknown>;
+    } catch {
+      payload = { error: text };
+    }
 
     if (payload && typeof payload === "object") {
       if (typeof payload.error === "string" && payload.error.trim()) return payload.error;
@@ -374,9 +373,14 @@ const VoiceAgentWidget = ({
         callerEmail: normalizeEmailCandidate(
           typeof data.callerEmail === "string" ? data.callerEmail : optimisticContact.callerEmail,
         ),
-        callerPhone: normalizePhoneNumber(
-          typeof data.callerPhone === "string" ? data.callerPhone : optimisticContact.callerPhone,
-        ),
+        callerPhone: (() => {
+          const transcriptPhone = normalizePhoneNumber(
+            typeof data.callerPhone === "string" ? data.callerPhone : "",
+          );
+          return isLikelyCallablePhoneNumber(transcriptPhone)
+            ? transcriptPhone
+            : optimisticContact.callerPhone;
+        })(),
       };
     } catch (error) {
       console.warn("Could not resolve live transfer contact:", error);
@@ -475,7 +479,7 @@ const VoiceAgentWidget = ({
 
     transferAttemptedRef.current = true;
     void initiateLiveTransfer();
-  }, [callerEmail, callerName, callerPhone, initiateLiveTransfer]);
+  }, [initiateLiveTransfer]);
 
   const queueCallSummary = useCallback(async () => {
     const callId = callIdRef.current;
