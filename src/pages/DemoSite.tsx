@@ -373,7 +373,7 @@ const DemoSite = () => {
                   <VoiceAgentWidget
                     key={`voice-${leadData.websiteUrl}`}
                     leadId={leadData.leadId}
-                    prospectId={leadData.prospectId}
+                    prospectId={leadData.prospectId || prospectIdParam || undefined}
                     businessName={siteName}
                     businessNiche={leadData.niche || "general"}
                     ownerName={followUpName}

@@ -923,6 +923,28 @@ Deno.serve(async (req) => {
       }
     }
 
+    if (action === 'get-call-transfer-context') {
+      const callId = typeof body.callId === 'string' ? body.callId.trim() : '';
+      if (!callId) {
+        return jsonResponse({ error: 'callId is required' }, 400);
+      }
+
+      const fallbackCallerName = typeof body.callerName === 'string' ? body.callerName.trim() : '';
+      const fallbackCallerEmail = typeof body.callerEmail === 'string' ? normalizeEmailCandidate(body.callerEmail) : '';
+      const fallbackCallerPhone = typeof body.callerPhone === 'string' ? normalizePhoneNumber(body.callerPhone) : '';
+
+      const callData = await retellFetch(`/v2/get-call/${callId}`, retellApiKey, { method: 'GET' });
+      const transcript = getTranscriptText(callData);
+
+      return jsonResponse({
+        success: true,
+        transcriptAvailable: Boolean(transcript),
+        callerName: extractCallerNameFromTranscript(transcript) || fallbackCallerName,
+        callerEmail: extractCallerEmailFromTranscript(transcript) || fallbackCallerEmail,
+        callerPhone: extractCallerPhoneFromTranscript(transcript) || fallbackCallerPhone,
+      });
+    }
+
     if (action === 'email-call-summary') {
       const resendApiKey = Deno.env.get('RESEND_API_KEY');
       if (!resendApiKey) {
