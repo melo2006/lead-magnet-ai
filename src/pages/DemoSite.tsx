@@ -1,5 +1,5 @@
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useState } from "react";
 import { MessageSquare, Mic, ArrowLeft } from "lucide-react";
 import type { DemoLeadData } from "@/components/landing/demo-results/demoResultsUtils";
 import { getImageSrc, getSiteName } from "@/components/landing/demo-results/demoResultsUtils";
@@ -8,6 +8,16 @@ import ChatWidget from "@/components/landing/demo-results/ChatWidget";
 import ScanningAnimation from "@/components/landing/ScanningAnimation";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
+const getHomepageUrl = (websiteUrl: string) => {
+  try {
+    const normalizedUrl = websiteUrl.startsWith("http") ? websiteUrl : `https://${websiteUrl}`;
+    const url = new URL(normalizedUrl);
+    return `${url.protocol}//${url.host}`;
+  } catch {
+    return websiteUrl;
+  }
+};
 
 const DemoSite = () => {
   const location = useLocation();
@@ -20,7 +30,8 @@ const DemoSite = () => {
   const [chatOpen, setChatOpen] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [iframeBlocked, setIframeBlocked] = useState(false);
-  const iframeRef = useRef<HTMLIFrameElement>(null);
+  const [isIframeCheckPending, setIsIframeCheckPending] = useState(false);
+  const [resolvedIframeUrl, setResolvedIframeUrl] = useState<string | null>(null);
   const [prospectOwner, setProspectOwner] = useState<{name?: string; email?: string; phone?: string} | null>(null);
   const returnTo = searchParams.get("returnTo");
   const prospectIdParam = searchParams.get("prospectId");
@@ -39,6 +50,8 @@ const DemoSite = () => {
     setChatOpen(false);
     setVoiceOpen(false);
     setIframeBlocked(false);
+    setIsIframeCheckPending(false);
+    setResolvedIframeUrl(null);
     setProspectOwner(null);
 
     const scanWebsite = async () => {
@@ -119,6 +132,8 @@ const DemoSite = () => {
     setChatOpen(false);
     setVoiceOpen(false);
     setIframeBlocked(false);
+    setIsIframeCheckPending(false);
+    setResolvedIframeUrl(null);
     setProspectOwner(null);
   }, [latestLeadData]);
 
@@ -141,20 +156,54 @@ const DemoSite = () => {
       });
   }, [leadData?.prospectId, prospectIdParam]);
 
-  // Iframe embed-blocking detection
+  // Check whether the target site permits iframe embedding before rendering
   useEffect(() => {
-    if (!leadData || iframeBlocked) return;
-    const timer = setTimeout(() => {
-      const iframe = iframeRef.current;
-      if (!iframe) return;
+    if (!leadData?.websiteUrl) return;
+
+    let cancelled = false;
+    const homepageUrl = getHomepageUrl(leadData.websiteUrl);
+
+    setIframeBlocked(false);
+    setIsIframeCheckPending(true);
+    setResolvedIframeUrl(null);
+
+    const checkIframeEmbeddability = async () => {
       try {
-        if (iframe.contentDocument === null) setIframeBlocked(true);
-      } catch {
-        // Cross-origin error means the site loaded successfully
+        const { data, error } = await supabase.functions.invoke("check-iframe-embed", {
+          body: {
+            url: homepageUrl,
+            embedOrigin: window.location.origin,
+          },
+        });
+
+        if (error) throw error;
+        if (cancelled) return;
+
+        const checked = data?.checked !== false;
+        const embeddable = checked ? Boolean(data?.embeddable) : true;
+        const finalUrl = typeof data?.finalUrl === "string" && data.finalUrl ? data.finalUrl : homepageUrl;
+
+        setResolvedIframeUrl(finalUrl);
+        setIframeBlocked(!embeddable);
+      } catch (error) {
+        console.error("Iframe embeddability check failed:", error);
+        if (cancelled) return;
+
+        setResolvedIframeUrl(homepageUrl);
+        setIframeBlocked(false);
+      } finally {
+        if (!cancelled) {
+          setIsIframeCheckPending(false);
+        }
       }
-    }, 3500);
-    return () => clearTimeout(timer);
-  }, [leadData, iframeBlocked]);
+    };
+
+    void checkIframeEmbeddability();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [leadData?.websiteUrl]);
 
   const handleBack = () => {
     if (returnTo && returnTo.startsWith("/")) {
@@ -207,15 +256,9 @@ const DemoSite = () => {
   }
 
   const screenshotSrc = getImageSrc(leadData.screenshot);
-  const homepageUrl = (() => {
-    try {
-      const normalizedUrl = leadData.websiteUrl.startsWith("http") ? leadData.websiteUrl : `https://${leadData.websiteUrl}`;
-      const url = new URL(normalizedUrl);
-      return `${url.protocol}//${url.host}`;
-    } catch {
-      return leadData.websiteUrl;
-    }
-  })();
+  const homepageUrl = getHomepageUrl(leadData.websiteUrl);
+  const livePreviewUrl = resolvedIframeUrl || homepageUrl;
+  const showIframeLoadingState = isIframeCheckPending || !resolvedIframeUrl;
   const hasCrmContext = Boolean(leadData.prospectId || prospectIdParam);
   const knownCallerName = !hasCrmContext && leadData.fullName !== "CRM Prospect" ? leadData.fullName : undefined;
   const knownCallerEmail = !hasCrmContext ? leadData.email : undefined;
@@ -257,22 +300,21 @@ const DemoSite = () => {
 
       {/* Website — iframe first, screenshot fallback */}
       <div className="relative flex-1">
-        {!iframeBlocked && (
+        {showIframeLoadingState && (
+          <div className="flex min-h-screen w-full items-center justify-center bg-muted/40 px-4 text-center">
+            <p className="text-sm font-medium text-muted-foreground">Loading live preview…</p>
+          </div>
+        )}
+        {!showIframeLoadingState && !iframeBlocked && (
           <iframe
-            ref={iframeRef}
-            src={homepageUrl}
+            src={livePreviewUrl}
             className="w-full border-0"
             style={{ minHeight: '100vh' }}
             title={`${siteName} website`}
-            onLoad={() => {
-              try {
-                if (iframeRef.current?.contentDocument === null) setIframeBlocked(true);
-              } catch { /* cross-origin = loaded fine */ }
-            }}
             onError={() => setIframeBlocked(true)}
           />
         )}
-        {iframeBlocked && (screenshotSrc ? (
+        {!showIframeLoadingState && iframeBlocked && (screenshotSrc ? (
           <div className="relative mx-auto w-full max-w-[1600px]">
             <img
               src={screenshotSrc}
