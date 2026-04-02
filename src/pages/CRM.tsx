@@ -8,6 +8,7 @@ import CampaignsView from "@/components/crm/CampaignsView";
 import CampaignDetailView from "@/components/crm/CampaignDetailView";
 import PipelinePageView from "@/components/crm/PipelinePageView";
 import TemplatesView from "@/components/crm/TemplatesView";
+import CallHistoryView from "@/components/crm/CallHistoryView";
 
 const CRM = () => {
   return (
