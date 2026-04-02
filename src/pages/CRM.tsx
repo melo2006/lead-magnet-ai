@@ -8,6 +8,7 @@ import CampaignsView from "@/components/crm/CampaignsView";
 import CampaignDetailView from "@/components/crm/CampaignDetailView";
 import PipelinePageView from "@/components/crm/PipelinePageView";
 import TemplatesView from "@/components/crm/TemplatesView";
+import CallHistoryView from "@/components/crm/CallHistoryView";
 
 const CRM = () => {
   return (
@@ -27,6 +28,7 @@ const CRM = () => {
               <Route path="campaigns" element={<CampaignsView />} />
               <Route path="campaigns/:id" element={<CampaignDetailView />} />
               <Route path="pipeline" element={<PipelinePageView />} />
+              <Route path="calls" element={<CallHistoryView />} />
               <Route path="templates" element={<TemplatesView />} />
               <Route path="landing" element={null} />
               <Route path="demo" element={null} />
