@@ -394,6 +394,21 @@ const VoiceAgentWidget = ({
     if (!eventText) return;
 
     liveTranscriptRef.current = `${liveTranscriptRef.current}\n${eventText}`.slice(-16000);
+
+    // Capture last agent message for replay — agent role is typically in "agent" field
+    // or the event contains the agent response text as the main content
+    const raw = event as any;
+    if (raw?.role === "agent" && typeof raw?.content === "string" && raw.content.trim()) {
+      setLastAgentMessage(raw.content.trim());
+    } else if (typeof raw?.transcript === "string" && raw.transcript.trim()) {
+      // Some Retell events send full transcript; extract last agent segment
+      const agentSegments = raw.transcript.match(/agent:\s*(.+?)(?=\n(?:user:|agent:)|$)/gis);
+      if (agentSegments?.length) {
+        const lastSeg = agentSegments[agentSegments.length - 1].replace(/^agent:\s*/i, "").trim();
+        if (lastSeg) setLastAgentMessage(lastSeg);
+      }
+    }
+
     const normalizedEventText = eventText.toLowerCase();
     const looksLikeTransferStart =
       normalizedEventText.includes(LIVE_TRANSFER_READY_PHRASE) ||
