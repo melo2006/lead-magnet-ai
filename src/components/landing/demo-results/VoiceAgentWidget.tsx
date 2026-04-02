@@ -938,9 +938,23 @@ const VoiceAgentWidget = ({
 
               {/* Transfer status */}
               {transferInProgress && (
-                <div className="flex items-center gap-2 mt-2 px-3 py-2 rounded-lg bg-primary/10 text-primary text-xs font-medium">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  Connecting you with {resolvedOwnerName}...
+                <div className="mt-2 space-y-2">
+                  <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 text-primary text-xs font-medium">
+                    <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                    Connecting you with {resolvedOwnerName}... Your phone will ring shortly.
+                  </div>
+                  <p className="text-[10px] text-muted-foreground px-1">
+                    Answer the incoming call to join the live conference. The owner will be connected after a brief whisper.
+                  </p>
+                  <button
+                    onClick={() => {
+                      setTransferState(false);
+                      setCallStatus("idle");
+                    }}
+                    className="w-full rounded-lg bg-secondary px-3 py-2 text-xs font-medium text-foreground hover:bg-secondary/80 transition-colors"
+                  >
+                    Dismiss
+                  </button>
                 </div>
               )}
             </>
