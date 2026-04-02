@@ -151,17 +151,21 @@ Deno.serve(async (req) => {
 
   const requestUrl = new URL(req.url);
   const action = requestUrl.searchParams.get('action') || 'init';
-  const baseFunctionUrl = `${requestUrl.origin}${requestUrl.pathname}`;
+  const supabaseUrl = Deno.env.get('SUPABASE_URL') || requestUrl.origin.replace(/^http:\/\//, 'https://');
+  const baseFunctionUrl = `${supabaseUrl}/functions/v1/live-transfer-bridge`;
+  const SUPABASE_ANON_KEY = Deno.env.get('SUPABASE_ANON_KEY') || Deno.env.get('SUPABASE_PUBLISHABLE_KEY') || '';
+  const anonParam = SUPABASE_ANON_KEY ? `&apikey=${encodeURIComponent(SUPABASE_ANON_KEY)}` : '';
+  const anonParamFirst = SUPABASE_ANON_KEY ? `?apikey=${encodeURIComponent(SUPABASE_ANON_KEY)}` : '';
 
   if (action === 'wait-twiml') {
-    const loopUrl = `${baseFunctionUrl}?action=wait-twiml`;
+    const loopUrl = `${baseFunctionUrl}?action=wait-twiml${anonParam}`;
     const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Play>${escapeXml(HOLD_MUSIC_URL)}</Play><Redirect method="POST">${escapeXml(loopUrl)}</Redirect></Response>`;
     return twimlResponse(twiml);
   }
 
   if (action === 'caller-twiml') {
     const conferenceName = requestUrl.searchParams.get('conference') || buildConferenceName();
-    const waitUrl = `${baseFunctionUrl}?action=wait-twiml`;
+    const waitUrl = `${baseFunctionUrl}?action=wait-twiml${anonParam}`;
     const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="Polly.Joanna-Neural" language="en-US">Please stay on the line while I connect you now.</Say><Dial><Conference waitUrl="${escapeXml(waitUrl)}" waitMethod="POST" startConferenceOnEnter="false" endConferenceOnExit="true" beep="false">${escapeXml(conferenceName)}</Conference></Dial></Response>`;
     return twimlResponse(twiml);
   }
@@ -174,7 +178,7 @@ Deno.serve(async (req) => {
     const businessName = requestUrl.searchParams.get('business_name') || 'the business';
     const conferenceName = requestUrl.searchParams.get('conference') || buildConferenceName();
     const callerCallSid = requestUrl.searchParams.get('caller_call_sid') || '';
-    const joinUrl = `${baseFunctionUrl}?action=join-conference&conference=${encodeURIComponent(conferenceName)}&caller_call_sid=${encodeURIComponent(callerCallSid)}`;
+    const joinUrl = `${baseFunctionUrl}?action=join-conference&conference=${encodeURIComponent(conferenceName)}&caller_call_sid=${encodeURIComponent(callerCallSid)}${anonParam}`;
 
     const whisperText = [
       `Hello ${ownerName}. This is Aspen with a live transfer from the ${businessName} demo.`,
@@ -251,8 +255,8 @@ Deno.serve(async (req) => {
     }
 
     const conferenceName = buildConferenceName(callId);
-    const callerTwimlUrl = `${baseFunctionUrl}?action=caller-twiml&conference=${encodeURIComponent(conferenceName)}`;
-    const callerStatusUrl = `${baseFunctionUrl}?action=status&role=caller`;
+    const callerTwimlUrl = `${baseFunctionUrl}?action=caller-twiml&conference=${encodeURIComponent(conferenceName)}${anonParam}`;
+    const callerStatusUrl = `${baseFunctionUrl}?action=status&role=caller${anonParam}`;
 
     console.log('Live transfer: starting conference bridge', {
       conferenceName,
@@ -282,8 +286,8 @@ Deno.serve(async (req) => {
     }
 
     const callerCallSid = typeof callerData?.sid === 'string' ? callerData.sid : '';
-    const ownerTwimlUrl = `${baseFunctionUrl}?action=owner-twiml&owner_name=${encodeURIComponent(ownerName)}&caller_name=${encodeURIComponent(callerName)}&caller_phone=${encodeURIComponent(callerPhone)}&caller_email=${encodeURIComponent(callerEmail)}&business_name=${encodeURIComponent(businessName)}&conference=${encodeURIComponent(conferenceName)}&caller_call_sid=${encodeURIComponent(callerCallSid)}`;
-    const ownerStatusUrl = `${baseFunctionUrl}?action=status&role=owner&caller_call_sid=${encodeURIComponent(callerCallSid)}`;
+    const ownerTwimlUrl = `${baseFunctionUrl}?action=owner-twiml&owner_name=${encodeURIComponent(ownerName)}&caller_name=${encodeURIComponent(callerName)}&caller_phone=${encodeURIComponent(callerPhone)}&caller_email=${encodeURIComponent(callerEmail)}&business_name=${encodeURIComponent(businessName)}&conference=${encodeURIComponent(conferenceName)}&caller_call_sid=${encodeURIComponent(callerCallSid)}${anonParam}`;
+    const ownerStatusUrl = `${baseFunctionUrl}?action=status&role=owner&caller_call_sid=${encodeURIComponent(callerCallSid)}${anonParam}`;
 
     const ownerResponse = await twilioRequest(
       lovableApiKey,
