@@ -44,13 +44,53 @@ const optionalEmailSchema = z
     message: "Please enter a valid email address",
   });
 
+/**
+ * Smart URL normalizer: accepts bare domains, www prefixes, http/https,
+ * trailing slashes, etc. and resolves to a clean https:// URL.
+ */
+const normalizeUrl = (raw: string): string => {
+  let url = raw.trim();
+  if (!url) return url;
+
+  // Strip surrounding quotes / whitespace artifacts
+  url = url.replace(/^["']+|["']+$/g, "").trim();
+
+  // Remove any leading protocol so we can re-add https consistently
+  url = url.replace(/^(?:https?:\/\/)/i, "");
+
+  // Remove trailing slash(es)
+  url = url.replace(/\/+$/, "");
+
+  // If nothing useful remains, return as-is
+  if (!url) return raw.trim();
+
+  return `https://${url}`;
+};
+
+const looksLikeDomain = (value: string) =>
+  /^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z]{2,})+/.test(
+    value.replace(/^(?:https?:\/\/)/i, "").replace(/^www\./i, "")
+  );
+
 const leadFormSchema = z.object({
   name: z.string().trim().min(1, "Please enter your name").max(100, "Name is too long"),
   businessName: z.string().trim().min(1, "Please enter your business name").max(150, "Business name is too long"),
   email: optionalEmailSchema,
-  website: z.string().trim().min(1, "Please enter your website URL").max(255, "Website URL is too long"),
+  website: z
+    .string()
+    .trim()
+    .min(1, "Please enter your website URL")
+    .max(255, "Website URL is too long")
+    .refine((v) => looksLikeDomain(v), { message: "Please enter a valid domain (e.g. bankunited.com)" })
+    .transform(normalizeUrl),
   phone: z.string().trim().max(30, "Phone number is too long").optional().or(z.literal("")),
-  secondaryUrl: z.string().trim().max(255, "URL is too long").optional().or(z.literal("")),
+  secondaryUrl: z
+    .string()
+    .trim()
+    .max(255, "URL is too long")
+    .optional()
+    .or(z.literal(""))
+    .transform((v) => (v ? normalizeUrl(v) : v)),
 });
 
 interface LeadCaptureSectionProps {
