@@ -645,6 +645,57 @@ const VoiceAgentWidget = ({
     }
   }, [isMuted, toast]);
 
+  const togglePause = useCallback(() => {
+    if (isPaused) {
+      // Resume: restore saved volume
+      setVolume(pausedVolumeRef.current);
+      applyLiveCallVolume(pausedVolumeRef.current);
+      setIsPaused(false);
+    } else {
+      // Pause: save current volume, set to 0
+      pausedVolumeRef.current = volume;
+      setVolume(0);
+      applyLiveCallVolume(0);
+      setIsPaused(true);
+    }
+  }, [applyLiveCallVolume, isPaused, volume]);
+
+  const replayLastMessage = useCallback(() => {
+    if (!lastAgentMessage || isReplaying) return;
+
+    // Cancel any ongoing speech
+    window.speechSynthesis.cancel();
+
+    setIsReplaying(true);
+    const utterance = new SpeechSynthesisUtterance(lastAgentMessage);
+    utterance.rate = 0.95;
+    utterance.pitch = 1.0;
+
+    // Try to pick a good voice
+    const voices = window.speechSynthesis.getVoices();
+    const preferred = voices.find(
+      (v) => v.name.includes("Samantha") || v.name.includes("Google US English") || (v.lang === "en-US" && v.localService),
+    );
+    if (preferred) utterance.voice = preferred;
+
+    utterance.onend = () => setIsReplaying(false);
+    utterance.onerror = () => setIsReplaying(false);
+
+    // Pause agent audio while replaying so they don't overlap
+    const prevVolume = volume;
+    applyLiveCallVolume(0);
+    utterance.onend = () => {
+      setIsReplaying(false);
+      applyLiveCallVolume(prevVolume);
+    };
+    utterance.onerror = () => {
+      setIsReplaying(false);
+      applyLiveCallVolume(prevVolume);
+    };
+
+    window.speechSynthesis.speak(utterance);
+  }, [applyLiveCallVolume, isReplaying, lastAgentMessage, volume]);
+
   const formatDuration = (s: number) => `${Math.floor(s / 60)}:${(s % 60).toString().padStart(2, "0")}`;
   const callIsLive = callStatus === "active" || callStatus === "ending";
 
