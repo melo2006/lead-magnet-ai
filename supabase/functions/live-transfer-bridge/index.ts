@@ -177,7 +177,7 @@ Deno.serve(async (req) => {
     const businessName = requestUrl.searchParams.get('business_name') || 'the business';
     const conferenceName = requestUrl.searchParams.get('conference') || buildConferenceName();
     const callerCallSid = requestUrl.searchParams.get('caller_call_sid') || '';
-    const joinUrl = `${baseFunctionUrl}?action=join-conference&conference=${encodeURIComponent(conferenceName)}&caller_call_sid=${encodeURIComponent(callerCallSid)}`;
+    const joinUrl = `${baseFunctionUrl}?action=join-conference&conference=${encodeURIComponent(conferenceName)}&caller_call_sid=${encodeURIComponent(callerCallSid)}${anonParam}`;
 
     const whisperText = [
       `Hello ${ownerName}. This is Aspen with a live transfer from the ${businessName} demo.`,
