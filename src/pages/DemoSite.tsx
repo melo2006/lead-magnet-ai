@@ -37,6 +37,9 @@ const DemoSite = () => {
   const [prospectOwner, setProspectOwner] = useState<{name?: string; email?: string; phone?: string} | null>(null);
   const returnTo = searchParams.get("returnTo");
   const prospectIdParam = searchParams.get("prospectId");
+  const callerNameParam = searchParams.get("callerName") || undefined;
+  const callerEmailParam = searchParams.get("callerEmail") || undefined;
+  const callerPhoneParam = searchParams.get("callerPhone") || undefined;
 
   // Handle URL params from CRM (e.g. /demo?url=...&name=...&niche=...)
   useEffect(() => {
@@ -262,9 +265,9 @@ const DemoSite = () => {
   const livePreviewUrl = resolvedIframeUrl || homepageUrl;
   const showIframeLoadingState = isIframeCheckPending || !resolvedIframeUrl;
   const hasCrmContext = Boolean(leadData.prospectId || prospectIdParam);
-  const knownCallerName = !hasCrmContext && leadData.fullName !== "CRM Prospect" ? leadData.fullName : undefined;
-  const knownCallerEmail = !hasCrmContext ? leadData.email : undefined;
-  const knownCallerPhone = !hasCrmContext ? leadData.phone : undefined;
+  const knownCallerName = callerNameParam || (!hasCrmContext && leadData.fullName !== "CRM Prospect" ? leadData.fullName : undefined);
+  const knownCallerEmail = callerEmailParam || (!hasCrmContext ? leadData.email : undefined);
+  const knownCallerPhone = callerPhoneParam || (!hasCrmContext ? leadData.phone : undefined);
   const followUpName = prospectOwner?.name || DEFAULT_DEMO_OWNER_NAME;
   const followUpEmail = prospectOwner?.email || undefined;
   const followUpPhone = prospectOwner?.phone || undefined;
