@@ -88,8 +88,8 @@ const ScanningAnimation = ({
       };
     }
 
-    let stepTimeout: ReturnType<typeof setTimeout> | undefined;
-    let progressInterval: ReturnType<typeof setInterval> | undefined;
+    let stepTimeout: number | undefined;
+    let progressInterval: number | undefined;
     let elapsed = 0;
     const totalDuration = featureSlides.length * SLIDE_DURATION;
 
