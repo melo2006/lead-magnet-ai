@@ -155,6 +155,7 @@ const DemoSite = () => {
   const [isLiveViewLoading, setIsLiveViewLoading] = useState(false);
   const [hasLiveViewLoaded, setHasLiveViewLoaded] = useState(false);
   const [hasIframeLoaded, setHasIframeLoaded] = useState(false);
+  const hasIframeLoadedRef = useRef(false);
   const liveViewSessionRef = useRef<string | null>(null);
   const [prospectOwner, setProspectOwner] = useState<{name?: string; email?: string; phone?: string} | null>(null);
   const returnTo = searchParams.get("returnTo");
@@ -194,6 +195,7 @@ const DemoSite = () => {
     setIsLiveViewLoading(false);
     setHasLiveViewLoaded(false);
     setHasIframeLoaded(false);
+    hasIframeLoadedRef.current = false;
     setProspectOwner(null);
 
     const scanWebsite = async () => {
@@ -281,6 +283,7 @@ const DemoSite = () => {
     setIsLiveViewLoading(false);
     setHasLiveViewLoaded(false);
     setHasIframeLoaded(false);
+    hasIframeLoadedRef.current = false;
     setProspectOwner(null);
     setIsScanning(false);
   }, [latestLeadData]);
@@ -365,11 +368,14 @@ const DemoSite = () => {
         if (cancelled) return;
 
         const checked = data?.checked !== false;
-        const embeddable = checked ? Boolean(data?.embeddable) : false;
+        const embeddable = data?.embeddable !== false;
         const finalUrl = typeof data?.finalUrl === "string" && data.finalUrl ? data.finalUrl : homepageUrl;
 
         setResolvedIframeUrl(finalUrl);
-        setIframeBlocked(!embeddable);
+
+        if (!hasIframeLoadedRef.current) {
+          setIframeBlocked(checked ? !embeddable : false);
+        }
       } catch (error) {
         console.error("Iframe embeddability check failed:", error);
         if (cancelled) return;
@@ -437,6 +443,7 @@ const DemoSite = () => {
   }, [iframeBlocked, isLiveViewLoading, leadData?.websiteUrl, liveViewUrl, resolvedIframeUrl]);
 
   useEffect(() => {
+    hasIframeLoadedRef.current = false;
     setHasIframeLoaded(false);
   }, [resolvedIframeUrl]);
 
@@ -514,8 +521,6 @@ const DemoSite = () => {
   const shouldShowScreenshotFallback =
     requiresBrowserFallback && Boolean(screenshotSrc) && (!liveViewUrl || !hasLiveViewLoaded);
   const isPreviewLoading =
-    !resolvedIframeUrl ||
-    isIframeCheckPending ||
     (!requiresBrowserFallback && !hasIframeLoaded) ||
     (requiresBrowserFallback && !isStaticPreviewReady && !isLivePreviewReady);
   const isPreviewAvailable =
@@ -577,7 +582,10 @@ const DemoSite = () => {
             className="w-full border-0"
             style={{ minHeight: '100vh' }}
             title={`${siteName} website`}
-            onLoad={() => setHasIframeLoaded(true)}
+            onLoad={() => {
+              hasIframeLoadedRef.current = true;
+              setHasIframeLoaded(true);
+            }}
             onError={() => setIframeBlocked(true)}
           />
         )}
