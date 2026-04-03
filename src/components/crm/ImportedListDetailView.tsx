@@ -2,10 +2,9 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Globe, Mail, Phone, ExternalLink, Play } from "lucide-react";
+import { ArrowLeft, Globe, Mail, Phone, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 
 const ImportedListDetailView = () => {
   const { id } = useParams();

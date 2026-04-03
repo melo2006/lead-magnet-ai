@@ -529,7 +529,7 @@ const normalizeEmailCandidate = (value?: string | null) => {
 };
 
 const sanitizeCallerPhone = (value?: string | null) => {
-  const normalized = normalizePhoneNumber(value);
+  const normalized = normalizePhoneNumber(value ?? undefined);
   return isLikelyCallablePhoneNumber(normalized) ? normalized : '';
 };
 
