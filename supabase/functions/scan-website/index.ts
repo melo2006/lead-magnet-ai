@@ -694,6 +694,24 @@ Deno.serve(async (req) => {
     const screenshotProvider = browserlessScreenshotResult ? 'browserless' : (homepage.screenshot ? 'firecrawl' : 'none');
     console.log('Screenshot provider used:', screenshotProvider);
 
+    const previewTitle = cleanText(metadata.title) || cleanText(businessName) || getHost(formattedUrl);
+    const previewDescription = cleanText(metadata.description) || homepageSummary || null;
+
+    const previewUpdate = await supabase.from('leads').update({
+      website_url: formattedUrl,
+      website_screenshot: finalScreenshot,
+      brand_colors: branding.colors || null,
+      brand_logo: branding.images?.logo || branding.logo || null,
+      brand_fonts: branding.fonts || branding.typography || null,
+      website_title: previewTitle || null,
+      website_description: previewDescription,
+      scan_status: 'scanning',
+    }).eq('id', leadId);
+
+    if (previewUpdate.error) {
+      console.warn('Could not save preview data early:', previewUpdate.error);
+    }
+
     // === PHASE 2: Sub-pages (parallel, with short timeout) ===
     const linkPool = new Set<string>();
     if (Array.isArray(homepage.links)) {
