@@ -58,6 +58,48 @@ const isLikelyCallablePhoneNumber = (value?: string | null) => {
   return /^[2-9]\d{2}$/.test(areaCode) && /^[2-9]\d{2}$/.test(exchange);
 };
 
+const buildSeedLeadData = ({
+  websiteUrl,
+  businessName,
+  niche,
+  prospectId,
+  callerPhone,
+}: {
+  websiteUrl: string;
+  businessName?: string;
+  niche?: string;
+  prospectId?: string;
+  callerPhone?: string;
+}): DemoLeadData => ({
+  prospectId,
+  fullName: "CRM Prospect",
+  businessName: businessName?.trim() || getSiteName(websiteUrl),
+  websiteUrl,
+  phone: callerPhone,
+  niche: niche?.trim() || "general",
+  screenshot: null,
+  title: businessName?.trim() || "",
+  description: "",
+  websiteContent: "",
+  colors: {},
+  logo: "",
+});
+
+const withTimeout = async <T,>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> => {
+  let timeoutId: ReturnType<typeof setTimeout> | undefined;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timeoutId = setTimeout(() => reject(new Error(message)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) clearTimeout(timeoutId);
+  }
+};
+
 const DemoSite = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -93,8 +135,16 @@ const DemoSite = () => {
     if (!urlParam || latestLeadData) return;
 
     let cancelled = false;
+    const seededLeadData = buildSeedLeadData({
+      websiteUrl: urlParam,
+      businessName: nameParam || undefined,
+      niche: nicheParam || undefined,
+      prospectId: prospectIdParam || undefined,
+      callerPhone: callerPhoneParam,
+    });
 
-    setLeadData(undefined);
+    setLeadData(seededLeadData);
+    setIsScanning(true);
     setChatOpen(false);
     setVoiceOpen(false);
     setIframeBlocked(false);
@@ -105,7 +155,6 @@ const DemoSite = () => {
     setProspectOwner(null);
 
     const scanWebsite = async () => {
-      setIsScanning(true);
       try {
         const { data: insertedLead, error: insertError } = await supabase
           .from("leads")
@@ -120,6 +169,13 @@ const DemoSite = () => {
           .single();
 
         if (insertError) throw insertError;
+
+        if (cancelled) return;
+
+        setLeadData((current) => ({
+          ...(current || seededLeadData),
+          leadId: insertedLead.id,
+        }));
 
         const { error } = await supabase.functions.invoke("scan-website", {
           body: {
@@ -160,21 +216,22 @@ const DemoSite = () => {
         };
 
         setLeadData(newLeadData);
-        toast.success(`Demo generated for ${nameParam || "this business"}`);
       } catch (err: any) {
         console.error("Scan error:", err);
-        toast.error("Failed to generate demo. " + (err.message || ""));
+        if (!cancelled) {
+          toast.error("The live website is loading, but Aspen is still gathering the business details.");
+        }
       } finally {
-        setIsScanning(false);
+        if (!cancelled) setIsScanning(false);
       }
     };
 
-    scanWebsite();
+    void scanWebsite();
 
     return () => {
       cancelled = true;
     };
-  }, [searchParams.toString(), latestLeadData]);
+  }, [callerPhoneParam, latestLeadData, prospectIdParam, searchParams.toString()]);
 
   useEffect(() => {
     if (!latestLeadData) return;
@@ -187,6 +244,7 @@ const DemoSite = () => {
     setLiveViewUrl(null);
     setIsLiveViewLoading(false);
     setProspectOwner(null);
+    setIsScanning(false);
   }, [latestLeadData]);
 
   // Fetch prospect owner data when prospectId is available
@@ -217,16 +275,20 @@ const DemoSite = () => {
 
     setIframeBlocked(false);
     setIsIframeCheckPending(true);
-    setResolvedIframeUrl(null);
+    setResolvedIframeUrl(homepageUrl);
 
     const checkIframeEmbeddability = async () => {
       try {
-        const { data, error } = await supabase.functions.invoke("check-iframe-embed", {
-          body: {
-            url: homepageUrl,
-            embedOrigin: window.location.origin,
-          },
-        });
+        const { data, error } = await withTimeout(
+          supabase.functions.invoke("check-iframe-embed", {
+            body: {
+              url: homepageUrl,
+              embedOrigin: window.location.origin,
+            },
+          }),
+          5000,
+          "Iframe check timed out",
+        );
 
         if (error) throw error;
         if (cancelled) return;
@@ -273,9 +335,13 @@ const DemoSite = () => {
     const startLiveView = async () => {
       setIsLiveViewLoading(true);
       try {
-        const { data, error } = await supabase.functions.invoke("create-browser-session", {
-          body: { url: homepageUrl },
-        });
+        const { data, error } = await withTimeout(
+          supabase.functions.invoke("create-browser-session", {
+            body: { url: homepageUrl },
+          }),
+          12000,
+          "Live preview timed out",
+        );
 
         if (error) throw error;
         if (cancelled) return;
@@ -311,13 +377,15 @@ const DemoSite = () => {
     navigate("/prospects");
   };
 
-  // Loading state
-  if (isScanning) {
+  const requestedDemoUrl = searchParams.get("url");
+  const isWaitingForFreshLeadData = Boolean(
+    requestedDemoUrl && !latestLeadData && leadData?.websiteUrl && leadData.websiteUrl !== requestedDemoUrl,
+  );
+
+  if (isWaitingForFreshLeadData) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="w-full max-w-2xl px-4">
-          <ScanningAnimation websiteUrl={searchParams.get("url") || "website"} onComplete={() => {}} />
-        </div>
+      <div className="min-h-screen bg-background flex items-center justify-center px-4 py-8">
+        <ScanningAnimation websiteUrl={requestedDemoUrl || "website"} onComplete={() => {}} mode="continuous" />
       </div>
     );
   }
@@ -346,7 +414,11 @@ const DemoSite = () => {
         </div>
       );
     }
-    return null;
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-4 py-8">
+        <ScanningAnimation websiteUrl={searchParams.get("url") || "website"} onComplete={() => {}} mode="continuous" />
+      </div>
+    );
   }
 
   const screenshotSrc = getImageSrc(leadData.screenshot);
@@ -354,7 +426,7 @@ const DemoSite = () => {
   const livePreviewUrl = resolvedIframeUrl || homepageUrl;
   const embedOrigin = typeof window !== "undefined" ? window.location.origin : "";
   const requiresBrowserFallback = iframeBlocked || isMixedContentPreview(livePreviewUrl, embedOrigin);
-  const showIframeLoadingState = isIframeCheckPending || !resolvedIframeUrl;
+  const showIframeLoadingState = !resolvedIframeUrl;
   const hasCrmContext = Boolean(leadData.prospectId || prospectIdParam);
   const knownCallerName = callerNameParam || (!hasCrmContext && leadData.fullName !== "CRM Prospect" ? leadData.fullName : undefined);
   const knownCallerEmail = callerEmailParam || (!hasCrmContext ? leadData.email : undefined);
@@ -382,6 +454,11 @@ const DemoSite = () => {
           <span className="text-sm font-medium text-foreground">{siteName}</span>
         </div>
         <div className="flex items-center gap-2">
+          {isScanning && (
+            <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
+              Aspen is learning this site
+            </span>
+          )}
           <a
             href={homepageUrl}
             target="_blank"
@@ -399,8 +476,8 @@ const DemoSite = () => {
       {/* Website — iframe first, screenshot fallback */}
       <div className="relative flex-1">
         {showIframeLoadingState && (
-          <div className="flex min-h-screen w-full items-center justify-center bg-muted/40 px-4 text-center">
-            <p className="text-sm font-medium text-muted-foreground">Loading live preview…</p>
+          <div className="flex min-h-screen w-full items-center justify-center bg-muted/40 px-4 py-8 text-center">
+            <ScanningAnimation websiteUrl={homepageUrl} onComplete={() => {}} mode="continuous" />
           </div>
         )}
         {!showIframeLoadingState && !requiresBrowserFallback && (
@@ -427,17 +504,14 @@ const DemoSite = () => {
             )}
 
             {/* Loading state while Browserbase spins up */}
-            {!liveViewUrl && isLiveViewLoading && (
-              <div className="flex min-h-[60vh] w-full items-center justify-center bg-muted/40 px-4 text-center">
-                <div className="flex flex-col items-center gap-3">
-                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
-                  <p className="text-sm font-medium text-muted-foreground">Loading interactive preview…</p>
-                </div>
+            {!liveViewUrl && isLiveViewLoading && !screenshotSrc && (
+              <div className="flex min-h-[60vh] w-full items-center justify-center bg-muted/40 px-4 py-8 text-center">
+                <ScanningAnimation websiteUrl={homepageUrl} onComplete={() => {}} mode="continuous" />
               </div>
             )}
 
             {/* Screenshot fallback (only if no live view available/loading) */}
-            {!liveViewUrl && !isLiveViewLoading && (screenshotSrc ? (
+            {!liveViewUrl && (!isLiveViewLoading || Boolean(screenshotSrc)) && (screenshotSrc ? (
               <div className="relative mx-auto w-full max-w-[1600px]">
                 <img
                   src={screenshotSrc}
@@ -449,9 +523,15 @@ const DemoSite = () => {
                 />
               </div>
             ) : (
-              <div className="flex h-[60vh] w-full items-center justify-center bg-muted">
-                <p className="text-lg text-muted-foreground">Website preview unavailable</p>
-              </div>
+              isScanning ? (
+                <div className="flex min-h-[60vh] w-full items-center justify-center bg-muted/40 px-4 py-8 text-center">
+                  <ScanningAnimation websiteUrl={homepageUrl} onComplete={() => {}} mode="continuous" />
+                </div>
+              ) : (
+                <div className="flex h-[60vh] w-full items-center justify-center bg-muted">
+                  <p className="text-lg text-muted-foreground">Website preview unavailable</p>
+                </div>
+              )
             ))}
           </>
         )}
