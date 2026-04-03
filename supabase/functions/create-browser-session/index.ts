@@ -80,24 +80,25 @@ Deno.serve(async (req) => {
       throw new Error("No debuggerFullscreenUrl returned");
     }
 
-    // 3. Navigate the browser to the target URL using the CDP websocket
-    // We'll use the Pages endpoint to navigate
-    const connectUrl = debugInfo.debuggerUrl || debugInfo.wsUrl;
-    
-    // Use the CDP HTTP endpoint to send a navigate command
-    // The live view URL already shows the browser - we need to navigate it
-    // We can do this via the Browserbase REST API
-    const pagesRes = await fetch(`${BROWSERBASE_API_URL}/sessions/${sessionId}/pages`, {
-      headers: { "x-bb-api-key": apiKey },
-    });
-
+    // 3. Navigate the browser to the target URL via CDP
+    // Wait briefly for the browser to be ready
     let navigated = false;
-    if (pagesRes.ok) {
+    for (let attempt = 0; attempt < 5; attempt++) {
+      await new Promise((r) => setTimeout(r, 1500));
+
+      const pagesRes = await fetch(`${BROWSERBASE_API_URL}/sessions/${sessionId}/pages`, {
+        headers: { "x-bb-api-key": apiKey },
+      });
+
+      if (!pagesRes.ok) continue;
+
       const pages = await pagesRes.json();
-      if (pages.length > 0) {
-        const pageId = pages[0].id;
-        // Send CDP command to navigate
-        const cdpRes = await fetch(`${BROWSERBASE_API_URL}/sessions/${sessionId}/pages/${pageId}/cdp`, {
+      if (!pages || pages.length === 0) continue;
+
+      const pageId = pages[0].id;
+      const cdpRes = await fetch(
+        `${BROWSERBASE_API_URL}/sessions/${sessionId}/pages/${pageId}/cdp`,
+        {
           method: "POST",
           headers: {
             "x-bb-api-key": apiKey,
@@ -107,18 +108,20 @@ Deno.serve(async (req) => {
             method: "Page.navigate",
             params: { url },
           }),
-        });
-        navigated = cdpRes.ok;
-        if (!navigated) {
-          console.warn("CDP navigate failed:", await cdpRes.text());
         }
+      );
+
+      if (cdpRes.ok) {
+        navigated = true;
+        console.log(`CDP navigation succeeded on attempt ${attempt + 1}`);
+        break;
+      } else {
+        console.warn(`CDP navigate attempt ${attempt + 1} failed:`, await cdpRes.text());
       }
     }
 
-    // If CDP navigation didn't work, try an alternative approach
-    // Append the URL to the live view as a workaround
     if (!navigated) {
-      console.log("CDP navigation not available, session will show default page");
+      console.warn("CDP navigation failed after retries — live view will show blank tab");
     }
 
     return new Response(
