@@ -291,6 +291,119 @@ export type Database = {
         }
         Relationships: []
       }
+      imported_leads: {
+        Row: {
+          ai_chatbot_detected: boolean | null
+          business_name: string
+          category: string | null
+          city: string | null
+          created_at: string
+          demo_sent: boolean | null
+          demo_sent_at: string | null
+          demo_viewed_at: string | null
+          email: string | null
+          id: string
+          lead_score: string | null
+          list_id: string
+          notes: string | null
+          phone: string | null
+          phone_type: string | null
+          social_media_score: number | null
+          state: string | null
+          status: string | null
+          updated_at: string
+          website_quality_score: number | null
+          website_url: string | null
+        }
+        Insert: {
+          ai_chatbot_detected?: boolean | null
+          business_name: string
+          category?: string | null
+          city?: string | null
+          created_at?: string
+          demo_sent?: boolean | null
+          demo_sent_at?: string | null
+          demo_viewed_at?: string | null
+          email?: string | null
+          id?: string
+          lead_score?: string | null
+          list_id: string
+          notes?: string | null
+          phone?: string | null
+          phone_type?: string | null
+          social_media_score?: number | null
+          state?: string | null
+          status?: string | null
+          updated_at?: string
+          website_quality_score?: number | null
+          website_url?: string | null
+        }
+        Update: {
+          ai_chatbot_detected?: boolean | null
+          business_name?: string
+          category?: string | null
+          city?: string | null
+          created_at?: string
+          demo_sent?: boolean | null
+          demo_sent_at?: string | null
+          demo_viewed_at?: string | null
+          email?: string | null
+          id?: string
+          lead_score?: string | null
+          list_id?: string
+          notes?: string | null
+          phone?: string | null
+          phone_type?: string | null
+          social_media_score?: number | null
+          state?: string | null
+          status?: string | null
+          updated_at?: string
+          website_quality_score?: number | null
+          website_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "imported_leads_list_id_fkey"
+            columns: ["list_id"]
+            isOneToOne: false
+            referencedRelation: "imported_lists"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      imported_lists: {
+        Row: {
+          created_at: string
+          description: string | null
+          id: string
+          lead_count: number
+          name: string
+          niche: string | null
+          source_filename: string | null
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          lead_count?: number
+          name: string
+          niche?: string | null
+          source_filename?: string | null
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          description?: string | null
+          id?: string
+          lead_count?: number
+          name?: string
+          niche?: string | null
+          source_filename?: string | null
+          updated_at?: string
+        }
+        Relationships: []
+      }
       intent_leads: {
         Row: {
           added_to_crm: boolean
