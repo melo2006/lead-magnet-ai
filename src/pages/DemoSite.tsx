@@ -367,14 +367,15 @@ const DemoSite = () => {
         if (error) throw error;
         if (cancelled) return;
 
-        const checked = data?.checked !== false;
         const embeddable = data?.embeddable !== false;
+        const unreachable = data?.unreachable === true;
         const finalUrl = typeof data?.finalUrl === "string" && data.finalUrl ? data.finalUrl : homepageUrl;
 
         setResolvedIframeUrl(finalUrl);
 
         if (!hasIframeLoadedRef.current) {
-          setIframeBlocked(checked ? !embeddable : false);
+          // Block iframe if site is not embeddable OR unreachable (DNS failure etc.)
+          setIframeBlocked(!embeddable || unreachable);
         }
       } catch (error) {
         console.error("Iframe embeddability check failed:", error);
