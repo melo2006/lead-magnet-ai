@@ -58,6 +58,9 @@ const DemoSite = () => {
   const [iframeBlocked, setIframeBlocked] = useState(false);
   const [isIframeCheckPending, setIsIframeCheckPending] = useState(false);
   const [resolvedIframeUrl, setResolvedIframeUrl] = useState<string | null>(null);
+  const [liveViewUrl, setLiveViewUrl] = useState<string | null>(null);
+  const [isLiveViewLoading, setIsLiveViewLoading] = useState(false);
+  const liveViewSessionRef = useRef<string | null>(null);
   const [prospectOwner, setProspectOwner] = useState<{name?: string; email?: string; phone?: string} | null>(null);
   const returnTo = searchParams.get("returnTo");
   const prospectIdParam = searchParams.get("prospectId");
