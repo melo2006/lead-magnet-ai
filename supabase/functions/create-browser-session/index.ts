@@ -99,41 +99,76 @@ async function navigateViaCDP(connectUrl: string, targetUrl: string): Promise<bo
   return new Promise((resolve) => {
     const timeout = setTimeout(() => {
       resolve(false);
-    }, 8000);
+    }, 10000);
+
+    let msgId = 0;
+    let pageSessionId: string | null = null;
 
     try {
       const ws = new WebSocket(connectUrl);
 
       ws.onopen = () => {
-        console.log("CDP WebSocket connected, sending navigate command");
-        ws.send(JSON.stringify({
-          id: 1,
-          method: "Page.navigate",
-          params: { url: targetUrl },
-        }));
+        console.log("CDP connected, getting targets");
+        // Get all targets to find the page
+        ws.send(JSON.stringify({ id: ++msgId, method: "Target.getTargets" }));
       };
 
       ws.onmessage = (event) => {
         try {
           const data = JSON.parse(event.data);
-          if (data.id === 1) {
-            console.log("CDP navigate response:", JSON.stringify(data));
+
+          // Response to Target.getTargets
+          if (data.id === 1 && data.result?.targetInfos) {
+            const pageTarget = data.result.targetInfos.find(
+              (t: any) => t.type === "page"
+            );
+            if (pageTarget) {
+              console.log("Found page target:", pageTarget.targetId);
+              // Attach to the page target
+              ws.send(JSON.stringify({
+                id: ++msgId,
+                method: "Target.attachToTarget",
+                params: { targetId: pageTarget.targetId, flatten: true },
+              }));
+            } else {
+              console.warn("No page target found");
+              clearTimeout(timeout);
+              ws.close();
+              resolve(false);
+            }
+          }
+
+          // Response to Target.attachToTarget
+          if (data.id === 2 && data.result?.sessionId) {
+            pageSessionId = data.result.sessionId;
+            console.log("Attached to page, sessionId:", pageSessionId);
+            // Now navigate within the page session
+            ws.send(JSON.stringify({
+              id: ++msgId,
+              method: "Page.navigate",
+              params: { url: targetUrl },
+              sessionId: pageSessionId,
+            }));
+          }
+
+          // Response to Page.navigate
+          if (data.id === 3) {
+            const success = !data.error;
+            console.log("Navigate result:", success ? "success" : JSON.stringify(data.error));
             clearTimeout(timeout);
             ws.close();
-            resolve(!data.error);
+            resolve(success);
           }
         } catch {
-          // ignore parse errors
+          // ignore
         }
       };
 
-      ws.onerror = (e) => {
-        console.warn("CDP WebSocket error:", e);
+      ws.onerror = () => {
         clearTimeout(timeout);
         resolve(false);
       };
-    } catch (e) {
-      console.warn("WebSocket creation failed:", e);
+    } catch {
       clearTimeout(timeout);
       resolve(false);
     }
