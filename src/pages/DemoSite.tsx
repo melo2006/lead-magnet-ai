@@ -1,5 +1,5 @@
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { MessageSquare, Mic, ArrowLeft } from "lucide-react";
 import type { DemoLeadData } from "@/components/landing/demo-results/demoResultsUtils";
 import { getImageSrc, getSiteName } from "@/components/landing/demo-results/demoResultsUtils";
@@ -58,6 +58,9 @@ const DemoSite = () => {
   const [iframeBlocked, setIframeBlocked] = useState(false);
   const [isIframeCheckPending, setIsIframeCheckPending] = useState(false);
   const [resolvedIframeUrl, setResolvedIframeUrl] = useState<string | null>(null);
+  const [liveViewUrl, setLiveViewUrl] = useState<string | null>(null);
+  const [isLiveViewLoading, setIsLiveViewLoading] = useState(false);
+  const liveViewSessionRef = useRef<string | null>(null);
   const [prospectOwner, setProspectOwner] = useState<{name?: string; email?: string; phone?: string} | null>(null);
   const returnTo = searchParams.get("returnTo");
   const prospectIdParam = searchParams.get("prospectId");
@@ -84,6 +87,8 @@ const DemoSite = () => {
     setIframeBlocked(false);
     setIsIframeCheckPending(false);
     setResolvedIframeUrl(null);
+    setLiveViewUrl(null);
+    setIsLiveViewLoading(false);
     setProspectOwner(null);
 
     const scanWebsite = async () => {
@@ -166,6 +171,8 @@ const DemoSite = () => {
     setIframeBlocked(false);
     setIsIframeCheckPending(false);
     setResolvedIframeUrl(null);
+    setLiveViewUrl(null);
+    setIsLiveViewLoading(false);
     setProspectOwner(null);
   }, [latestLeadData]);
 
@@ -236,6 +243,43 @@ const DemoSite = () => {
       cancelled = true;
     };
   }, [leadData?.websiteUrl]);
+
+  // When iframe is blocked, start a Browserbase live view session
+  useEffect(() => {
+    if (!iframeBlocked || !leadData?.websiteUrl) return;
+    if (liveViewUrl || isLiveViewLoading) return;
+
+    let cancelled = false;
+    const homepageUrl = getHomepageUrl(leadData.websiteUrl);
+
+    const startLiveView = async () => {
+      setIsLiveViewLoading(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("create-browser-session", {
+          body: { url: homepageUrl },
+        });
+
+        if (error) throw error;
+        if (cancelled) return;
+
+        if (data?.liveViewUrl) {
+          setLiveViewUrl(data.liveViewUrl);
+          liveViewSessionRef.current = data.sessionId;
+          console.log("Browserbase live view started:", data.sessionId, "navigated:", data.navigated);
+        } else {
+          console.warn("No live view URL returned");
+        }
+      } catch (err) {
+        console.error("Failed to start Browserbase session:", err);
+        // Silently fail — screenshot fallback is already showing
+      } finally {
+        if (!cancelled) setIsLiveViewLoading(false);
+      }
+    };
+
+    startLiveView();
+    return () => { cancelled = true; };
+  }, [iframeBlocked, leadData?.websiteUrl, liveViewUrl, isLiveViewLoading]);
 
   const handleBack = () => {
     if (returnTo && returnTo.startsWith("/")) {
@@ -348,22 +392,49 @@ const DemoSite = () => {
             onError={() => setIframeBlocked(true)}
           />
         )}
-        {!showIframeLoadingState && iframeBlocked && (screenshotSrc ? (
-          <div className="relative mx-auto w-full max-w-[1600px]">
-            <img
-              src={screenshotSrc}
-              alt={`${siteName} website`}
-              className="block w-full h-auto"
-              loading="lazy"
-              decoding="async"
-              draggable={false}
-            />
-          </div>
-        ) : (
-          <div className="flex h-[60vh] w-full items-center justify-center bg-muted">
-            <p className="text-lg text-muted-foreground">Website preview unavailable</p>
-          </div>
-        ))}
+        {/* Iframe blocked → try Browserbase live view, then screenshot fallback */}
+        {!showIframeLoadingState && iframeBlocked && (
+          <>
+            {/* Browserbase live view */}
+            {liveViewUrl && (
+              <iframe
+                src={liveViewUrl}
+                className="w-full border-0"
+                style={{ minHeight: '100vh' }}
+                title={`${siteName} website (live view)`}
+                allow="clipboard-read; clipboard-write"
+              />
+            )}
+
+            {/* Loading state while Browserbase spins up */}
+            {!liveViewUrl && isLiveViewLoading && (
+              <div className="flex min-h-[60vh] w-full items-center justify-center bg-muted/40 px-4 text-center">
+                <div className="flex flex-col items-center gap-3">
+                  <div className="h-8 w-8 animate-spin rounded-full border-2 border-primary border-t-transparent" />
+                  <p className="text-sm font-medium text-muted-foreground">Loading interactive preview…</p>
+                </div>
+              </div>
+            )}
+
+            {/* Screenshot fallback (only if no live view available/loading) */}
+            {!liveViewUrl && !isLiveViewLoading && (screenshotSrc ? (
+              <div className="relative mx-auto w-full max-w-[1600px]">
+                <img
+                  src={screenshotSrc}
+                  alt={`${siteName} website`}
+                  className="block w-full h-auto"
+                  loading="lazy"
+                  decoding="async"
+                  draggable={false}
+                />
+              </div>
+            ) : (
+              <div className="flex h-[60vh] w-full items-center justify-center bg-muted">
+                <p className="text-lg text-muted-foreground">Website preview unavailable</p>
+              </div>
+            ))}
+          </>
+        )}
 
         {/* ===== AI Widget buttons — fixed to the bottom of the viewport ===== */}
         <div className="pointer-events-none fixed inset-x-0 bottom-4 z-20 px-3 sm:bottom-6 sm:px-6">
