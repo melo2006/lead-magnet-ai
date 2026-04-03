@@ -171,6 +171,8 @@ const DemoSite = () => {
     setIframeBlocked(false);
     setIsIframeCheckPending(false);
     setResolvedIframeUrl(null);
+    setLiveViewUrl(null);
+    setIsLiveViewLoading(false);
     setProspectOwner(null);
   }, [latestLeadData]);
 
