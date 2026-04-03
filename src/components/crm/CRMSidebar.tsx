@@ -16,6 +16,7 @@ const navItems = [
   { title: "Campaigns", url: "/campaigns", icon: Megaphone },
   { title: "Pipeline", url: "/pipeline", icon: LayoutGrid },
   { title: "Call History", url: "/calls", icon: PhoneIncoming },
+  { title: "Imported Lists", url: "/imported", icon: FolderInput },
   { title: "Templates", url: "/templates", icon: FileText },
 ];
 
