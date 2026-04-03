@@ -61,7 +61,16 @@ const ImportedListDetailView = () => {
   const handleLaunchDemo = (lead: any) => {
     if (!lead.website_url) return;
     const url = lead.website_url.startsWith("http") ? lead.website_url : `https://${lead.website_url}`;
-    navigate(`/demo?url=${encodeURIComponent(url)}&name=${encodeURIComponent(lead.business_name)}`);
+
+    const params = new URLSearchParams({
+      url,
+      name: lead.business_name || "Business",
+    });
+
+    if (lead.phone) params.set("callerPhone", lead.phone);
+    if (lead.email) params.set("callerEmail", lead.email);
+
+    navigate(`/demo?${params.toString()}`);
   };
 
   return (
