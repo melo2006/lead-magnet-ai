@@ -100,6 +100,21 @@ const withTimeout = async <T,>(promise: Promise<T>, timeoutMs: number, message: 
   }
 };
 
+interface DemoLoadingStateProps {
+  websiteUrl: string;
+  overlay?: boolean;
+}
+
+const DemoLoadingState = ({ websiteUrl, overlay = false }: DemoLoadingStateProps) => (
+  <div
+    className={`flex w-full items-center justify-center overflow-hidden px-4 py-4 text-center ${
+      overlay ? "absolute inset-0 bg-background/92 backdrop-blur-sm" : "h-[100dvh] bg-background"
+    }`}
+  >
+    <ScanningAnimation websiteUrl={websiteUrl || "website"} onComplete={() => {}} mode="continuous" />
+  </div>
+);
+
 const DemoSite = () => {
   const location = useLocation();
   const navigate = useNavigate();
@@ -383,11 +398,7 @@ const DemoSite = () => {
   );
 
   if (isWaitingForFreshLeadData) {
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center px-4 py-8">
-        <ScanningAnimation websiteUrl={requestedDemoUrl || "website"} onComplete={() => {}} mode="continuous" />
-      </div>
-    );
+    return <DemoLoadingState websiteUrl={requestedDemoUrl || "website"} />;
   }
 
   if (!leadData) {
@@ -414,11 +425,7 @@ const DemoSite = () => {
         </div>
       );
     }
-    return (
-      <div className="min-h-screen bg-background flex items-center justify-center px-4 py-8">
-        <ScanningAnimation websiteUrl={searchParams.get("url") || "website"} onComplete={() => {}} mode="continuous" />
-      </div>
-    );
+    return <DemoLoadingState websiteUrl={searchParams.get("url") || "website"} />;
   }
 
   const screenshotSrc = getImageSrc(leadData.screenshot);
@@ -437,48 +444,71 @@ const DemoSite = () => {
   const followUpEmail = prospectOwner?.email || undefined;
   const followUpPhone = prospectOwner?.phone || undefined;
   const siteName = leadData.businessName?.trim() || getSiteName(homepageUrl, leadData.title);
+  const isPreviewLoading =
+    showIframeLoadingState ||
+    (requiresBrowserFallback && !liveViewUrl && isLiveViewLoading && !screenshotSrc) ||
+    (requiresBrowserFallback && !liveViewUrl && !screenshotSrc && isScanning);
+  const isPreviewAvailable =
+    !showIframeLoadingState && (!requiresBrowserFallback || Boolean(liveViewUrl) || Boolean(screenshotSrc));
 
   return (
-    <div className="relative flex min-h-screen flex-col bg-background">
-      {/* Top bar */}
-      <div className="sticky top-0 z-20 flex items-center justify-between border-b border-border bg-card/95 px-4 py-2.5 backdrop-blur-md">
-        <div className="flex items-center gap-3">
+    <div className="relative min-h-[100dvh] bg-background">
+      <div className="pointer-events-none absolute inset-x-0 top-3 z-30 flex justify-center px-3 sm:top-4 sm:px-4">
+        {isPreviewLoading ? (
           <button
             onClick={handleBack}
-            className="flex items-center gap-1.5 text-sm text-muted-foreground transition-colors hover:text-foreground"
+            aria-label="Go back"
+            className="pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card/90 text-muted-foreground shadow-lg backdrop-blur-xl transition-colors hover:text-foreground"
           >
             <ArrowLeft className="h-4 w-4" />
-            Back
           </button>
-          <span className="text-xs text-muted-foreground">|</span>
-          <span className="text-sm font-medium text-foreground">{siteName}</span>
-        </div>
-        <div className="flex items-center gap-2">
-          {isScanning && (
-            <span className="rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary">
-              Aspen is learning this site
-            </span>
-          )}
-          <a
-            href={homepageUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="hidden rounded-full border border-border bg-background/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-foreground sm:inline-flex"
-          >
-            Open Homepage
-          </a>
-          <span className="hidden rounded-full border border-border bg-background/80 px-3 py-1 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground sm:inline-flex">
-            Live Demo
-          </span>
-        </div>
+        ) : (
+          <div className="pointer-events-auto flex w-full max-w-4xl items-center justify-between gap-3 rounded-full border border-border/70 bg-card/90 px-3 py-2 shadow-xl backdrop-blur-xl sm:px-4">
+            <div className="flex min-w-0 items-center gap-2.5">
+              <button
+                onClick={handleBack}
+                aria-label="Go back"
+                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-background/80 text-muted-foreground transition-colors hover:text-foreground"
+              >
+                <ArrowLeft className="h-4 w-4" />
+              </button>
+
+              <div className="min-w-0">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+                  Live demo
+                </p>
+                <p className="truncate text-sm font-semibold text-foreground sm:text-base">{siteName}</p>
+              </div>
+            </div>
+
+            <div className="flex shrink-0 items-center gap-2">
+              {isScanning && (
+                <>
+                  <span className="inline-flex h-2.5 w-2.5 rounded-full bg-primary sm:hidden" aria-hidden />
+                  <span className="hidden items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-primary sm:inline-flex">
+                    <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
+                    Building
+                  </span>
+                </>
+              )}
+
+              <a
+                href={homepageUrl}
+                target="_blank"
+                rel="noopener noreferrer"
+                className="hidden rounded-full border border-border bg-background/80 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-foreground sm:inline-flex"
+              >
+                Open site
+              </a>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* Website — iframe first, screenshot fallback */}
-      <div className="relative flex-1">
+      <div className="relative min-h-[100dvh]">
         {showIframeLoadingState && (
-          <div className="flex min-h-screen w-full items-center justify-center bg-muted/40 px-4 py-8 text-center">
-            <ScanningAnimation websiteUrl={homepageUrl} onComplete={() => {}} mode="continuous" />
-          </div>
+          <DemoLoadingState websiteUrl={homepageUrl} overlay />
         )}
         {!showIframeLoadingState && !requiresBrowserFallback && (
           <iframe
@@ -505,9 +535,7 @@ const DemoSite = () => {
 
             {/* Loading state while Browserbase spins up */}
             {!liveViewUrl && isLiveViewLoading && !screenshotSrc && (
-              <div className="flex min-h-[60vh] w-full items-center justify-center bg-muted/40 px-4 py-8 text-center">
-                <ScanningAnimation websiteUrl={homepageUrl} onComplete={() => {}} mode="continuous" />
-              </div>
+              <DemoLoadingState websiteUrl={homepageUrl} overlay />
             )}
 
             {/* Screenshot fallback (only if no live view available/loading) */}
@@ -524,9 +552,7 @@ const DemoSite = () => {
               </div>
             ) : (
               isScanning ? (
-                <div className="flex min-h-[60vh] w-full items-center justify-center bg-muted/40 px-4 py-8 text-center">
-                  <ScanningAnimation websiteUrl={homepageUrl} onComplete={() => {}} mode="continuous" />
-                </div>
+                  <DemoLoadingState websiteUrl={homepageUrl} overlay />
               ) : (
                 <div className="flex h-[60vh] w-full items-center justify-center bg-muted">
                   <p className="text-lg text-muted-foreground">Website preview unavailable</p>
@@ -537,79 +563,81 @@ const DemoSite = () => {
         )}
 
         {/* ===== AI Widget buttons — fixed to the bottom of the viewport ===== */}
-        <div className="pointer-events-none fixed inset-x-0 bottom-4 z-20 px-3 sm:bottom-6 sm:px-6">
-          <div className="relative mx-auto h-0 w-full max-w-[1100px]">
-            <div className="pointer-events-auto absolute bottom-0 left-0">
-              {chatOpen ? (
-                <div className="w-[min(20rem,calc(100vw-1.5rem))] max-h-[60vh] overflow-y-auto animate-in slide-in-from-bottom-4 fade-in duration-300">
-                  <ChatWidget
-                    key={`chat-${leadData.websiteUrl}`}
-                    businessName={siteName}
-                    businessNiche={leadData.niche || "general"}
-                    websiteUrl={homepageUrl}
-                    businessInfo={leadData.websiteContent || leadData.description || ""}
-                    ownerName={followUpName}
-                    callerName={knownCallerName}
-                    callerEmail={knownCallerEmail}
-                    callerPhone={knownCallerPhone}
-                    onClose={() => setChatOpen(false)}
-                  />
-                </div>
-              ) : (
-                <button
-                  onClick={() => { setChatOpen(true); setVoiceOpen(false); }}
-                  className="group flex items-center gap-2 rounded-xl bg-accent px-3 py-2 text-accent-foreground shadow-lg transition-all hover:scale-105 hover:shadow-xl sm:px-4 sm:py-2.5"
-                >
-                  <div className="relative">
-                    <MessageSquare className="h-4 w-4" />
-                    <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-primary ring-2 ring-accent" />
+        {isPreviewAvailable && (
+          <div className="pointer-events-none fixed inset-x-0 bottom-4 z-20 px-3 sm:bottom-6 sm:px-6">
+            <div className="relative mx-auto h-0 w-full max-w-[1100px]">
+              <div className="pointer-events-auto absolute bottom-0 left-0">
+                {chatOpen ? (
+                  <div className="w-[min(20rem,calc(100vw-1.5rem))] max-h-[60vh] overflow-y-auto animate-in slide-in-from-bottom-4 fade-in duration-300">
+                    <ChatWidget
+                      key={`chat-${leadData.websiteUrl}`}
+                      businessName={siteName}
+                      businessNiche={leadData.niche || "general"}
+                      websiteUrl={homepageUrl}
+                      businessInfo={leadData.websiteContent || leadData.description || ""}
+                      ownerName={followUpName}
+                      callerName={knownCallerName}
+                      callerEmail={knownCallerEmail}
+                      callerPhone={knownCallerPhone}
+                      onClose={() => setChatOpen(false)}
+                    />
                   </div>
-                  <div className="text-left">
-                    <p className="text-xs font-semibold leading-tight sm:text-sm">Chat with Aspen</p>
-                    <p className="hidden text-[9px] opacity-80 sm:block">AI Chat</p>
-                  </div>
-                </button>
-              )}
-            </div>
+                ) : (
+                  <button
+                    onClick={() => { setChatOpen(true); setVoiceOpen(false); }}
+                    className="group flex items-center gap-2 rounded-xl bg-accent px-3 py-2 text-accent-foreground shadow-lg transition-all hover:scale-105 hover:shadow-xl sm:px-4 sm:py-2.5"
+                  >
+                    <div className="relative">
+                      <MessageSquare className="h-4 w-4" />
+                      <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-primary ring-2 ring-accent" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-xs font-semibold leading-tight sm:text-sm">Chat with Aspen</p>
+                      <p className="hidden text-[9px] opacity-80 sm:block">AI Chat</p>
+                    </div>
+                  </button>
+                )}
+              </div>
 
-            <div className="pointer-events-auto absolute bottom-0 right-0">
-              {voiceOpen ? (
-                <div className="w-[min(20rem,calc(100vw-1.5rem))] max-h-[60vh] overflow-y-auto animate-in slide-in-from-bottom-4 fade-in duration-300">
-                  <VoiceAgentWidget
-                    key={`voice-${leadData.websiteUrl}`}
-                    leadId={leadData.leadId}
-                    prospectId={leadData.prospectId || prospectIdParam || undefined}
-                    businessName={siteName}
-                    businessNiche={leadData.niche || "general"}
-                    ownerName={followUpName}
-                    ownerEmail={followUpEmail}
-                    ownerPhone={followUpPhone}
-                    websiteUrl={homepageUrl}
-                    businessInfo={leadData.websiteContent || leadData.description || ""}
-                    callerName={knownCallerName}
-                    callerEmail={knownCallerEmail}
-                    callerPhone={knownCallerPhone}
-                    onClose={() => setVoiceOpen(false)}
-                  />
-                </div>
-              ) : (
-                <button
-                  onClick={() => { setVoiceOpen(true); setChatOpen(false); }}
-                  className="group flex items-center gap-2 rounded-xl bg-primary px-3 py-2 text-primary-foreground shadow-lg transition-all hover:scale-105 hover:shadow-xl sm:px-4 sm:py-2.5"
-                >
-                  <div className="relative">
-                    <Mic className="h-4 w-4" />
-                    <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-accent ring-2 ring-primary" />
+              <div className="pointer-events-auto absolute bottom-0 right-0">
+                {voiceOpen ? (
+                  <div className="w-[min(20rem,calc(100vw-1.5rem))] max-h-[60vh] overflow-y-auto animate-in slide-in-from-bottom-4 fade-in duration-300">
+                    <VoiceAgentWidget
+                      key={`voice-${leadData.websiteUrl}`}
+                      leadId={leadData.leadId}
+                      prospectId={leadData.prospectId || prospectIdParam || undefined}
+                      businessName={siteName}
+                      businessNiche={leadData.niche || "general"}
+                      ownerName={followUpName}
+                      ownerEmail={followUpEmail}
+                      ownerPhone={followUpPhone}
+                      websiteUrl={homepageUrl}
+                      businessInfo={leadData.websiteContent || leadData.description || ""}
+                      callerName={knownCallerName}
+                      callerEmail={knownCallerEmail}
+                      callerPhone={knownCallerPhone}
+                      onClose={() => setVoiceOpen(false)}
+                    />
                   </div>
-                  <div className="text-left">
-                    <p className="text-xs font-semibold leading-tight sm:text-sm">Talk to Aspen</p>
-                    <p className="hidden text-[9px] opacity-80 sm:block">AI Voice</p>
-                  </div>
-                </button>
-              )}
+                ) : (
+                  <button
+                    onClick={() => { setVoiceOpen(true); setChatOpen(false); }}
+                    className="group flex items-center gap-2 rounded-xl bg-primary px-3 py-2 text-primary-foreground shadow-lg transition-all hover:scale-105 hover:shadow-xl sm:px-4 sm:py-2.5"
+                  >
+                    <div className="relative">
+                      <Mic className="h-4 w-4" />
+                      <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-accent ring-2 ring-primary" />
+                    </div>
+                    <div className="text-left">
+                      <p className="text-xs font-semibold leading-tight sm:text-sm">Talk to Aspen</p>
+                      <p className="hidden text-[9px] opacity-80 sm:block">AI Voice</p>
+                    </div>
+                  </button>
+                )}
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
     </div>
