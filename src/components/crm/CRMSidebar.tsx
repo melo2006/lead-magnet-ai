@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Search, Megaphone, LayoutGrid, FileText, Settings, Zap, Radar, PhoneIncoming
+  LayoutDashboard, Search, Megaphone, LayoutGrid, FileText, Settings, Zap, Radar, PhoneIncoming, FolderInput
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -16,6 +16,7 @@ const navItems = [
   { title: "Campaigns", url: "/campaigns", icon: Megaphone },
   { title: "Pipeline", url: "/pipeline", icon: LayoutGrid },
   { title: "Call History", url: "/calls", icon: PhoneIncoming },
+  { title: "Imported Lists", url: "/imported", icon: FolderInput },
   { title: "Templates", url: "/templates", icon: FileText },
 ];
 
