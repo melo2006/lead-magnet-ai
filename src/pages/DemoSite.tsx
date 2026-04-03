@@ -102,18 +102,41 @@ const withTimeout = async <T,>(promise: Promise<T>, timeoutMs: number, message: 
 
 interface DemoLoadingStateProps {
   websiteUrl: string;
+  businessName?: string;
   overlay?: boolean;
 }
 
-const DemoLoadingState = ({ websiteUrl, overlay = false }: DemoLoadingStateProps) => (
+const DemoLoadingState = ({ websiteUrl, businessName, overlay = false }: DemoLoadingStateProps) => (
   <div
     className={`flex w-full items-center justify-center overflow-hidden px-4 py-4 text-center ${
       overlay ? "absolute inset-0 bg-background/92 backdrop-blur-sm" : "h-[100dvh] bg-background"
     }`}
   >
-    <ScanningAnimation websiteUrl={websiteUrl || "website"} onComplete={() => {}} mode="continuous" />
+    <ScanningAnimation
+      websiteUrl={websiteUrl || "website"}
+      businessName={businessName}
+      onComplete={() => {}}
+      mode="continuous"
+    />
   </div>
 );
+
+const mergeLeadRecordIntoDemoData = (record: any, current: DemoLeadData): DemoLeadData => ({
+  ...current,
+  leadId: record.id || current.leadId,
+  fullName: record.full_name || current.fullName,
+  businessName: record.business_name || current.businessName,
+  email: record.email || current.email,
+  websiteUrl: record.website_url || current.websiteUrl,
+  phone: record.phone || current.phone,
+  niche: record.niche || current.niche,
+  screenshot: record.website_screenshot || current.screenshot || null,
+  title: record.website_title || current.title || "",
+  description: record.website_description || current.description || "",
+  websiteContent: record.website_content || current.websiteContent || "",
+  colors: (record.brand_colors as Record<string, string>) || current.colors || {},
+  logo: record.brand_logo || current.logo || "",
+});
 
 const DemoSite = () => {
   const location = useLocation();
@@ -192,52 +215,46 @@ const DemoSite = () => {
           leadId: insertedLead.id,
         }));
 
-        const { error } = await supabase.functions.invoke("scan-website", {
+        const syncLeadRecord = async () => {
+          const { data: fullLead, error: fetchError } = await supabase
+            .from("leads")
+            .select("id, full_name, business_name, email, phone, niche, website_url, website_screenshot, website_title, website_description, website_content, brand_colors, brand_logo, scan_status")
+            .eq("id", insertedLead.id)
+            .maybeSingle();
+
+          if (fetchError || !fullLead || cancelled) return;
+
+          setLeadData((current) => (current ? mergeLeadRecordIntoDemoData(fullLead, current) : current));
+
+          if (["completed", "enriched", "failed"].includes(fullLead.scan_status || "")) {
+            setIsScanning(false);
+          }
+        };
+
+        void supabase.functions.invoke("scan-website", {
           body: {
             websiteUrl: urlParam,
             leadId: insertedLead.id,
             initialNiche: nicheParam || "general",
             businessName: nameParam || "",
           },
+        }).then(async ({ error }) => {
+          if (error) throw error;
+          await syncLeadRecord();
+          if (!cancelled) setIsScanning(false);
+        }).catch((err: any) => {
+          console.error("Scan error:", err);
+          if (!cancelled) {
+            toast.error("The live website is loading, but Aspen is still gathering the business details.");
+            setIsScanning(false);
+          }
         });
-
-        if (error) throw error;
-
-        const { data: fullLead, error: fetchError } = await supabase
-          .from("leads")
-          .select("*")
-          .eq("id", insertedLead.id)
-          .single();
-
-        if (fetchError) throw fetchError;
-
-        if (cancelled) return;
-
-        const newLeadData: DemoLeadData = {
-          leadId: insertedLead.id,
-          prospectId: prospectIdParam || undefined,
-          fullName: fullLead.full_name || "CRM Prospect",
-          businessName: fullLead.business_name || nameParam || "Business",
-          email: fullLead.email || undefined,
-          websiteUrl: fullLead.website_url || urlParam,
-          phone: fullLead.phone || undefined,
-          niche: fullLead.niche || nicheParam || "general",
-          screenshot: fullLead.website_screenshot || null,
-          title: fullLead.website_title || "",
-          description: fullLead.website_description || "",
-          websiteContent: fullLead.website_content || "",
-          colors: (fullLead.brand_colors as Record<string, string>) || {},
-          logo: fullLead.brand_logo || "",
-        };
-
-        setLeadData(newLeadData);
       } catch (err: any) {
         console.error("Scan error:", err);
         if (!cancelled) {
           toast.error("The live website is loading, but Aspen is still gathering the business details.");
+          setIsScanning(false);
         }
-      } finally {
-        if (!cancelled) setIsScanning(false);
       }
     };
 
@@ -261,6 +278,39 @@ const DemoSite = () => {
     setProspectOwner(null);
     setIsScanning(false);
   }, [latestLeadData]);
+
+  useEffect(() => {
+    const leadId = leadData?.leadId;
+    if (!leadId || !isScanning) return;
+
+    let cancelled = false;
+
+    const syncLeadRecord = async () => {
+      const { data, error } = await supabase
+        .from("leads")
+        .select("id, full_name, business_name, email, phone, niche, website_url, website_screenshot, website_title, website_description, website_content, brand_colors, brand_logo, scan_status")
+        .eq("id", leadId)
+        .maybeSingle();
+
+      if (error || !data || cancelled) return;
+
+      setLeadData((current) => (current ? mergeLeadRecordIntoDemoData(data, current) : current));
+
+      if (["completed", "enriched", "failed"].includes(data.scan_status || "")) {
+        setIsScanning(false);
+      }
+    };
+
+    void syncLeadRecord();
+    const intervalId = window.setInterval(() => {
+      void syncLeadRecord();
+    }, 1800);
+
+    return () => {
+      cancelled = true;
+      window.clearInterval(intervalId);
+    };
+  }, [isScanning, leadData?.leadId]);
 
   // Fetch prospect owner data when prospectId is available
   useEffect(() => {
@@ -398,7 +448,7 @@ const DemoSite = () => {
   );
 
   if (isWaitingForFreshLeadData) {
-    return <DemoLoadingState websiteUrl={requestedDemoUrl || "website"} />;
+    return <DemoLoadingState websiteUrl={requestedDemoUrl || "website"} businessName={searchParams.get("name") || undefined} />;
   }
 
   if (!leadData) {
@@ -425,7 +475,7 @@ const DemoSite = () => {
         </div>
       );
     }
-    return <DemoLoadingState websiteUrl={searchParams.get("url") || "website"} />;
+    return <DemoLoadingState websiteUrl={searchParams.get("url") || "website"} businessName={searchParams.get("name") || undefined} />;
   }
 
   const screenshotSrc = getImageSrc(leadData.screenshot);
@@ -433,7 +483,6 @@ const DemoSite = () => {
   const livePreviewUrl = resolvedIframeUrl || homepageUrl;
   const embedOrigin = typeof window !== "undefined" ? window.location.origin : "";
   const requiresBrowserFallback = iframeBlocked || isMixedContentPreview(livePreviewUrl, embedOrigin);
-  const showIframeLoadingState = !resolvedIframeUrl;
   const hasCrmContext = Boolean(leadData.prospectId || prospectIdParam);
   const knownCallerName = callerNameParam || (!hasCrmContext && leadData.fullName !== "CRM Prospect" ? leadData.fullName : undefined);
   const knownCallerEmail = callerEmailParam || (!hasCrmContext ? leadData.email : undefined);
@@ -445,24 +494,18 @@ const DemoSite = () => {
   const followUpPhone = prospectOwner?.phone || undefined;
   const siteName = leadData.businessName?.trim() || getSiteName(homepageUrl, leadData.title);
   const isPreviewLoading =
-    showIframeLoadingState ||
-    (requiresBrowserFallback && !liveViewUrl && isLiveViewLoading && !screenshotSrc) ||
-    (requiresBrowserFallback && !liveViewUrl && !screenshotSrc && isScanning);
+    !resolvedIframeUrl ||
+    isIframeCheckPending ||
+    (requiresBrowserFallback && !liveViewUrl && !screenshotSrc && (isLiveViewLoading || isScanning));
   const isPreviewAvailable =
-    !showIframeLoadingState && (!requiresBrowserFallback || Boolean(liveViewUrl) || Boolean(screenshotSrc));
+    (!requiresBrowserFallback && Boolean(resolvedIframeUrl) && !isIframeCheckPending) ||
+    Boolean(liveViewUrl) ||
+    Boolean(screenshotSrc);
 
   return (
     <div className="relative min-h-[100dvh] bg-background">
-      <div className="pointer-events-none absolute inset-x-0 top-3 z-30 flex justify-center px-3 sm:top-4 sm:px-4">
-        {isPreviewLoading ? (
-          <button
-            onClick={handleBack}
-            aria-label="Go back"
-            className="pointer-events-auto inline-flex h-10 w-10 items-center justify-center rounded-full border border-border bg-card/90 text-muted-foreground shadow-lg backdrop-blur-xl transition-colors hover:text-foreground"
-          >
-            <ArrowLeft className="h-4 w-4" />
-          </button>
-        ) : (
+      {!isPreviewLoading && (
+        <div className="pointer-events-none absolute inset-x-0 top-3 z-30 flex justify-center px-3 sm:top-4 sm:px-4">
           <div className="pointer-events-auto flex w-full max-w-4xl items-center justify-between gap-3 rounded-full border border-border/70 bg-card/90 px-3 py-2 shadow-xl backdrop-blur-xl sm:px-4">
             <div className="flex min-w-0 items-center gap-2.5">
               <button
@@ -502,15 +545,12 @@ const DemoSite = () => {
               </a>
             </div>
           </div>
-        )}
-      </div>
+        </div>
+      )}
 
       {/* Website — iframe first, screenshot fallback */}
       <div className="relative min-h-[100dvh]">
-        {showIframeLoadingState && (
-          <DemoLoadingState websiteUrl={homepageUrl} overlay />
-        )}
-        {!showIframeLoadingState && !requiresBrowserFallback && (
+        {resolvedIframeUrl && !requiresBrowserFallback && (
           <iframe
             src={livePreviewUrl}
             className="w-full border-0"
@@ -520,7 +560,7 @@ const DemoSite = () => {
           />
         )}
         {/* Iframe blocked → try Browserbase live view, then screenshot fallback */}
-        {!showIframeLoadingState && requiresBrowserFallback && (
+        {resolvedIframeUrl && requiresBrowserFallback && (
           <>
             {/* Browserbase live view */}
             {liveViewUrl && (
@@ -533,13 +573,8 @@ const DemoSite = () => {
               />
             )}
 
-            {/* Loading state while Browserbase spins up */}
-            {!liveViewUrl && isLiveViewLoading && !screenshotSrc && (
-              <DemoLoadingState websiteUrl={homepageUrl} overlay />
-            )}
-
             {/* Screenshot fallback (only if no live view available/loading) */}
-            {!liveViewUrl && (!isLiveViewLoading || Boolean(screenshotSrc)) && (screenshotSrc ? (
+            {!liveViewUrl && screenshotSrc && (
               <div className="relative mx-auto w-full max-w-[1600px]">
                 <img
                   src={screenshotSrc}
@@ -550,17 +585,39 @@ const DemoSite = () => {
                   draggable={false}
                 />
               </div>
-            ) : (
-              isScanning ? (
-                  <DemoLoadingState websiteUrl={homepageUrl} overlay />
-              ) : (
-                <div className="flex h-[60vh] w-full items-center justify-center bg-muted">
-                  <p className="text-lg text-muted-foreground">Website preview unavailable</p>
-                </div>
-              )
-            ))}
+            )}
           </>
         )}
+
+        {!isPreviewLoading && !isPreviewAvailable && (
+          <div className="absolute inset-0 flex items-center justify-center bg-muted/40 px-4 text-center">
+            <div className="w-full max-w-md rounded-[1.75rem] border border-border bg-card/95 p-6 shadow-xl">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary">Preview unavailable</p>
+              <h2 className="mt-3 text-2xl font-semibold text-foreground">Open the real website instead</h2>
+              <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                We could not load the embedded preview for this site, but you can still open the live homepage directly.
+              </p>
+              <div className="mt-6 flex justify-center gap-3">
+                <button
+                  onClick={handleBack}
+                  className="inline-flex items-center justify-center rounded-xl border border-border bg-background px-4 py-2 text-sm font-semibold text-foreground transition-colors hover:bg-secondary"
+                >
+                  Back
+                </button>
+                <a
+                  href={homepageUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+                >
+                  Open site
+                </a>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {isPreviewLoading && <DemoLoadingState websiteUrl={homepageUrl} businessName={siteName} overlay />}
 
         {/* ===== AI Widget buttons — fixed to the bottom of the viewport ===== */}
         {isPreviewAvailable && (
