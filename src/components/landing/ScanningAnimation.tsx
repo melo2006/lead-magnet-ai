@@ -1,48 +1,41 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { CheckCircle, Globe, MessageSquare, Mic, PhoneCall, Sparkles } from "lucide-react";
+import { CheckCircle, Globe, MessageSquare, Mic, PhoneCall, Sparkles, Search } from "lucide-react";
 
-const featureSlides = [
+const scanSteps = [
+  {
+    icon: Search,
+    label: "Scanning website content",
+    detail: "Reading pages, services, and contact info…",
+  },
   {
     icon: Globe,
-    eyebrow: "Real website first",
-    title: "The live homepage shows first.",
-    description: "Prospects see the real site immediately instead of waiting on a fake mockup to build.",
+    label: "Analyzing your online presence",
+    detail: "Capturing screenshots and brand details…",
   },
   {
     icon: Mic,
-    eyebrow: "Voice AI",
-    title: "Answers like a real receptionist.",
-    description: "Aspen answers common questions, qualifies callers, and keeps the conversation moving.",
+    label: "Preparing Voice AI demo",
+    detail: "A new way to never miss a customer call.",
   },
   {
     icon: MessageSquare,
-    eyebrow: "Chat AI",
-    title: "Replies instantly on the site.",
-    description: "Visitors get immediate answers and turn into captured leads instead of bouncing away.",
+    label: "Setting up Chat AI",
+    detail: "Instant answers turn visitors into captured leads.",
   },
   {
     icon: PhoneCall,
-    eyebrow: "Warm transfer",
-    title: "Hot leads go to a human fast.",
-    description: "Ready-to-buy callers can be handed off live before the momentum disappears.",
+    label: "Enabling warm transfers",
+    detail: "Hot leads get connected to a human—fast.",
   },
   {
     icon: Sparkles,
-    eyebrow: "Better conversion",
-    title: "Cleaner experience, stronger trust.",
-    description: "The site, chat, and voice assistant work together like one polished sales system.",
+    label: "Finalizing your live demo",
+    detail: "See how AI captures leads you're missing today.",
   },
 ] as const;
 
-const orbitIcons = [Globe, Mic, MessageSquare, PhoneCall] as const;
-const orbitPositions = [
-  "left-1/2 top-0 -translate-x-1/2 -translate-y-1/2",
-  "right-0 top-1/2 translate-x-1/2 -translate-y-1/2",
-  "left-1/2 bottom-0 -translate-x-1/2 translate-y-1/2",
-  "left-0 top-1/2 -translate-x-1/2 -translate-y-1/2",
-] as const;
-const SLIDE_DURATION = 2600;
+const STEP_DURATION = 2200;
 
 interface ScanningAnimationProps {
   websiteUrl: string;
@@ -80,18 +73,21 @@ const ScanningAnimation = ({
 
     if (mode === "continuous") {
       const intervalId = window.setInterval(() => {
-        setCurrentStep((prev) => (prev + 1) % featureSlides.length);
-      }, SLIDE_DURATION);
-
+        setCurrentStep((prev) => (prev + 1) % scanSteps.length);
+      }, STEP_DURATION);
+      const progressId = window.setInterval(() => {
+        setProgress((p) => (p >= 95 ? 95 : p + 0.4));
+      }, 50);
       return () => {
         window.clearInterval(intervalId);
+        window.clearInterval(progressId);
       };
     }
 
     let stepTimeout: number | undefined;
     let progressInterval: number | undefined;
     let elapsed = 0;
-    const totalDuration = featureSlides.length * SLIDE_DURATION;
+    const totalDuration = scanSteps.length * STEP_DURATION;
 
     progressInterval = window.setInterval(() => {
       elapsed += 50;
@@ -99,15 +95,14 @@ const ScanningAnimation = ({
     }, 50);
 
     const advanceSteps = (stepIndex: number) => {
-      if (stepIndex >= featureSlides.length) {
+      if (stepIndex >= scanSteps.length) {
         if (progressInterval) window.clearInterval(progressInterval);
         setProgress(100);
-        window.setTimeout(() => onCompleteRef.current(), 600);
+        window.setTimeout(() => onCompleteRef.current(), 400);
         return;
       }
-
       setCurrentStep(stepIndex);
-      stepTimeout = window.setTimeout(() => advanceSteps(stepIndex + 1), SLIDE_DURATION);
+      stepTimeout = window.setTimeout(() => advanceSteps(stepIndex + 1), STEP_DURATION);
     };
 
     advanceSteps(0);
@@ -118,107 +113,103 @@ const ScanningAnimation = ({
     };
   }, [businessName, mode, websiteUrl]);
 
-  const activeSlide = featureSlides[currentStep] ?? featureSlides[0];
+  const activeStep = scanSteps[currentStep] ?? scanSteps[0];
   const websiteLabel = getWebsiteLabel(websiteUrl);
   const displayName = businessName?.trim() || websiteLabel;
-  const showTimedProgress = mode === "timed";
-  const isComplete = showTimedProgress && progress >= 100;
-  const CurrentIcon = isComplete ? CheckCircle : activeSlide.icon;
+  const isComplete = mode === "timed" && progress >= 100;
+  const StepIcon = isComplete ? CheckCircle : activeStep.icon;
 
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.97 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="mx-auto flex h-full w-full max-w-3xl items-center justify-center"
+      className="mx-auto flex w-full max-w-md items-center justify-center px-4"
     >
-      <div className="relative w-full overflow-hidden rounded-[2rem] border border-border bg-card/95 px-5 py-6 shadow-xl sm:px-8 sm:py-8 [@media(max-height:520px)]:px-4 [@media(max-height:520px)]:py-5">
-        <div className="absolute left-1/2 top-0 h-32 w-32 -translate-x-1/2 rounded-full bg-primary/10 blur-3xl" />
-        <div className="absolute -left-10 bottom-6 h-28 w-28 rounded-full bg-accent/10 blur-3xl" />
-        <div className="absolute -right-8 top-12 h-28 w-28 rounded-full bg-primary/10 blur-3xl" />
+      <div className="relative w-full overflow-hidden rounded-2xl border border-border bg-card/95 px-4 py-5 shadow-xl sm:rounded-3xl sm:px-6 sm:py-6">
+        {/* Glow */}
+        <div className="absolute left-1/2 top-0 h-20 w-20 -translate-x-1/2 rounded-full bg-primary/10 blur-2xl" />
 
-        <div className="relative">
-          <div className="mx-auto max-w-2xl text-center">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.28em] text-primary sm:text-[11px]">
-              Building your live demo
+        <div className="relative flex flex-col items-center text-center">
+          {/* Eyebrow */}
+          <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-primary sm:text-[10px]">
+            Building your live demo
+          </p>
+
+          {/* Business name */}
+          <h2 className="mt-2 text-xl font-bold tracking-tight text-foreground sm:text-2xl">
+            {displayName}
+          </h2>
+          {displayName.toLowerCase() !== websiteLabel.toLowerCase() && (
+            <p className="mt-0.5 text-[10px] font-medium uppercase tracking-[0.15em] text-muted-foreground">
+              {websiteLabel}
             </p>
-            <h2 className="mt-3 text-3xl font-semibold tracking-tight text-foreground sm:text-5xl [@media(max-height:520px)]:text-2xl">
-              {displayName}
-            </h2>
-            {displayName.toLowerCase() !== websiteLabel.toLowerCase() && (
-              <p className="mt-2 text-xs font-medium uppercase tracking-[0.18em] text-muted-foreground [@media(max-height:520px)]:text-[11px]">
-                {websiteLabel}
-              </p>
-            )}
-            <p className="mt-3 text-sm leading-6 text-muted-foreground sm:text-base [@media(max-height:520px)]:mt-2 [@media(max-height:520px)]:text-xs [@media(max-height:520px)]:leading-5">
-              We load the real website first, then layer the AI demo on top.
-            </p>
+          )}
+
+          {/* Animated icon */}
+          <div className="relative mt-4 flex h-16 w-16 items-center justify-center sm:h-20 sm:w-20">
+            <motion.div
+              animate={{ scale: [1, 1.12, 1], opacity: [0.2, 0.45, 0.2] }}
+              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
+              className="absolute inset-0 rounded-full bg-primary/10 blur-xl"
+            />
+            <motion.div
+              animate={{ rotate: 360 }}
+              transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
+              className="absolute inset-0 rounded-full border border-dashed border-primary/20"
+            />
+            <motion.div
+              animate={{ scale: [1, 1.04, 1] }}
+              transition={{ duration: 2.2, repeat: Infinity, ease: "easeInOut" }}
+              className="relative flex h-12 w-12 items-center justify-center rounded-full border border-primary/20 bg-background/90 shadow-md sm:h-14 sm:w-14"
+            >
+              <AnimatePresence mode="wait">
+                <motion.div
+                  key={currentStep}
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  exit={{ opacity: 0, scale: 0.8 }}
+                  transition={{ duration: 0.2 }}
+                >
+                  <StepIcon className="h-6 w-6 text-primary sm:h-7 sm:w-7" />
+                </motion.div>
+              </AnimatePresence>
+            </motion.div>
           </div>
 
-          <div className="mt-6 flex flex-col items-center [@media(max-height:520px)]:mt-4">
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={currentStep}
-                initial={{ opacity: 0, y: 8 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -8 }}
-                transition={{ duration: 0.22 }}
-                className="inline-flex items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-primary [@media(max-height:520px)]:px-2.5 [@media(max-height:520px)]:py-1 [@media(max-height:520px)]:text-[10px]"
-              >
-                <CurrentIcon className="h-4 w-4" />
-                <span>{isComplete ? "Preview ready" : activeSlide.eyebrow}</span>
-              </motion.div>
-            </AnimatePresence>
+          {/* Step label + detail */}
+          <AnimatePresence mode="wait">
+            <motion.div
+              key={currentStep}
+              initial={{ opacity: 0, y: 6 }}
+              animate={{ opacity: 1, y: 0 }}
+              exit={{ opacity: 0, y: -6 }}
+              transition={{ duration: 0.2 }}
+              className="mt-3"
+            >
+              <p className="text-sm font-semibold text-foreground sm:text-base">
+                {isComplete ? "Your demo is ready!" : activeStep.label}
+              </p>
+              <p className="mt-1 text-xs leading-relaxed text-muted-foreground sm:text-sm">
+                {isComplete
+                  ? "The real site with AI voice, chat & warm transfer."
+                  : activeStep.detail}
+              </p>
+            </motion.div>
+          </AnimatePresence>
 
-            <div className="relative mt-4 flex h-[220px] w-[220px] items-center justify-center [@media(max-height:520px)]:mt-3 [@media(max-height:520px)]:h-[170px] [@media(max-height:520px)]:w-[170px]">
+          {/* Progress bar */}
+          <div className="mt-4 w-full">
+            <div className="h-1.5 w-full overflow-hidden rounded-full bg-muted/50">
               <motion.div
-                animate={{ rotate: 360 }}
-                transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
-                className="absolute inset-0"
-              >
-                {orbitIcons.map((Icon, index) => (
-                  <div
-                    key={`${activeSlide.eyebrow}-${index}`}
-                    className={`absolute ${orbitPositions[index]} flex h-11 w-11 items-center justify-center rounded-2xl border border-border bg-background/90 shadow-sm [@media(max-height:520px)]:h-9 [@media(max-height:520px)]:w-9`}
-                  >
-                    <Icon className="h-5 w-5 text-primary [@media(max-height:520px)]:h-4 [@media(max-height:520px)]:w-4" />
-                  </div>
-                ))}
-              </motion.div>
-
-              <motion.div
-                animate={{ scale: [1, 1.08, 1], opacity: [0.3, 0.55, 0.3] }}
-                transition={{ duration: 2.4, repeat: Infinity, ease: "easeInOut" }}
-                className="absolute inset-[18%] rounded-full bg-primary/10 blur-2xl"
+                className="h-full rounded-full bg-primary"
+                initial={{ width: "0%" }}
+                animate={{ width: `${Math.min(progress, 100)}%` }}
+                transition={{ duration: 0.3, ease: "easeOut" }}
               />
-
-              <motion.div
-                animate={{ scale: [1, 1.03, 1] }}
-                transition={{ duration: 2.6, repeat: Infinity, ease: "easeInOut" }}
-                className="relative flex h-28 w-28 items-center justify-center rounded-full border border-primary/20 bg-background/85 shadow-lg [@media(max-height:520px)]:h-24 [@media(max-height:520px)]:w-24"
-              >
-                <CurrentIcon className="h-11 w-11 text-primary [@media(max-height:520px)]:h-9 [@media(max-height:520px)]:w-9" />
-              </motion.div>
             </div>
-
-            <AnimatePresence mode="wait">
-              <motion.div
-                key={`${currentStep}-copy`}
-                initial={{ opacity: 0, y: 10 }}
-                animate={{ opacity: 1, y: 0 }}
-                exit={{ opacity: 0, y: -10 }}
-                transition={{ duration: 0.22 }}
-                className="mt-5 max-w-xl text-center [@media(max-height:520px)]:mt-4"
-              >
-                <p className="text-lg font-semibold text-foreground sm:text-xl [@media(max-height:520px)]:text-base">
-                  {isComplete ? "Everything is ready." : activeSlide.title}
-                </p>
-                <p className="mt-2 text-sm leading-6 text-muted-foreground sm:text-base [@media(max-height:520px)]:mt-1.5 [@media(max-height:520px)]:text-xs [@media(max-height:520px)]:leading-5">
-                  {isComplete
-                    ? "The real site, AI voice, chat, and transfer flow are ready together."
-                    : activeSlide.description}
-                </p>
-              </motion.div>
-            </AnimatePresence>
+            <p className="mt-1.5 text-[10px] font-medium text-muted-foreground">
+              {isComplete ? "Complete" : `${Math.round(progress)}% — Preparing demo…`}
+            </p>
           </div>
         </div>
       </div>
