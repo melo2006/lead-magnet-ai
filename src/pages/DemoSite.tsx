@@ -149,13 +149,14 @@ const DemoSite = () => {
   const [chatOpen, setChatOpen] = useState(false);
   const [voiceOpen, setVoiceOpen] = useState(false);
   const [iframeBlocked, setIframeBlocked] = useState(false);
+  const [iframeFailureMode, setIframeFailureMode] = useState<"blocked" | "unreachable" | null>(null);
   const [isIframeCheckPending, setIsIframeCheckPending] = useState(false);
   const [resolvedIframeUrl, setResolvedIframeUrl] = useState<string | null>(null);
   const [liveViewUrl, setLiveViewUrl] = useState<string | null>(null);
   const [isLiveViewLoading, setIsLiveViewLoading] = useState(false);
+  const [liveViewFailed, setLiveViewFailed] = useState(false);
   const [hasLiveViewLoaded, setHasLiveViewLoaded] = useState(false);
   const [hasIframeLoaded, setHasIframeLoaded] = useState(false);
-  const hasIframeLoadedRef = useRef(false);
   const liveViewSessionRef = useRef<string | null>(null);
   const [prospectOwner, setProspectOwner] = useState<{name?: string; email?: string; phone?: string} | null>(null);
   const returnTo = searchParams.get("returnTo");
@@ -189,13 +190,14 @@ const DemoSite = () => {
     setChatOpen(false);
     setVoiceOpen(false);
     setIframeBlocked(false);
+    setIframeFailureMode(null);
     setIsIframeCheckPending(false);
     setResolvedIframeUrl(null);
     setLiveViewUrl(null);
     setIsLiveViewLoading(false);
+    setLiveViewFailed(false);
     setHasLiveViewLoaded(false);
     setHasIframeLoaded(false);
-    hasIframeLoadedRef.current = false;
     setProspectOwner(null);
 
     const scanWebsite = async () => {
@@ -277,13 +279,14 @@ const DemoSite = () => {
     setChatOpen(false);
     setVoiceOpen(false);
     setIframeBlocked(false);
+    setIframeFailureMode(null);
     setIsIframeCheckPending(false);
     setResolvedIframeUrl(null);
     setLiveViewUrl(null);
     setIsLiveViewLoading(false);
+    setLiveViewFailed(false);
     setHasLiveViewLoaded(false);
     setHasIframeLoaded(false);
-    hasIframeLoadedRef.current = false;
     setProspectOwner(null);
     setIsScanning(false);
   }, [latestLeadData]);
@@ -348,6 +351,7 @@ const DemoSite = () => {
     const homepageUrl = getHomepageUrl(leadData.websiteUrl);
 
     setIframeBlocked(false);
+    setIframeFailureMode(null);
     setIsIframeCheckPending(true);
     setResolvedIframeUrl(homepageUrl);
 
@@ -372,17 +376,16 @@ const DemoSite = () => {
         const finalUrl = typeof data?.finalUrl === "string" && data.finalUrl ? data.finalUrl : homepageUrl;
 
         setResolvedIframeUrl(finalUrl);
-
-        if (!hasIframeLoadedRef.current) {
-          // Block iframe if site is not embeddable OR unreachable (DNS failure etc.)
-          setIframeBlocked(!embeddable || unreachable);
-        }
+        const nextFailureMode = unreachable ? "unreachable" : embeddable ? null : "blocked";
+        setIframeBlocked(Boolean(nextFailureMode));
+        setIframeFailureMode(nextFailureMode);
       } catch (error) {
         console.error("Iframe embeddability check failed:", error);
         if (cancelled) return;
 
         setResolvedIframeUrl(homepageUrl);
         setIframeBlocked(false);
+        setIframeFailureMode(null);
       } finally {
         if (!cancelled) {
           setIsIframeCheckPending(false);
@@ -404,14 +407,17 @@ const DemoSite = () => {
     const homepageUrl = getHomepageUrl(leadData.websiteUrl);
     const embedOrigin = typeof window !== "undefined" ? window.location.origin : "";
     const previewUrl = resolvedIframeUrl || homepageUrl;
-    const requiresBrowserFallback = iframeBlocked || isMixedContentPreview(previewUrl, embedOrigin);
+    const requiresBrowserFallback =
+      iframeFailureMode !== "unreachable" &&
+      (iframeBlocked || isMixedContentPreview(previewUrl, embedOrigin));
 
-    if (!requiresBrowserFallback || liveViewUrl || isLiveViewLoading) return;
+    if (!requiresBrowserFallback || liveViewUrl || isLiveViewLoading || liveViewFailed) return;
 
     let cancelled = false;
 
     const startLiveView = async () => {
       setIsLiveViewLoading(true);
+      setLiveViewFailed(false);
       try {
         const { data, error } = await withTimeout(
           supabase.functions.invoke("create-browser-session", {
@@ -424,15 +430,20 @@ const DemoSite = () => {
         if (error) throw error;
         if (cancelled) return;
 
-        if (data?.liveViewUrl) {
+        if (data?.liveViewUrl && data?.navigated !== false) {
           setLiveViewUrl(data.liveViewUrl);
           liveViewSessionRef.current = data.sessionId;
           console.log("Browserbase live view started:", data.sessionId, "navigated:", data.navigated);
+        } else if (data?.navigated === false) {
+          console.warn("Skipping Browserbase live view because navigation never completed");
+          setLiveViewFailed(true);
         } else {
           console.warn("No live view URL returned");
+          setLiveViewFailed(true);
         }
       } catch (err) {
         console.error("Failed to start Browserbase session:", err);
+        setLiveViewFailed(true);
         // Silently fail — screenshot fallback is already showing
       } finally {
         if (!cancelled) setIsLiveViewLoading(false);
@@ -441,10 +452,9 @@ const DemoSite = () => {
 
     startLiveView();
     return () => { cancelled = true; };
-  }, [iframeBlocked, isLiveViewLoading, leadData?.websiteUrl, liveViewUrl, resolvedIframeUrl]);
+  }, [iframeBlocked, iframeFailureMode, isLiveViewLoading, leadData?.websiteUrl, liveViewFailed, liveViewUrl, resolvedIframeUrl]);
 
   useEffect(() => {
-    hasIframeLoadedRef.current = false;
     setHasIframeLoaded(false);
   }, [resolvedIframeUrl]);
 
@@ -506,7 +516,9 @@ const DemoSite = () => {
   const homepageUrl = getHomepageUrl(leadData.websiteUrl);
   const livePreviewUrl = resolvedIframeUrl || homepageUrl;
   const embedOrigin = typeof window !== "undefined" ? window.location.origin : "";
-  const requiresBrowserFallback = iframeBlocked || isMixedContentPreview(livePreviewUrl, embedOrigin);
+  const isWebsiteUnreachable = iframeFailureMode === "unreachable";
+  const requiresBrowserFallback =
+    !isWebsiteUnreachable && (iframeBlocked || isMixedContentPreview(livePreviewUrl, embedOrigin));
   const hasCrmContext = Boolean(leadData.prospectId || prospectIdParam);
   const knownCallerName = callerNameParam || (!hasCrmContext && leadData.fullName !== "CRM Prospect" ? leadData.fullName : undefined);
   const knownCallerEmail = callerEmailParam || (!hasCrmContext ? leadData.email : undefined);
@@ -520,12 +532,13 @@ const DemoSite = () => {
   const isLivePreviewReady = Boolean(liveViewUrl && hasLiveViewLoaded);
   const isStaticPreviewReady = Boolean(screenshotSrc);
   const shouldShowScreenshotFallback =
-    requiresBrowserFallback && Boolean(screenshotSrc) && (!liveViewUrl || !hasLiveViewLoaded);
+    Boolean(screenshotSrc) &&
+    (isWebsiteUnreachable || (requiresBrowserFallback && (!liveViewUrl || !hasLiveViewLoaded)));
   const isPreviewLoading =
-    (!requiresBrowserFallback && !hasIframeLoaded) ||
-    (requiresBrowserFallback && !isStaticPreviewReady && !isLivePreviewReady);
+    (!requiresBrowserFallback && !isWebsiteUnreachable && !hasIframeLoaded) ||
+    (requiresBrowserFallback && !liveViewFailed && !isStaticPreviewReady && !isLivePreviewReady);
   const isPreviewAvailable =
-    (!requiresBrowserFallback && hasIframeLoaded) ||
+    (!requiresBrowserFallback && !isWebsiteUnreachable && hasIframeLoaded) ||
     isLivePreviewReady ||
     isStaticPreviewReady;
 
@@ -577,21 +590,23 @@ const DemoSite = () => {
 
       {/* Website — iframe first, screenshot fallback */}
       <div className="relative min-h-[100dvh]">
-        {resolvedIframeUrl && !requiresBrowserFallback && (
+        {resolvedIframeUrl && !requiresBrowserFallback && !isWebsiteUnreachable && (
           <iframe
             src={livePreviewUrl}
             className="w-full border-0"
             style={{ minHeight: '100vh' }}
             title={`${siteName} website`}
             onLoad={() => {
-              hasIframeLoadedRef.current = true;
               setHasIframeLoaded(true);
             }}
-            onError={() => setIframeBlocked(true)}
+            onError={() => {
+              setIframeBlocked(true);
+              setIframeFailureMode("blocked");
+            }}
           />
         )}
         {/* Iframe blocked → try Browserbase live view, then screenshot fallback */}
-        {resolvedIframeUrl && requiresBrowserFallback && (
+        {resolvedIframeUrl && (requiresBrowserFallback || shouldShowScreenshotFallback) && (
           <div className="relative min-h-[100vh]">
             {shouldShowScreenshotFallback && (
               <div className="relative mx-auto w-full max-w-[1600px]">
@@ -606,7 +621,7 @@ const DemoSite = () => {
               </div>
             )}
 
-            {liveViewUrl && (
+            {requiresBrowserFallback && liveViewUrl && (
               <iframe
                 src={liveViewUrl}
                 className={`absolute inset-0 h-full w-full border-0 transition-opacity duration-300 ${hasLiveViewLoaded ? "opacity-100" : "opacity-0"}`}
@@ -622,11 +637,26 @@ const DemoSite = () => {
         {!isPreviewLoading && !isPreviewAvailable && (
           <div className="absolute inset-0 flex items-center justify-center bg-muted/40 px-4 text-center">
             <div className="w-full max-w-md rounded-[1.75rem] border border-border bg-card/95 p-6 shadow-xl">
-              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary">Preview unavailable</p>
-              <h2 className="mt-3 text-2xl font-semibold text-foreground">Open the real website instead</h2>
-              <p className="mt-3 text-sm leading-6 text-muted-foreground">
-                We could not load the embedded preview for this site, but you can still open the live homepage directly.
+              <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary">
+                {isWebsiteUnreachable ? "Website unavailable" : "Preview unavailable"}
               </p>
+              <h2 className="mt-3 text-2xl font-semibold text-foreground">
+                {isWebsiteUnreachable ? "This website did not respond" : "We couldn't render this website here"}
+              </h2>
+              <p className="mt-3 text-sm leading-6 text-muted-foreground">
+                {isWebsiteUnreachable
+                  ? "The scan finished, but the site itself appears offline or unreachable right now, so there was no live page to display."
+                  : "This site blocked the live preview and the backup browser session did not load correctly, so we switched to a safe fallback."}
+              </p>
+              {(leadData.title || leadData.description) && (
+                <div className="mt-4 rounded-2xl border border-border bg-background/80 p-4 text-left">
+                  <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">Scan result</p>
+                  <p className="mt-2 text-sm font-semibold text-foreground">{leadData.title || siteName}</p>
+                  {leadData.description && (
+                    <p className="mt-2 text-sm leading-6 text-muted-foreground">{leadData.description}</p>
+                  )}
+                </div>
+              )}
               <div className="mt-6 flex justify-center gap-3">
                 <button
                   onClick={handleBack}
@@ -640,7 +670,7 @@ const DemoSite = () => {
                   rel="noopener noreferrer"
                   className="inline-flex items-center justify-center rounded-xl bg-primary px-4 py-2 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
                 >
-                  Open site
+                  {isWebsiteUnreachable ? "Try site anyway" : "Open site"}
                 </a>
               </div>
             </div>
