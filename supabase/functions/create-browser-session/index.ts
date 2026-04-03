@@ -3,7 +3,7 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const BROWSERBASE_API_URL = "https://www.browserbase.com/v1";
+const BROWSERBASE_API_URL = "https://api.browserbase.com/v1";
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -14,12 +14,8 @@ Deno.serve(async (req) => {
     const apiKey = Deno.env.get("BROWSERBASE_API_KEY");
     const projectId = Deno.env.get("BROWSERBASE_PROJECT_ID");
 
-    if (!apiKey) {
-      throw new Error("BROWSERBASE_API_KEY is not configured");
-    }
-    if (!projectId) {
-      throw new Error("BROWSERBASE_PROJECT_ID is not configured");
-    }
+    if (!apiKey) throw new Error("BROWSERBASE_API_KEY is not configured");
+    if (!projectId) throw new Error("BROWSERBASE_PROJECT_ID is not configured");
 
     const { url } = await req.json();
     if (!url || typeof url !== "string") {
@@ -29,7 +25,7 @@ Deno.serve(async (req) => {
       );
     }
 
-    // 1. Create a Browserbase session
+    // 1. Create session
     const createRes = await fetch(`${BROWSERBASE_API_URL}/sessions`, {
       method: "POST",
       headers: {
@@ -38,64 +34,60 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         projectId,
-        browserSettings: {
-          blockAds: true,
-        },
+        browserSettings: { blockAds: true },
         keepAlive: true,
-        timeout: 300, // 5 min max
+        timeout: 300,
       }),
     });
 
     if (!createRes.ok) {
       const errorBody = await createRes.text();
-      console.error("Browserbase session creation failed:", createRes.status, errorBody);
+      console.error("Session creation failed:", createRes.status, errorBody);
       throw new Error(`Browserbase API error [${createRes.status}]: ${errorBody}`);
     }
 
     const session = await createRes.json();
     const sessionId = session.id;
+    if (!sessionId) throw new Error("No session ID returned");
 
-    if (!sessionId) {
-      throw new Error("No session ID returned from Browserbase");
-    }
+    console.log("Session created:", sessionId);
 
-    // 2. Get the debug connection info (contains the live view URL)
-    const debugRes = await fetch(`${BROWSERBASE_API_URL}/sessions/${sessionId}/debug`, {
-      headers: {
-        "x-bb-api-key": apiKey,
-      },
-    });
+    // 2. Wait for session to be ready, then get debug/live view URLs
+    let debugInfo: any = null;
+    for (let attempt = 0; attempt < 6; attempt++) {
+      await new Promise((r) => setTimeout(r, 2000));
 
-    if (!debugRes.ok) {
-      const debugError = await debugRes.text();
-      console.error("Debug info fetch failed:", debugRes.status, debugError);
-      throw new Error(`Failed to get debug info [${debugRes.status}]: ${debugError}`);
-    }
-
-    const debugInfo = await debugRes.json();
-    const liveViewUrl = debugInfo.debuggerFullscreenUrl;
-
-    if (!liveViewUrl) {
-      console.error("Debug info response:", JSON.stringify(debugInfo));
-      throw new Error("No debuggerFullscreenUrl returned");
-    }
-
-    // 3. Navigate the browser to the target URL via CDP
-    // Wait briefly for the browser to be ready
-    let navigated = false;
-    for (let attempt = 0; attempt < 5; attempt++) {
-      await new Promise((r) => setTimeout(r, 1500));
-
-      const pagesRes = await fetch(`${BROWSERBASE_API_URL}/sessions/${sessionId}/pages`, {
+      const debugRes = await fetch(`${BROWSERBASE_API_URL}/sessions/${sessionId}/debug`, {
         headers: { "x-bb-api-key": apiKey },
       });
 
-      if (!pagesRes.ok) continue;
+      if (!debugRes.ok) {
+        console.warn(`Debug fetch attempt ${attempt + 1} failed: ${debugRes.status}`);
+        continue;
+      }
 
-      const pages = await pagesRes.json();
-      if (!pages || pages.length === 0) continue;
+      debugInfo = await debugRes.json();
+      
+      // Check if pages are available (browser is ready)
+      if (debugInfo.pages && debugInfo.pages.length > 0) {
+        console.log(`Browser ready on attempt ${attempt + 1}, pages: ${debugInfo.pages.length}`);
+        break;
+      }
+      console.log(`Attempt ${attempt + 1}: no pages yet`);
+    }
 
-      const pageId = pages[0].id;
+    if (!debugInfo?.debuggerFullscreenUrl) {
+      throw new Error("Failed to get live view URL");
+    }
+
+    const liveViewUrl = debugInfo.debuggerFullscreenUrl;
+
+    // 3. Navigate using page CDP endpoint
+    let navigated = false;
+    if (debugInfo.pages && debugInfo.pages.length > 0) {
+      const pageId = debugInfo.pages[0].id;
+      console.log(`Navigating page ${pageId} to ${url}`);
+
       const cdpRes = await fetch(
         `${BROWSERBASE_API_URL}/sessions/${sessionId}/pages/${pageId}/cdp`,
         {
@@ -113,37 +105,23 @@ Deno.serve(async (req) => {
 
       if (cdpRes.ok) {
         navigated = true;
-        console.log(`CDP navigation succeeded on attempt ${attempt + 1}`);
-        break;
+        console.log("CDP navigation succeeded");
       } else {
-        console.warn(`CDP navigate attempt ${attempt + 1} failed:`, await cdpRes.text());
+        const cdpErr = await cdpRes.text();
+        console.warn("CDP navigate failed:", cdpRes.status, cdpErr);
       }
-    }
-
-    if (!navigated) {
-      console.warn("CDP navigation failed after retries — live view will show blank tab");
     }
 
     return new Response(
-      JSON.stringify({
-        sessionId,
-        liveViewUrl,
-        navigated,
-      }),
-      {
-        status: 200,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      JSON.stringify({ sessionId, liveViewUrl, navigated }),
+      { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   } catch (error) {
-    console.error("Error creating browser session:", error);
+    console.error("Error:", error);
     const message = error instanceof Error ? error.message : "Unknown error";
     return new Response(
       JSON.stringify({ error: message }),
-      {
-        status: 500,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+      { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );
   }
 });
