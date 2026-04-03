@@ -2,10 +2,9 @@ import { useState } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { ArrowLeft, Globe, Mail, Phone, ExternalLink, Play } from "lucide-react";
+import { ArrowLeft, Globe, Mail, Phone, Play } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { Badge } from "@/components/ui/badge";
 
 const ImportedListDetailView = () => {
   const { id } = useParams();
@@ -61,7 +60,16 @@ const ImportedListDetailView = () => {
   const handleLaunchDemo = (lead: any) => {
     if (!lead.website_url) return;
     const url = lead.website_url.startsWith("http") ? lead.website_url : `https://${lead.website_url}`;
-    navigate(`/demo?url=${encodeURIComponent(url)}&name=${encodeURIComponent(lead.business_name)}`);
+
+    const params = new URLSearchParams({
+      url,
+      name: lead.business_name || "Business",
+    });
+
+    if (lead.phone) params.set("callerPhone", lead.phone);
+    if (lead.email) params.set("callerEmail", lead.email);
+
+    navigate(`/demo?${params.toString()}`);
   };
 
   return (

@@ -365,7 +365,7 @@ const DemoSite = () => {
         if (cancelled) return;
 
         const checked = data?.checked !== false;
-        const embeddable = checked ? Boolean(data?.embeddable) : true;
+        const embeddable = checked ? Boolean(data?.embeddable) : false;
         const finalUrl = typeof data?.finalUrl === "string" && data.finalUrl ? data.finalUrl : homepageUrl;
 
         setResolvedIframeUrl(finalUrl);

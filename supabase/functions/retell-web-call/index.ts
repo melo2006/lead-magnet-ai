@@ -529,7 +529,7 @@ const normalizeEmailCandidate = (value?: string | null) => {
 };
 
 const sanitizeCallerPhone = (value?: string | null) => {
-  const normalized = normalizePhoneNumber(value);
+  const normalized = normalizePhoneNumber(value ?? undefined);
   return isLikelyCallablePhoneNumber(normalized) ? normalized : '';
 };
 
@@ -1248,6 +1248,18 @@ Deno.serve(async (req) => {
           }
         } else {
           transferWarning = 'Transfer was requested, but Aspen could not confirm the caller phone number.';
+
+          if (callHistoryId && supabaseUrl && supabaseServiceRoleKey) {
+            try {
+              const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey);
+              await adminClient.from('call_history').update({
+                transfer_status: 'failed',
+                transfer_error: transferWarning,
+              }).eq('id', callHistoryId);
+            } catch (updateErr) {
+              console.warn('Failed to record missing caller phone transfer failure:', updateErr);
+            }
+          }
         }
       }
 

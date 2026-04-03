@@ -160,7 +160,7 @@ const isTransferStartUtterance = (value: string) => {
   if (!normalized) return false;
   if (normalized.includes(LIVE_TRANSFER_READY_PHRASE)) return true;
 
-  const transferCommitment = /(?:connecting you|let me connect you|i(?:'m| am) connecting you|i(?:'ll| will) connect you|transferring you|putting you through|bringing .* on the line)/.test(normalized);
+  const transferCommitment = /(?:connecting you|let me connect you|let me transfer you|i(?:'m| am| can) connect(?:ing)? you|i(?:'ll| will| can) transfer you|transferring you|putting you through|bringing .* on the line|start(?:ing)? (?:the )?live transfer|get(?:ting)? that started)/.test(normalized);
   const transferTiming = /(?:stay on the line|one moment|please hold|right away|right now|just a moment|\bnow\b)/.test(normalized);
 
   return transferCommitment && transferTiming;
@@ -392,14 +392,16 @@ const VoiceAgentWidget = ({
 
   const initiateLiveTransfer = useCallback(async (capturedContact?: { callerName?: string; callerEmail?: string; callerPhone?: string }) => {
     const callId = callIdRef.current;
-    if (!callId || transferInProgressRef.current) return;
+    if (!callId || transferInProgressRef.current || transferAttemptedRef.current) return;
 
+    transferAttemptedRef.current = true;
     transferTriggeredRef.current = true;
     const resolvedContact = await resolveTransferContact(capturedContact);
 
     if (!isLikelyCallablePhoneNumber(resolvedContact.callerPhone)) {
       console.warn("[VoiceWidget] Transfer blocked — no valid caller phone captured");
       transferTriggeredRef.current = false;
+      transferAttemptedRef.current = false;
       setTransferState(false);
       toast({
         title: "Live transfer unavailable",
@@ -453,6 +455,7 @@ const VoiceAgentWidget = ({
     } catch (err) {
       console.error("[VoiceWidget] Live transfer failed:", err);
       transferTriggeredRef.current = false;
+      transferAttemptedRef.current = false;
       setTransferState(false);
       toast({
         title: "Live transfer failed",
@@ -479,7 +482,6 @@ const VoiceAgentWidget = ({
 
     if (!looksLikeTransferStart) return;
 
-    transferAttemptedRef.current = true;
     void initiateLiveTransfer();
   }, [initiateLiveTransfer]);
 
