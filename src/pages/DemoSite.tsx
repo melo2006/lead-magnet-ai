@@ -244,6 +244,43 @@ const DemoSite = () => {
     };
   }, [leadData?.websiteUrl]);
 
+  // When iframe is blocked, start a Browserbase live view session
+  useEffect(() => {
+    if (!iframeBlocked || !leadData?.websiteUrl) return;
+    if (liveViewUrl || isLiveViewLoading) return;
+
+    let cancelled = false;
+    const homepageUrl = getHomepageUrl(leadData.websiteUrl);
+
+    const startLiveView = async () => {
+      setIsLiveViewLoading(true);
+      try {
+        const { data, error } = await supabase.functions.invoke("create-browser-session", {
+          body: { url: homepageUrl },
+        });
+
+        if (error) throw error;
+        if (cancelled) return;
+
+        if (data?.liveViewUrl) {
+          setLiveViewUrl(data.liveViewUrl);
+          liveViewSessionRef.current = data.sessionId;
+          console.log("Browserbase live view started:", data.sessionId, "navigated:", data.navigated);
+        } else {
+          console.warn("No live view URL returned");
+        }
+      } catch (err) {
+        console.error("Failed to start Browserbase session:", err);
+        // Silently fail — screenshot fallback is already showing
+      } finally {
+        if (!cancelled) setIsLiveViewLoading(false);
+      }
+    };
+
+    startLiveView();
+    return () => { cancelled = true; };
+  }, [iframeBlocked, leadData?.websiteUrl, liveViewUrl, isLiveViewLoading]);
+
   const handleBack = () => {
     if (returnTo && returnTo.startsWith("/")) {
       navigate(returnTo);
