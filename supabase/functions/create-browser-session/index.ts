@@ -53,8 +53,18 @@ Deno.serve(async (req) => {
 
     console.log("Session created:", sessionId);
 
-    // 2. Get debug URLs immediately (1 quick attempt)
-    await new Promise((r) => setTimeout(r, 2000));
+    // 2. Navigate via CDP WebSocket and wait for the page to actually load
+    let navigated = false;
+    if (connectUrl) {
+      try {
+        navigated = await navigateViaCDP(connectUrl, url);
+      } catch (e) {
+        console.warn("CDP WebSocket navigation failed:", e);
+      }
+    }
+
+    // 3. Fetch debug URL only after navigation attempt so the live view is less likely to show a blank shell
+    await new Promise((r) => setTimeout(r, navigated ? 500 : 1500));
 
     const debugRes = await fetch(`${BROWSERBASE_API_URL}/sessions/${sessionId}/debug`, {
       headers: { "x-bb-api-key": apiKey },
@@ -69,16 +79,6 @@ Deno.serve(async (req) => {
 
     if (!liveViewUrl) {
       throw new Error("No live view URL returned");
-    }
-
-    // 3. Try to navigate via CDP WebSocket (quick attempt)
-    let navigated = false;
-    if (connectUrl) {
-      try {
-        navigated = await navigateViaCDP(connectUrl, url);
-      } catch (e) {
-        console.warn("CDP WebSocket navigation failed:", e);
-      }
     }
 
     return new Response(
@@ -98,19 +98,48 @@ Deno.serve(async (req) => {
 async function navigateViaCDP(connectUrl: string, targetUrl: string): Promise<boolean> {
   return new Promise((resolve) => {
     const timeout = setTimeout(() => {
-      resolve(false);
-    }, 10000);
+      cleanup(false);
+    }, 9000);
 
     let msgId = 0;
+    let resolved = false;
     let pageSessionId: string | null = null;
+    let navigateRequestId: number | null = null;
+
+    const cleanup = (result: boolean, ws?: WebSocket) => {
+      if (resolved) return;
+      resolved = true;
+      clearTimeout(timeout);
+      try {
+        ws?.close();
+      } catch {
+        // ignore close failures
+      }
+      resolve(result);
+    };
+
+    const send = (ws: WebSocket, method: string, params?: Record<string, unknown>, sessionId?: string) => {
+      ws.send(JSON.stringify({
+        id: ++msgId,
+        method,
+        ...(params ? { params } : {}),
+        ...(sessionId ? { sessionId } : {}),
+      }));
+
+      return msgId;
+    };
+
+    const attachToTarget = (ws: WebSocket, targetId: string) => {
+      console.log("Attaching to page target:", targetId);
+      send(ws, "Target.attachToTarget", { targetId, flatten: true });
+    };
 
     try {
       const ws = new WebSocket(connectUrl);
 
       ws.onopen = () => {
         console.log("CDP connected, getting targets");
-        // Get all targets to find the page
-        ws.send(JSON.stringify({ id: ++msgId, method: "Target.getTargets" }));
+        send(ws, "Target.getTargets");
       };
 
       ws.onmessage = (event) => {
@@ -123,41 +152,43 @@ async function navigateViaCDP(connectUrl: string, targetUrl: string): Promise<bo
               (t: any) => t.type === "page"
             );
             if (pageTarget) {
-              console.log("Found page target:", pageTarget.targetId);
-              // Attach to the page target
-              ws.send(JSON.stringify({
-                id: ++msgId,
-                method: "Target.attachToTarget",
-                params: { targetId: pageTarget.targetId, flatten: true },
-              }));
+              attachToTarget(ws, pageTarget.targetId);
             } else {
-              console.warn("No page target found");
-              clearTimeout(timeout);
-              ws.close();
-              resolve(false);
+              console.warn("No page target found, creating one");
+              send(ws, "Target.createTarget", { url: "about:blank" });
             }
           }
 
+          // Response to Target.createTarget
+          if (data.result?.targetId && data.id === 2) {
+            attachToTarget(ws, data.result.targetId);
+          }
+
           // Response to Target.attachToTarget
-          if (data.id === 2 && data.result?.sessionId) {
+          if (data.result?.sessionId && typeof data.id === "number") {
             pageSessionId = data.result.sessionId;
             console.log("Attached to page, sessionId:", pageSessionId);
-            // Now navigate within the page session
-            ws.send(JSON.stringify({
-              id: ++msgId,
-              method: "Page.navigate",
-              params: { url: targetUrl },
-              sessionId: pageSessionId,
-            }));
+            send(ws, "Page.enable", undefined, pageSessionId);
+            navigateRequestId = send(ws, "Page.navigate", { url: targetUrl }, pageSessionId);
           }
 
           // Response to Page.navigate
-          if (data.id === 3) {
+          if (navigateRequestId && data.id === navigateRequestId) {
             const success = !data.error;
-            console.log("Navigate result:", success ? "success" : JSON.stringify(data.error));
-            clearTimeout(timeout);
-            ws.close();
-            resolve(success);
+            console.log("Navigate command result:", success ? "accepted" : JSON.stringify(data.error));
+            if (!success) {
+              cleanup(false, ws);
+            }
+          }
+
+          if (data.method === "Page.loadEventFired" && data.sessionId === pageSessionId) {
+            console.log("Page load event fired");
+            cleanup(true, ws);
+          }
+
+          if (data.method === "Inspector.targetCrashed") {
+            console.warn("Target crashed while navigating");
+            cleanup(false, ws);
           }
         } catch {
           // ignore
@@ -165,12 +196,14 @@ async function navigateViaCDP(connectUrl: string, targetUrl: string): Promise<bo
       };
 
       ws.onerror = () => {
-        clearTimeout(timeout);
-        resolve(false);
+        cleanup(false, ws);
+      };
+
+      ws.onclose = () => {
+        if (!resolved) cleanup(false);
       };
     } catch {
-      clearTimeout(timeout);
-      resolve(false);
+      cleanup(false);
     }
   });
 }
