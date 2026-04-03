@@ -153,6 +153,8 @@ const DemoSite = () => {
   const [resolvedIframeUrl, setResolvedIframeUrl] = useState<string | null>(null);
   const [liveViewUrl, setLiveViewUrl] = useState<string | null>(null);
   const [isLiveViewLoading, setIsLiveViewLoading] = useState(false);
+  const [hasLiveViewLoaded, setHasLiveViewLoaded] = useState(false);
+  const [hasIframeLoaded, setHasIframeLoaded] = useState(false);
   const liveViewSessionRef = useRef<string | null>(null);
   const [prospectOwner, setProspectOwner] = useState<{name?: string; email?: string; phone?: string} | null>(null);
   const returnTo = searchParams.get("returnTo");
@@ -190,6 +192,8 @@ const DemoSite = () => {
     setResolvedIframeUrl(null);
     setLiveViewUrl(null);
     setIsLiveViewLoading(false);
+    setHasLiveViewLoaded(false);
+    setHasIframeLoaded(false);
     setProspectOwner(null);
 
     const scanWebsite = async () => {
@@ -275,6 +279,8 @@ const DemoSite = () => {
     setResolvedIframeUrl(null);
     setLiveViewUrl(null);
     setIsLiveViewLoading(false);
+    setHasLiveViewLoaded(false);
+    setHasIframeLoaded(false);
     setProspectOwner(null);
     setIsScanning(false);
   }, [latestLeadData]);
@@ -430,6 +436,14 @@ const DemoSite = () => {
     return () => { cancelled = true; };
   }, [iframeBlocked, isLiveViewLoading, leadData?.websiteUrl, liveViewUrl, resolvedIframeUrl]);
 
+  useEffect(() => {
+    setHasIframeLoaded(false);
+  }, [resolvedIframeUrl]);
+
+  useEffect(() => {
+    setHasLiveViewLoaded(false);
+  }, [liveViewUrl]);
+
   const handleBack = () => {
     if (returnTo && returnTo.startsWith("/")) {
       navigate(returnTo);
@@ -443,8 +457,10 @@ const DemoSite = () => {
   };
 
   const requestedDemoUrl = searchParams.get("url");
+  const requestedDemoHomepage = requestedDemoUrl ? getHomepageUrl(requestedDemoUrl) : null;
+  const currentLeadHomepage = leadData?.websiteUrl ? getHomepageUrl(leadData.websiteUrl) : null;
   const isWaitingForFreshLeadData = Boolean(
-    requestedDemoUrl && !latestLeadData && leadData?.websiteUrl && leadData.websiteUrl !== requestedDemoUrl,
+    requestedDemoHomepage && !latestLeadData && currentLeadHomepage && currentLeadHomepage !== requestedDemoHomepage,
   );
 
   if (isWaitingForFreshLeadData) {
@@ -493,14 +509,19 @@ const DemoSite = () => {
   const followUpEmail = prospectOwner?.email || undefined;
   const followUpPhone = prospectOwner?.phone || undefined;
   const siteName = leadData.businessName?.trim() || getSiteName(homepageUrl, leadData.title);
+  const isLivePreviewReady = Boolean(liveViewUrl && hasLiveViewLoaded);
+  const isStaticPreviewReady = Boolean(screenshotSrc);
+  const shouldShowScreenshotFallback =
+    requiresBrowserFallback && Boolean(screenshotSrc) && (!liveViewUrl || !hasLiveViewLoaded);
   const isPreviewLoading =
     !resolvedIframeUrl ||
     isIframeCheckPending ||
-    (requiresBrowserFallback && !liveViewUrl && !screenshotSrc && (isLiveViewLoading || isScanning));
+    (!requiresBrowserFallback && !hasIframeLoaded) ||
+    (requiresBrowserFallback && !isStaticPreviewReady && !isLivePreviewReady);
   const isPreviewAvailable =
-    (!requiresBrowserFallback && Boolean(resolvedIframeUrl) && !isIframeCheckPending) ||
-    Boolean(liveViewUrl) ||
-    Boolean(screenshotSrc);
+    (!requiresBrowserFallback && hasIframeLoaded) ||
+    isLivePreviewReady ||
+    isStaticPreviewReady;
 
   return (
     <div className="relative min-h-[100dvh] bg-background">
@@ -556,37 +577,37 @@ const DemoSite = () => {
             className="w-full border-0"
             style={{ minHeight: '100vh' }}
             title={`${siteName} website`}
+            onLoad={() => setHasIframeLoaded(true)}
             onError={() => setIframeBlocked(true)}
           />
         )}
         {/* Iframe blocked → try Browserbase live view, then screenshot fallback */}
         {resolvedIframeUrl && requiresBrowserFallback && (
-          <>
-            {/* Browserbase live view */}
-            {liveViewUrl && (
-              <iframe
-                src={liveViewUrl}
-                className="w-full border-0"
-                style={{ minHeight: '100vh' }}
-                title={`${siteName} website (live view)`}
-                allow="clipboard-read; clipboard-write"
-              />
-            )}
-
-            {/* Screenshot fallback (only if no live view available/loading) */}
-            {!liveViewUrl && screenshotSrc && (
+          <div className="relative min-h-[100vh]">
+            {shouldShowScreenshotFallback && (
               <div className="relative mx-auto w-full max-w-[1600px]">
                 <img
-                  src={screenshotSrc}
+                  src={screenshotSrc!}
                   alt={`${siteName} website`}
-                  className="block w-full h-auto"
+                  className="block h-auto w-full"
                   loading="lazy"
                   decoding="async"
                   draggable={false}
                 />
               </div>
             )}
-          </>
+
+            {liveViewUrl && (
+              <iframe
+                src={liveViewUrl}
+                className={`absolute inset-0 h-full w-full border-0 transition-opacity duration-300 ${hasLiveViewLoaded ? "opacity-100" : "opacity-0"}`}
+                style={{ minHeight: '100vh' }}
+                title={`${siteName} website (live view)`}
+                allow="clipboard-read; clipboard-write"
+                onLoad={() => setHasLiveViewLoaded(true)}
+              />
+            )}
+          </div>
         )}
 
         {!isPreviewLoading && !isPreviewAvailable && (

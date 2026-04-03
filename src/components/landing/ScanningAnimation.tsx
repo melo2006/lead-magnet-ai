@@ -76,8 +76,14 @@ const ScanningAnimation = ({
         setCurrentStep((prev) => (prev + 1) % scanSteps.length);
       }, STEP_DURATION);
       const progressId = window.setInterval(() => {
-        setProgress((p) => (p >= 95 ? 95 : p + 0.4));
-      }, 50);
+        setProgress((p) => {
+          if (p >= 88) return 88;
+          if (p < 35) return p + 0.35;
+          if (p < 60) return p + 0.2;
+          if (p < 78) return p + 0.12;
+          return p + 0.06;
+        });
+      }, 120);
       return () => {
         window.clearInterval(intervalId);
         window.clearInterval(progressId);
@@ -208,7 +214,7 @@ const ScanningAnimation = ({
               />
             </div>
             <p className="mt-1.5 text-[10px] font-medium text-muted-foreground">
-              {isComplete ? "Complete" : `${Math.round(progress)}% — Preparing demo…`}
+              {isComplete ? "Complete" : `${Math.round(progress)}% — Scanning website + preparing widgets…`}
             </p>
           </div>
         </div>
