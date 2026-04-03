@@ -179,11 +179,14 @@ Deno.serve(async (req) => {
   } catch (error) {
     console.error("check-iframe-embed failed:", error);
 
+    // Site is unreachable (DNS failure, connection refused, etc.)
+    // Mark as not embeddable so the client falls back to screenshot
     return new Response(
       JSON.stringify({
         success: true,
-        checked: false,
-        embeddable: true,
+        checked: true,
+        embeddable: false,
+        unreachable: true,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
