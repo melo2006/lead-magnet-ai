@@ -21,6 +21,19 @@ const getHomepageUrl = (websiteUrl: string) => {
   }
 };
 
+const isMixedContentPreview = (targetUrl: string, embedOrigin: string) => {
+  if (!targetUrl || !embedOrigin) return false;
+
+  try {
+    const embedUrl = new URL(embedOrigin);
+    const previewUrl = new URL(targetUrl, embedOrigin);
+
+    return embedUrl.protocol === "https:" && previewUrl.protocol !== "https:";
+  } catch {
+    return false;
+  }
+};
+
 const normalizePhoneNumber = (value?: string | null) => {
   if (!value) return "";
 
@@ -246,11 +259,16 @@ const DemoSite = () => {
 
   // When iframe is blocked, start a Browserbase live view session
   useEffect(() => {
-    if (!iframeBlocked || !leadData?.websiteUrl) return;
-    if (liveViewUrl || isLiveViewLoading) return;
+    if (!leadData?.websiteUrl) return;
+
+    const homepageUrl = getHomepageUrl(leadData.websiteUrl);
+    const embedOrigin = typeof window !== "undefined" ? window.location.origin : "";
+    const previewUrl = resolvedIframeUrl || homepageUrl;
+    const requiresBrowserFallback = iframeBlocked || isMixedContentPreview(previewUrl, embedOrigin);
+
+    if (!requiresBrowserFallback || liveViewUrl || isLiveViewLoading) return;
 
     let cancelled = false;
-    const homepageUrl = getHomepageUrl(leadData.websiteUrl);
 
     const startLiveView = async () => {
       setIsLiveViewLoading(true);
@@ -279,7 +297,7 @@ const DemoSite = () => {
 
     startLiveView();
     return () => { cancelled = true; };
-  }, [iframeBlocked, leadData?.websiteUrl, liveViewUrl, isLiveViewLoading]);
+  }, [iframeBlocked, isLiveViewLoading, leadData?.websiteUrl, liveViewUrl, resolvedIframeUrl]);
 
   const handleBack = () => {
     if (returnTo && returnTo.startsWith("/")) {
@@ -334,6 +352,8 @@ const DemoSite = () => {
   const screenshotSrc = getImageSrc(leadData.screenshot);
   const homepageUrl = getHomepageUrl(leadData.websiteUrl);
   const livePreviewUrl = resolvedIframeUrl || homepageUrl;
+  const embedOrigin = typeof window !== "undefined" ? window.location.origin : "";
+  const requiresBrowserFallback = iframeBlocked || isMixedContentPreview(livePreviewUrl, embedOrigin);
   const showIframeLoadingState = isIframeCheckPending || !resolvedIframeUrl;
   const hasCrmContext = Boolean(leadData.prospectId || prospectIdParam);
   const knownCallerName = callerNameParam || (!hasCrmContext && leadData.fullName !== "CRM Prospect" ? leadData.fullName : undefined);
@@ -383,7 +403,7 @@ const DemoSite = () => {
             <p className="text-sm font-medium text-muted-foreground">Loading live preview…</p>
           </div>
         )}
-        {!showIframeLoadingState && !iframeBlocked && (
+        {!showIframeLoadingState && !requiresBrowserFallback && (
           <iframe
             src={livePreviewUrl}
             className="w-full border-0"
@@ -393,7 +413,7 @@ const DemoSite = () => {
           />
         )}
         {/* Iframe blocked → try Browserbase live view, then screenshot fallback */}
-        {!showIframeLoadingState && iframeBlocked && (
+        {!showIframeLoadingState && requiresBrowserFallback && (
           <>
             {/* Browserbase live view */}
             {liveViewUrl && (
