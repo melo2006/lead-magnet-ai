@@ -240,6 +240,23 @@ async function scrapeMarkdownPage(url: string, apiKey: string) {
   };
 }
 
+async function scrapeScreenshotFallback(url: string, apiKey: string) {
+  try {
+    const response = await firecrawlRequest('/scrape', apiKey, {
+      url,
+      formats: ['screenshot'],
+      waitFor: 3000,
+      timeout: 25000,
+    }, 0);
+
+    const data = unwrapFirecrawlPayload(response);
+    return typeof data?.screenshot === 'string' && data.screenshot ? data.screenshot : null;
+  } catch (error) {
+    console.warn('Fallback screenshot scrape failed:', error);
+    return null;
+  }
+}
+
 async function webResearch(firecrawlKey: string, queries: string[]): Promise<string[]> {
   const results: string[] = [];
   for (const query of queries) {
@@ -657,9 +674,7 @@ Deno.serve(async (req) => {
 
     // Firecrawl scrape — skip screenshot format since Browserless handles it
     let homepageResponse: any;
-    const firecrawlFormats = browserlessKey
-      ? ['markdown', 'branding', 'links', 'summary']
-      : ['markdown', 'screenshot', 'branding', 'links', 'summary'];
+    const firecrawlFormats = ['markdown', 'screenshot', 'branding', 'links', 'summary'];
 
     try {
       homepageResponse = await firecrawlRequest('/scrape', firecrawlKey, {
@@ -680,18 +695,22 @@ Deno.serve(async (req) => {
       }, 1);
     }
 
-    // Await Browserless screenshot
-    const browserlessScreenshotResult = await browserlessPromise;
-
     const homepage = unwrapFirecrawlPayload(homepageResponse);
     const homepageMarkdown = cleanText(homepage.markdown);
     const homepageSummary = cleanText(homepage.summary);
     const branding = homepage.branding || {};
     const metadata = homepage.metadata || {};
 
+    // Await Browserless screenshot and recover with a dedicated Firecrawl screenshot if needed.
+    const browserlessScreenshotResult = await browserlessPromise;
+    const firecrawlScreenshotResult =
+      typeof homepage.screenshot === 'string' && homepage.screenshot
+        ? homepage.screenshot
+        : (!browserlessScreenshotResult ? await scrapeScreenshotFallback(formattedUrl, firecrawlKey) : null);
+
     // Use Browserless screenshot (higher quality), fall back to Firecrawl
-    const finalScreenshot = browserlessScreenshotResult || homepage.screenshot || null;
-    const screenshotProvider = browserlessScreenshotResult ? 'browserless' : (homepage.screenshot ? 'firecrawl' : 'none');
+    const finalScreenshot = browserlessScreenshotResult || firecrawlScreenshotResult || null;
+    const screenshotProvider = browserlessScreenshotResult ? 'browserless' : (firecrawlScreenshotResult ? 'firecrawl' : 'none');
     console.log('Screenshot provider used:', screenshotProvider);
 
     const previewTitle = cleanText(metadata.title) || cleanText(businessName) || getHost(formattedUrl);
