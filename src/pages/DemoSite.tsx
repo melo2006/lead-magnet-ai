@@ -529,13 +529,20 @@ const DemoSite = () => {
   const followUpEmail = prospectOwner?.email || undefined;
   const followUpPhone = prospectOwner?.phone || undefined;
   const siteName = leadData.businessName?.trim() || getSiteName(homepageUrl, leadData.title);
+  const canRenderInlineIframe = Boolean(
+    resolvedIframeUrl && !isIframeCheckPending && !requiresBrowserFallback && !isWebsiteUnreachable,
+  );
   const isLivePreviewReady = Boolean(liveViewUrl && hasLiveViewLoaded);
   const isStaticPreviewReady = Boolean(screenshotSrc);
   const shouldShowScreenshotFallback =
     Boolean(screenshotSrc) &&
     (isWebsiteUnreachable || (requiresBrowserFallback && (!liveViewUrl || !hasLiveViewLoaded)));
+  const isInlinePreviewLoading =
+    !requiresBrowserFallback &&
+    !isWebsiteUnreachable &&
+    (isIframeCheckPending || !hasIframeLoaded);
   const isPreviewLoading =
-    (!requiresBrowserFallback && !isWebsiteUnreachable && !hasIframeLoaded) ||
+    isInlinePreviewLoading ||
     (requiresBrowserFallback && !liveViewFailed && !isStaticPreviewReady && !isLivePreviewReady);
   const isPreviewAvailable =
     (!requiresBrowserFallback && !isWebsiteUnreachable && hasIframeLoaded) ||
@@ -544,53 +551,51 @@ const DemoSite = () => {
 
   return (
     <div className="relative min-h-[100dvh] bg-background">
-      {!isPreviewLoading && (
-        <div className="pointer-events-none absolute inset-x-0 top-3 z-30 flex justify-center px-3 sm:top-4 sm:px-4">
-          <div className="pointer-events-auto flex w-full max-w-4xl items-center justify-between gap-3 rounded-full border border-border/70 bg-card/90 px-3 py-2 shadow-xl backdrop-blur-xl sm:px-4">
-            <div className="flex min-w-0 items-center gap-2.5">
-              <button
-                onClick={handleBack}
-                aria-label="Go back"
-                className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-background/80 text-muted-foreground transition-colors hover:text-foreground"
-              >
-                <ArrowLeft className="h-4 w-4" />
-              </button>
+      <div className="pointer-events-none fixed inset-x-0 top-16 z-40 flex justify-center px-3 sm:px-4">
+        <div className="pointer-events-auto flex w-full max-w-4xl items-center justify-between gap-3 rounded-full border border-border/70 bg-card/90 px-3 py-2 shadow-xl backdrop-blur-xl sm:px-4">
+          <div className="flex min-w-0 items-center gap-2.5">
+            <button
+              onClick={handleBack}
+              aria-label="Go back"
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-background/80 text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <ArrowLeft className="h-4 w-4" />
+            </button>
 
-              <div className="min-w-0">
-                <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
-                  Live demo
-                </p>
-                <p className="truncate text-sm font-semibold text-foreground sm:text-base">{siteName}</p>
-              </div>
-            </div>
-
-            <div className="flex shrink-0 items-center gap-2">
-              {isScanning && (
-                <>
-                  <span className="inline-flex h-2.5 w-2.5 rounded-full bg-primary sm:hidden" aria-hidden />
-                  <span className="hidden items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-primary sm:inline-flex">
-                    <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
-                    Building
-                  </span>
-                </>
-              )}
-
-              <a
-                href={homepageUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="hidden rounded-full border border-border bg-background/80 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-foreground sm:inline-flex"
-              >
-                Open site
-              </a>
+            <div className="min-w-0">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+                Live demo
+              </p>
+              <p className="truncate text-sm font-semibold text-foreground sm:text-base">{siteName}</p>
             </div>
           </div>
+
+          <div className="flex shrink-0 items-center gap-2">
+            {isScanning && (
+              <>
+                <span className="inline-flex h-2.5 w-2.5 rounded-full bg-primary sm:hidden" aria-hidden />
+                <span className="hidden items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-primary sm:inline-flex">
+                  <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
+                  Building
+                </span>
+              </>
+            )}
+
+            <a
+              href={homepageUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="hidden rounded-full border border-border bg-background/80 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-foreground sm:inline-flex"
+            >
+              Open site
+            </a>
+          </div>
         </div>
-      )}
+      </div>
 
       {/* Website — iframe first, screenshot fallback */}
       <div className="relative min-h-[100dvh]">
-        {resolvedIframeUrl && !requiresBrowserFallback && !isWebsiteUnreachable && (
+        {canRenderInlineIframe && (
           <iframe
             src={livePreviewUrl}
             className="w-full border-0"
@@ -645,9 +650,13 @@ const DemoSite = () => {
               </h2>
               <p className="mt-3 text-sm leading-6 text-muted-foreground">
                 {isWebsiteUnreachable
-                  ? "The scan finished, but the site itself appears offline or unreachable right now, so there was no live page to display."
+                  ? "We gathered business details, but this imported website address appears offline, broken, or incorrect right now, so there was no live page to render."
                   : "This site blocked the live preview and the backup browser session did not load correctly, so we switched to a safe fallback."}
               </p>
+              <div className="mt-4 rounded-2xl border border-border bg-background/80 p-4 text-left">
+                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">Website URL</p>
+                <p className="mt-2 break-all text-sm font-medium text-foreground">{homepageUrl}</p>
+              </div>
               {(leadData.title || leadData.description) && (
                 <div className="mt-4 rounded-2xl border border-border bg-background/80 p-4 text-left">
                   <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-muted-foreground">Scan result</p>
