@@ -5,6 +5,7 @@ import type { DemoLeadData } from "@/components/landing/demo-results/demoResults
 import { getImageSrc, getSiteName } from "@/components/landing/demo-results/demoResultsUtils";
 import VoiceAgentWidget from "@/components/landing/demo-results/VoiceAgentWidget";
 import ChatWidget from "@/components/landing/demo-results/ChatWidget";
+import WebsiteShowcase from "@/components/landing/demo-results/WebsiteShowcase";
 import ScanningAnimation from "@/components/landing/ScanningAnimation";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -118,6 +119,34 @@ const DemoLoadingState = ({ websiteUrl, businessName, overlay = false }: DemoLoa
       onComplete={() => {}}
       mode="continuous"
     />
+  </div>
+);
+
+interface ScanFallbackPreviewProps {
+  leadData: DemoLeadData;
+  siteName: string;
+  homepageUrl: string;
+}
+
+const ScanFallbackPreview = ({ leadData, siteName, homepageUrl }: ScanFallbackPreviewProps) => (
+  <div className="min-h-[100dvh] bg-background px-3 pb-28 pt-28 sm:px-6 sm:pt-32">
+    <div className="mx-auto max-w-6xl space-y-4">
+      <div className="rounded-[1.75rem] border border-border bg-card/95 p-5 shadow-xl backdrop-blur-xl sm:p-6">
+        <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary">Scan-based preview</p>
+        <h2 className="mt-2 text-2xl font-semibold text-foreground sm:text-3xl">
+          We couldn&apos;t load the live website, so this demo now uses the scan result instead.
+        </h2>
+        <p className="mt-3 max-w-3xl text-sm leading-6 text-muted-foreground">
+          Aspen can still use the captured services, messaging, and business details here without dropping you on a blank page.
+        </p>
+        <div className="mt-4 flex flex-wrap gap-2 text-xs font-medium text-muted-foreground">
+          <span className="rounded-full border border-border bg-background px-3 py-1.5">{siteName}</span>
+          <span className="max-w-full break-all rounded-full border border-border bg-background px-3 py-1.5">{homepageUrl}</span>
+        </div>
+      </div>
+
+      <WebsiteShowcase leadData={leadData} />
+    </div>
   </div>
 );
 
@@ -532,22 +561,32 @@ const DemoSite = () => {
   const canRenderInlineIframe = Boolean(
     resolvedIframeUrl && !isIframeCheckPending && !requiresBrowserFallback && !isWebsiteUnreachable,
   );
-  const isLivePreviewReady = Boolean(liveViewUrl && hasLiveViewLoaded);
+  const isGeneratedScreenshot = typeof screenshotSrc === "string" && screenshotSrc.startsWith("data:image/svg+xml");
+  const isLivePreviewReady = Boolean(liveViewUrl && hasLiveViewLoaded && !isGeneratedScreenshot);
   const isStaticPreviewReady = Boolean(screenshotSrc);
   const shouldShowScreenshotFallback =
     Boolean(screenshotSrc) &&
-    (isWebsiteUnreachable || (requiresBrowserFallback && (!liveViewUrl || !hasLiveViewLoaded)));
+    (isWebsiteUnreachable || (requiresBrowserFallback && (!liveViewUrl || !hasLiveViewLoaded || isGeneratedScreenshot)));
   const isInlinePreviewLoading =
     !requiresBrowserFallback &&
     !isWebsiteUnreachable &&
     (isIframeCheckPending || !hasIframeLoaded);
+  const shouldHoldScanningState = isScanning && !isStaticPreviewReady && !hasIframeLoaded && !hasLiveViewLoaded;
   const isPreviewLoading =
+    shouldHoldScanningState ||
     isInlinePreviewLoading ||
     (requiresBrowserFallback && !liveViewFailed && !isStaticPreviewReady && !isLivePreviewReady);
   const isPreviewAvailable =
     (!requiresBrowserFallback && !isWebsiteUnreachable && hasIframeLoaded) ||
     isLivePreviewReady ||
     isStaticPreviewReady;
+  const hasGeneratedPreviewData = Boolean(
+    (leadData.websiteContent && leadData.websiteContent.trim().length > 40) ||
+    (leadData.description && leadData.description.trim().length > 24) ||
+    (leadData.title && leadData.title.trim().length > 3),
+  );
+  const isScanPreviewReady = !isScanning && !isPreviewAvailable && hasGeneratedPreviewData;
+  const hasAnyPreview = isPreviewAvailable || isScanPreviewReady;
 
   return (
     <div className="relative min-h-[100dvh] bg-background">
@@ -626,7 +665,7 @@ const DemoSite = () => {
               </div>
             )}
 
-            {requiresBrowserFallback && liveViewUrl && (
+            {requiresBrowserFallback && liveViewUrl && !isGeneratedScreenshot && (
               <iframe
                 src={liveViewUrl}
                 className={`absolute inset-0 h-full w-full border-0 transition-opacity duration-300 ${hasLiveViewLoaded ? "opacity-100" : "opacity-0"}`}
@@ -639,7 +678,11 @@ const DemoSite = () => {
           </div>
         )}
 
-        {!isPreviewLoading && !isPreviewAvailable && (
+        {isScanPreviewReady && (
+          <ScanFallbackPreview leadData={leadData} siteName={siteName} homepageUrl={homepageUrl} />
+        )}
+
+        {!isPreviewLoading && !isPreviewAvailable && !isScanPreviewReady && (
           <div className="absolute inset-0 flex items-center justify-center bg-muted/40 px-4 text-center">
             <div className="w-full max-w-md rounded-[1.75rem] border border-border bg-card/95 p-6 shadow-xl">
               <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-primary">
@@ -689,7 +732,7 @@ const DemoSite = () => {
         {isPreviewLoading && <DemoLoadingState websiteUrl={homepageUrl} businessName={siteName} overlay />}
 
         {/* ===== AI Widget buttons — fixed to the bottom of the viewport ===== */}
-        {isPreviewAvailable && (
+        {hasAnyPreview && (
           <div className="pointer-events-none fixed inset-x-0 bottom-4 z-20 px-3 sm:bottom-6 sm:px-6">
             <div className="relative mx-auto h-0 w-full max-w-[1100px]">
               <div className="pointer-events-auto absolute bottom-0 left-0">
