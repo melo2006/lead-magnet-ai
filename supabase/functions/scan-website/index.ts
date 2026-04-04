@@ -813,7 +813,6 @@ Deno.serve(async (req) => {
 
     // Use Browserless screenshot (higher quality), fall back to Firecrawl, then a generated preview image.
     const finalScreenshot = browserlessScreenshotResult || firecrawlScreenshotResult || null;
-    console.log('Screenshot provider used:', screenshotProvider);
 
     const previewTitle = cleanText(metadata.title) || cleanText(businessName) || getHost(formattedUrl);
     const previewDescription = cleanText(metadata.description) || homepageSummary || null;
