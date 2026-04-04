@@ -34,8 +34,7 @@ const CRM = () => {
               <Route path="imported" element={<ImportedListsView />} />
               <Route path="imported/:id" element={<ImportedListDetailView />} />
               <Route path="templates" element={<TemplatesView />} />
-              <Route path="landing" element={null} />
-              <Route path="demo" element={null} />
+              <Route path="*" element={<CRMDashboard />} />
             </Routes>
           </main>
         </div>
