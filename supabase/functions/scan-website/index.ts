@@ -257,6 +257,109 @@ async function scrapeScreenshotFallback(url: string, apiKey: string) {
   }
 }
 
+const escapeSvgText = (value: string) =>
+  value
+    .replace(/&/g, '&amp;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;');
+
+const splitTextIntoLines = (value: string, maxLineLength: number, maxLines: number) => {
+  const words = cleanText(value).split(' ').filter(Boolean);
+  const lines: string[] = [];
+  let current = '';
+
+  for (const word of words) {
+    const next = current ? `${current} ${word}` : word;
+    if (next.length <= maxLineLength) {
+      current = next;
+      continue;
+    }
+
+    if (current) lines.push(current);
+    current = word;
+
+    if (lines.length >= maxLines - 1) break;
+  }
+
+  if (lines.length < maxLines && current) lines.push(current);
+
+  if (lines.length === maxLines) {
+    lines[maxLines - 1] = truncate(lines[maxLines - 1], Math.max(0, maxLineLength - 1)).trimEnd() + '…';
+  }
+
+  return lines.slice(0, maxLines);
+};
+
+const buildGeneratedFallbackScreenshot = ({
+  businessName,
+  websiteUrl,
+  description,
+  niche,
+  serviceArea,
+  highlights = [],
+}: {
+  businessName?: string | null;
+  websiteUrl: string;
+  description?: string | null;
+  niche?: string | null;
+  serviceArea?: string | null;
+  highlights?: string[];
+}) => {
+  const title = truncate(cleanText(businessName) || getHost(websiteUrl) || 'Website preview', 42);
+  const host = truncate(getHost(websiteUrl) || cleanText(websiteUrl), 54);
+  const summary = cleanText(description) || `We captured the business details for ${title}, but a live screenshot was unavailable.`;
+  const summaryLines = splitTextIntoLines(summary, 42, 5);
+  const detailLines = unique([
+    serviceArea ? `Service area: ${serviceArea}` : '',
+    niche ? `Niche: ${niche.replace(/-/g, ' ')}` : '',
+    ...highlights.map((item) => cleanText(item)).filter(Boolean).slice(0, 3),
+  ]).slice(0, 5);
+
+  const summaryMarkup = summaryLines
+    .map((line, index) => `<tspan x="110" dy="${index === 0 ? 0 : 42}">${escapeSvgText(line)}</tspan>`)
+    .join('');
+  const detailMarkup = detailLines
+    .map((line, index) => `<tspan x="1035" dy="${index === 0 ? 0 : 38}">${escapeSvgText(line)}</tspan>`)
+    .join('');
+
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" fill="none">
+    <defs>
+      <linearGradient id="bg" x1="0" y1="0" x2="1600" y2="900" gradientUnits="userSpaceOnUse">
+        <stop stop-color="#07111E"/>
+        <stop offset="0.55" stop-color="#0E2035"/>
+        <stop offset="1" stop-color="#091725"/>
+      </linearGradient>
+      <linearGradient id="panel" x1="56" y1="56" x2="1544" y2="844" gradientUnits="userSpaceOnUse">
+        <stop stop-color="#13253B"/>
+        <stop offset="1" stop-color="#0E1B2C"/>
+      </linearGradient>
+    </defs>
+    <rect width="1600" height="900" fill="url(#bg)"/>
+    <circle cx="1320" cy="148" r="180" fill="#25D0FF" fill-opacity="0.12"/>
+    <circle cx="260" cy="760" r="220" fill="#6EE7B7" fill-opacity="0.10"/>
+    <rect x="56" y="56" width="1488" height="788" rx="40" fill="url(#panel)" stroke="#2A415D"/>
+    <rect x="96" y="96" width="1408" height="52" rx="26" fill="#16283D"/>
+    <circle cx="126" cy="122" r="8" fill="#F87171"/>
+    <circle cx="154" cy="122" r="8" fill="#FBBF24"/>
+    <circle cx="182" cy="122" r="8" fill="#34D399"/>
+    <text x="220" y="128" fill="#9FB2C9" font-family="Arial, Helvetica, sans-serif" font-size="20">Scan-based preview</text>
+    <text x="110" y="208" fill="#73D0FF" font-family="Arial, Helvetica, sans-serif" font-size="22" font-weight="700" letter-spacing="2">CAPTURED WEBSITE SUMMARY</text>
+    <text x="110" y="300" fill="#F8FBFF" font-family="Arial, Helvetica, sans-serif" font-size="58" font-weight="700">${escapeSvgText(title)}</text>
+    <text x="110" y="346" fill="#9FB2C9" font-family="Arial, Helvetica, sans-serif" font-size="26">${escapeSvgText(host)}</text>
+    <text x="110" y="456" fill="#E6EEF9" font-family="Arial, Helvetica, sans-serif" font-size="34">${summaryMarkup}</text>
+    <rect x="980" y="214" width="430" height="428" rx="30" fill="#15263B" stroke="#2A415D"/>
+    <text x="1035" y="276" fill="#F8FBFF" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700">Captured details</text>
+    <text x="1035" y="336" fill="#C8D5E6" font-family="Arial, Helvetica, sans-serif" font-size="28">${detailMarkup}</text>
+    <rect x="980" y="674" width="430" height="108" rx="26" fill="#0E1C2D" stroke="#2A415D"/>
+    <text x="1035" y="724" fill="#73D0FF" font-family="Arial, Helvetica, sans-serif" font-size="20" font-weight="700" letter-spacing="1.6">LIVE SITE UNAVAILABLE</text>
+    <text x="1035" y="760" fill="#C8D5E6" font-family="Arial, Helvetica, sans-serif" font-size="24">The demo can still use the scanned business info.</text>
+  </svg>`;
+
+  return `data:image/svg+xml;charset=UTF-8,${encodeURIComponent(svg)}`;
+};
+
 async function webResearch(firecrawlKey: string, queries: string[]): Promise<string[]> {
   const results: string[] = [];
   for (const query of queries) {
@@ -708,17 +811,24 @@ Deno.serve(async (req) => {
         ? homepage.screenshot
         : (!browserlessScreenshotResult ? await scrapeScreenshotFallback(formattedUrl, firecrawlKey) : null);
 
-    // Use Browserless screenshot (higher quality), fall back to Firecrawl
+    // Use Browserless screenshot (higher quality), fall back to Firecrawl, then a generated preview image.
     const finalScreenshot = browserlessScreenshotResult || firecrawlScreenshotResult || null;
-    const screenshotProvider = browserlessScreenshotResult ? 'browserless' : (firecrawlScreenshotResult ? 'firecrawl' : 'none');
     console.log('Screenshot provider used:', screenshotProvider);
 
     const previewTitle = cleanText(metadata.title) || cleanText(businessName) || getHost(formattedUrl);
     const previewDescription = cleanText(metadata.description) || homepageSummary || null;
+    const previewScreenshot = finalScreenshot || buildGeneratedFallbackScreenshot({
+      businessName: previewTitle,
+      websiteUrl: formattedUrl,
+      description: previewDescription,
+      niche: initialNiche,
+    });
+    const screenshotProvider = browserlessScreenshotResult ? 'browserless' : (firecrawlScreenshotResult ? 'firecrawl' : 'generated');
+    console.log('Screenshot provider used:', screenshotProvider);
 
     const previewUpdate = await supabase.from('leads').update({
       website_url: formattedUrl,
-      website_screenshot: finalScreenshot,
+      website_screenshot: previewScreenshot,
       brand_colors: branding.colors || null,
       brand_logo: branding.images?.logo || branding.logo || null,
       brand_fonts: branding.fonts || branding.typography || null,
@@ -825,6 +935,14 @@ Deno.serve(async (req) => {
 
     const title = cleanText(metadata.title) || profile.businessName || getHost(formattedUrl);
     const description = cleanText(metadata.description) || profile.summary;
+    const storedScreenshot = finalScreenshot || buildGeneratedFallbackScreenshot({
+      businessName: title,
+      websiteUrl: formattedUrl,
+      description,
+      niche: profile.detectedNiche,
+      serviceArea: profile.serviceArea,
+      highlights: profile.serviceHighlights,
+    });
 
     // Extract phone and email from all scraped content
     const allTextForExtraction = [homepageMarkdown, combinedPageContent, secondaryContent, filesContent].join('\n');
@@ -855,7 +973,7 @@ Deno.serve(async (req) => {
       brand_colors: branding.colors || null,
       brand_logo: branding.images?.logo || branding.logo || null,
       brand_fonts: branding.fonts || branding.typography || null,
-      website_screenshot: finalScreenshot,
+      website_screenshot: storedScreenshot,
       website_content: initialContent || null,
       website_title: title || null,
       website_description: description || null,
@@ -902,7 +1020,7 @@ Deno.serve(async (req) => {
           description,
           colors: branding.colors,
           logo: branding.images?.logo || branding.logo,
-          screenshot: Boolean(finalScreenshot),
+          screenshot: Boolean(storedScreenshot),
           screenshotProvider,
           pagesScraped: successfulPages.length + 1,
           detectedNiche: profile.detectedNiche,
