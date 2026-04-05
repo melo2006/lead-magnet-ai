@@ -34,7 +34,7 @@ export const niches: NicheData[] = [
     subheadline: "A buyer sees your sign, calls, gets voicemail — and calls the next agent. Your AI assistant answers in 0.4 seconds.",
     painPoint: "Busy at a showing? Driving? In a meeting? Your AI handles it — qualifies leads, books showings, and warm-transfers hot buyers to your phone.",
     testimonial: {
-      quote: "I was missing 40% of my calls during showings. Within the first week, SignalAgent booked 3 showings I would have lost completely. One of them closed at $485K.",
+      quote: "I was missing 40% of my calls during showings. Within the first week, AI Hidden Leads booked 3 showings I would have lost completely. One of them closed at $485K.",
       name: "Maria Gonzalez",
       title: "RE/MAX South Florida",
       avatar: "MG",
@@ -74,7 +74,7 @@ export const niches: NicheData[] = [
     subheadline: "You're waxing a Tesla. Your phone rings. You can't pick up. That's $350 gone. Your AI never misses.",
     painPoint: "You're a one-person operation. Your AI assistant books jobs, gives quotes, and sends confirmations while you work.",
     testimonial: {
-      quote: "I run my business solo. SignalAgent is like having a full-time receptionist for $149/month. I booked 11 extra jobs last month.",
+      quote: "I run my business solo. AI Hidden Leads is like having a full-time receptionist for $149/month. I booked 11 extra jobs last month.",
       name: "Marcus Williams",
       title: "Elite Mobile Detail, Fort Lauderdale",
       avatar: "MW",
@@ -114,7 +114,7 @@ export const niches: NicheData[] = [
     subheadline: "A boat owner needs an engine service before the weekend. They call, you're on a dock job. That's $1,800 lost.",
     painPoint: "You're on a boat, under a hull, or at the marina. Your AI books haul-outs, schedules maintenance, and gives estimates.",
     testimonial: {
-      quote: "During season, we were drowning in calls. SignalAgent handles scheduling, estimates, and even warranty questions. Game changer for our marina.",
+      quote: "During season, we were drowning in calls. AI Hidden Leads handles scheduling, estimates, and even warranty questions. Game changer for our marina.",
       name: "Captain Rick Torres",
       title: "Boca Marine Services",
       avatar: "RT",

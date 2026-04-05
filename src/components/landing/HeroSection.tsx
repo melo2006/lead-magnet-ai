@@ -78,7 +78,7 @@ const HeroSection = ({ niche, onGetDemo }: HeroSectionProps) => {
               <Phone className="w-5 h-5 text-primary" />
               <div className="text-left">
                 <p className="text-2xl font-bold text-primary">0%</p>
-                <p className="text-xs text-muted-foreground">With SignalAgent</p>
+                <p className="text-xs text-muted-foreground">With AI Hidden Leads</p>
               </div>
             </div>
             <div className="flex items-center gap-3 px-5 py-3 rounded-xl border border-accent/30 bg-accent/5">
