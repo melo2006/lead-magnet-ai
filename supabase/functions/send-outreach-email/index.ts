@@ -40,24 +40,32 @@ function buildEmailHtml(
 
   if (templateStyle === 'browser_mockup') {
     const hostname = prospect.website_url ? (() => { try { const u = new URL(prospect.website_url.startsWith('http') ? prospect.website_url : `https://${prospect.website_url}`); return u.host; } catch { return prospect.website_url; } })() : prospect.business_name;
+
+    // Dynamic screenshot: use actual website screenshot if available, otherwise a branded placeholder
+    const screenshotArea = prospect.website_screenshot
+      ? `<img src="${prospect.website_screenshot}" alt="${prospect.business_name} website" style="width:100%;height:280px;object-fit:cover;object-position:top;display:block;" />`
+      : `<div style="height:280px;background:linear-gradient(135deg,#f8fafc,#e2e8f0);text-align:center;padding-top:100px;"><p style="font-size:20px;font-weight:700;color:#64748b;margin:0;">${prospect.business_name}</p><p style="font-size:13px;color:#94a3b8;margin:8px 0 0;">Your website, powered by AI</p></div>`;
+
     return `<!DOCTYPE html>
 <html lang="en">
 <head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
 <body style="margin:0;padding:0;background:#f0f0f0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
 <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f0f0;padding:40px 0;">
 <tr><td align="center">
-<table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;">
-  <tr><td style="padding:32px 32px 16px;">
-    <p style="margin:0;font-size:15px;color:#374151;line-height:1.6;">Hi ${name},</p>
-    <p style="margin:12px 0 0;font-size:15px;color:#374151;line-height:1.6;">I was looking at <strong>${prospect.business_name}</strong> and had an idea — what if your website could talk to visitors and answer the phone, even at 2 AM?</p>
-    ${customMessage ? `<p style="margin:12px 0 0;font-size:14px;color:#6b7280;line-height:1.6;">${customMessage}</p>` : ''}
-    <p style="margin:12px 0 0;font-size:15px;color:#374151;line-height:1.6;">We put together a quick preview using your actual site. Two buttons — <strong>Chat</strong> and <strong>Voice</strong> — let you experience how it would work for your customers:</p>
+<table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 30px rgba(0,0,0,0.06);">
+
+  <!-- Greeting -->
+  <tr><td style="padding:36px 36px 0;">
+    <p style="margin:0;font-size:16px;color:#1f2937;line-height:1.6;">Hi ${name},</p>
+    <p style="margin:14px 0 0;font-size:15px;color:#374151;line-height:1.7;">I came across <strong>${prospect.business_name}</strong> and was genuinely impressed. I had a thought — what if every visitor to your website could instantly get answers, book appointments, or speak to your team… even at 2 AM on a Sunday?</p>
+    <p style="margin:14px 0 0;font-size:15px;color:#374151;line-height:1.7;">We built a quick mockup using <strong>your actual website</strong>. Take a look — the two AI buttons at the bottom are fully functional:</p>
   </td></tr>
-  <tr><td align="center" style="padding:8px 32px 20px;">
-    <!-- Browser window mockup -->
-    <div style="width:100%;max-width:520px;border-radius:12px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,0.12);border:1px solid #e5e7eb;">
-      <!-- Title bar -->
-      <div style="background:#f3f4f6;padding:10px 16px;display:flex;align-items:center;">
+
+  <!-- Browser Mockup with REAL website screenshot -->
+  <tr><td align="center" style="padding:16px 36px 20px;">
+    <div style="width:100%;max-width:520px;border-radius:12px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,0.14);border:1px solid #e5e7eb;">
+      <!-- macOS title bar -->
+      <div style="background:#f3f4f6;padding:10px 16px;">
         <table cellpadding="0" cellspacing="0"><tr>
           <td><div style="width:12px;height:12px;border-radius:50%;background:#ef4444;display:inline-block;"></div></td>
           <td style="padding-left:6px;"><div style="width:12px;height:12px;border-radius:50%;background:#f59e0b;display:inline-block;"></div></td>
@@ -65,30 +73,57 @@ function buildEmailHtml(
           <td style="padding-left:12px;"><div style="background:#ffffff;border:1px solid #d1d5db;border-radius:6px;padding:4px 14px;font-size:11px;color:#6b7280;display:inline-block;">${hostname}</div></td>
         </tr></table>
       </div>
-      <!-- Website screenshot area -->
+      <!-- Website screenshot with AI buttons overlaid -->
       <div style="position:relative;background:#ffffff;">
-        ${screenshotHtml || `<div style="height:280px;background:linear-gradient(135deg,#f8fafc,#e2e8f0);display:flex;align-items:center;justify-content:center;"><p style="font-size:18px;font-weight:600;color:#94a3b8;">${prospect.business_name}</p></div>`}
-        <!-- Chat AI button (bottom left) -->
+        ${screenshotArea}
+        <!-- Chat AI widget - bottom left -->
         <div style="position:absolute;bottom:12px;left:12px;">
-          <a href="${demoUrl}" style="display:inline-block;background:#1f2937;color:#ffffff;font-size:12px;font-weight:600;padding:8px 14px;border-radius:10px;text-decoration:none;box-shadow:0 4px 12px rgba(0,0,0,0.2);">💬 Chat AI</a>
+          <a href="${demoUrl}" style="display:inline-block;background:#1f2937;color:#ffffff;font-size:12px;font-weight:700;padding:9px 16px;border-radius:12px;text-decoration:none;box-shadow:0 4px 14px rgba(0,0,0,0.25);letter-spacing:0.3px;">💬 Chat AI</a>
         </div>
-        <!-- Voice AI button (bottom right) -->
+        <!-- Voice AI widget - bottom right -->
         <div style="position:absolute;bottom:12px;right:12px;">
-          <a href="${demoUrl}" style="display:inline-block;background:#059669;color:#ffffff;font-size:12px;font-weight:600;padding:8px 14px;border-radius:10px;text-decoration:none;box-shadow:0 4px 12px rgba(0,0,0,0.2);">🎙 Voice AI</a>
+          <a href="${demoUrl}" style="display:inline-block;background:#059669;color:#ffffff;font-size:12px;font-weight:700;padding:9px 16px;border-radius:12px;text-decoration:none;box-shadow:0 4px 14px rgba(0,0,0,0.25);letter-spacing:0.3px;">🎙 Voice AI</a>
         </div>
       </div>
     </div>
+    <p style="margin:10px 0 0;font-size:12px;color:#9ca3af;text-align:center;font-style:italic;">↑ This is ${prospect.business_name}'s website with AI assistants added</p>
   </td></tr>
-  <tr><td style="padding:0 32px 24px;">
-    <p style="margin:0 0 16px;font-size:15px;color:#374151;line-height:1.6;">It takes 30 seconds — just click a button and talk to it (or type). No signup required.</p>
+
+  <!-- Benefit Bullets -->
+  <tr><td style="padding:4px 36px 0;">
+    <p style="margin:0 0 12px;font-size:15px;font-weight:600;color:#111827;">Here's what this means for ${prospect.business_name}:</p>
+    <table cellpadding="0" cellspacing="0" width="100%">
+      <tr><td style="padding:6px 0;font-size:14px;color:#374151;line-height:1.5;">
+        <span style="color:#059669;font-weight:700;font-size:16px;">✓</span>&nbsp;&nbsp;<strong>Never miss another call or lead</strong> — Your AI answers every inquiry 24/7, even holidays and weekends. No voicemail, no missed opportunities.
+      </td></tr>
+      <tr><td style="padding:6px 0;font-size:14px;color:#374151;line-height:1.5;">
+        <span style="color:#059669;font-weight:700;font-size:16px;">✓</span>&nbsp;&nbsp;<strong>Book &amp; manage appointments automatically</strong> — Visitors schedule, reschedule, or cancel right from the chat or voice assistant. Zero staff time needed.
+      </td></tr>
+      <tr><td style="padding:6px 0;font-size:14px;color:#374151;line-height:1.5;">
+        <span style="color:#059669;font-weight:700;font-size:16px;">✓</span>&nbsp;&nbsp;<strong>Answer complex questions instantly</strong> — Pricing, services, hours, FAQs — your AI knows your business inside and out and responds in seconds.
+      </td></tr>
+      <tr><td style="padding:6px 0;font-size:14px;color:#374151;line-height:1.5;">
+        <span style="color:#059669;font-weight:700;font-size:16px;">✓</span>&nbsp;&nbsp;<strong>Warm transfer to your team when it matters</strong> — The AI qualifies callers first, then seamlessly connects high-value leads to a real person. No cold transfers, no wasted time.
+      </td></tr>
+    </table>
+  </td></tr>
+
+  ${customMessage ? `<tr><td style="padding:16px 36px 0;"><p style="margin:0;font-size:14px;color:#6b7280;line-height:1.6;font-style:italic;">${customMessage}</p></td></tr>` : ''}
+
+  <!-- CTA Section -->
+  <tr><td style="padding:24px 36px;">
+    <p style="margin:0 0 16px;font-size:15px;color:#374151;line-height:1.7;">We've already set this up on a preview of <strong>your website</strong>. Click below to see it live — you can actually chat with it and even have a voice conversation about your own business. It takes 30 seconds, no signup needed.</p>
     <div style="text-align:center;">
-      <a href="${demoUrl}" style="display:inline-block;background:#059669;color:#ffffff;font-size:15px;font-weight:600;padding:14px 32px;border-radius:10px;text-decoration:none;">Try the Live Preview →</a>
+      <a href="${demoUrl}" style="display:inline-block;background:linear-gradient(135deg,#059669,#047857);color:#ffffff;font-size:16px;font-weight:700;padding:16px 40px;border-radius:12px;text-decoration:none;box-shadow:0 4px 16px rgba(5,150,105,0.35);letter-spacing:0.3px;">See Your Live AI Demo →</a>
     </div>
-    <p style="margin:20px 0 0;font-size:13px;color:#9ca3af;text-align:center;">This is a one-time personalized demo built specifically for ${prospect.business_name}.</p>
+    <p style="margin:16px 0 0;font-size:13px;color:#9ca3af;text-align:center;">This personalized demo was built specifically for ${prospect.business_name}.<br/>Simple plans start at an affordable monthly rate.</p>
   </td></tr>
-  <tr><td style="padding:16px 32px;border-top:1px solid #f3f4f6;">
-    <p style="margin:0;font-size:11px;color:#9ca3af;text-align:center;">Sent by the AgentFlow AI team · <a href="mailto:unsubscribe@agentflow.ai" style="color:#9ca3af;">Unsubscribe</a></p>
+
+  <!-- Footer -->
+  <tr><td style="padding:20px 36px;border-top:1px solid #f3f4f6;">
+    <p style="margin:0;font-size:11px;color:#9ca3af;text-align:center;">AgentFlow AI · Helping businesses never miss a customer again<br/><a href="mailto:unsubscribe@agentflow.ai" style="color:#9ca3af;">Unsubscribe</a></p>
   </td></tr>
+
 </table>
 </td></tr>
 </table>
