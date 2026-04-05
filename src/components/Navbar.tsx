@@ -27,9 +27,7 @@ const Navbar = () => {
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 flex items-center justify-between h-14">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
-          <div className="w-8 h-8 rounded-lg bg-primary/20 flex items-center justify-center">
-            <Zap className="w-4 h-4 text-primary" />
-          </div>
+          <img src="/favicon.png" alt="AI Hidden Leads" className="w-8 h-8" />
           <span className="text-lg font-bold tracking-tight">
             AI <span className="text-primary">Hidden</span> Leads
           </span>
