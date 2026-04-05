@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Mail, Send, Smartphone, X, Zap, Eye, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
+import { Mail, Send, Smartphone, X, Zap, Eye, ExternalLink, ChevronLeft, ChevronRight, Monitor, MessageSquare, Mic } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Prospect } from "@/hooks/useProspectSearch";
