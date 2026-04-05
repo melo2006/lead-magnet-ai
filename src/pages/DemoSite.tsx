@@ -554,9 +554,26 @@ const DemoSite = () => {
   const knownCallerPhone = callerPhoneParam || (!hasCrmContext && isLikelyCallablePhoneNumber(leadData.phone)
     ? normalizePhoneNumber(leadData.phone)
     : undefined);
+
+  // --- Test phone override ---
+  const [showTestOverride, setShowTestOverride] = useState(false);
+  const [testPhoneOverride, setTestPhoneOverride] = useState(() => {
+    try { return localStorage.getItem("demo_test_phone_override") || ""; } catch { return ""; }
+  });
+
+  useEffect(() => {
+    try {
+      if (testPhoneOverride) localStorage.setItem("demo_test_phone_override", testPhoneOverride);
+      else localStorage.removeItem("demo_test_phone_override");
+    } catch {}
+  }, [testPhoneOverride]);
+
   const followUpName = prospectOwner?.name || DEFAULT_DEMO_OWNER_NAME;
   const followUpEmail = prospectOwner?.email || undefined;
-  const followUpPhone = prospectOwner?.phone || undefined;
+  const rawFollowUpPhone = prospectOwner?.phone || undefined;
+  const followUpPhone = (testPhoneOverride && isLikelyCallablePhoneNumber(testPhoneOverride))
+    ? normalizePhoneNumber(testPhoneOverride)
+    : rawFollowUpPhone;
   const siteName = leadData.businessName?.trim() || getSiteName(homepageUrl, leadData.title);
   const canRenderInlineIframe = Boolean(
     resolvedIframeUrl && !isIframeCheckPending && !requiresBrowserFallback && !isWebsiteUnreachable,
