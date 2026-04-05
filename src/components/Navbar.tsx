@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Zap, Home, Users, Monitor, Menu, X } from "lucide-react";
+import { Zap, Home, Users, Monitor, Menu, X, Search, Radar, LayoutGrid, PhoneIncoming, FolderInput, FileText, Megaphone } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -7,6 +7,15 @@ const navItems = [
   { to: "/", label: "Dashboard", icon: Home },
   { to: "/campaigns", label: "Campaigns", icon: Users },
   { to: "/landing", label: "Landing Page", icon: Monitor },
+];
+
+const crmItems = [
+  { to: "/prospects", label: "Prospects", icon: Search },
+  { to: "/intent-leads", label: "Intent Leads", icon: Radar },
+  { to: "/pipeline", label: "Pipeline", icon: LayoutGrid },
+  { to: "/calls", label: "Call History", icon: PhoneIncoming },
+  { to: "/imported", label: "Imported Lists", icon: FolderInput },
+  { to: "/templates", label: "Templates", icon: FileText },
 ];
 
 const Navbar = () => {
@@ -54,25 +63,48 @@ const Navbar = () => {
         </button>
       </div>
 
-      {/* Mobile menu */}
+      {/* Mobile menu - full navigation */}
       {mobileOpen && (
-        <div className="sm:hidden border-t border-border bg-background/95 backdrop-blur-xl px-4 py-2 space-y-1">
-          {navItems.map(({ to, label, icon: Icon }) => (
-            <Link
-              key={to}
-              to={to}
-              onClick={() => setMobileOpen(false)}
-              className={cn(
-                "flex items-center gap-2 px-3 py-2 rounded-lg text-sm font-medium transition-all",
-                pathname === to
-                  ? "bg-primary/15 text-primary"
-                  : "text-muted-foreground hover:text-foreground"
-              )}
-            >
-              <Icon className="w-4 h-4" />
-              {label}
-            </Link>
-          ))}
+        <div className="sm:hidden border-t border-border bg-background/95 backdrop-blur-xl px-4 py-2 max-h-[calc(100vh-3.5rem)] overflow-y-auto">
+          <div className="space-y-1">
+            {navItems.map(({ to, label, icon: Icon }) => (
+              <Link
+                key={to}
+                to={to}
+                onClick={() => setMobileOpen(false)}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
+                  pathname === to
+                    ? "bg-primary/15 text-primary"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Icon className="w-4 h-4" />
+                {label}
+              </Link>
+            ))}
+          </div>
+
+          <div className="my-2 border-t border-border" />
+          <p className="text-[10px] uppercase tracking-widest text-muted-foreground px-3 py-1">CRM</p>
+          <div className="space-y-1">
+            {crmItems.map(({ to, label, icon: Icon }) => (
+              <Link
+                key={to}
+                to={to}
+                onClick={() => setMobileOpen(false)}
+                className={cn(
+                  "flex items-center gap-2 px-3 py-2.5 rounded-lg text-sm font-medium transition-all",
+                  pathname.startsWith(to)
+                    ? "bg-primary/15 text-primary"
+                    : "text-muted-foreground hover:text-foreground"
+                )}
+              >
+                <Icon className="w-4 h-4" />
+                {label}
+              </Link>
+            ))}
+          </div>
         </div>
       )}
     </nav>
