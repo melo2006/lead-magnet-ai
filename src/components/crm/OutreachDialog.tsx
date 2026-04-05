@@ -10,7 +10,7 @@ interface Props {
   onSent: () => void;
 }
 
-type TemplateStyle = "phone_mockup" | "clean_card";
+type TemplateStyle = "phone_mockup" | "clean_card" | "browser_mockup";
 type Channel = "email" | "sms" | "both";
 
 const OutreachDialog = ({ prospects, onClose, onSent }: Props) => {
