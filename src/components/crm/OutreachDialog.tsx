@@ -15,8 +15,8 @@ type Channel = "email" | "sms" | "both";
 
 const OutreachDialog = ({ prospects, onClose, onSent }: Props) => {
   const [channel, setChannel] = useState<Channel>("email");
-  const [templateStyle, setTemplateStyle] = useState<TemplateStyle>("phone_mockup");
-  const [subject, setSubject] = useState("Never miss a call or lead again!");
+  const [templateStyle, setTemplateStyle] = useState<TemplateStyle>("browser_mockup");
+  const [subject, setSubject] = useState("Quick idea for your website");
   const [customMessage, setCustomMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [previewIndex, setPreviewIndex] = useState(0);
