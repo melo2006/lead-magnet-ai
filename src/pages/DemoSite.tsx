@@ -567,19 +567,6 @@ const DemoSite = () => {
     ? normalizePhoneNumber(leadData.phone)
     : undefined);
 
-  // --- Test phone override ---
-  const [showTestOverride, setShowTestOverride] = useState(false);
-  const [testPhoneOverride, setTestPhoneOverride] = useState(() => {
-    try { return localStorage.getItem("demo_test_phone_override") || ""; } catch { return ""; }
-  });
-
-  useEffect(() => {
-    try {
-      if (testPhoneOverride) localStorage.setItem("demo_test_phone_override", testPhoneOverride);
-      else localStorage.removeItem("demo_test_phone_override");
-    } catch {}
-  }, [testPhoneOverride]);
-
   const followUpName = prospectOwner?.name || DEFAULT_DEMO_OWNER_NAME;
   const followUpEmail = prospectOwner?.email || undefined;
   const rawFollowUpPhone = prospectOwner?.phone || undefined;
