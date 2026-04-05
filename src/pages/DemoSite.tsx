@@ -1,6 +1,6 @@
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
-import { MessageSquare, Mic, ArrowLeft } from "lucide-react";
+import { MessageSquare, Mic, ArrowLeft, Phone } from "lucide-react";
 import type { DemoLeadData } from "@/components/landing/demo-results/demoResultsUtils";
 import { getImageSrc, getSiteName } from "@/components/landing/demo-results/demoResultsUtils";
 import VoiceAgentWidget from "@/components/landing/demo-results/VoiceAgentWidget";
@@ -188,6 +188,18 @@ const DemoSite = () => {
   const [hasIframeLoaded, setHasIframeLoaded] = useState(false);
   const liveViewSessionRef = useRef<string | null>(null);
   const [prospectOwner, setProspectOwner] = useState<{name?: string; email?: string; phone?: string} | null>(null);
+  const [showTestOverride, setShowTestOverride] = useState(false);
+  const [testPhoneOverride, setTestPhoneOverride] = useState(() => {
+    try { return localStorage.getItem("demo_test_phone_override") || ""; } catch { return ""; }
+  });
+
+  useEffect(() => {
+    try {
+      if (testPhoneOverride) localStorage.setItem("demo_test_phone_override", testPhoneOverride);
+      else localStorage.removeItem("demo_test_phone_override");
+    } catch {}
+  }, [testPhoneOverride]);
+
   const returnTo = searchParams.get("returnTo");
   const prospectIdParam = searchParams.get("prospectId");
   const callerNameParam = searchParams.get("callerName") || undefined;
@@ -554,9 +566,13 @@ const DemoSite = () => {
   const knownCallerPhone = callerPhoneParam || (!hasCrmContext && isLikelyCallablePhoneNumber(leadData.phone)
     ? normalizePhoneNumber(leadData.phone)
     : undefined);
+
   const followUpName = prospectOwner?.name || DEFAULT_DEMO_OWNER_NAME;
   const followUpEmail = prospectOwner?.email || undefined;
-  const followUpPhone = prospectOwner?.phone || undefined;
+  const rawFollowUpPhone = prospectOwner?.phone || undefined;
+  const followUpPhone = (testPhoneOverride && isLikelyCallablePhoneNumber(testPhoneOverride))
+    ? normalizePhoneNumber(testPhoneOverride)
+    : rawFollowUpPhone;
   const siteName = leadData.businessName?.trim() || getSiteName(homepageUrl, leadData.title);
   const canRenderInlineIframe = Boolean(
     resolvedIframeUrl && !isIframeCheckPending && !requiresBrowserFallback && !isWebsiteUnreachable,
@@ -620,6 +636,14 @@ const DemoSite = () => {
               </>
             )}
 
+            <button
+              onClick={() => setShowTestOverride((v) => !v)}
+              className={`inline-flex h-8 w-8 items-center justify-center rounded-full border transition-colors ${showTestOverride ? "border-primary bg-primary/10 text-primary" : "border-border bg-background/80 text-muted-foreground hover:text-foreground"}`}
+              title="Test phone override"
+            >
+              <Phone className="h-3.5 w-3.5" />
+            </button>
+
             <a
               href={homepageUrl}
               target="_blank"
@@ -630,6 +654,29 @@ const DemoSite = () => {
             </a>
           </div>
         </div>
+
+        {/* Test phone override panel */}
+        {showTestOverride && (
+          <div className="pointer-events-auto mt-2 mx-auto w-full max-w-md rounded-2xl border border-border bg-card/95 px-4 py-3 shadow-xl backdrop-blur-xl">
+            <label className="block text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-1.5">
+              Transfer test to different number
+            </label>
+            <input
+              type="tel"
+              value={testPhoneOverride}
+              onChange={(e) => setTestPhoneOverride(e.target.value)}
+              placeholder="+1 (555) 123-4567"
+              className="w-full rounded-lg border border-border bg-background px-3 py-2 text-sm text-foreground placeholder:text-muted-foreground/50 focus:border-primary/50 focus:outline-none"
+            />
+            <p className="mt-1.5 text-[10px] text-muted-foreground">
+              {testPhoneOverride && isLikelyCallablePhoneNumber(testPhoneOverride)
+                ? `✅ Transfers will go to ${normalizePhoneNumber(testPhoneOverride)}`
+                : testPhoneOverride
+                  ? "⚠️ Invalid number — using default"
+                  : `Using default: ${rawFollowUpPhone || "none"}`}
+            </p>
+          </div>
+        )}
       </div>
 
       {/* Website — iframe first, screenshot fallback */}

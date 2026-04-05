@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Mail, Send, Smartphone, X, Zap, Eye, ExternalLink, ChevronLeft, ChevronRight } from "lucide-react";
+import { Mail, Send, Smartphone, X, Zap, Eye, ExternalLink, ChevronLeft, ChevronRight, Monitor } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Prospect } from "@/hooks/useProspectSearch";
@@ -10,13 +10,13 @@ interface Props {
   onSent: () => void;
 }
 
-type TemplateStyle = "phone_mockup" | "clean_card";
+type TemplateStyle = "phone_mockup" | "clean_card" | "browser_mockup";
 type Channel = "email" | "sms" | "both";
 
 const OutreachDialog = ({ prospects, onClose, onSent }: Props) => {
   const [channel, setChannel] = useState<Channel>("email");
-  const [templateStyle, setTemplateStyle] = useState<TemplateStyle>("phone_mockup");
-  const [subject, setSubject] = useState("Never miss a call or lead again!");
+  const [templateStyle, setTemplateStyle] = useState<TemplateStyle>("browser_mockup");
+  const [subject, setSubject] = useState("Quick idea for your website");
   const [customMessage, setCustomMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [previewIndex, setPreviewIndex] = useState(0);
@@ -150,14 +150,22 @@ const OutreachDialog = ({ prospects, onClose, onSent }: Props) => {
             {/* Template Style */}
             <div>
               <label className="block text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Email Template</label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  onClick={() => setTemplateStyle("browser_mockup")}
+                  className={`p-3 rounded-lg border text-left transition-colors ${templateStyle === "browser_mockup" ? "bg-primary/10 border-primary/40" : "bg-secondary border-border hover:border-primary/20"}`}
+                >
+                  <Monitor className="w-5 h-5 mb-1 text-primary" />
+                  <p className="text-xs font-semibold text-foreground">Browser + AI</p>
+                  <p className="text-[10px] text-muted-foreground">Website with Chat & Voice buttons</p>
+                </button>
                 <button
                   onClick={() => setTemplateStyle("phone_mockup")}
                   className={`p-3 rounded-lg border text-left transition-colors ${templateStyle === "phone_mockup" ? "bg-primary/10 border-primary/40" : "bg-secondary border-border hover:border-primary/20"}`}
                 >
                   <Smartphone className="w-5 h-5 mb-1 text-primary" />
                   <p className="text-xs font-semibold text-foreground">Phone Mockup</p>
-                  <p className="text-[10px] text-muted-foreground">Shows their website in a phone frame</p>
+                  <p className="text-[10px] text-muted-foreground">Website in phone frame</p>
                 </button>
                 <button
                   onClick={() => setTemplateStyle("clean_card")}
@@ -165,7 +173,7 @@ const OutreachDialog = ({ prospects, onClose, onSent }: Props) => {
                 >
                   <Zap className="w-5 h-5 mb-1 text-primary" />
                   <p className="text-xs font-semibold text-foreground">Clean Card</p>
-                  <p className="text-[10px] text-muted-foreground">Branded card with demo button</p>
+                  <p className="text-[10px] text-muted-foreground">Branded card with demo</p>
                 </button>
               </div>
             </div>
@@ -248,6 +256,9 @@ const OutreachDialog = ({ prospects, onClose, onSent }: Props) => {
               </div>
             )}
 
+            {previewProspect && templateStyle === "browser_mockup" && (
+              <BrowserMockupPreview prospect={previewProspect} subject={subject} customMessage={customMessage} demoUrl={demoUrl(previewProspect)} />
+            )}
             {previewProspect && templateStyle === "phone_mockup" && (
               <PhoneMockupPreview prospect={previewProspect} subject={subject} customMessage={customMessage} demoUrl={demoUrl(previewProspect)} />
             )}
@@ -415,5 +426,97 @@ const CleanCardPreview = ({ prospect, subject, customMessage, demoUrl }: { prosp
     </div>
   </div>
 );
+
+/* ---- Browser Mockup with AI Buttons ---- */
+const BrowserMockupPreview = ({ prospect, subject, customMessage, demoUrl }: { prospect: Prospect; subject: string; customMessage: string; demoUrl: string }) => {
+  const hostname = prospect.website_url ? (() => {
+    try { const u = new URL(prospect.website_url.startsWith("http") ? prospect.website_url : `https://${prospect.website_url}`); return u.host; } catch { return prospect.website_url; }
+  })() : prospect.business_name;
+
+  return (
+    <div className="bg-white rounded-xl p-5 text-gray-800 text-sm space-y-4 max-h-[500px] overflow-y-auto">
+      <p className="font-bold text-base text-gray-900">{subject}</p>
+      <hr className="border-gray-200" />
+
+      <div className="space-y-2">
+        <p className="text-gray-700">Hi {prospect.owner_name || prospect.business_name} team,</p>
+        <p className="text-gray-600">I was looking at <strong>{prospect.business_name}</strong> and had an idea — what if your website could talk to visitors and answer the phone, even at 2 AM?</p>
+        {customMessage && <p className="text-gray-500 italic text-xs">{customMessage}</p>}
+        <p className="text-gray-600">We put together a quick preview using your actual site:</p>
+      </div>
+
+      {/* Browser window mockup */}
+      <div className="rounded-xl overflow-hidden shadow-lg border border-gray-200">
+        {/* Title bar with traffic lights */}
+        <div className="bg-gray-100 px-3 py-2 flex items-center gap-2">
+          <div className="flex gap-1.5">
+            <div className="w-3 h-3 rounded-full bg-red-400" />
+            <div className="w-3 h-3 rounded-full bg-yellow-400" />
+            <div className="w-3 h-3 rounded-full bg-green-400" />
+          </div>
+          <div className="bg-white border border-gray-200 rounded-md px-3 py-0.5 text-[10px] text-gray-500 ml-2 flex-1 max-w-[200px] truncate">
+            {hostname}
+          </div>
+        </div>
+
+        {/* Website content with AI buttons */}
+        <div className="relative bg-white">
+          {prospect.website_screenshot ? (
+            <img
+              src={prospect.website_screenshot}
+              alt={`${prospect.business_name} website`}
+              className="w-full h-[260px] object-cover object-top"
+            />
+          ) : (
+            <div className="w-full h-[260px] bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+              <p className="text-lg font-semibold text-gray-300">{prospect.business_name}</p>
+            </div>
+          )}
+
+          {/* Chat AI button - bottom left */}
+          <div className="absolute bottom-3 left-3">
+            <a
+              href={demoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 bg-gray-900 text-white text-[11px] font-semibold px-3 py-2 rounded-lg shadow-lg hover:bg-gray-800 transition-colors"
+            >
+              💬 Chat AI
+            </a>
+          </div>
+
+          {/* Voice AI button - bottom right */}
+          <div className="absolute bottom-3 right-3">
+            <a
+              href={demoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 bg-emerald-600 text-white text-[11px] font-semibold px-3 py-2 rounded-lg shadow-lg hover:bg-emerald-700 transition-colors"
+            >
+              🎙 Voice AI
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <p className="text-gray-600 text-sm">It takes 30 seconds — just click a button and talk to it (or type). No signup required.</p>
+
+      <div className="text-center">
+        <a
+          href={demoUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block bg-emerald-600 text-white font-semibold px-6 py-2.5 rounded-lg text-sm hover:bg-emerald-700 transition-colors"
+        >
+          Try the Live Preview →
+        </a>
+      </div>
+
+      <p className="text-[10px] text-gray-400 text-center">
+        This is a one-time personalized preview built specifically for {prospect.business_name}.
+      </p>
+    </div>
+  );
+};
 
 export default OutreachDialog;
