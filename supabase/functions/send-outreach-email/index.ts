@@ -38,6 +38,63 @@ function buildEmailHtml(
     ? `<img src="${prospect.website_screenshot}" alt="${prospect.business_name} website" style="width:100%;max-height:200px;object-fit:cover;object-position:top;border-radius:8px 8px 0 0;" />`
     : '';
 
+  if (templateStyle === 'browser_mockup') {
+    const hostname = prospect.website_url ? (() => { try { const u = new URL(prospect.website_url.startsWith('http') ? prospect.website_url : `https://${prospect.website_url}`); return u.host; } catch { return prospect.website_url; } })() : prospect.business_name;
+    return `<!DOCTYPE html>
+<html lang="en">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f0f0f0;font-family:'Helvetica Neue',Helvetica,Arial,sans-serif;">
+<table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f0f0;padding:40px 0;">
+<tr><td align="center">
+<table width="600" cellpadding="0" cellspacing="0" style="background:#ffffff;border-radius:16px;overflow:hidden;">
+  <tr><td style="padding:32px 32px 16px;">
+    <p style="margin:0;font-size:15px;color:#374151;line-height:1.6;">Hi ${name},</p>
+    <p style="margin:12px 0 0;font-size:15px;color:#374151;line-height:1.6;">I was looking at <strong>${prospect.business_name}</strong> and had an idea — what if your website could talk to visitors and answer the phone, even at 2 AM?</p>
+    ${customMessage ? `<p style="margin:12px 0 0;font-size:14px;color:#6b7280;line-height:1.6;">${customMessage}</p>` : ''}
+    <p style="margin:12px 0 0;font-size:15px;color:#374151;line-height:1.6;">We put together a quick preview using your actual site. Two buttons — <strong>Chat</strong> and <strong>Voice</strong> — let you experience how it would work for your customers:</p>
+  </td></tr>
+  <tr><td align="center" style="padding:8px 32px 20px;">
+    <!-- Browser window mockup -->
+    <div style="width:100%;max-width:520px;border-radius:12px;overflow:hidden;box-shadow:0 8px 40px rgba(0,0,0,0.12);border:1px solid #e5e7eb;">
+      <!-- Title bar -->
+      <div style="background:#f3f4f6;padding:10px 16px;display:flex;align-items:center;">
+        <table cellpadding="0" cellspacing="0"><tr>
+          <td><div style="width:12px;height:12px;border-radius:50%;background:#ef4444;display:inline-block;"></div></td>
+          <td style="padding-left:6px;"><div style="width:12px;height:12px;border-radius:50%;background:#f59e0b;display:inline-block;"></div></td>
+          <td style="padding-left:6px;"><div style="width:12px;height:12px;border-radius:50%;background:#22c55e;display:inline-block;"></div></td>
+          <td style="padding-left:12px;"><div style="background:#ffffff;border:1px solid #d1d5db;border-radius:6px;padding:4px 14px;font-size:11px;color:#6b7280;display:inline-block;">${hostname}</div></td>
+        </tr></table>
+      </div>
+      <!-- Website screenshot area -->
+      <div style="position:relative;background:#ffffff;">
+        ${screenshotHtml || `<div style="height:280px;background:linear-gradient(135deg,#f8fafc,#e2e8f0);display:flex;align-items:center;justify-content:center;"><p style="font-size:18px;font-weight:600;color:#94a3b8;">${prospect.business_name}</p></div>`}
+        <!-- Chat AI button (bottom left) -->
+        <div style="position:absolute;bottom:12px;left:12px;">
+          <a href="${demoUrl}" style="display:inline-block;background:#1f2937;color:#ffffff;font-size:12px;font-weight:600;padding:8px 14px;border-radius:10px;text-decoration:none;box-shadow:0 4px 12px rgba(0,0,0,0.2);">💬 Chat AI</a>
+        </div>
+        <!-- Voice AI button (bottom right) -->
+        <div style="position:absolute;bottom:12px;right:12px;">
+          <a href="${demoUrl}" style="display:inline-block;background:#059669;color:#ffffff;font-size:12px;font-weight:600;padding:8px 14px;border-radius:10px;text-decoration:none;box-shadow:0 4px 12px rgba(0,0,0,0.2);">🎙 Voice AI</a>
+        </div>
+      </div>
+    </div>
+  </td></tr>
+  <tr><td style="padding:0 32px 24px;">
+    <p style="margin:0 0 16px;font-size:15px;color:#374151;line-height:1.6;">It takes 30 seconds — just click a button and talk to it (or type). No signup required.</p>
+    <div style="text-align:center;">
+      <a href="${demoUrl}" style="display:inline-block;background:#059669;color:#ffffff;font-size:15px;font-weight:600;padding:14px 32px;border-radius:10px;text-decoration:none;">Try the Live Preview →</a>
+    </div>
+    <p style="margin:20px 0 0;font-size:13px;color:#9ca3af;text-align:center;">This is a one-time personalized demo built specifically for ${prospect.business_name}.</p>
+  </td></tr>
+  <tr><td style="padding:16px 32px;border-top:1px solid #f3f4f6;">
+    <p style="margin:0;font-size:11px;color:#9ca3af;text-align:center;">Sent by the AgentFlow AI team · <a href="mailto:unsubscribe@agentflow.ai" style="color:#9ca3af;">Unsubscribe</a></p>
+  </td></tr>
+</table>
+</td></tr>
+</table>
+</body></html>`;
+  }
+
   if (templateStyle === 'phone_mockup') {
     return `<!DOCTYPE html>
 <html lang="en">
