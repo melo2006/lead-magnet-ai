@@ -1,6 +1,6 @@
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
-import { MessageSquare, Mic, ArrowLeft, Settings2, Phone } from "lucide-react";
+import { MessageSquare, Mic, ArrowLeft, Phone } from "lucide-react";
 import type { DemoLeadData } from "@/components/landing/demo-results/demoResultsUtils";
 import { getImageSrc, getSiteName } from "@/components/landing/demo-results/demoResultsUtils";
 import VoiceAgentWidget from "@/components/landing/demo-results/VoiceAgentWidget";
