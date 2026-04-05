@@ -21,7 +21,7 @@ const BodySchema = z.object({
   prospects: z.array(ProspectSchema).min(1).max(50),
   subject: z.string().min(1).max(500),
   customMessage: z.string().max(2000).optional().default(''),
-  templateStyle: z.enum(['phone_mockup', 'clean_card']),
+  templateStyle: z.enum(['phone_mockup', 'clean_card', 'browser_mockup']),
   senderName: z.string().max(200).optional().default('AgentFlow AI'),
   baseUrl: z.string().url(),
 });
