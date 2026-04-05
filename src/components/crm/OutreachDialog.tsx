@@ -150,14 +150,22 @@ const OutreachDialog = ({ prospects, onClose, onSent }: Props) => {
             {/* Template Style */}
             <div>
               <label className="block text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Email Template</label>
-              <div className="grid grid-cols-2 gap-2">
+              <div className="grid grid-cols-3 gap-2">
+                <button
+                  onClick={() => setTemplateStyle("browser_mockup")}
+                  className={`p-3 rounded-lg border text-left transition-colors ${templateStyle === "browser_mockup" ? "bg-primary/10 border-primary/40" : "bg-secondary border-border hover:border-primary/20"}`}
+                >
+                  <Monitor className="w-5 h-5 mb-1 text-primary" />
+                  <p className="text-xs font-semibold text-foreground">Browser + AI</p>
+                  <p className="text-[10px] text-muted-foreground">Website with Chat & Voice buttons</p>
+                </button>
                 <button
                   onClick={() => setTemplateStyle("phone_mockup")}
                   className={`p-3 rounded-lg border text-left transition-colors ${templateStyle === "phone_mockup" ? "bg-primary/10 border-primary/40" : "bg-secondary border-border hover:border-primary/20"}`}
                 >
                   <Smartphone className="w-5 h-5 mb-1 text-primary" />
                   <p className="text-xs font-semibold text-foreground">Phone Mockup</p>
-                  <p className="text-[10px] text-muted-foreground">Shows their website in a phone frame</p>
+                  <p className="text-[10px] text-muted-foreground">Website in phone frame</p>
                 </button>
                 <button
                   onClick={() => setTemplateStyle("clean_card")}
@@ -165,7 +173,7 @@ const OutreachDialog = ({ prospects, onClose, onSent }: Props) => {
                 >
                   <Zap className="w-5 h-5 mb-1 text-primary" />
                   <p className="text-xs font-semibold text-foreground">Clean Card</p>
-                  <p className="text-[10px] text-muted-foreground">Branded card with demo button</p>
+                  <p className="text-[10px] text-muted-foreground">Branded card with demo</p>
                 </button>
               </div>
             </div>
