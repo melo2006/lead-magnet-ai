@@ -1,11 +1,8 @@
 import { useEffect, useMemo, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
-import { Mail, Smartphone, Eye, FileText, Copy, Check, Monitor, ExternalLink } from "lucide-react";
-import { supabase } from "@/integrations/supabase/client";
+import { Mail, Smartphone, Eye, FileText, Copy, Check, Monitor } from "lucide-react";
 import {
   BrowserMockupPreview,
   PhoneMockupPreview,
-  buildDemoUrl,
   type PreviewBusiness,
 } from "@/components/crm/OutreachTemplatePreviews";
 
@@ -18,6 +15,12 @@ interface Template {
   subject?: string;
   body: string;
   description?: string;
+}
+
+interface TemplateVariable {
+  key: string;
+  label: string;
+  description: string;
 }
 
 const DEFAULT_TEMPLATES: Template[] = [
@@ -98,108 +101,53 @@ Happy to hear what you think.`,
   },
 ];
 
-const VARIABLES = [
-  { key: "{{business_name}}", label: "Business Name" },
-  { key: "{{owner_name}}", label: "Owner Name" },
-  { key: "{{demo_link}}", label: "Demo Link" },
-  { key: "{{niche}}", label: "Niche" },
+const VARIABLES: TemplateVariable[] = [
+  {
+    key: "{{business_name}}",
+    label: "Business Name",
+    description: "Replaced with the selected prospect's business name.",
+  },
+  {
+    key: "{{owner_name}}",
+    label: "Owner Name",
+    description: "Replaced with the prospect owner's name when available.",
+  },
+  {
+    key: "{{owner_email}}",
+    label: "Owner Email",
+    description: "Used in recipient preview fields when an email address exists.",
+  },
+  {
+    key: "{{demo_link}}",
+    label: "Demo Link",
+    description: "Replaced with the personalized live demo URL.",
+  },
+  {
+    key: "{{niche}}",
+    label: "Niche",
+    description: "Replaced with the selected business niche.",
+  },
 ];
 
-const EMPTY_PREVIEW_BUSINESS: PreviewBusiness = {
-  id: "preview",
-  business_name: "Your business",
-  owner_name: "there",
-  owner_email: null,
+const TEMPLATE_PREVIEW_BUSINESS: PreviewBusiness = {
+  id: "template-preview",
+  business_name: "{{business_name}}",
+  owner_name: "{{owner_name}}",
+  owner_email: "{{owner_email}}",
   website_url: "yourwebsite.com",
   website_screenshot: null,
-  niche: "service business",
+  niche: "{{niche}}",
 };
 
-const mapProspectRow = (row: any): PreviewBusiness => ({
-  id: row.id,
-  business_name: row.business_name,
-  owner_name: row.owner_name,
-  owner_email: row.owner_email,
-  website_url: row.website_url,
-  website_screenshot: row.website_screenshot,
-  niche: row.niche,
-});
-
-const mapLeadRow = (row: any): PreviewBusiness => ({
-  id: row.id,
-  business_name: row.business_name,
-  owner_name: row.full_name,
-  owner_email: row.email,
-  website_url: row.website_url,
-  website_screenshot: row.website_screenshot,
-  niche: row.niche,
-});
-
-const getWebsiteHref = (websiteUrl?: string | null) => {
-  if (!websiteUrl) return null;
-  return websiteUrl.startsWith("http") ? websiteUrl : `https://${websiteUrl}`;
-};
-
-const fetchPreviewBusiness = async (): Promise<PreviewBusiness> => {
-  try {
-    const { data: prospectWithImage } = await supabase
-      .from("prospects")
-      .select("id,business_name,owner_name,owner_email,niche,website_url,website_screenshot")
-      .not("website_screenshot", "is", null)
-      .order("updated_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (prospectWithImage) return mapProspectRow(prospectWithImage);
-
-    const { data: leadWithImage } = await supabase
-      .from("leads")
-      .select("id,business_name,full_name,email,niche,website_url,website_screenshot")
-      .not("website_screenshot", "is", null)
-      .order("updated_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (leadWithImage) return mapLeadRow(leadWithImage);
-
-    const { data: latestProspect } = await supabase
-      .from("prospects")
-      .select("id,business_name,owner_name,owner_email,niche,website_url,website_screenshot")
-      .order("updated_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (latestProspect) return mapProspectRow(latestProspect);
-
-    const { data: latestLead } = await supabase
-      .from("leads")
-      .select("id,business_name,full_name,email,niche,website_url,website_screenshot")
-      .order("updated_at", { ascending: false })
-      .limit(1)
-      .maybeSingle();
-
-    if (latestLead) return mapLeadRow(latestLead);
-  } catch (error) {
-    console.error("Template preview business error:", error);
-  }
-
-  return EMPTY_PREVIEW_BUSINESS;
-};
+const TEMPLATE_PREVIEW_LINK = "#";
+const TEMPLATE_PREVIEW_LINK_LABEL = "{{demo_link}}";
 
 const TemplatesView = () => {
   const [selectedType, setSelectedType] = useState<"all" | TemplateType>("all");
   const [previewId, setPreviewId] = useState<string | null>("visual-browser");
   const [copiedId, setCopiedId] = useState<string | null>(null);
 
-  const { data: previewBusinessData, isLoading: previewBusinessLoading } = useQuery({
-    queryKey: ["template-preview-business"],
-    queryFn: fetchPreviewBusiness,
-    staleTime: 60_000,
-  });
-
-  const previewBusiness = previewBusinessData || EMPTY_PREVIEW_BUSINESS;
-  const previewDemoUrl = useMemo(() => buildDemoUrl(previewBusiness), [previewBusiness]);
-  const previewWebsiteHref = useMemo(() => getWebsiteHref(previewBusiness.website_url), [previewBusiness.website_url]);
+  const previewBusiness = TEMPLATE_PREVIEW_BUSINESS;
 
   const filtered = useMemo(
     () => (selectedType === "all" ? DEFAULT_TEMPLATES : DEFAULT_TEMPLATES.filter((template) => template.type === selectedType)),
@@ -217,24 +165,9 @@ const TemplatesView = () => {
   const fillPreview = (text: string) => {
     return text
       .replace(/\{\{business_name\}\}/g, previewBusiness.business_name)
-      .replace(/\{\{owner_name\}\}/g, previewBusiness.owner_name || "there")
-      .replace(/\{\{demo_link\}\}/g, previewDemoUrl)
-      .replace(/\{\{niche\}\}/g, previewBusiness.niche || "service business");
-  };
-
-  const getVariableExample = (key: string) => {
-    switch (key) {
-      case "{{business_name}}":
-        return previewBusiness.business_name;
-      case "{{owner_name}}":
-        return previewBusiness.owner_name || "there";
-      case "{{demo_link}}":
-        return previewDemoUrl;
-      case "{{niche}}":
-        return previewBusiness.niche || "service business";
-      default:
-        return "";
-    }
+      .replace(/\{\{owner_name\}\}/g, previewBusiness.owner_name || "{{owner_name}}")
+      .replace(/\{\{demo_link\}\}/g, TEMPLATE_PREVIEW_LINK_LABEL)
+      .replace(/\{\{niche\}\}/g, previewBusiness.niche || "{{niche}}");
   };
 
   const copyTemplate = (template: Template) => {
@@ -272,7 +205,7 @@ const TemplatesView = () => {
           prospect={previewBusiness}
           subject={fillPreview(previewTemplate.subject || "Quick idea for your website")}
           customMessage=""
-          demoUrl={previewDemoUrl}
+          demoUrl={TEMPLATE_PREVIEW_LINK}
         />
       );
     }
@@ -283,7 +216,7 @@ const TemplatesView = () => {
           prospect={previewBusiness}
           subject={fillPreview(previewTemplate.subject || "See how your website looks with AI")}
           customMessage=""
-          demoUrl={previewDemoUrl}
+          demoUrl={TEMPLATE_PREVIEW_LINK}
         />
       );
     }
@@ -292,8 +225,8 @@ const TemplatesView = () => {
       return (
         <div className="bg-white rounded-xl shadow-lg overflow-hidden">
           <div className="bg-gray-100 px-4 py-3 border-b border-gray-200">
-            <p className="text-[11px] text-gray-500">From: <span className="text-gray-700">ai@yourdomain.com</span></p>
-            <p className="text-[11px] text-gray-500">To: <span className="text-gray-700">{previewBusiness.owner_email || "hello@yourbusiness.com"}</span></p>
+            <p className="text-[11px] text-gray-500">From: <span className="text-gray-700">configured sender</span></p>
+            <p className="text-[11px] text-gray-500">To: <span className="text-gray-700">{previewBusiness.owner_email || "{{owner_email}}"}</span></p>
             <p className="text-sm font-semibold text-gray-900 mt-1">{fillPreview(previewTemplate.subject || "")}</p>
           </div>
           <div className="p-5">
@@ -339,30 +272,13 @@ const TemplatesView = () => {
       </div>
 
       <div className="rounded-xl border border-border bg-card p-4">
-        <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-          <div>
-            <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Live preview data</p>
-            <p className="text-sm font-semibold text-foreground">
-              {previewBusinessLoading ? "Loading a real business preview..." : previewBusiness.business_name}
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {previewBusiness.website_screenshot
-                ? "Using a saved website image in the visual mockups."
-                : "No saved website image exists for this preview record yet, so visual templates use the branded fallback."}
-            </p>
-          </div>
-
-          {previewWebsiteHref && (
-            <a
-              href={previewWebsiteHref}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="inline-flex items-center gap-1 text-xs font-medium text-primary hover:underline"
-            >
-              <ExternalLink className="w-3.5 h-3.5" /> Open website
-            </a>
-          )}
-        </div>
+        <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Variable preview</p>
+        <p className="text-sm font-semibold text-foreground mt-1">
+          Templates show placeholders here instead of a random company record.
+        </p>
+        <p className="text-xs text-muted-foreground mt-1">
+          When you send from a selected prospect, the real business name, recipient email, website screenshot, and live demo link are inserted automatically.
+        </p>
       </div>
 
       <div className="flex items-center gap-1 bg-card border border-border rounded-lg p-1 w-fit">
@@ -439,11 +355,9 @@ const TemplatesView = () => {
             <h3 className="text-xs font-semibold text-foreground mb-2">Available Variables</h3>
             <div className="space-y-1.5">
               {VARIABLES.map((variable) => (
-                <div key={variable.key} className="flex items-center justify-between gap-3 text-xs">
+                <div key={variable.key} className="flex items-start justify-between gap-3 text-xs">
                   <code className="text-primary bg-primary/10 px-1.5 py-0.5 rounded font-mono text-[11px]">{variable.key}</code>
-                  <span className="text-right text-muted-foreground">
-                    {variable.label} → <span className="text-foreground break-all">{getVariableExample(variable.key)}</span>
-                  </span>
+                  <span className="text-right text-muted-foreground max-w-[240px]">{variable.description}</span>
                 </div>
               ))}
             </div>
@@ -452,8 +366,13 @@ const TemplatesView = () => {
 
         <div className="space-y-3">
           <div className="flex items-center gap-2 text-sm font-medium text-foreground">
-            <Eye className="w-4 h-4 text-primary" /> Live Preview
+            <Eye className="w-4 h-4 text-primary" /> Preview
           </div>
+          {previewTemplate?.type === "visual" && (
+            <p className="text-xs text-muted-foreground">
+              Visual previews use placeholders on this screen. Real website screenshots appear in the outreach send dialog when the selected prospect has one saved.
+            </p>
+          )}
           {renderPreview()}
         </div>
       </div>
