@@ -427,4 +427,96 @@ const CleanCardPreview = ({ prospect, subject, customMessage, demoUrl }: { prosp
   </div>
 );
 
+/* ---- Browser Mockup with AI Buttons ---- */
+const BrowserMockupPreview = ({ prospect, subject, customMessage, demoUrl }: { prospect: Prospect; subject: string; customMessage: string; demoUrl: string }) => {
+  const hostname = prospect.website_url ? (() => {
+    try { const u = new URL(prospect.website_url.startsWith("http") ? prospect.website_url : `https://${prospect.website_url}`); return u.host; } catch { return prospect.website_url; }
+  })() : prospect.business_name;
+
+  return (
+    <div className="bg-white rounded-xl p-5 text-gray-800 text-sm space-y-4 max-h-[500px] overflow-y-auto">
+      <p className="font-bold text-base text-gray-900">{subject}</p>
+      <hr className="border-gray-200" />
+
+      <div className="space-y-2">
+        <p className="text-gray-700">Hi {prospect.owner_name || prospect.business_name} team,</p>
+        <p className="text-gray-600">I was looking at <strong>{prospect.business_name}</strong> and had an idea — what if your website could talk to visitors and answer the phone, even at 2 AM?</p>
+        {customMessage && <p className="text-gray-500 italic text-xs">{customMessage}</p>}
+        <p className="text-gray-600">We put together a quick preview using your actual site:</p>
+      </div>
+
+      {/* Browser window mockup */}
+      <div className="rounded-xl overflow-hidden shadow-lg border border-gray-200">
+        {/* Title bar with traffic lights */}
+        <div className="bg-gray-100 px-3 py-2 flex items-center gap-2">
+          <div className="flex gap-1.5">
+            <div className="w-3 h-3 rounded-full bg-red-400" />
+            <div className="w-3 h-3 rounded-full bg-yellow-400" />
+            <div className="w-3 h-3 rounded-full bg-green-400" />
+          </div>
+          <div className="bg-white border border-gray-200 rounded-md px-3 py-0.5 text-[10px] text-gray-500 ml-2 flex-1 max-w-[200px] truncate">
+            {hostname}
+          </div>
+        </div>
+
+        {/* Website content with AI buttons */}
+        <div className="relative bg-white">
+          {prospect.website_screenshot ? (
+            <img
+              src={prospect.website_screenshot}
+              alt={`${prospect.business_name} website`}
+              className="w-full h-[260px] object-cover object-top"
+            />
+          ) : (
+            <div className="w-full h-[260px] bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
+              <p className="text-lg font-semibold text-gray-300">{prospect.business_name}</p>
+            </div>
+          )}
+
+          {/* Chat AI button - bottom left */}
+          <div className="absolute bottom-3 left-3">
+            <a
+              href={demoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 bg-gray-900 text-white text-[11px] font-semibold px-3 py-2 rounded-lg shadow-lg hover:bg-gray-800 transition-colors"
+            >
+              💬 Chat AI
+            </a>
+          </div>
+
+          {/* Voice AI button - bottom right */}
+          <div className="absolute bottom-3 right-3">
+            <a
+              href={demoUrl}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="flex items-center gap-1.5 bg-emerald-600 text-white text-[11px] font-semibold px-3 py-2 rounded-lg shadow-lg hover:bg-emerald-700 transition-colors"
+            >
+              🎙 Voice AI
+            </a>
+          </div>
+        </div>
+      </div>
+
+      <p className="text-gray-600 text-sm">It takes 30 seconds — just click a button and talk to it (or type). No signup required.</p>
+
+      <div className="text-center">
+        <a
+          href={demoUrl}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="inline-block bg-emerald-600 text-white font-semibold px-6 py-2.5 rounded-lg text-sm hover:bg-emerald-700 transition-colors"
+        >
+          Try the Live Preview →
+        </a>
+      </div>
+
+      <p className="text-[10px] text-gray-400 text-center">
+        This is a one-time personalized preview built specifically for {prospect.business_name}.
+      </p>
+    </div>
+  );
+};
+
 export default OutreachDialog;
