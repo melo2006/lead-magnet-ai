@@ -155,7 +155,7 @@ export const BrowserMockupPreview = ({ prospect, subject, customMessage, demoUrl
         </a>
       </div>
 
-      <p className="text-center text-[10px] text-gray-400">Simple monthly plans are available once you are ready.</p>
+      <p className="text-center text-[10px] text-gray-400">This personalized demo was built specifically for {prospect.business_name}. Simple plans start at an affordable monthly rate.</p>
     </div>
   );
 };
