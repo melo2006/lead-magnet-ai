@@ -479,7 +479,7 @@ const RedesignedWebsite = ({ leadData }: Props) => {
 
           <div className="flex items-center gap-4">
             <span className="text-xs" style={{ color: tint(textSecondary, 0.6) }}>
-              Redesign powered by SignalAgent
+              Redesign powered by AI Hidden Leads
             </span>
             <a
               href="/"

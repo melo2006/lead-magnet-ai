@@ -902,7 +902,7 @@ async function sendSummaryEmail({
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        from: 'SignalAgent Demo <onboarding@resend.dev>',
+        from: 'AI Hidden Leads Demo <onboarding@resend.dev>',
         to,
         subject: `Aspen demo recap for ${businessName}`,
         html,

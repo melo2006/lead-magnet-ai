@@ -51,7 +51,7 @@ const nicheAssets: Record<string, NicheAssets> = {
     newLaptop: newLaptopRealtors,
     subtitle: "Your listing site could look like this — with a built-in AI voice agent and smart chatbot that never misses a buyer",
     beforeLabel: "Your Realtor Site Today",
-    afterLabel: "With SignalAgent ✨",
+    afterLabel: "With AI Hidden Leads ✨",
   },
   medspa: {
     oldPhone: oldPhoneMedspa,
@@ -60,7 +60,7 @@ const nicheAssets: Record<string, NicheAssets> = {
     newLaptop: newLaptopMedspa,
     subtitle: "Your med spa site could look like this — with AI booking and a voice assistant that captures every consultation request",
     beforeLabel: "Your Med Spa Site Today",
-    afterLabel: "With SignalAgent ✨",
+    afterLabel: "With AI Hidden Leads ✨",
   },
   autodetail: {
     oldPhone: oldPhoneAuto,
@@ -69,7 +69,7 @@ const nicheAssets: Record<string, NicheAssets> = {
     newLaptop: newLaptopAuto,
     subtitle: "Your detailing site could look like this — with an AI assistant that books jobs while you're polishing a Tesla",
     beforeLabel: "Your Detail Site Today",
-    afterLabel: "With SignalAgent ✨",
+    afterLabel: "With AI Hidden Leads ✨",
   },
   veterinary: {
     oldPhone: oldPhoneVet,
@@ -78,7 +78,7 @@ const nicheAssets: Record<string, NicheAssets> = {
     newLaptop: newLaptopVet,
     subtitle: "Your vet clinic site could look like this — with AI triage and a voice agent that handles panicked pet parents 24/7",
     beforeLabel: "Your Vet Site Today",
-    afterLabel: "With SignalAgent ✨",
+    afterLabel: "With AI Hidden Leads ✨",
   },
   marine: {
     oldPhone: oldPhoneMarine,
@@ -87,7 +87,7 @@ const nicheAssets: Record<string, NicheAssets> = {
     newLaptop: newLaptopMarine,
     subtitle: "Your marine service site could look like this — with AI scheduling and a voice agent that books haul-outs while you're on the dock",
     beforeLabel: "Your Marine Site Today",
-    afterLabel: "With SignalAgent ✨",
+    afterLabel: "With AI Hidden Leads ✨",
   },
 };
 
@@ -251,7 +251,7 @@ const BeforeAfterSection = ({ niche }: BeforeAfterSectionProps) => {
               <DeviceAiBadges device="laptop" />
             </div>
             <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-primary text-[10px] sm:text-sm font-semibold whitespace-nowrap">
-              Desktop — With SignalAgent ✨
+              Desktop — With AI Hidden Leads ✨
             </div>
           </motion.div>
         </div>
