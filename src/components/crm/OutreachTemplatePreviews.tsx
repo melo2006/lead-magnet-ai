@@ -131,17 +131,17 @@ export const BrowserMockupPreview = ({ prospect, subject, customMessage, demoUrl
       </div>
 
       <div className="rounded-xl border border-emerald-100 bg-emerald-50 p-4">
-        <p className="mb-2 text-sm font-semibold text-gray-900">Why this matters for {prospect.business_name}:</p>
-        <div className="space-y-2 text-sm text-gray-700">
-          <p><span className="font-semibold text-emerald-700">•</span> Never miss calls, chats, or after-hours leads again.</p>
-          <p><span className="font-semibold text-emerald-700">•</span> Let customers book, reschedule, or confirm appointments automatically.</p>
-          <p><span className="font-semibold text-emerald-700">•</span> Answer pricing, service, and FAQ questions instantly.</p>
-          <p><span className="font-semibold text-emerald-700">•</span> Warm transfer qualified callers to a real person when needed.</p>
+        <p className="mb-2 text-sm font-semibold text-gray-900">Here's what this means for {prospect.business_name}:</p>
+        <div className="space-y-2.5 text-sm text-gray-700">
+          <p><span className="font-bold text-emerald-600 text-base">✓</span> <strong>Never miss another call or lead</strong> — Your AI answers every inquiry 24/7, even holidays and weekends. No voicemail, no missed opportunities.</p>
+          <p><span className="font-bold text-emerald-600 text-base">✓</span> <strong>Book & manage appointments automatically</strong> — Visitors schedule, reschedule, or cancel right from the chat or voice assistant. Zero staff time needed.</p>
+          <p><span className="font-bold text-emerald-600 text-base">✓</span> <strong>Answer complex questions instantly</strong> — Pricing, services, hours, FAQs — your AI knows your business inside and out and responds in seconds.</p>
+          <p><span className="font-bold text-emerald-600 text-base">✓</span> <strong>Warm transfer to your team when it matters</strong> — The AI qualifies callers first, then seamlessly connects high-value leads to a real person. No cold transfers, no wasted time.</p>
         </div>
       </div>
 
       <p className="text-gray-600">
-        Click below to see the live version — you can actually chat with it or start a voice conversation about your own business in under 30 seconds.
+        We've already set this up on a preview of <strong>your website</strong>. Click below to see it live — you can actually chat with it and even have a voice conversation about your own business. It takes 30 seconds, no signup needed.
       </p>
 
       <div className="text-center">
