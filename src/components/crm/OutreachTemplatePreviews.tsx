@@ -73,10 +73,12 @@ export const BrowserMockupPreview = ({ prospect, subject, customMessage, demoUrl
       <div className="space-y-3">
         <p className="text-gray-700">Hi {contactName},</p>
         <p className="text-gray-600">
-          I came across <strong>{prospect.business_name}</strong> and mocked up something using your own website — a live <strong>Chat AI</strong> and <strong>Voice AI</strong> layer that can answer questions, book appointments, and qualify callers 24/7.
+          I came across <strong>{prospect.business_name}</strong> and was genuinely impressed. I had a thought — what if every visitor to your website could instantly get answers, book appointments, or speak to your team… even at 2 AM on a Sunday?
+        </p>
+        <p className="text-gray-600">
+          We built a quick mockup using <strong>your actual website</strong>. Take a look — the two AI buttons at the bottom are fully functional:
         </p>
         {customMessage && <p className="text-xs italic text-gray-500">{customMessage}</p>}
-        <p className="text-gray-600">This is how it could look directly on your site:</p>
       </div>
 
       <div className="overflow-hidden rounded-xl border border-gray-200 shadow-lg">
