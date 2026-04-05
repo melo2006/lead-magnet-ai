@@ -256,6 +256,9 @@ const OutreachDialog = ({ prospects, onClose, onSent }: Props) => {
               </div>
             )}
 
+            {previewProspect && templateStyle === "browser_mockup" && (
+              <BrowserMockupPreview prospect={previewProspect} subject={subject} customMessage={customMessage} demoUrl={demoUrl(previewProspect)} />
+            )}
             {previewProspect && templateStyle === "phone_mockup" && (
               <PhoneMockupPreview prospect={previewProspect} subject={subject} customMessage={customMessage} demoUrl={demoUrl(previewProspect)} />
             )}
