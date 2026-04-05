@@ -1,8 +1,14 @@
 import { useState } from "react";
-import { Mail, Send, Smartphone, X, Zap, Eye, ExternalLink, ChevronLeft, ChevronRight, Monitor } from "lucide-react";
+import { Mail, Send, Smartphone, X, Zap, ExternalLink, ChevronLeft, ChevronRight, Monitor } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Prospect } from "@/hooks/useProspectSearch";
+import {
+  BrowserMockupPreview,
+  CleanCardPreview,
+  PhoneMockupPreview,
+  buildDemoUrl,
+} from "@/components/crm/OutreachTemplatePreviews";
 
 interface Props {
   prospects: Prospect[];
@@ -23,8 +29,7 @@ const OutreachDialog = ({ prospects, onClose, onSent }: Props) => {
 
   const previewProspect = prospects[previewIndex] || null;
 
-  const demoUrl = (p: Prospect) =>
-    `${window.location.origin}/demo?url=${encodeURIComponent(p.website_url || "")}&name=${encodeURIComponent(p.business_name)}&niche=${encodeURIComponent(p.niche || "")}&prospectId=${encodeURIComponent(p.id || "")}`;
+  const demoUrl = (p: Prospect) => buildDemoUrl(p);
 
   const handleSend = async () => {
     setSending(true);
@@ -113,7 +118,6 @@ const OutreachDialog = ({ prospects, onClose, onSent }: Props) => {
   return (
     <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4">
       <div className="bg-card border border-border rounded-2xl w-full max-w-5xl max-h-[90vh] overflow-y-auto shadow-2xl">
-        {/* Header */}
         <div className="flex items-center justify-between border-b border-border px-5 py-4">
           <div>
             <h2 className="text-lg font-bold text-foreground">Send Outreach Campaign</h2>
@@ -125,9 +129,7 @@ const OutreachDialog = ({ prospects, onClose, onSent }: Props) => {
         </div>
 
         <div className="grid lg:grid-cols-2 gap-0">
-          {/* Settings */}
           <div className="p-5 space-y-5 border-r border-border">
-            {/* Channel */}
             <div>
               <label className="block text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Channel</label>
               <div className="flex gap-2">
@@ -147,7 +149,6 @@ const OutreachDialog = ({ prospects, onClose, onSent }: Props) => {
               </div>
             </div>
 
-            {/* Template Style */}
             <div>
               <label className="block text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Email Template</label>
               <div className="grid grid-cols-3 gap-2">
@@ -178,7 +179,6 @@ const OutreachDialog = ({ prospects, onClose, onSent }: Props) => {
               </div>
             </div>
 
-            {/* Subject */}
             {channel !== "sms" && (
               <div>
                 <label className="block text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Email Subject</label>
@@ -190,7 +190,6 @@ const OutreachDialog = ({ prospects, onClose, onSent }: Props) => {
               </div>
             )}
 
-            {/* Custom message */}
             <div>
               <label className="block text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Custom Message (optional)</label>
               <textarea
@@ -202,7 +201,6 @@ const OutreachDialog = ({ prospects, onClose, onSent }: Props) => {
               />
             </div>
 
-            {/* Send button */}
             <button
               onClick={handleSend}
               disabled={sending}
@@ -213,9 +211,7 @@ const OutreachDialog = ({ prospects, onClose, onSent }: Props) => {
             </button>
           </div>
 
-          {/* Preview */}
           <div className="p-5">
-            {/* Prospect navigator */}
             <div className="flex items-center justify-between mb-4">
               <label className="text-[10px] uppercase tracking-wider text-muted-foreground">Preview</label>
               {prospects.length > 1 && (
@@ -241,7 +237,6 @@ const OutreachDialog = ({ prospects, onClose, onSent }: Props) => {
               )}
             </div>
 
-            {/* Prospect name bar */}
             {previewProspect && (
               <div className="flex items-center justify-between bg-secondary rounded-lg px-3 py-2 mb-3">
                 <span className="text-xs font-semibold text-foreground truncate">{previewProspect.business_name}</span>
@@ -256,265 +251,39 @@ const OutreachDialog = ({ prospects, onClose, onSent }: Props) => {
               </div>
             )}
 
+            {previewProspect && !previewProspect.website_screenshot && (templateStyle === "browser_mockup" || templateStyle === "phone_mockup") && (
+              <p className="mb-3 text-[11px] text-muted-foreground">
+                This business does not have a saved website screenshot yet, so the preview uses the branded fallback instead of a live site image.
+              </p>
+            )}
+
             {previewProspect && templateStyle === "browser_mockup" && (
-              <BrowserMockupPreview prospect={previewProspect} subject={subject} customMessage={customMessage} demoUrl={demoUrl(previewProspect)} />
+              <BrowserMockupPreview
+                prospect={previewProspect}
+                subject={subject}
+                customMessage={customMessage}
+                demoUrl={demoUrl(previewProspect)}
+              />
             )}
             {previewProspect && templateStyle === "phone_mockup" && (
-              <PhoneMockupPreview prospect={previewProspect} subject={subject} customMessage={customMessage} demoUrl={demoUrl(previewProspect)} />
+              <PhoneMockupPreview
+                prospect={previewProspect}
+                subject={subject}
+                customMessage={customMessage}
+                demoUrl={demoUrl(previewProspect)}
+              />
             )}
             {previewProspect && templateStyle === "clean_card" && (
-              <CleanCardPreview prospect={previewProspect} subject={subject} customMessage={customMessage} demoUrl={demoUrl(previewProspect)} />
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-/* ---- iPhone-style Phone Mockup ---- */
-const PhoneMockupPreview = ({ prospect, subject, customMessage, demoUrl }: { prospect: Prospect; subject: string; customMessage: string; demoUrl: string }) => (
-  <div className="bg-white rounded-xl p-5 text-gray-800 text-sm space-y-4 max-h-[500px] overflow-y-auto">
-    <p className="font-bold text-base text-gray-900">{subject}</p>
-    <p className="text-gray-500 text-xs">{prospect.business_name} | Personalized Demo</p>
-    <hr className="border-gray-200" />
-
-    <div className="text-center space-y-2">
-      <h3 className="text-xl font-bold text-gray-900">Meet Your <span className="text-emerald-600">AI Employee</span></h3>
-      <p className="text-sm"><strong className="text-emerald-600">Chat</strong> with it. <strong className="text-emerald-600">Talk</strong> to it.</p>
-      {customMessage && <p className="text-gray-600 italic text-xs">{customMessage}</p>}
-      <p className="text-gray-400 text-[10px]">Role-play real customer conversations for your business, right now.</p>
-    </div>
-
-    {/* Realistic iPhone mockup */}
-    <div className="flex justify-center py-2">
-      <div className="relative w-[220px]">
-        {/* Phone frame */}
-        <div className="rounded-[2.5rem] border-[6px] border-gray-800 bg-black shadow-2xl overflow-hidden">
-          {/* Notch / Dynamic Island */}
-          <div className="relative h-7 bg-black flex items-center justify-center">
-            <div className="w-[80px] h-[22px] bg-black rounded-full absolute top-0" />
-            <div className="w-[60px] h-[18px] bg-gray-900 rounded-full z-10 mt-0.5" />
-          </div>
-
-          {/* Screen content */}
-          <div className="bg-white min-h-[340px] relative">
-            {prospect.website_screenshot ? (
-              <img
-                src={prospect.website_screenshot}
-                alt={`${prospect.business_name} website`}
-                className="w-full h-[280px] object-cover object-top"
+              <CleanCardPreview
+                prospect={previewProspect}
+                subject={subject}
+                customMessage={customMessage}
+                demoUrl={demoUrl(previewProspect)}
               />
-            ) : prospect.website_url ? (
-              <div className="w-full h-[280px] bg-gradient-to-b from-gray-100 to-gray-200 flex flex-col items-center justify-center p-3">
-                <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center mb-2">
-                  <Zap className="w-5 h-5 text-emerald-600" />
-                </div>
-                <p className="text-[10px] font-bold text-gray-700 text-center">{prospect.business_name}</p>
-                <p className="text-[8px] text-gray-400 mt-1">{prospect.website_url}</p>
-              </div>
-            ) : (
-              <div className="w-full h-[280px] bg-gradient-to-b from-gray-100 to-gray-200 flex items-center justify-center">
-                <p className="text-[10px] text-gray-400">No website available</p>
-              </div>
             )}
-
-            {/* CTA overlay at bottom of screen */}
-            <div className="bg-gradient-to-t from-black/90 to-transparent p-3 pt-6">
-              <a
-                href={demoUrl}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="block bg-emerald-500 text-white text-[11px] font-bold px-4 py-2.5 rounded-xl text-center hover:bg-emerald-600 transition-colors shadow-lg"
-              >
-                Try Your AI Demo →
-              </a>
-            </div>
-          </div>
-
-          {/* Bottom bar */}
-          <div className="h-5 bg-black flex items-center justify-center">
-            <div className="w-[100px] h-[4px] bg-gray-600 rounded-full" />
           </div>
         </div>
       </div>
-    </div>
-
-    <p className="text-[10px] text-gray-400 text-center italic">
-      Tap to chat or talk with your AI employee — built specifically for {prospect.business_name}.
-    </p>
-
-    <div className="text-center">
-      <a
-        href={demoUrl}
-        target="_blank"
-        rel="noopener noreferrer"
-        className="inline-block bg-emerald-600 text-white font-semibold px-6 py-2.5 rounded-lg text-sm hover:bg-emerald-700 transition-colors"
-      >
-        Try Your Personalized Demo →
-      </a>
-    </div>
-  </div>
-);
-
-/* ---- Clean Card Email Preview ---- */
-const CleanCardPreview = ({ prospect, subject, customMessage, demoUrl }: { prospect: Prospect; subject: string; customMessage: string; demoUrl: string }) => (
-  <div className="bg-white rounded-xl p-5 text-gray-800 text-sm space-y-4 max-h-[500px] overflow-y-auto">
-    <p className="font-bold text-base text-gray-900">{subject}</p>
-    <hr className="border-gray-200" />
-
-    <div className="space-y-3">
-      <p className="text-gray-700">Hi {prospect.owner_name || prospect.business_name} team,</p>
-      {customMessage && <p className="text-gray-600">{customMessage}</p>}
-      <p className="text-gray-600">
-        We built a quick, personalized AI demo specifically for your business. It shows how an AI receptionist
-        could handle your calls 24/7, book appointments, and never miss a lead.
-      </p>
-    </div>
-
-    {/* Card with screenshot */}
-    <div className="border-2 border-emerald-200 rounded-xl overflow-hidden bg-emerald-50">
-      {prospect.website_screenshot && (
-        <img
-          src={prospect.website_screenshot}
-          alt={`${prospect.business_name} website`}
-          className="w-full h-[140px] object-cover object-top"
-        />
-      )}
-      <div className="p-4 space-y-3">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center shrink-0">
-            <Zap className="w-5 h-5 text-white" />
-          </div>
-          <div>
-            <p className="font-bold text-gray-900">{prospect.business_name}</p>
-            <p className="text-xs text-gray-500">Personalized AI Demo Ready</p>
-          </div>
-        </div>
-
-        <div className="grid grid-cols-3 gap-2">
-          <div className="text-center bg-white rounded-lg p-2 border border-emerald-100">
-            <p className="text-sm font-bold text-gray-900">24/7</p>
-            <p className="text-[9px] text-gray-500">Coverage</p>
-          </div>
-          <div className="text-center bg-white rounded-lg p-2 border border-emerald-100">
-            <p className="text-sm font-bold text-gray-900">Chat + Voice</p>
-            <p className="text-[9px] text-gray-500">AI Agents</p>
-          </div>
-          <div className="text-center bg-white rounded-lg p-2 border border-emerald-100">
-            <p className="text-sm font-bold text-gray-900">Live</p>
-            <p className="text-[9px] text-gray-500">Demo</p>
-          </div>
-        </div>
-
-        <div className="text-center">
-          <a
-            href={demoUrl}
-            target="_blank"
-            rel="noopener noreferrer"
-            className="inline-block bg-emerald-600 text-white font-semibold px-6 py-2.5 rounded-lg text-sm hover:bg-emerald-700 transition-colors"
-          >
-            Watch Your Demo →
-          </a>
-        </div>
-      </div>
-    </div>
-
-    <div className="flex items-center gap-2 text-[10px] text-gray-400">
-      <Eye className="w-3 h-3" />
-      <span>We'll know when you view this demo so we can follow up at the right time.</span>
-    </div>
-  </div>
-);
-
-/* ---- Browser Mockup with AI Buttons ---- */
-const BrowserMockupPreview = ({ prospect, subject, customMessage, demoUrl }: { prospect: Prospect; subject: string; customMessage: string; demoUrl: string }) => {
-  const hostname = prospect.website_url ? (() => {
-    try { const u = new URL(prospect.website_url.startsWith("http") ? prospect.website_url : `https://${prospect.website_url}`); return u.host; } catch { return prospect.website_url; }
-  })() : prospect.business_name;
-
-  return (
-    <div className="bg-white rounded-xl p-5 text-gray-800 text-sm space-y-4 max-h-[500px] overflow-y-auto">
-      <p className="font-bold text-base text-gray-900">{subject}</p>
-      <hr className="border-gray-200" />
-
-      <div className="space-y-2">
-        <p className="text-gray-700">Hi {prospect.owner_name || prospect.business_name} team,</p>
-        <p className="text-gray-600">I was looking at <strong>{prospect.business_name}</strong> and had an idea — what if your website could talk to visitors and answer the phone, even at 2 AM?</p>
-        {customMessage && <p className="text-gray-500 italic text-xs">{customMessage}</p>}
-        <p className="text-gray-600">We put together a quick preview using your actual site:</p>
-      </div>
-
-      {/* Browser window mockup */}
-      <div className="rounded-xl overflow-hidden shadow-lg border border-gray-200">
-        {/* Title bar with traffic lights */}
-        <div className="bg-gray-100 px-3 py-2 flex items-center gap-2">
-          <div className="flex gap-1.5">
-            <div className="w-3 h-3 rounded-full bg-red-400" />
-            <div className="w-3 h-3 rounded-full bg-yellow-400" />
-            <div className="w-3 h-3 rounded-full bg-green-400" />
-          </div>
-          <div className="bg-white border border-gray-200 rounded-md px-3 py-0.5 text-[10px] text-gray-500 ml-2 flex-1 max-w-[200px] truncate">
-            {hostname}
-          </div>
-        </div>
-
-        {/* Website content with AI buttons */}
-        <div className="relative bg-white">
-          {prospect.website_screenshot ? (
-            <img
-              src={prospect.website_screenshot}
-              alt={`${prospect.business_name} website`}
-              className="w-full h-[260px] object-cover object-top"
-            />
-          ) : (
-            <div className="w-full h-[260px] bg-gradient-to-br from-gray-50 to-gray-100 flex items-center justify-center">
-              <p className="text-lg font-semibold text-gray-300">{prospect.business_name}</p>
-            </div>
-          )}
-
-          {/* Chat AI button - bottom left */}
-          <div className="absolute bottom-3 left-3">
-            <a
-              href={demoUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 bg-gray-900 text-white text-[11px] font-semibold px-3 py-2 rounded-lg shadow-lg hover:bg-gray-800 transition-colors"
-            >
-              💬 Chat AI
-            </a>
-          </div>
-
-          {/* Voice AI button - bottom right */}
-          <div className="absolute bottom-3 right-3">
-            <a
-              href={demoUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="flex items-center gap-1.5 bg-emerald-600 text-white text-[11px] font-semibold px-3 py-2 rounded-lg shadow-lg hover:bg-emerald-700 transition-colors"
-            >
-              🎙 Voice AI
-            </a>
-          </div>
-        </div>
-      </div>
-
-      <p className="text-gray-600 text-sm">It takes 30 seconds — just click a button and talk to it (or type). No signup required.</p>
-
-      <div className="text-center">
-        <a
-          href={demoUrl}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="inline-block bg-emerald-600 text-white font-semibold px-6 py-2.5 rounded-lg text-sm hover:bg-emerald-700 transition-colors"
-        >
-          Try the Live Preview →
-        </a>
-      </div>
-
-      <p className="text-[10px] text-gray-400 text-center">
-        This is a one-time personalized preview built specifically for {prospect.business_name}.
-      </p>
     </div>
   );
 };
