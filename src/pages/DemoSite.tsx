@@ -188,6 +188,18 @@ const DemoSite = () => {
   const [hasIframeLoaded, setHasIframeLoaded] = useState(false);
   const liveViewSessionRef = useRef<string | null>(null);
   const [prospectOwner, setProspectOwner] = useState<{name?: string; email?: string; phone?: string} | null>(null);
+  const [showTestOverride, setShowTestOverride] = useState(false);
+  const [testPhoneOverride, setTestPhoneOverride] = useState(() => {
+    try { return localStorage.getItem("demo_test_phone_override") || ""; } catch { return ""; }
+  });
+
+  useEffect(() => {
+    try {
+      if (testPhoneOverride) localStorage.setItem("demo_test_phone_override", testPhoneOverride);
+      else localStorage.removeItem("demo_test_phone_override");
+    } catch {}
+  }, [testPhoneOverride]);
+
   const returnTo = searchParams.get("returnTo");
   const prospectIdParam = searchParams.get("prospectId");
   const callerNameParam = searchParams.get("callerName") || undefined;
