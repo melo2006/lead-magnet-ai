@@ -31,7 +31,7 @@ const Navbar = () => {
             <Zap className="w-4 h-4 text-primary" />
           </div>
           <span className="text-lg font-bold tracking-tight">
-            Agent<span className="text-primary">Flow</span> AI
+            AI <span className="text-primary">Hidden</span> Leads
           </span>
         </Link>
 
