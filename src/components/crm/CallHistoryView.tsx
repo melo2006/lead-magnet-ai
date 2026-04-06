@@ -1,6 +1,6 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Phone, PhoneForwarded, Clock, User, Mail, Globe, ChevronDown, ChevronUp, Play } from "lucide-react";
+import { Phone, PhoneForwarded, Clock, User, Mail, Globe, ChevronDown, ChevronUp, Play, Zap } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
@@ -20,6 +20,7 @@ interface CallRecord {
   call_status: string;
   transfer_requested: boolean;
   transfer_status: string;
+  trigger_source?: string;
   transfer_target_phone: string | null;
   transfer_error: string | null;
   summary: string | null;
@@ -105,7 +106,9 @@ const CallRow = ({ call }: { call: CallRecord }) => {
         className="w-full flex items-center gap-3 px-4 py-3 text-left hover:bg-muted/30 transition-colors"
       >
         <div className="flex items-center justify-center w-8 h-8 rounded-full bg-primary/10 shrink-0">
-          {call.transfer_requested ? (
+          {call.trigger_source === 'speed_to_lead' ? (
+            <Zap className="h-4 w-4 text-amber-400" />
+          ) : call.transfer_requested ? (
             <PhoneForwarded className="h-4 w-4 text-primary" />
           ) : (
             <Phone className="h-4 w-4 text-primary" />
@@ -132,6 +135,11 @@ const CallRow = ({ call }: { call: CallRecord }) => {
         </div>
 
         <div className="flex items-center gap-2 shrink-0">
+          {call.trigger_source === 'speed_to_lead' && (
+            <Badge variant="outline" className="text-[10px] bg-amber-500/20 text-amber-400 border-amber-500/30">
+              ⚡ Auto-Call
+            </Badge>
+          )}
           {call.transfer_requested && (
             <Badge variant="outline" className={`text-[10px] ${statusColor(call.transfer_status)}`}>
               {call.transfer_status.replace(/_/g, " ")}

@@ -87,6 +87,7 @@ export type Database = {
           transfer_requested: boolean
           transfer_status: Database["public"]["Enums"]["call_transfer_status"]
           transfer_target_phone: string | null
+          trigger_source: string | null
           updated_at: string
           website_url: string | null
         }
@@ -121,6 +122,7 @@ export type Database = {
           transfer_requested?: boolean
           transfer_status?: Database["public"]["Enums"]["call_transfer_status"]
           transfer_target_phone?: string | null
+          trigger_source?: string | null
           updated_at?: string
           website_url?: string | null
         }
@@ -155,6 +157,7 @@ export type Database = {
           transfer_requested?: boolean
           transfer_status?: Database["public"]["Enums"]["call_transfer_status"]
           transfer_target_phone?: string | null
+          trigger_source?: string | null
           updated_at?: string
           website_url?: string | null
         }

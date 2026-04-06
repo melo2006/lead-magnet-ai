@@ -1,0 +1,2 @@
+ALTER TABLE public.call_history ADD COLUMN IF NOT EXISTS trigger_source text DEFAULT 'manual';
+COMMENT ON COLUMN public.call_history.trigger_source IS 'How the call was initiated: manual, speed_to_lead, drip_campaign, reactivation';
