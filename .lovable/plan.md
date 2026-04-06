@@ -1,59 +1,75 @@
 
 
-## Problem
+# AI Hidden Leads — Enhancement Plan to Match Amplify Voice AI
 
-The iframe `onError` event does **not** fire when a website blocks embedding via `X-Frame-Options` or CSP headers. The iframe silently renders a blank/black page. Since `iframeBlocked` never becomes `true`, the screenshot fallback never triggers -- even though a valid screenshot URL exists in the database.
+## What We Already Have (No Changes Needed)
 
-## Root Cause
+| Feature | Status |
+|---|---|
+| Google Maps lead scraping | Done |
+| Lead scoring + temperature | Done |
+| Website analysis (Firecrawl) | Done |
+| Contact enrichment (Exa + Apify) | Done |
+| Email + SMS outreach templates | Done |
+| Voice AI demos (Retell) | Done |
+| Chat AI widget | Done |
+| Live call transfer (Twilio bridge) | Done |
+| CRM pipeline (8-stage Kanban) | Done |
+| Intent-based social listening | Done |
+| Call history + transcripts + AI summaries | Done |
+| Appointment booking (Google Calendar) | Done |
 
-Line 208: `onError={() => setIframeBlocked(true)}` -- this only fires on network-level errors (e.g., DNS failure), not on HTTP header-based embedding restrictions. Weebly sites block iframes via `X-Frame-Options: SAMEORIGIN`.
+## What We Need to Add
 
-## Fix
+### Priority 1: Automated Drip Campaign Engine
+- Create a `campaign_sequences` table to define multi-step email sequences (e.g., Day 1, Day 3, Day 7, Day 10, Day 14)
+- Build a scheduled edge function that processes the queue daily, sending the next email in each prospect's sequence
+- Add start/pause/stop controls to the Campaigns view
+- Track per-step metrics (sent, opened, clicked) on each sequence step
 
-**File: `src/pages/DemoSite.tsx`**
+### Priority 2: Speed-to-Lead Auto-Calling
+- Add a webhook endpoint that fires when a prospect opens an email, clicks a demo link, or replies positively
+- The webhook triggers an outbound Retell Voice AI call to the prospect's phone within 60 seconds
+- The AI agent uses the prospect's enriched business data to personalize the conversation
+- Log the auto-triggered call in call_history with source = "speed_to_lead"
 
-1. Add a timer-based iframe validation: after the iframe "loads," try to access `contentWindow.document` inside a try/catch. If it throws (cross-origin block) or the iframe appears blank, set `iframeBlocked = true` and fall back to the screenshot.
+### Priority 3: Email Reply Sentiment Parsing
+- Set up an inbound email webhook (on the notify subdomain) to receive prospect replies
+- Pass reply text through an AI model to classify sentiment: Positive, Negative, Needs Info
+- Auto-update prospect pipeline stage based on sentiment (e.g., Positive → "Interested")
+- Positive replies trigger the Speed-to-Lead auto-call from Priority 2
 
-2. Update the `onLoad` handler (line 209-211) to:
-   - Try accessing `iframe.contentWindow.location.href` in a try/catch
-   - If it throws a cross-origin error, that's actually expected and fine (means the site loaded but is cross-origin)
-   - Use a **timeout fallback** (3-4 seconds): if the iframe hasn't confirmed it loaded content, assume it's blocked and switch to screenshot
+### Priority 4: Multi-Tenant SaaS Mode (Sell Access to Clients)
+- Add authentication (signup/login)
+- Create a `user_roles` table and `organizations` table
+- Scope all data (prospects, campaigns, calls) to organization_id
+- Build a client-facing dashboard showing: Leads Found, Emails Sent, Replies, Calls Made, Appointments Booked
+- Allow clients to configure their own niches, locations, and Voice AI persona
+- Each client gets their own Voice AI agent with their business knowledge
 
-3. Add a `useRef` for the iframe element and a `useEffect` with a timeout:
-   - After 4 seconds, check if iframe is still showing (not blocked) but appears empty
-   - If so, flip to screenshot fallback
+### Priority 5: Database Reactivation Flow
+- Add a "Reactivate" mode to the Imported Lists feature
+- Auto-call each imported lead using Voice AI with a re-engagement script
+- Track reactivation outcomes (interested, not interested, no answer, voicemail)
+- This is the easiest upsell — clients hand over their dead leads, you wake them up
 
-4. Move the `onLoad` to actually verify content loaded by checking the iframe's `contentDocument` accessibility -- if blocked by X-Frame-Options, the browser still fires `onLoad` but the document is inaccessible AND blank.
+## Recommended Build Order
 
-**Concrete implementation:**
-- Add `iframeRef = useRef<HTMLIFrameElement>(null)`
-- Add `useEffect` that sets a 4-second timer after `leadData` is set; if `iframeBlocked` is still false, try to detect blank content and flip to screenshot
-- In the iframe `onLoad`, try `iframeRef.current?.contentDocument` -- if it returns null AND the site is cross-origin, that's normal. But also start a secondary check.
-- Key insight: when X-Frame-Options blocks, the browser fires `onLoad` but renders a blank page. We detect this by setting a flag in `onLoad` and if the page looks blank after load (which we can't truly verify cross-origin), we use a simple heuristic: set a timer and if the user hasn't interacted, fall back to screenshot after a few seconds.
+1. **Automated Drip Campaigns** — immediate value, makes current outreach hands-free
+2. **Speed-to-Lead Auto-Calling** — the killer feature that differentiates from basic CRMs
+3. **Database Reactivation** — fastest path to revenue with existing client data
+4. **Email Reply Parsing** — completes the automation loop
+5. **Multi-Tenant SaaS** — transforms from a tool into a sellable product
 
-**Simpler approach:** Since we cannot reliably detect X-Frame-Options blocking from JS, the best pattern is:
-- Default to showing the screenshot if one exists
-- Add a "Try Live Site" button that loads the iframe on demand
-- OR: attempt iframe first with a short timeout (3s), then auto-fallback
+## Technical Notes
 
-I recommend the **timeout approach**: attempt iframe, auto-fallback to screenshot after 3 seconds if the iframe onLoad fires but we detect cross-origin restrictions.
+- Drip campaigns require a pg_cron job (similar to the email queue) to process daily sends
+- Speed-to-Lead uses Retell's outbound call API, which requires a Retell phone number
+- Inbound email parsing needs a webhook receiver on the notify subdomain
+- Multi-tenant mode requires RLS policy updates on all existing tables to scope by organization
+- Database reactivation reuses the existing imported_leads table and Voice AI infrastructure
 
-## Changes
+## What This Means for Your Business
 
-### `src/pages/DemoSite.tsx`
-- Add `useRef` for iframe
-- Add `iframeLoaded` state
-- In `onLoad`: set `iframeLoaded = true`, then try `contentDocument` access; if null (cross-origin blocked content), set `iframeBlocked = true`  
-- Add `useEffect` with 3.5s timeout: if iframe hasn't loaded OR has loaded but content is inaccessible, flip to screenshot
-- Keep existing screenshot fallback logic (lines 213-223) as-is
-
-## Technical Details
-
-When `X-Frame-Options: SAMEORIGIN` blocks an iframe:
-- `onError` does NOT fire
-- `onLoad` DOES fire  
-- `contentDocument` returns `null`
-- The iframe renders blank/white/black
-
-The fix catches this in `onLoad` by checking if `contentDocument` is null, which reliably indicates the content was blocked or is cross-origin. Since we can't distinguish "loaded cross-origin successfully" from "blocked by X-Frame-Options" via JS alone, we also use a visual timeout heuristic.
+You're not far behind Amplify Voice AI — you're actually ahead in some areas (intent-based social listening, visual email templates, chat AI widget). The main gaps are **automation** (drip sequences + auto-calling) and **multi-tenancy** (letting clients use the platform themselves). Closing those gaps turns AI Hidden Leads from a personal tool into a sellable SaaS product.
 
