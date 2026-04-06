@@ -9,6 +9,7 @@ import {
   Square, Search, Loader2, AlertCircle, TestTube2
 } from "lucide-react";
 import OutreachDialog from "./OutreachDialog";
+import CampaignSequenceEditor from "./CampaignSequenceEditor";
 import type { Prospect } from "@/hooks/useProspectSearch";
 
 const CampaignDetailView = () => {
@@ -246,6 +247,9 @@ const CampaignDetailView = () => {
           </div>
         ))}
       </div>
+
+      {/* Drip Campaign Sequences */}
+      <CampaignSequenceEditor campaignId={id!} campaignStatus={campaign.status} />
 
       {/* Action Bar */}
       <div className="flex items-center gap-2 flex-wrap">
