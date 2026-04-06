@@ -245,8 +245,14 @@ Deno.serve(async (req) => {
         continue;
       }
 
-      const demoUrl = `${baseUrl}/demo?url=${encodeURIComponent(prospect.website_url || '')}&name=${encodeURIComponent(prospect.business_name)}&niche=${encodeURIComponent(prospect.niche || '')}&prospectId=${encodeURIComponent(prospect.id)}`;
-      const html = buildEmailHtml(prospect, subject, customMessage, templateStyle, demoUrl);
+      const rawDemoUrl = `${baseUrl}/demo?url=${encodeURIComponent(prospect.website_url || '')}&name=${encodeURIComponent(prospect.business_name)}&niche=${encodeURIComponent(prospect.niche || '')}&prospectId=${encodeURIComponent(prospect.id)}`;
+      // Wrap demo link through tracking endpoint for speed-to-lead
+      const trackingBase = `${supabaseUrl}/functions/v1/track-engagement`;
+      const demoUrl = `${trackingBase}?pid=${prospect.id}&event=demo_view&redirect=${encodeURIComponent(rawDemoUrl)}`;
+      let html = buildEmailHtml(prospect, subject, customMessage, templateStyle, demoUrl);
+      // Inject open-tracking pixel at end of email body
+      const openPixelUrl = `${trackingBase}?pid=${prospect.id}&event=open`;
+      html = html.replace('</body>', `<img src="${openPixelUrl}" width="1" height="1" style="display:none" alt="" /></body>`);
 
       try {
         const emailRes = await fetch('https://api.resend.com/emails', {
