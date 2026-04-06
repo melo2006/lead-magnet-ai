@@ -240,6 +240,94 @@ export type Database = {
           },
         ]
       }
+      campaign_sequence_steps: {
+        Row: {
+          clicked_count: number
+          created_at: string
+          delay_days: number
+          email_subject: string
+          email_template: string
+          id: string
+          opened_count: number
+          sent_count: number
+          sequence_id: string
+          step_number: number
+          template_variables: Json
+          updated_at: string
+        }
+        Insert: {
+          clicked_count?: number
+          created_at?: string
+          delay_days?: number
+          email_subject: string
+          email_template?: string
+          id?: string
+          opened_count?: number
+          sent_count?: number
+          sequence_id: string
+          step_number?: number
+          template_variables?: Json
+          updated_at?: string
+        }
+        Update: {
+          clicked_count?: number
+          created_at?: string
+          delay_days?: number
+          email_subject?: string
+          email_template?: string
+          id?: string
+          opened_count?: number
+          sent_count?: number
+          sequence_id?: string
+          step_number?: number
+          template_variables?: Json
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_sequence_steps_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_sequences"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      campaign_sequences: {
+        Row: {
+          campaign_id: string
+          created_at: string
+          id: string
+          name: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          campaign_id: string
+          created_at?: string
+          id?: string
+          name: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          campaign_id?: string
+          created_at?: string
+          id?: string
+          name?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "campaign_sequences_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       campaigns: {
         Row: {
           created_at: string
@@ -547,6 +635,53 @@ export type Database = {
           website_url?: string
         }
         Relationships: []
+      }
+      prospect_sequence_enrollments: {
+        Row: {
+          created_at: string
+          current_step: number
+          enrolled_at: string
+          id: string
+          last_sent_at: string | null
+          next_send_at: string | null
+          prospect_id: string
+          sequence_id: string
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          current_step?: number
+          enrolled_at?: string
+          id?: string
+          last_sent_at?: string | null
+          next_send_at?: string | null
+          prospect_id: string
+          sequence_id: string
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          current_step?: number
+          enrolled_at?: string
+          id?: string
+          last_sent_at?: string | null
+          next_send_at?: string | null
+          prospect_id?: string
+          sequence_id?: string
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prospect_sequence_enrollments_sequence_id_fkey"
+            columns: ["sequence_id"]
+            isOneToOne: false
+            referencedRelation: "campaign_sequences"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       prospects: {
         Row: {
