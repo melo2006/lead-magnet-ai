@@ -15,6 +15,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 const ProspectsView = () => {
   const [searchParams] = useSearchParams();
   const [showFilters, setShowFilters] = useState(false);
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [filters, setFilters] = useState({
     temperature: searchParams.get("temp") || "all",
     hasWebsite: "all",
