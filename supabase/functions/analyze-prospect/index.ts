@@ -8,6 +8,46 @@ const corsHeaders = {
 const FIRECRAWL_BASE = 'https://api.firecrawl.dev/v1';
 const LOVABLE_AI_BASE = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 const EXA_BASE = 'https://api.exa.ai';
+const TWILIO_GATEWAY = 'https://connector-gateway.lovable.dev/twilio';
+
+/** Lookup phone type via Twilio Lookup API through gateway ($0.005/lookup) */
+async function lookupPhoneType(phone: string): Promise<string | null> {
+  const lovableKey = Deno.env.get('LOVABLE_API_KEY');
+  const twilioKey = Deno.env.get('TWILIO_API_KEY');
+  if (!lovableKey || !twilioKey || !phone) return null;
+
+  // Clean phone number
+  const cleaned = phone.replace(/[^\d+]/g, '');
+  if (cleaned.length < 7) return null;
+  const e164 = cleaned.startsWith('+') ? cleaned : `+1${cleaned}`;
+
+  try {
+    console.log('[Twilio] Looking up phone type for:', e164);
+    const encodedPhone = encodeURIComponent(e164);
+    // Twilio Lookup v1 with carrier info — gateway auto-prepends /2010-04-01/Accounts/{SID}
+    // But Lookup API is at a different base path, so we use the direct Twilio API with gateway auth
+    const response = await fetch(`${TWILIO_GATEWAY}/Lookups/v1/PhoneNumbers/${encodedPhone}?Type=carrier`, {
+      method: 'GET',
+      headers: {
+        'Authorization': `Bearer ${lovableKey}`,
+        'X-Connection-Api-Key': twilioKey,
+      },
+    });
+
+    if (!response.ok) {
+      console.warn('[Twilio] Lookup failed:', response.status);
+      return null;
+    }
+
+    const data = await response.json();
+    const carrierType = data?.carrier?.type; // "mobile", "landline", "voip", null
+    console.log('[Twilio] Phone type result:', carrierType);
+    return carrierType || null;
+  } catch (err) {
+    console.warn('[Twilio] Lookup error:', err);
+    return null;
+  }
+}
 
 // Structured schema for Firecrawl AI JSON extraction
 const BUSINESS_SCHEMA = {
@@ -432,6 +472,22 @@ Be direct and specific. Return ONLY valid JSON, no markdown formatting or code b
     // Step 3: Build voice agent context from structured data
     const voiceAgentContext = buildVoiceAgentContext(businessData, business_name, niche);
 
+    // Step 3.5: Twilio Phone Type Lookup ($0.005/lookup)
+    // Fetch the prospect's current phone to check type
+    let phoneType: string | null = null;
+    const { data: currentProspect } = await supabase
+      .from('prospects')
+      .select('phone, phone_type')
+      .eq('id', prospect_id)
+      .single();
+
+    const phoneToCheck = currentProspect?.phone;
+    if (phoneToCheck && !currentProspect?.phone_type) {
+      phoneType = await lookupPhoneType(phoneToCheck);
+    } else if (currentProspect?.phone_type) {
+      phoneType = currentProspect.phone_type; // Already classified
+    }
+
     // Step 4: Update the prospect in the database
     const updateData: Record<string, any> = {
       has_chat_widget: hasChatWidget,
@@ -441,6 +497,7 @@ Be direct and specific. Return ONLY valid JSON, no markdown formatting or code b
       website_screenshot: websiteScreenshot || null,
       ai_analysis: aiAnalysis,
       ai_analyzed: true,
+      phone_type: phoneType,
       business_data: {
         ...businessData,
         branding: brandingData,
