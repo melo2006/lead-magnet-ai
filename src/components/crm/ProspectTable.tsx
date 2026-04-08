@@ -400,8 +400,27 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) =
               <button onClick={(e) => { e.stopPropagation(); handleAnalyze(p); }} disabled={isAnalyzing} className="p-1 rounded hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors disabled:opacity-50" title="AI Analyze"><Brain className="w-3.5 h-3.5" /></button>
             )}
             <Link to={`/demo?url=${encodeURIComponent(p.website_url || "")}&name=${encodeURIComponent(p.business_name)}&niche=${encodeURIComponent(p.niche || "")}&prospectId=${encodeURIComponent(p.id || "")}&callerPhone=${encodeURIComponent(p.phone || "")}&returnTo=${returnTo}`} onClick={(e) => e.stopPropagation()} className="p-1 rounded hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors" title="Generate Demo"><Zap className="w-3.5 h-3.5" /></Link>
+            {p.phone && (
+              <button
+                onClick={(e) => handleSendSms(p, e)}
+                disabled={sendingSmsId === p.id}
+                className={`p-1 rounded transition-colors disabled:opacity-50 ${(p as any).sms_sent_at ? "text-emerald-400 hover:bg-emerald-400/20" : "text-muted-foreground hover:bg-primary/20 hover:text-primary"}`}
+                title={(p as any).sms_sent_at ? "SMS sent — click to resend" : "Send SMS with demo link"}
+              >
+                {sendingSmsId === p.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <MessageCircle className="w-3.5 h-3.5" />}
+              </button>
+            )}
           </div>
         );
+      case "date_added": {
+        const date = (p as any).created_at;
+        if (!date) return <span className="text-[10px] text-muted-foreground">—</span>;
+        return (
+          <span className="text-[10px] text-muted-foreground whitespace-nowrap" title={new Date(date).toLocaleString()}>
+            {format(new Date(date), "MMM d")}
+          </span>
+        );
+      }
       case "rating":
         return <div className="flex items-center gap-1"><Star className="w-3 h-3 text-yellow-400 fill-yellow-400" /><span className="font-medium text-foreground">{p.rating || "—"}</span></div>;
       case "reviews":
