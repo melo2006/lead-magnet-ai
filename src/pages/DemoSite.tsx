@@ -607,7 +607,7 @@ const DemoSite = () => {
   return (
     <div className="relative min-h-[100dvh] bg-background">
       <div className="pointer-events-none fixed inset-x-0 top-16 z-40 flex justify-center px-3 sm:px-4">
-        <div className="pointer-events-auto flex w-full max-w-4xl items-center justify-between gap-3 rounded-full border border-border/70 bg-card/90 px-3 py-2 shadow-xl backdrop-blur-xl sm:px-4">
+        <div className="pointer-events-auto flex w-full max-w-4xl items-center justify-between gap-3 rounded-full border border-border/50 bg-card px-3 py-2 shadow-xl backdrop-blur-xl sm:px-4">
           <div className="flex min-w-0 items-center gap-2.5">
             <button
               onClick={handleBack}
