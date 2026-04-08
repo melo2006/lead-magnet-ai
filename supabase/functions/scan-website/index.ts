@@ -910,7 +910,7 @@ Deno.serve(async (req) => {
     const combinedPageContent = successfulPages
       .map((page) => [page.title ? `## ${page.title}` : '', page.summary ? `Summary: ${page.summary}` : '', page.markdown].filter(Boolean).join('\n'))
       .join('\n\n')
-      .slice(0, 25000);
+      .slice(0, 50000);
 
     // === PHASE 3: AI profile analysis ===
     const profile = await analyzeBusinessProfile({
