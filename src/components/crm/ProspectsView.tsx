@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Filter, Search, UserPlus } from "lucide-react";
+import { Filter, Search, UserPlus, X } from "lucide-react";
 import ProspectSearchForm from "@/components/crm/ProspectSearchForm";
 import ProspectTable from "@/components/crm/ProspectTable";
 import CRMStats from "@/components/crm/CRMStats";
@@ -16,6 +16,7 @@ const ProspectsView = () => {
   const [searchParams] = useSearchParams();
   const [showFilters, setShowFilters] = useState(false);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [quickSearch, setQuickSearch] = useState("");
   const [filters, setFilters] = useState({
     temperature: searchParams.get("temp") || "all",
     hasWebsite: "all",
@@ -40,7 +41,21 @@ const ProspectsView = () => {
   const { search, isSearching, searchResults } = useProspectSearch();
   const { prospects, isLoading, refetch } = useProspects(filters);
 
-  const displayProspects = searchResults.length > 0 ? searchResults : prospects;
+  const baseProspects = searchResults.length > 0 ? searchResults : prospects;
+
+  const displayProspects = useMemo(() => {
+    if (!quickSearch.trim()) return baseProspects;
+    const q = quickSearch.toLowerCase();
+    return baseProspects.filter(p =>
+      p.business_name?.toLowerCase().includes(q) ||
+      (p as any).city?.toLowerCase().includes(q) ||
+      (p as any).state?.toLowerCase().includes(q) ||
+      p.niche?.toLowerCase().includes(q) ||
+      p.phone?.includes(q) ||
+      (p as any).owner_name?.toLowerCase().includes(q) ||
+      p.formatted_address?.toLowerCase().includes(q)
+    );
+  }, [baseProspects, quickSearch]);
 
   return (
     <div className="space-y-4">
