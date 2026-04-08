@@ -8,6 +8,7 @@ interface Filters {
   minScore: number;
   status: string;
   previewType: string;
+  phoneType: string;
 }
 
 export const useProspects = (filters: Filters) => {
