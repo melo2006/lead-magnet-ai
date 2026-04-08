@@ -357,6 +357,15 @@ Deno.serve(async (req) => {
     let businessData: Record<string, any> = {};
     let brandingData: Record<string, any> = {};
 
+    // Cost tracking
+    const apiUsage: Record<string, { calls: number; cost: number }> = {
+      firecrawl: { calls: 0, cost: 0 },
+      exa: { calls: 0, cost: 0 },
+      hunter: { calls: 0, cost: 0 },
+      twilio: { calls: 0, cost: 0 },
+      ai: { calls: 0, cost: 0 },
+    };
+
     // Step 1: Scrape with Firecrawl — structured JSON + branding + screenshot + markdown
     if (firecrawlKey) {
       try {
@@ -383,6 +392,8 @@ Deno.serve(async (req) => {
 
         const data = await response.json().catch(() => null);
         if (response.ok) {
+          apiUsage.firecrawl.calls = 1;
+          apiUsage.firecrawl.cost = 0.01; // ~$0.01 per scrape credit
           const payload = data?.data ?? data ?? {};
           markdown = payload.markdown || '';
           websiteScreenshot = payload.screenshot || '';
@@ -457,6 +468,15 @@ Deno.serve(async (req) => {
       }) : Promise.resolve(null),
     ]);
 
+    if (exaData) {
+      apiUsage.exa.calls = 2; // owner search + social search
+      apiUsage.exa.cost = 0; // free tier (1000/month)
+    }
+    if (hunterData) {
+      apiUsage.hunter.calls = 1;
+      apiUsage.hunter.cost = 0.01; // ~$0.01 per search
+    }
+
     // Step 2: AI Sales Analysis
     let aiAnalysis = '';
     let enrichmentData: Record<string, any> = {};
@@ -516,6 +536,8 @@ Be direct and specific. Return ONLY valid JSON, no markdown formatting or code b
         });
 
         if (response.ok) {
+          apiUsage.ai.calls = 1;
+          apiUsage.ai.cost = 0.005; // ~$0.005 per flash call
           const completion = await response.json();
           const raw = completion?.choices?.[0]?.message?.content?.trim() || '';
           try {
@@ -597,6 +619,10 @@ Be direct and specific. Return ONLY valid JSON, no markdown formatting or code b
       const lookupResult = await lookupPhoneType(phoneToCheck);
       phoneType = lookupResult.type;
       smsCapable = lookupResult.sms_capable;
+      if (lookupResult.type !== null) {
+        apiUsage.twilio.calls = 1;
+        apiUsage.twilio.cost = 0.005; // ~$0.005 per lookup
+      }
     } else if (currentProspect?.phone_type) {
       phoneType = currentProspect.phone_type;
       smsCapable = currentProspect.sms_capable;
@@ -633,6 +659,8 @@ Be direct and specific. Return ONLY valid JSON, no markdown formatting or code b
       throw new Error(`Failed to update prospect: ${updateError.message}`);
     }
 
+    const totalCost = Object.values(apiUsage).reduce((sum, v) => sum + v.cost, 0);
+
     return new Response(
       JSON.stringify({
         success: true,
@@ -647,6 +675,10 @@ Be direct and specific. Return ONLY valid JSON, no markdown formatting or code b
           phone_type: phoneType,
           sms_capable: smsCapable,
           hunter_emails_found: hunterData?.emails?.length || 0,
+          cost: {
+            total_usd: Math.round(totalCost * 1000) / 1000,
+            breakdown: apiUsage,
+          },
         },
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
