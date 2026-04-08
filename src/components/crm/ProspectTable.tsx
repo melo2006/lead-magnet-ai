@@ -243,6 +243,43 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) =
   const [visibleColumns, setVisibleColumns] = useState<Set<ColumnId>>(new Set(DEFAULT_VISIBLE));
   const { analyze, analyzeBatch, analyzingIds } = useProspectAnalysis();
   const returnTo = encodeURIComponent(`${window.location.pathname}${window.location.search}${window.location.hash}`);
+  const [sendingSmsId, setSendingSmsId] = useState<string | null>(null);
+
+  const handleSendSms = async (prospect: Prospect, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!prospect.phone || !prospect.id) {
+      toast.error("This prospect has no phone number");
+      return;
+    }
+    setSendingSmsId(prospect.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-outreach-sms", {
+        body: {
+          prospects: [{
+            id: prospect.id,
+            business_name: prospect.business_name,
+            phone: prospect.phone,
+            owner_name: (prospect as any).owner_name || null,
+            website_url: prospect.website_url || null,
+            niche: prospect.niche || null,
+          }],
+          customMessage: "",
+          baseUrl: window.location.origin,
+        },
+      });
+      if (error) throw error;
+      if (data?.sent > 0) {
+        toast.success(`SMS sent to ${prospect.business_name}!`);
+        onRefetch?.();
+      } else {
+        toast.error(data?.results?.[0]?.error || "SMS failed to send");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to send SMS");
+    } finally {
+      setSendingSmsId(null);
+    }
+  };
 
   const colMap = useMemo(() => Object.fromEntries(ALL_COLUMNS.map(c => [c.id, c])), []);
   const activeColumns = useMemo(() => columnOrder.filter(id => visibleColumns.has(id)), [columnOrder, visibleColumns]);
