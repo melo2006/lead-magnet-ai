@@ -736,6 +736,7 @@ export type Database = {
           search_location: string | null
           search_query: string | null
           search_radius: number | null
+          sms_capable: boolean | null
           sms_clicked_at: string | null
           sms_sent_at: string | null
           social_profiles: Json | null
@@ -798,6 +799,7 @@ export type Database = {
           search_location?: string | null
           search_query?: string | null
           search_radius?: number | null
+          sms_capable?: boolean | null
           sms_clicked_at?: string | null
           sms_sent_at?: string | null
           social_profiles?: Json | null
@@ -860,6 +862,7 @@ export type Database = {
           search_location?: string | null
           search_query?: string | null
           search_radius?: number | null
+          sms_capable?: boolean | null
           sms_clicked_at?: string | null
           sms_sent_at?: string | null
           social_profiles?: Json | null

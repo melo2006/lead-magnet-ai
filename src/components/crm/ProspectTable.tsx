@@ -7,7 +7,7 @@ import {
   ArrowUpDown, Gauge, ChevronLeft, ChevronRight,
   Linkedin, Facebook, Instagram, Smartphone,
   Settings2, GripVertical, Eye, EyeOff, Info,
-  Mic, Globe, MessageCircle, StopCircle
+  Mic, Globe, MessageCircle, StopCircle, Pause, Play
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -30,7 +30,7 @@ type SortKey =
   | "has_website" | "has_chat_widget" | "has_voice_ai"
   | "has_online_booking" | "website_quality_score" | "lead_temperature"
   | "city" | "ai_analyzed" | "niche" | "contact_method" | "owner_name"
-  | "voiceai_fit" | "webdev_fit" | "created_at" | "preview_type" | "phone_type";
+  | "voiceai_fit" | "webdev_fit" | "created_at" | "preview_type" | "phone_type" | "sms_capable";
 
 const tempIcons: Record<string, any> = {
   hot: Flame, warm: Thermometer, cold: Snowflake,
@@ -44,7 +44,7 @@ const tempColors: Record<string, string> = {
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 // Column definitions
-type ColumnId = "business" | "niche" | "temp" | "location" | "actions" | "rating" | "reviews" | "score" | "website" | "chat" | "voiceai" | "booking" | "sitequality" | "ai" | "owner" | "contact" | "social" | "voiceai_candidate" | "webdev_candidate" | "sources" | "date_added" | "preview_type" | "phone_type" | "email";
+type ColumnId = "business" | "niche" | "temp" | "location" | "actions" | "rating" | "reviews" | "score" | "website" | "chat" | "voiceai" | "booking" | "sitequality" | "ai" | "owner" | "contact" | "social" | "voiceai_candidate" | "webdev_candidate" | "sources" | "date_added" | "preview_type" | "phone_type" | "email" | "sms_capable";
 
 interface ColumnDef {
   id: ColumnId;
@@ -77,6 +77,7 @@ const ALL_COLUMNS: ColumnDef[] = [
   { id: "contact", label: "Contact", sortKey: "contact_method", minWidth: "90px", removable: true },
   { id: "social", label: "Social", minWidth: "80px", removable: true },
   { id: "phone_type", label: "Phone Type", sortKey: "phone_type", minWidth: "85px", removable: true },
+  { id: "sms_capable", label: "SMS OK", sortKey: "sms_capable" as SortKey, minWidth: "70px", removable: true },
   { id: "email", label: "Email", minWidth: "140px", removable: true },
   { id: "sources", label: "Sources", minWidth: "110px", removable: true },
 ];
@@ -246,7 +247,7 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) =
   const [pageSize, setPageSize] = useState(25);
   const [columnOrder, setColumnOrder] = useState<ColumnId[]>(DEFAULT_ORDER);
   const [visibleColumns, setVisibleColumns] = useState<Set<ColumnId>>(new Set(DEFAULT_VISIBLE));
-  const { analyze, analyzeBatch, analyzingIds, batchProgress, stopBatch } = useProspectAnalysis();
+  const { analyze, analyzeBatch, analyzingIds, batchProgress, stopBatch, pauseBatch, resumeBatch } = useProspectAnalysis();
   const returnTo = encodeURIComponent(`${window.location.pathname}${window.location.search}${window.location.hash}`);
   const [sendingSmsId, setSendingSmsId] = useState<string | null>(null);
 
@@ -560,6 +561,15 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) =
           </a>
         );
       }
+      case "sms_capable": {
+        const sc = (p as any).sms_capable;
+        if (sc === null || sc === undefined) return <span className="text-[10px] text-muted-foreground">—</span>;
+        return sc ? (
+          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">✓ Yes</span>
+        ) : (
+          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-red-500/15 text-red-400 border border-red-500/25">✗ No</span>
+        );
+      }
       default:
         return null;
     }
@@ -599,10 +609,15 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) =
         <div className="flex items-center gap-2">
           {batchProgress.isRunning && (
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30">
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+              {batchProgress.isPaused ? (
+                <Pause className="w-3.5 h-3.5 text-amber-400" />
+              ) : (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+              )}
               <span className="text-xs text-amber-400 font-medium">
                 {batchProgress.completed}/{batchProgress.total}
-                {batchProgress.current && <span className="text-muted-foreground ml-1">— {batchProgress.current}</span>}
+                {batchProgress.isPaused && <span className="ml-1 text-yellow-300">(Paused)</span>}
+                {!batchProgress.isPaused && batchProgress.current && <span className="text-muted-foreground ml-1">— {batchProgress.current}</span>}
               </span>
               <div className="w-20 h-1.5 rounded-full bg-secondary overflow-hidden">
                 <div
@@ -610,6 +625,21 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) =
                   style={{ width: `${(batchProgress.completed / batchProgress.total) * 100}%` }}
                 />
               </div>
+              {batchProgress.isPaused ? (
+                <button
+                  onClick={resumeBatch}
+                  className="flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold hover:bg-emerald-500/30 transition-colors"
+                >
+                  <Play className="w-3 h-3" />Resume
+                </button>
+              ) : (
+                <button
+                  onClick={pauseBatch}
+                  className="flex items-center gap-1 px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/30 text-amber-400 text-[10px] font-bold hover:bg-amber-500/30 transition-colors"
+                >
+                  <Pause className="w-3 h-3" />Pause
+                </button>
+              )}
               <button
                 onClick={stopBatch}
                 className="flex items-center gap-1 px-2 py-0.5 rounded bg-red-500/20 border border-red-500/30 text-red-400 text-[10px] font-bold hover:bg-red-500/30 transition-colors"

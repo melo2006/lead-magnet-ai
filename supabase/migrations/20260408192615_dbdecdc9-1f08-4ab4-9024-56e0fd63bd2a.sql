@@ -1,0 +1,1 @@
+ALTER TABLE public.prospects ADD COLUMN IF NOT EXISTS sms_capable boolean DEFAULT null;

@@ -8,48 +8,135 @@ const corsHeaders = {
 const FIRECRAWL_BASE = 'https://api.firecrawl.dev/v1';
 const LOVABLE_AI_BASE = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 const EXA_BASE = 'https://api.exa.ai';
-const TWILIO_GATEWAY = 'https://connector-gateway.lovable.dev/twilio';
+const HUNTER_BASE = 'https://api.hunter.io/v2';
 
-/** Lookup phone type via Twilio Lookup API ($0.005/lookup) 
- * The connector gateway auto-prepends /2010-04-01/Accounts/{SID} which doesn't work for Lookup API.
- * So we call the Twilio Lookup API directly using Basic Auth with the connector credentials.
+/** Lookup phone type + SMS capability via Twilio Lookup v2 API (direct, ~$0.005/lookup)
+ *  Uses TWILIO_ACCOUNT_SID + TWILIO_AUTH_TOKEN for Basic Auth directly to Twilio API
+ *  (the connector gateway doesn't support Lookup paths)
  */
-async function lookupPhoneType(phone: string): Promise<string | null> {
-  const lovableKey = Deno.env.get('LOVABLE_API_KEY');
-  const twilioKey = Deno.env.get('TWILIO_API_KEY');
-  if (!lovableKey || !twilioKey || !phone) return null;
+async function lookupPhoneType(phone: string): Promise<{ type: string | null; sms_capable: boolean | null }> {
+  const accountSid = Deno.env.get('TWILIO_ACCOUNT_SID');
+  const authToken = Deno.env.get('TWILIO_AUTH_TOKEN');
+  if (!accountSid || !authToken || !phone) return { type: null, sms_capable: null };
 
-  // Clean phone number
   const cleaned = phone.replace(/[^\d+]/g, '');
-  if (cleaned.length < 7) return null;
+  if (cleaned.length < 7) return { type: null, sms_capable: null };
   const e164 = cleaned.startsWith('+') ? cleaned : `+1${cleaned}`;
 
   try {
-    console.log('[Twilio] Looking up phone type for:', e164);
+    console.log('[Twilio v2] Looking up phone:', e164);
     const encodedPhone = encodeURIComponent(e164);
-    
-    // Use the gateway for Lookups — the path /Lookups/v1/... is routed correctly
-    const response = await fetch(`${TWILIO_GATEWAY}/Lookups/v1/PhoneNumbers/${encodedPhone}?Type=carrier`, {
-      method: 'GET',
-      headers: {
-        'Authorization': `Bearer ${lovableKey}`,
-        'X-Connection-Api-Key': twilioKey,
-      },
-    });
+    const basicAuth = btoa(`${accountSid}:${authToken}`);
+
+    // Twilio Lookup v2 with line_type_intelligence and sms_pumping_risk
+    const response = await fetch(
+      `https://lookups.twilio.com/v2/PhoneNumbers/${encodedPhone}?Fields=line_type_intelligence`,
+      {
+        method: 'GET',
+        headers: {
+          'Authorization': `Basic ${basicAuth}`,
+        },
+      }
+    );
 
     if (!response.ok) {
       const errBody = await response.text().catch(() => '');
-      console.warn('[Twilio] Lookup failed:', response.status, errBody);
-      return null;
+      console.warn('[Twilio v2] Lookup failed:', response.status, errBody);
+      return { type: null, sms_capable: null };
     }
 
     const data = await response.json();
-    const carrierType = data?.carrier?.type; // "mobile", "landline", "voip", null
-    console.log('[Twilio] Phone type result:', carrierType);
-    return carrierType || null;
+    const lineType = data?.line_type_intelligence?.type; // "mobile", "landline", "fixedVoip", "nonFixedVoip", "personal", "tollFree", "premium", "sharedCost", "uan", "voicemail", "pager", null
+    console.log('[Twilio v2] Line type result:', lineType, 'Full:', JSON.stringify(data?.line_type_intelligence));
+
+    // Classify for our purposes
+    let normalizedType: string | null = null;
+    let smsCap: boolean | null = null;
+
+    if (lineType === 'mobile') {
+      normalizedType = 'mobile';
+      smsCap = true;
+    } else if (lineType === 'landline') {
+      normalizedType = 'landline';
+      smsCap = false;
+    } else if (lineType === 'fixedVoip' || lineType === 'nonFixedVoip') {
+      normalizedType = 'voip';
+      // VoIP numbers CAN sometimes receive SMS — mark as potentially capable
+      smsCap = true;
+    } else if (lineType === 'personal') {
+      normalizedType = 'mobile';
+      smsCap = true;
+    } else if (lineType === 'tollFree') {
+      normalizedType = 'tollfree';
+      smsCap = true; // Toll-free can typically receive SMS
+    } else if (lineType) {
+      normalizedType = lineType;
+      smsCap = false;
+    }
+
+    return { type: normalizedType, sms_capable: smsCap };
   } catch (err) {
-    console.warn('[Twilio] Lookup error:', err);
-    return null;
+    console.warn('[Twilio v2] Lookup error:', err);
+    return { type: null, sms_capable: null };
+  }
+}
+
+/** Hunter.io Domain Search — find emails for a domain (~$0.01/request, 25 free/month) */
+async function hunterEmailSearch(
+  apiKey: string,
+  domain: string,
+  businessName: string,
+): Promise<{ emails: Array<{ email: string; firstName: string | null; lastName: string | null; position: string | null; type: string }>; ownerEmail: string | null }> {
+  const result: { emails: Array<{ email: string; firstName: string | null; lastName: string | null; position: string | null; type: string }>; ownerEmail: string | null } = {
+    emails: [],
+    ownerEmail: null,
+  };
+
+  try {
+    console.log('[Hunter] Searching emails for domain:', domain);
+    const response = await fetch(
+      `${HUNTER_BASE}/domain-search?domain=${encodeURIComponent(domain)}&api_key=${encodeURIComponent(apiKey)}&limit=5`,
+      { method: 'GET' }
+    );
+
+    if (!response.ok) {
+      const errBody = await response.text().catch(() => '');
+      console.warn('[Hunter] Search failed:', response.status, errBody);
+      return result;
+    }
+
+    const data = await response.json();
+    const emails = data?.data?.emails || [];
+
+    for (const e of emails) {
+      result.emails.push({
+        email: e.value,
+        firstName: e.first_name || null,
+        lastName: e.last_name || null,
+        position: e.position || null,
+        type: e.type || 'generic', // "personal" or "generic"
+      });
+    }
+
+    // Try to find owner/CEO/manager email
+    const ownerKeywords = ['owner', 'ceo', 'founder', 'president', 'director', 'manager', 'principal', 'partner'];
+    const ownerMatch = result.emails.find(e =>
+      e.position && ownerKeywords.some(k => e.position!.toLowerCase().includes(k))
+    );
+
+    if (ownerMatch) {
+      result.ownerEmail = ownerMatch.email;
+    } else if (result.emails.length > 0) {
+      // Prefer personal emails over generic
+      const personal = result.emails.find(e => e.type === 'personal');
+      result.ownerEmail = personal?.email || result.emails[0].email;
+    }
+
+    console.log('[Hunter] Found', result.emails.length, 'emails. Owner email:', result.ownerEmail);
+    return result;
+  } catch (err) {
+    console.warn('[Hunter] Search error:', err);
+    return result;
   }
 }
 
@@ -256,7 +343,7 @@ Deno.serve(async (req) => {
     const firecrawlKey = Deno.env.get('FIRECRAWL_API_KEY');
     const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
     const exaApiKey = Deno.env.get('EXA_API_KEY');
-    const browserlessKey = Deno.env.get('BROWSERLESS_API_KEY');
+    const hunterApiKey = Deno.env.get('HUNTER_API_KEY');
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
@@ -302,10 +389,6 @@ Deno.serve(async (req) => {
           businessData = payload.extract || payload.json || {};
           brandingData = payload.branding || {};
 
-          // Merge social links from structured extraction
-          const socialLinks = businessData.social_links || {};
-
-          // Detect tech from HTML-level markdown
           const htmlLower = (markdown || '').toLowerCase();
 
           const chatPatterns = [
@@ -333,7 +416,6 @@ Deno.serve(async (req) => {
           ];
           hasOnlineBooking = bookingPatterns.some(p => htmlLower.includes(p));
 
-          // Quality scoring
           let quality = 50;
           if (url.startsWith('https')) quality += 10;
           if (htmlLower.includes('viewport')) quality += 10;
@@ -357,17 +439,25 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Step 1.5: Exa Research (FREE) — find owner info + social profiles in parallel
-    let exaData: Awaited<ReturnType<typeof exaResearch>> | null = null;
-    if (exaApiKey) {
+    // Step 1.5: Run Exa + Hunter.io in parallel
+    const domain = (() => {
       try {
-        exaData = await exaResearch(exaApiKey, business_name, website_url);
-      } catch (err) {
-        console.warn('Exa research failed (non-fatal):', err);
-      }
-    }
+        return new URL(website_url.startsWith('http') ? website_url : `https://${website_url}`).hostname.replace(/^www\./, '');
+      } catch { return ''; }
+    })();
 
-    // Step 2: AI Sales Analysis (uses structured data + Exa research for richer assessment)
+    const [exaData, hunterData] = await Promise.all([
+      exaApiKey ? exaResearch(exaApiKey, business_name, website_url).catch(err => {
+        console.warn('Exa research failed (non-fatal):', err);
+        return null;
+      }) : Promise.resolve(null),
+      (hunterApiKey && domain) ? hunterEmailSearch(hunterApiKey, domain, business_name).catch(err => {
+        console.warn('Hunter search failed (non-fatal):', err);
+        return null;
+      }) : Promise.resolve(null),
+    ]);
+
+    // Step 2: AI Sales Analysis
     let aiAnalysis = '';
     let enrichmentData: Record<string, any> = {};
     if (lovableApiKey) {
@@ -390,6 +480,7 @@ Deno.serve(async (req) => {
           exaData?.linkedinUrl ? `LinkedIn found: ${exaData.linkedinUrl}` : '',
           exaData?.facebookUrl ? `Facebook found: ${exaData.facebookUrl}` : '',
           exaData?.instagramUrl ? `Instagram found: ${exaData.instagramUrl}` : '',
+          hunterData?.emails?.length ? `\nEmails found (Hunter.io):\n${hunterData.emails.map(e => `${e.email} (${e.firstName || ''} ${e.lastName || ''}, ${e.position || 'unknown role'}, ${e.type})`).join('\n')}` : '',
         ].filter(Boolean).join('\n');
 
         const response = await fetch(LOVABLE_AI_BASE, {
@@ -448,11 +539,26 @@ Be direct and specific. Return ONLY valid JSON, no markdown formatting or code b
             if (!enrichmentData.instagram_url && socialLinks.instagram) enrichmentData.instagram_url = socialLinks.instagram;
             if (!enrichmentData.linkedin_url && socialLinks.linkedin) enrichmentData.linkedin_url = socialLinks.linkedin;
 
-            // Merge Exa research findings (highest priority for social profiles)
+            // Merge Exa research findings
             if (exaData) {
               if (!enrichmentData.linkedin_url && exaData.linkedinUrl) enrichmentData.linkedin_url = exaData.linkedinUrl;
               if (!enrichmentData.facebook_url && exaData.facebookUrl) enrichmentData.facebook_url = exaData.facebookUrl;
               if (!enrichmentData.instagram_url && exaData.instagramUrl) enrichmentData.instagram_url = exaData.instagramUrl;
+            }
+
+            // Merge Hunter.io email — prioritize Hunter over AI-guessed emails
+            if (hunterData?.ownerEmail) {
+              enrichmentData.owner_email = hunterData.ownerEmail;
+              // Also store the general business email if different
+              if (!enrichmentData.email) {
+                const genericEmail = hunterData.emails.find(e => e.type === 'generic');
+                if (genericEmail) enrichmentData.email = genericEmail.email;
+              }
+              // If Hunter found a name with the email, use it as fallback
+              const ownerEntry = hunterData.emails.find(e => e.email === hunterData.ownerEmail);
+              if (ownerEntry && !enrichmentData.owner_name && (ownerEntry.firstName || ownerEntry.lastName)) {
+                enrichmentData.owner_name = [ownerEntry.firstName, ownerEntry.lastName].filter(Boolean).join(' ');
+              }
             }
           } catch {
             aiAnalysis = raw;
@@ -468,28 +574,32 @@ Be direct and specific. Return ONLY valid JSON, no markdown formatting or code b
       }
     }
 
-    // If AI didn't run but Exa found social profiles, still use them
+    // If AI didn't run but Exa/Hunter found data, still use them
     if (!enrichmentData.linkedin_url && exaData?.linkedinUrl) enrichmentData.linkedin_url = exaData.linkedinUrl;
     if (!enrichmentData.facebook_url && exaData?.facebookUrl) enrichmentData.facebook_url = exaData.facebookUrl;
     if (!enrichmentData.instagram_url && exaData?.instagramUrl) enrichmentData.instagram_url = exaData.instagramUrl;
+    if (!enrichmentData.owner_email && hunterData?.ownerEmail) enrichmentData.owner_email = hunterData.ownerEmail;
 
     // Step 3: Build voice agent context from structured data
     const voiceAgentContext = buildVoiceAgentContext(businessData, business_name, niche);
 
-    // Step 3.5: Twilio Phone Type Lookup ($0.005/lookup)
-    // Fetch the prospect's current phone to check type
+    // Step 3.5: Twilio Phone Type + SMS Capability Lookup
     let phoneType: string | null = null;
+    let smsCapable: boolean | null = null;
     const { data: currentProspect } = await supabase
       .from('prospects')
-      .select('phone, phone_type')
+      .select('phone, phone_type, sms_capable')
       .eq('id', prospect_id)
       .single();
 
     const phoneToCheck = currentProspect?.phone;
     if (phoneToCheck && !currentProspect?.phone_type) {
-      phoneType = await lookupPhoneType(phoneToCheck);
+      const lookupResult = await lookupPhoneType(phoneToCheck);
+      phoneType = lookupResult.type;
+      smsCapable = lookupResult.sms_capable;
     } else if (currentProspect?.phone_type) {
-      phoneType = currentProspect.phone_type; // Already classified
+      phoneType = currentProspect.phone_type;
+      smsCapable = currentProspect.sms_capable;
     }
 
     // Step 4: Update the prospect in the database
@@ -502,11 +612,13 @@ Be direct and specific. Return ONLY valid JSON, no markdown formatting or code b
       ai_analysis: aiAnalysis,
       ai_analyzed: true,
       phone_type: phoneType,
+      sms_capable: smsCapable,
       business_data: {
         ...businessData,
         branding: brandingData,
         voice_agent_context: voiceAgentContext,
         exa_research: exaData?.snippets || [],
+        hunter_emails: hunterData?.emails || [],
       },
       ...enrichmentData,
     };
@@ -532,6 +644,9 @@ Be direct and specific. Return ONLY valid JSON, no markdown formatting or code b
           ai_analysis: aiAnalysis,
           business_data: businessData,
           branding: brandingData,
+          phone_type: phoneType,
+          sms_capable: smsCapable,
+          hunter_emails_found: hunterData?.emails?.length || 0,
         },
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
@@ -546,10 +661,6 @@ Be direct and specific. Return ONLY valid JSON, no markdown formatting or code b
   }
 });
 
-/**
- * Build a concise, structured context string for the Retell voice agent
- * so it can "talk shop" about the business's real services, pricing, and FAQs.
- */
 function buildVoiceAgentContext(
   data: Record<string, any>,
   fallbackName: string,
