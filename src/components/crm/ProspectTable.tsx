@@ -597,7 +597,28 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) =
           <ScoringLegend />
         </div>
         <div className="flex items-center gap-2">
-          {unanalyzedCount > 0 && (
+          {batchProgress.isRunning && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30">
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+              <span className="text-xs text-amber-400 font-medium">
+                {batchProgress.completed}/{batchProgress.total}
+                {batchProgress.current && <span className="text-muted-foreground ml-1">— {batchProgress.current}</span>}
+              </span>
+              <div className="w-20 h-1.5 rounded-full bg-secondary overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-amber-400 transition-all"
+                  style={{ width: `${(batchProgress.completed / batchProgress.total) * 100}%` }}
+                />
+              </div>
+              <button
+                onClick={stopBatch}
+                className="flex items-center gap-1 px-2 py-0.5 rounded bg-red-500/20 border border-red-500/30 text-red-400 text-[10px] font-bold hover:bg-red-500/30 transition-colors"
+              >
+                <StopCircle className="w-3 h-3" />Stop
+              </button>
+            </div>
+          )}
+          {unanalyzedCount > 0 && !batchProgress.isRunning && (
             <button
               onClick={handleAnalyzeAll}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/20 border border-primary/30 text-primary text-xs font-semibold hover:bg-primary/30 transition-colors"
