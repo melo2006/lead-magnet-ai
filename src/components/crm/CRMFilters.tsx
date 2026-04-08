@@ -104,14 +104,14 @@ function MultiSelect({
       </label>
       <button
         onClick={() => setOpen(!open)}
-        className={`flex items-center justify-between gap-1 min-w-[140px] px-3 py-1.5 rounded-lg border text-sm text-left transition-colors ${
+        className={`flex items-center justify-between gap-1 w-full px-2 py-1 rounded border text-xs text-left transition-colors ${
           selected.length > 0
             ? "bg-primary/10 border-primary/40 text-primary"
             : "bg-secondary border-border text-foreground"
         }`}
       >
-        <span className="truncate text-xs">{displayText}</span>
-        <ChevronDown className="w-3 h-3 shrink-0" />
+        <span className="truncate text-[11px]">{displayText}</span>
+        <ChevronDown className="w-2.5 h-2.5 shrink-0" />
       </button>
       {open && (
         <div className="absolute z-50 mt-1 w-56 bg-popover border border-border rounded-lg shadow-xl overflow-hidden">
@@ -227,7 +227,7 @@ const CRMFilters = ({
   }).length;
 
   const selectClass =
-    "px-3 py-1.5 rounded-lg bg-secondary border border-border text-sm text-foreground focus:outline-none focus:border-primary/50";
+    "w-full px-2 py-1 rounded bg-secondary border border-border text-xs text-foreground focus:outline-none focus:border-primary/50";
 
   return (
     <div className="bg-card border border-border rounded-lg p-3 space-y-2">
