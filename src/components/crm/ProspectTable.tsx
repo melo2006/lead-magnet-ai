@@ -7,7 +7,7 @@ import {
   ArrowUpDown, Gauge, ChevronLeft, ChevronRight,
   Linkedin, Facebook, Instagram, Smartphone,
   Settings2, GripVertical, Eye, EyeOff, Info,
-  Mic, Globe
+  Mic, Globe, Calendar, MessageCircle
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
