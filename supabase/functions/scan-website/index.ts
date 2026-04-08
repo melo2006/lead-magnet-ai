@@ -84,9 +84,9 @@ const inferNicheFromKeywords = (value: string, fallback?: string | null): Allowe
 const pickRelevantLinks = (links: string[], rootUrl: string) => {
   const rootHost = getHost(rootUrl);
   const excluded = /(privacy|terms|login|signin|signup|cart|checkout|wp-admin|feed|tag\/|category\/|author\/)/i;
-  // High-priority pages that the voice agent MUST know about (pricing, products, services, specials)
-  const highPriority = /(pric|cost|rate|fee|menu|package|plan|product|special|deal|offer|discount|promotion|shop|catalog|floor|tile|vinyl|laminate|install)/i;
-  const preferred = /(about|service|services|treatment|pricing|faq|contact|location|locations|team|gallery|reviews|testimonial|book|appointment|schedule|quote|estimate|menu|packages|plans|rates|fees|costs|offerings|product|shop|catalog|inventory|portfolio|project|work|before-after|showroom)/i;
+  // High-priority pages: pricing, services, products, FAQ — generic across all industries
+  const highPriority = /(pric|cost|rate|fee|menu|package|plan|product|special|deal|offer|discount|promotion|shop|catalog|faq|question|support|help)/i;
+  const preferred = /(about|service|services|treatment|pricing|faq|contact|location|locations|team|gallery|reviews|testimonial|book|appointment|schedule|quote|estimate|menu|packages|plans|rates|fees|costs|offerings|product|shop|catalog|inventory|portfolio|project|work|before-after|showroom|staff|our-team|how-it-works|process|why-us|blog|news|resources|careers)/i;
 
   const filtered = unique(
     links
