@@ -7,7 +7,8 @@ import {
   ArrowUpDown, Gauge, ChevronLeft, ChevronRight,
   Linkedin, Facebook, Instagram, Smartphone,
   Settings2, GripVertical, Eye, EyeOff, Info,
-  Mic, Globe, MessageCircle, StopCircle, Pause, Play
+  Mic, Globe, MessageCircle, StopCircle, Pause, Play,
+  DollarSign, X
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -251,6 +252,7 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign
   const { analyze, analyzeBatch, analyzingIds, batchProgress, stopBatch, pauseBatch, resumeBatch } = useProspectAnalysis();
   const returnTo = encodeURIComponent(`${window.location.pathname}${window.location.search}${window.location.hash}`);
   const [sendingSmsId, setSendingSmsId] = useState<string | null>(null);
+  const [hideCostBanner, setHideCostBanner] = useState(false);
 
   const handleSendSms = async (prospect: Prospect, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -620,6 +622,43 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign
                 {batchProgress.isPaused && <span className="ml-1 text-yellow-300">(Paused)</span>}
                 {!batchProgress.isPaused && batchProgress.current && <span className="text-muted-foreground ml-1">— {batchProgress.current}</span>}
               </span>
+              {batchProgress.costSummary.totalCost > 0 && (
+                <Popover>
+                  <PopoverTrigger asChild>
+                    <button className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 text-[10px] font-bold hover:bg-emerald-500/25 transition-colors">
+                      <DollarSign className="w-3 h-3" />
+                      ${batchProgress.costSummary.totalCost.toFixed(3)}
+                    </button>
+                  </PopoverTrigger>
+                  <PopoverContent className="w-64 p-3" align="end">
+                    <h4 className="text-xs font-semibold text-foreground mb-2">Enrichment Cost Breakdown</h4>
+                    <div className="space-y-1.5">
+                      {Object.entries(batchProgress.costSummary.apiTotals)
+                        .filter(([, v]) => v.calls > 0)
+                        .map(([api, usage]) => (
+                          <div key={api} className="flex items-center justify-between text-[11px]">
+                            <span className="text-muted-foreground capitalize">{api} ({usage.calls} calls)</span>
+                            <span className={`font-mono font-medium ${usage.cost > 0 ? "text-foreground" : "text-primary"}`}>
+                              {usage.cost > 0 ? `$${usage.cost.toFixed(3)}` : "Free"}
+                            </span>
+                          </div>
+                        ))}
+                      <div className="border-t border-border pt-1.5 mt-1.5 flex items-center justify-between text-xs font-semibold">
+                        <span className="text-foreground">Total ({batchProgress.completed} prospects)</span>
+                        <span className="text-primary">${batchProgress.costSummary.totalCost.toFixed(3)}</span>
+                      </div>
+                      {batchProgress.completed > 0 && (
+                        <p className="text-[10px] text-muted-foreground mt-1">
+                          ~${(batchProgress.costSummary.totalCost / batchProgress.completed).toFixed(3)}/prospect
+                          {batchProgress.total > batchProgress.completed && (
+                            <> · Est. total for {batchProgress.total}: <span className="text-foreground font-medium">${((batchProgress.costSummary.totalCost / batchProgress.completed) * batchProgress.total).toFixed(2)}</span></>
+                          )}
+                        </p>
+                      )}
+                    </div>
+                  </PopoverContent>
+                </Popover>
+              )}
               <div className="w-20 h-1.5 rounded-full bg-secondary overflow-hidden">
                 <div
                   className="h-full rounded-full bg-amber-400 transition-all"
@@ -675,6 +714,31 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign
           </select>
         </div>
       </div>
+
+      {/* Cost summary after batch completes */}
+      {!batchProgress.isRunning && batchProgress.costSummary.totalCost > 0 && !hideCostBanner && (
+        <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/25">
+          <DollarSign className="w-4 h-4 text-emerald-400 shrink-0" />
+          <div className="flex-1">
+            <p className="text-xs font-semibold text-foreground">
+              Last batch: {batchProgress.completed} prospects analyzed · Est. cost: <span className="text-primary">${batchProgress.costSummary.totalCost.toFixed(3)}</span>
+            </p>
+            <p className="text-[10px] text-muted-foreground">
+              {Object.entries(batchProgress.costSummary.apiTotals)
+                .filter(([, v]) => v.calls > 0)
+                .map(([api, v]) => `${api}: ${v.calls} calls${v.cost > 0 ? ` ($${v.cost.toFixed(3)})` : ' (free)'}`)
+                .join(' · ')}
+              {batchProgress.completed > 0 && ` · ~$${(batchProgress.costSummary.totalCost / batchProgress.completed).toFixed(3)}/prospect`}
+            </p>
+          </div>
+          <button
+            onClick={() => setHideCostBanner(true)}
+            className="text-muted-foreground hover:text-foreground p-1"
+          >
+            <X className="w-3 h-3" />
+          </button>
+        </div>
+      )}
 
       {/* Bulk Actions Bar */}
       {selectedIds.size > 0 && (

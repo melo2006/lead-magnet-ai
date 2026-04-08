@@ -2,18 +2,31 @@ import { useState, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
+export interface CostBreakdown {
+  total_usd: number;
+  breakdown: Record<string, { calls: number; cost: number }>;
+}
+
+export interface BatchCostSummary {
+  totalCost: number;
+  perProspect: CostBreakdown[];
+  apiTotals: Record<string, { calls: number; cost: number }>;
+}
+
 export interface BatchProgress {
   total: number;
   completed: number;
   current: string | null;
   isRunning: boolean;
   isPaused: boolean;
+  costSummary: BatchCostSummary;
 }
 
 export const useProspectAnalysis = () => {
   const [analyzingIds, setAnalyzingIds] = useState<Set<string>>(new Set());
   const [batchProgress, setBatchProgress] = useState<BatchProgress>({
     total: 0, completed: 0, current: null, isRunning: false, isPaused: false,
+    costSummary: { totalCost: 0, perProspect: [], apiTotals: {} },
   });
   const abortRef = useRef(false);
   const pauseRef = useRef(false);
@@ -45,7 +58,7 @@ export const useProspectAnalysis = () => {
       if (!data?.success) throw new Error(data?.error || "Analysis failed");
 
       toast.success(`Analysis complete for ${prospect.business_name}`);
-      return data.data;
+      return data.data as Record<string, any>;
     } catch (err: any) {
       console.error("Analysis error:", err);
       toast.error(err.message || "Analysis failed");
@@ -93,7 +106,8 @@ export const useProspectAnalysis = () => {
 
     abortRef.current = false;
     pauseRef.current = false;
-    setBatchProgress({ total: withWebsite.length, completed: 0, current: null, isRunning: true, isPaused: false });
+    const costSummary: BatchCostSummary = { totalCost: 0, perProspect: [], apiTotals: {} };
+    setBatchProgress({ total: withWebsite.length, completed: 0, current: null, isRunning: true, isPaused: false, costSummary });
     toast.info(`Analyzing ${withWebsite.length} prospects...`);
 
     let completed = 0;
@@ -113,16 +127,29 @@ export const useProspectAnalysis = () => {
       }
 
       setBatchProgress(prev => ({ ...prev, current: prospect.business_name, completed }));
-      await analyze(prospect);
+      const result = await analyze(prospect);
+
+      // Track cost
+      if (result?.cost) {
+        const cost = result.cost as CostBreakdown;
+        costSummary.totalCost += cost.total_usd;
+        costSummary.perProspect.push(cost);
+        for (const [api, usage] of Object.entries(cost.breakdown)) {
+          if (!costSummary.apiTotals[api]) costSummary.apiTotals[api] = { calls: 0, cost: 0 };
+          costSummary.apiTotals[api].calls += usage.calls;
+          costSummary.apiTotals[api].cost += usage.cost;
+        }
+      }
+
       completed++;
-      setBatchProgress(prev => ({ ...prev, completed }));
+      setBatchProgress(prev => ({ ...prev, completed, costSummary: { ...costSummary } }));
       // Small delay to avoid rate limits
       await new Promise((r) => setTimeout(r, 1500));
     }
 
-    setBatchProgress({ total: 0, completed: 0, current: null, isRunning: false, isPaused: false });
+    setBatchProgress(prev => ({ ...prev, isRunning: false, isPaused: false }));
     if (!abortRef.current) {
-      toast.success("Batch analysis complete!");
+      toast.success(`Batch analysis complete! Est. cost: $${costSummary.totalCost.toFixed(3)}`);
     }
   };
 

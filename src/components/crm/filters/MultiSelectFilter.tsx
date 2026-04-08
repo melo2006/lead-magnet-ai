@@ -108,8 +108,9 @@ const MultiSelectFilter = ({
         </PopoverTrigger>
 
         <PopoverContent align="start" sideOffset={6} className="w-64 max-w-[calc(100vw-2rem)] p-0">
+          {/* Dropdown panel uses slightly lighter bg for contrast */}
           {showSearch && (
-            <div className="border-b border-border p-2">
+            <div className="border-b border-muted-foreground/20 p-2">
               <div className="relative">
                 <Search className="absolute left-2 top-1/2 h-3 w-3 -translate-y-1/2 text-muted-foreground" />
                 <input
@@ -132,7 +133,7 @@ const MultiSelectFilter = ({
             </div>
           )}
 
-          <div className="flex items-center justify-between gap-2 border-b border-border px-2 py-1.5">
+          <div className="flex items-center justify-between gap-2 border-b border-muted-foreground/20 px-2 py-1.5">
             <button
               type="button"
               onClick={toggleVisible}
@@ -169,7 +170,10 @@ const MultiSelectFilter = ({
                       isChecked ? "bg-primary/10 text-primary" : "text-foreground hover:bg-secondary",
                     )}
                   >
-                    <Checkbox checked={isChecked} className="pointer-events-none h-3.5 w-3.5 border-border" />
+                    <Checkbox
+                      checked={isChecked}
+                      className="pointer-events-none h-3.5 w-3.5 border-muted-foreground/60 data-[state=checked]:border-primary"
+                    />
                     <span className="truncate">{option.label}</span>
                   </button>
                 );
