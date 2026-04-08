@@ -245,7 +245,7 @@ async function scrapeMarkdownPage(url: string, apiKey: string) {
     url,
     title: cleanText(data.metadata?.title),
     summary: cleanText(data.summary),
-    markdown: truncate(cleanText(data.markdown), 5000),
+    markdown: truncate(cleanText(data.markdown), 12000),
   };
 }
 
