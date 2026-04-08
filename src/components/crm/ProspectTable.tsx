@@ -27,7 +27,7 @@ type SortKey =
   | "has_website" | "has_chat_widget" | "has_voice_ai"
   | "has_online_booking" | "website_quality_score" | "lead_temperature"
   | "city" | "ai_analyzed" | "niche" | "contact_method" | "owner_name"
-  | "voiceai_fit" | "webdev_fit";
+  | "voiceai_fit" | "webdev_fit" | "created_at";
 
 const tempIcons: Record<string, any> = {
   hot: Flame, warm: Thermometer, cold: Snowflake,
@@ -41,7 +41,7 @@ const tempColors: Record<string, string> = {
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 // Column definitions
-type ColumnId = "business" | "niche" | "temp" | "location" | "actions" | "rating" | "reviews" | "score" | "website" | "chat" | "voiceai" | "booking" | "sitequality" | "ai" | "owner" | "contact" | "social" | "voiceai_candidate" | "webdev_candidate" | "sources";
+type ColumnId = "business" | "niche" | "temp" | "location" | "actions" | "rating" | "reviews" | "score" | "website" | "chat" | "voiceai" | "booking" | "sitequality" | "ai" | "owner" | "contact" | "social" | "voiceai_candidate" | "webdev_candidate" | "sources" | "date_added";
 
 interface ColumnDef {
   id: ColumnId;
