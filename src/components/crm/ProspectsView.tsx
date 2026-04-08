@@ -23,6 +23,7 @@ const ProspectsView = () => {
     minScore: 0,
     status: searchParams.get("status") || "all",
     previewType: "all",
+    phoneType: "all",
   });
   const [outreachProspects, setOutreachProspects] = useState<any[] | null>(null);
 
@@ -59,6 +60,15 @@ const ProspectsView = () => {
       });
     }
 
+    // Phone type filter
+    if (filters.phoneType !== "all") {
+      list = list.filter(p => {
+        const pt = (p as any).phone_type;
+        if (filters.phoneType === "unknown") return !pt;
+        return pt === filters.phoneType;
+      });
+    }
+
     if (!quickSearch.trim()) return list;
     const q = quickSearch.toLowerCase();
     return list.filter(p =>
@@ -70,7 +80,7 @@ const ProspectsView = () => {
       (p as any).owner_name?.toLowerCase().includes(q) ||
       p.formatted_address?.toLowerCase().includes(q)
     );
-  }, [baseProspects, quickSearch, filters.previewType]);
+  }, [baseProspects, quickSearch, filters.previewType, filters.phoneType]);
 
   return (
     <div className="space-y-4">

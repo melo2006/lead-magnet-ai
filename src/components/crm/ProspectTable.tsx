@@ -30,7 +30,7 @@ type SortKey =
   | "has_website" | "has_chat_widget" | "has_voice_ai"
   | "has_online_booking" | "website_quality_score" | "lead_temperature"
   | "city" | "ai_analyzed" | "niche" | "contact_method" | "owner_name"
-  | "voiceai_fit" | "webdev_fit" | "created_at" | "preview_type";
+  | "voiceai_fit" | "webdev_fit" | "created_at" | "preview_type" | "phone_type";
 
 const tempIcons: Record<string, any> = {
   hot: Flame, warm: Thermometer, cold: Snowflake,
@@ -44,7 +44,7 @@ const tempColors: Record<string, string> = {
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 // Column definitions
-type ColumnId = "business" | "niche" | "temp" | "location" | "actions" | "rating" | "reviews" | "score" | "website" | "chat" | "voiceai" | "booking" | "sitequality" | "ai" | "owner" | "contact" | "social" | "voiceai_candidate" | "webdev_candidate" | "sources" | "date_added" | "preview_type";
+type ColumnId = "business" | "niche" | "temp" | "location" | "actions" | "rating" | "reviews" | "score" | "website" | "chat" | "voiceai" | "booking" | "sitequality" | "ai" | "owner" | "contact" | "social" | "voiceai_candidate" | "webdev_candidate" | "sources" | "date_added" | "preview_type" | "phone_type";
 
 interface ColumnDef {
   id: ColumnId;
@@ -76,6 +76,7 @@ const ALL_COLUMNS: ColumnDef[] = [
   { id: "owner", label: "Owner", sortKey: "owner_name", minWidth: "100px", removable: true },
   { id: "contact", label: "Contact", sortKey: "contact_method", minWidth: "90px", removable: true },
   { id: "social", label: "Social", minWidth: "80px", removable: true },
+  { id: "phone_type", label: "Phone Type", sortKey: "phone_type", minWidth: "85px", removable: true },
   { id: "sources", label: "Sources", minWidth: "110px", removable: true },
 ];
 
@@ -532,6 +533,17 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) =
             {hasAi && <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-primary/15 text-primary border border-primary/25">AI</span>}
           </div>
         );
+      }
+      case "phone_type": {
+        const pt = (p as any).phone_type;
+        if (!pt) return <span className="text-[10px] text-muted-foreground">—</span>;
+        const phoneTypeStyles: Record<string, string> = {
+          mobile: "text-emerald-400 bg-emerald-500/15 border-emerald-500/25",
+          landline: "text-amber-400 bg-amber-500/15 border-amber-500/25",
+          voip: "text-violet-400 bg-violet-500/15 border-violet-500/25",
+        };
+        const label = pt.charAt(0).toUpperCase() + pt.slice(1);
+        return <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${phoneTypeStyles[pt] || "text-muted-foreground bg-secondary border-border"}`}>{label}</span>;
       }
       default:
         return null;

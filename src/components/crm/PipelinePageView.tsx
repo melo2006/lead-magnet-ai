@@ -8,6 +8,7 @@ const PipelinePageView = () => {
     minScore: 0,
     status: "all",
     previewType: "all",
+    phoneType: "all",
   });
 
   return (
