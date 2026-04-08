@@ -726,6 +726,7 @@ export type Database = {
           owner_name: string | null
           owner_phone: string | null
           phone: string | null
+          phone_type: string | null
           photos: Json | null
           pipeline_stage: string
           place_id: string
@@ -787,6 +788,7 @@ export type Database = {
           owner_name?: string | null
           owner_phone?: string | null
           phone?: string | null
+          phone_type?: string | null
           photos?: Json | null
           pipeline_stage?: string
           place_id: string
@@ -848,6 +850,7 @@ export type Database = {
           owner_name?: string | null
           owner_phone?: string | null
           phone?: string | null
+          phone_type?: string | null
           photos?: Json | null
           pipeline_stage?: string
           place_id?: string
