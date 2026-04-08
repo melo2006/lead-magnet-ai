@@ -256,6 +256,8 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign
   const returnTo = encodeURIComponent(`${window.location.pathname}${window.location.search}${window.location.hash}`);
   const [sendingSmsId, setSendingSmsId] = useState<string | null>(null);
   const [hideCostBanner, setHideCostBanner] = useState(false);
+  const [showAnalyzeConfirm, setShowAnalyzeConfirm] = useState(false);
+  const [analyzeTarget, setAnalyzeTarget] = useState<"all" | "selected">("all");
 
   const handleSendSms = async (prospect: Prospect, e: React.MouseEvent) => {
     e.stopPropagation();
