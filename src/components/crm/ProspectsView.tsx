@@ -1,12 +1,13 @@
 import { useState, useEffect } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Filter, Search } from "lucide-react";
+import { Filter, Search, UserPlus } from "lucide-react";
 import ProspectSearchForm from "@/components/crm/ProspectSearchForm";
 import ProspectTable from "@/components/crm/ProspectTable";
 import CRMStats from "@/components/crm/CRMStats";
 import CRMFilters from "@/components/crm/CRMFilters";
 import OutreachDialog from "@/components/crm/OutreachDialog";
+import QuickAddProspectDialog from "@/components/crm/QuickAddProspectDialog";
 import { useProspectSearch } from "@/hooks/useProspectSearch";
 import { useProspects } from "@/hooks/useProspects";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -14,6 +15,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 const ProspectsView = () => {
   const [searchParams] = useSearchParams();
   const [showFilters, setShowFilters] = useState(false);
+  const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [filters, setFilters] = useState({
     temperature: searchParams.get("temp") || "all",
     hasWebsite: "all",
@@ -47,12 +49,20 @@ const ProspectsView = () => {
           <h1 className="text-xl font-bold text-foreground">Prospects</h1>
           <p className="text-sm text-muted-foreground">Search and manage your business leads</p>
         </div>
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${showFilters ? "bg-primary/10 border-primary/30 text-primary" : "bg-secondary border-border text-muted-foreground hover:text-foreground"}`}
-        >
-          <Filter className="w-3.5 h-3.5" />Filters
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowQuickAdd(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
+          >
+            <UserPlus className="w-3.5 h-3.5" />Quick Add
+          </button>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${showFilters ? "bg-primary/10 border-primary/30 text-primary" : "bg-secondary border-border text-muted-foreground hover:text-foreground"}`}
+          >
+            <Filter className="w-3.5 h-3.5" />Filters
+          </button>
+        </div>
       </div>
 
       <CRMStats prospects={displayProspects} />
@@ -105,6 +115,12 @@ const ProspectsView = () => {
           onSent={() => { setOutreachProspects(null); refetch(); }}
         />
       )}
+
+      <QuickAddProspectDialog
+        open={showQuickAdd}
+        onOpenChange={setShowQuickAdd}
+        onAdded={refetch}
+      />
     </div>
   );
 };
