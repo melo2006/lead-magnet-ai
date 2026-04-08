@@ -39,6 +39,13 @@ const buildProspectsQuery = (filters: Filters) => {
   if (filters.phoneType.length > 0) {
     query = query.in("phone_type", filters.phoneType);
   }
+  if (filters.hasEmail && filters.hasEmail.length === 1) {
+    if (filters.hasEmail[0] === "yes") {
+      query = query.not("email", "is", null).neq("email", "");
+    } else if (filters.hasEmail[0] === "no") {
+      query = query.or("email.is.null,email.eq.");
+    }
+  }
   if (filters.analyzed === "yes") {
     query = query.eq("ai_analyzed", true);
   } else if (filters.analyzed === "no") {
