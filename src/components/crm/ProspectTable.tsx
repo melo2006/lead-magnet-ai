@@ -7,7 +7,7 @@ import {
   ArrowUpDown, Gauge, ChevronLeft, ChevronRight,
   Linkedin, Facebook, Instagram, Smartphone,
   Settings2, GripVertical, Eye, EyeOff, Info,
-  Mic, Globe, MessageCircle
+  Mic, Globe, MessageCircle, StopCircle
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -44,7 +44,7 @@ const tempColors: Record<string, string> = {
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 // Column definitions
-type ColumnId = "business" | "niche" | "temp" | "location" | "actions" | "rating" | "reviews" | "score" | "website" | "chat" | "voiceai" | "booking" | "sitequality" | "ai" | "owner" | "contact" | "social" | "voiceai_candidate" | "webdev_candidate" | "sources" | "date_added" | "preview_type" | "phone_type";
+type ColumnId = "business" | "niche" | "temp" | "location" | "actions" | "rating" | "reviews" | "score" | "website" | "chat" | "voiceai" | "booking" | "sitequality" | "ai" | "owner" | "contact" | "social" | "voiceai_candidate" | "webdev_candidate" | "sources" | "date_added" | "preview_type" | "phone_type" | "email";
 
 interface ColumnDef {
   id: ColumnId;
@@ -77,6 +77,7 @@ const ALL_COLUMNS: ColumnDef[] = [
   { id: "contact", label: "Contact", sortKey: "contact_method", minWidth: "90px", removable: true },
   { id: "social", label: "Social", minWidth: "80px", removable: true },
   { id: "phone_type", label: "Phone Type", sortKey: "phone_type", minWidth: "85px", removable: true },
+  { id: "email", label: "Email", minWidth: "140px", removable: true },
   { id: "sources", label: "Sources", minWidth: "110px", removable: true },
 ];
 
@@ -245,7 +246,7 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) =
   const [pageSize, setPageSize] = useState(25);
   const [columnOrder, setColumnOrder] = useState<ColumnId[]>(DEFAULT_ORDER);
   const [visibleColumns, setVisibleColumns] = useState<Set<ColumnId>>(new Set(DEFAULT_VISIBLE));
-  const { analyze, analyzeBatch, analyzingIds } = useProspectAnalysis();
+  const { analyze, analyzeBatch, analyzingIds, batchProgress, stopBatch } = useProspectAnalysis();
   const returnTo = encodeURIComponent(`${window.location.pathname}${window.location.search}${window.location.hash}`);
   const [sendingSmsId, setSendingSmsId] = useState<string | null>(null);
 
@@ -545,6 +546,20 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) =
         const label = pt.charAt(0).toUpperCase() + pt.slice(1);
         return <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${phoneTypeStyles[pt] || "text-muted-foreground bg-secondary border-border"}`}>{label}</span>;
       }
+      case "email": {
+        const email = (p as any).owner_email || (p as any).email;
+        if (!email) return <span className="text-[10px] text-muted-foreground">—</span>;
+        return (
+          <a
+            href={`mailto:${email}`}
+            onClick={(e) => e.stopPropagation()}
+            className="text-[10px] text-primary hover:underline truncate block max-w-[140px]"
+            title={email}
+          >
+            {email}
+          </a>
+        );
+      }
       default:
         return null;
     }
@@ -582,7 +597,28 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) =
           <ScoringLegend />
         </div>
         <div className="flex items-center gap-2">
-          {unanalyzedCount > 0 && (
+          {batchProgress.isRunning && (
+            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30">
+              <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+              <span className="text-xs text-amber-400 font-medium">
+                {batchProgress.completed}/{batchProgress.total}
+                {batchProgress.current && <span className="text-muted-foreground ml-1">— {batchProgress.current}</span>}
+              </span>
+              <div className="w-20 h-1.5 rounded-full bg-secondary overflow-hidden">
+                <div
+                  className="h-full rounded-full bg-amber-400 transition-all"
+                  style={{ width: `${(batchProgress.completed / batchProgress.total) * 100}%` }}
+                />
+              </div>
+              <button
+                onClick={stopBatch}
+                className="flex items-center gap-1 px-2 py-0.5 rounded bg-red-500/20 border border-red-500/30 text-red-400 text-[10px] font-bold hover:bg-red-500/30 transition-colors"
+              >
+                <StopCircle className="w-3 h-3" />Stop
+              </button>
+            </div>
+          )}
+          {unanalyzedCount > 0 && !batchProgress.isRunning && (
             <button
               onClick={handleAnalyzeAll}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/20 border border-primary/30 text-primary text-xs font-semibold hover:bg-primary/30 transition-colors"

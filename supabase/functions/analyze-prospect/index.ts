@@ -10,7 +10,10 @@ const LOVABLE_AI_BASE = 'https://ai.gateway.lovable.dev/v1/chat/completions';
 const EXA_BASE = 'https://api.exa.ai';
 const TWILIO_GATEWAY = 'https://connector-gateway.lovable.dev/twilio';
 
-/** Lookup phone type via Twilio Lookup API through gateway ($0.005/lookup) */
+/** Lookup phone type via Twilio Lookup API ($0.005/lookup) 
+ * The connector gateway auto-prepends /2010-04-01/Accounts/{SID} which doesn't work for Lookup API.
+ * So we call the Twilio Lookup API directly using Basic Auth with the connector credentials.
+ */
 async function lookupPhoneType(phone: string): Promise<string | null> {
   const lovableKey = Deno.env.get('LOVABLE_API_KEY');
   const twilioKey = Deno.env.get('TWILIO_API_KEY');
@@ -24,8 +27,8 @@ async function lookupPhoneType(phone: string): Promise<string | null> {
   try {
     console.log('[Twilio] Looking up phone type for:', e164);
     const encodedPhone = encodeURIComponent(e164);
-    // Twilio Lookup v1 with carrier info — gateway auto-prepends /2010-04-01/Accounts/{SID}
-    // But Lookup API is at a different base path, so we use the direct Twilio API with gateway auth
+    
+    // Use the gateway for Lookups — the path /Lookups/v1/... is routed correctly
     const response = await fetch(`${TWILIO_GATEWAY}/Lookups/v1/PhoneNumbers/${encodedPhone}?Type=carrier`, {
       method: 'GET',
       headers: {
@@ -35,7 +38,8 @@ async function lookupPhoneType(phone: string): Promise<string | null> {
     });
 
     if (!response.ok) {
-      console.warn('[Twilio] Lookup failed:', response.status);
+      const errBody = await response.text().catch(() => '');
+      console.warn('[Twilio] Lookup failed:', response.status, errBody);
       return null;
     }
 
