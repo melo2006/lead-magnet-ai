@@ -38,6 +38,34 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const action = body.action || 'setup';
 
+    if (action === 'rename_agent') {
+      const agentId = body.agent_id;
+      const newName = body.new_name;
+      if (!agentId || !newName) throw new Error('agent_id and new_name are required');
+
+      console.log(`Renaming agent ${agentId} to "${newName}"`);
+      const updated = await retellFetch(`/update-agent/${agentId}`, apiKey, {
+        method: 'PATCH',
+        body: JSON.stringify({ agent_name: newName }),
+      });
+
+      return new Response(JSON.stringify({ success: true, agent: updated }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
+    if (action === 'delete_agent') {
+      const agentId = body.agent_id;
+      if (!agentId) throw new Error('agent_id is required');
+
+      console.log(`Deleting agent ${agentId}`);
+      await retellFetch(`/delete-agent/${agentId}`, apiKey, { method: 'DELETE' });
+
+      return new Response(JSON.stringify({ success: true, deleted: agentId }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     if (action === 'update-llm') {
       const llmId = body.llm_id;
       if (!llmId) throw new Error('llm_id is required');
@@ -106,6 +134,20 @@ Based on {{business_niche}}, adapt your language:
 - "autodetail": Talk about packages, coatings, paint correction, interior details, protection, and turnaround time.
 - "veterinary": Talk about pets, appointments, wellness visits, vaccinations, symptoms, and urgent concerns.
 - "marine": Talk about boats, engines, maintenance, haul-outs, diagnostics, and seasonal service.
+- "legal": Talk about consultations, case types, timelines, retainers, and client intake.
+- "dental": Talk about cleanings, exams, cosmetic procedures, insurance, and scheduling.
+- "fitness": Talk about memberships, classes, personal training, schedules, and trial sessions.
+- "restaurant": Talk about reservations, menus, catering, events, and hours.
+- "salon": Talk about services, stylists, availability, pricing, and walk-ins.
+- "hvac": Talk about service calls, installations, maintenance plans, and emergency repairs.
+- "plumbing": Talk about repairs, estimates, emergency service, and scheduling.
+- "roofing": Talk about inspections, estimates, materials, and storm damage.
+- "landscaping": Talk about design, maintenance plans, seasonal work, and quotes.
+- "photography": Talk about sessions, packages, availability, deposits, and galleries.
+- "webdev": Talk about projects, timelines, tech stack, portfolios, and consultations.
+- "accounting": Talk about tax prep, bookkeeping, consultations, and deadlines.
+- "insurance": Talk about coverage, quotes, claims, and policy reviews.
+- "cleaning": Talk about services, frequency, estimates, and availability.
 - "general": Stay broad, helpful, and business-specific based on {{business_info}}.
 
 TRANSFER AND APPOINTMENT RULES:

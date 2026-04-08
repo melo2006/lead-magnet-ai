@@ -137,7 +137,7 @@ Deno.serve(async (req) => {
     const callResult = await retellFetch('/v2/create-phone-call', retellApiKey, {
       method: 'POST',
       body: JSON.stringify({
-        from_number: Deno.env.get('RETELL_PHONE_NUMBER') || '+15612755757',
+        from_number: Deno.env.get('RETELL_PHONE_NUMBER') || '+19548336081',
         to_number: normalizedPhone,
         agent_id: targetAgentId,
         retell_llm_dynamic_variables: retellVariables,
