@@ -84,9 +84,9 @@ const inferNicheFromKeywords = (value: string, fallback?: string | null): Allowe
 const pickRelevantLinks = (links: string[], rootUrl: string) => {
   const rootHost = getHost(rootUrl);
   const excluded = /(privacy|terms|login|signin|signup|cart|checkout|wp-admin|feed|tag\/|category\/|author\/)/i;
-  // High-priority pages that the voice agent MUST know about (pricing, services, menu, rates)
-  const highPriority = /(pric|cost|rate|fee|menu|package|plan)/i;
-  const preferred = /(about|service|services|treatment|pricing|faq|contact|location|locations|team|gallery|reviews|testimonial|book|appointment|schedule|quote|estimate|menu|packages|plans|rates|fees|costs|offerings)/i;
+  // High-priority pages that the voice agent MUST know about (pricing, products, services, specials)
+  const highPriority = /(pric|cost|rate|fee|menu|package|plan|product|special|deal|offer|discount|promotion|shop|catalog|floor|tile|vinyl|laminate|install)/i;
+  const preferred = /(about|service|services|treatment|pricing|faq|contact|location|locations|team|gallery|reviews|testimonial|book|appointment|schedule|quote|estimate|menu|packages|plans|rates|fees|costs|offerings|product|shop|catalog|inventory|portfolio|project|work|before-after|showroom)/i;
 
   const filtered = unique(
     links
@@ -97,7 +97,7 @@ const pickRelevantLinks = (links: string[], rootUrl: string) => {
       .filter((link) => !excluded.test(link))
   ).filter((link) => link !== rootUrl);
 
-  // Sort: high-priority (pricing/rates) first, then preferred, then the rest
+  // Sort: high-priority (pricing/products) first, then preferred, then the rest
   filtered.sort((a, b) => {
     const aHigh = Number(highPriority.test(a));
     const bHigh = Number(highPriority.test(b));
@@ -105,7 +105,7 @@ const pickRelevantLinks = (links: string[], rootUrl: string) => {
     return Number(preferred.test(b)) - Number(preferred.test(a));
   });
 
-  return filtered.slice(0, 8);
+  return filtered.slice(0, 15);
 };
 
 /** Take a pixel-perfect screenshot via Browserless headless Chrome, upload to storage */
@@ -858,7 +858,7 @@ Deno.serve(async (req) => {
     try {
       const mapResponse = await firecrawlRequest('/map', firecrawlKey, {
         url: formattedUrl,
-        limit: 20,
+        limit: 50,
         includeSubdomains: false,
       });
       const links = Array.isArray(mapResponse.links) ? mapResponse.links : [];
