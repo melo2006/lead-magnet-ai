@@ -2,13 +2,19 @@ import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Prospect } from "./useProspectSearch";
 
-interface Filters {
+export interface Filters {
   temperature: string;
   hasWebsite: string;
   minScore: number;
   status: string;
   previewType: string;
   phoneType: string;
+  niche: string;
+  city: string;
+  state: string;
+  hasEmail: string;
+  smsCapable: string;
+  analyzed: string;
 }
 
 export const useProspects = (filters: Filters) => {
@@ -19,7 +25,7 @@ export const useProspects = (filters: Filters) => {
         .from("prospects")
         .select("*")
         .order("lead_score", { ascending: false })
-        .limit(200);
+        .limit(500);
 
       if (filters.temperature !== "all") {
         query = query.eq("lead_temperature", filters.temperature);
@@ -35,6 +41,32 @@ export const useProspects = (filters: Filters) => {
       if (filters.status !== "all") {
         query = query.eq("status", filters.status);
       }
+      if (filters.niche !== "all") {
+        query = query.eq("niche", filters.niche);
+      }
+      if (filters.city !== "all") {
+        query = query.eq("city", filters.city);
+      }
+      if (filters.state !== "all") {
+        query = query.eq("state", filters.state);
+      }
+      if (filters.hasEmail === "yes") {
+        query = query.or("email.neq.,owner_email.neq.");
+      } else if (filters.hasEmail === "no") {
+        query = query.is("email", null).is("owner_email", null);
+      }
+      if (filters.smsCapable === "yes") {
+        query = query.eq("sms_capable", true);
+      } else if (filters.smsCapable === "no") {
+        query = query.eq("sms_capable", false);
+      } else if (filters.smsCapable === "unknown") {
+        query = query.is("sms_capable", null);
+      }
+      if (filters.analyzed === "yes") {
+        query = query.eq("ai_analyzed", true);
+      } else if (filters.analyzed === "no") {
+        query = query.or("ai_analyzed.eq.false,ai_analyzed.is.null");
+      }
 
       const { data, error } = await query;
       if (error) throw error;
@@ -43,4 +75,25 @@ export const useProspects = (filters: Filters) => {
   });
 
   return { prospects: data || [], isLoading, refetch };
+};
+
+// Hook to get distinct filter options
+export const useFilterOptions = () => {
+  const { data } = useQuery({
+    queryKey: ["filter-options"],
+    queryFn: async () => {
+      const [nicheRes, cityRes, stateRes] = await Promise.all([
+        supabase.from("prospects").select("niche").not("niche", "is", null),
+        supabase.from("prospects").select("city").not("city", "is", null),
+        supabase.from("prospects").select("state").not("state", "is", null),
+      ]);
+      const niches = [...new Set((nicheRes.data || []).map((r: any) => r.niche).filter(Boolean))].sort();
+      const cities = [...new Set((cityRes.data || []).map((r: any) => r.city).filter(Boolean))].sort();
+      const states = [...new Set((stateRes.data || []).map((r: any) => r.state).filter(Boolean))].sort();
+      return { niches, cities, states };
+    },
+    staleTime: 60000,
+  });
+
+  return { niches: data?.niches || [], cities: data?.cities || [], states: data?.states || [] };
 };
