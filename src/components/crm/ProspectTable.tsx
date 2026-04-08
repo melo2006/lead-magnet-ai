@@ -23,6 +23,7 @@ interface Props {
   isLoading: boolean;
   onRefetch?: () => void;
   onOutreach?: (selected: Prospect[]) => void;
+  onCampaign?: (selected: Prospect[]) => void;
 }
 
 type SortKey =
@@ -238,7 +239,7 @@ const ColumnManager = ({
   );
 };
 
-const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) => {
+const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign }: Props) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortKey>("voiceai_fit");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
