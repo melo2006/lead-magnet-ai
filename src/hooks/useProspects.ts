@@ -7,6 +7,7 @@ interface Filters {
   hasWebsite: string;
   minScore: number;
   status: string;
+  previewType: string;
 }
 
 export const useProspects = (filters: Filters) => {
