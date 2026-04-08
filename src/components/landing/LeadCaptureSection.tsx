@@ -311,7 +311,7 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
   }
 
   return (
-    <section id="demo-form" className="py-12 sm:py-16 relative">
+    <section id="demo-form" className="py-6 sm:py-12 lg:py-16 relative">
       <div className="absolute inset-0">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[600px] h-[600px] rounded-full bg-primary/5 blur-[150px]" />
       </div>
@@ -321,17 +321,17 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
             initial={{ opacity: 0, y: 20 }}
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true }}
-            className="text-center mb-10"
+            className="text-center mb-4 sm:mb-10"
           >
-            <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/20 bg-primary/5 mb-6">
+            <div className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full border border-primary/20 bg-primary/5 mb-3 sm:mb-6">
               <Rocket className="w-4 h-4 text-primary" />
               <span className="text-sm font-medium text-primary">Free personalized demo</span>
             </div>
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+            <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 sm:mb-4">
               See Your AI Assistant <span className="text-gradient-primary">In Action</span>
             </h2>
-            <p className="text-muted-foreground text-lg">
-              Enter your info below. In 60 seconds, you'll see your website screenshot with live AI chat and voice assistants.
+            <p className="text-muted-foreground text-sm sm:text-lg">
+              Enter your info below. In 60 seconds, you'll see your website with live AI chat and voice assistants.
             </p>
           </motion.div>
 
@@ -341,11 +341,11 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
             viewport={{ once: true }}
             transition={{ delay: 0.1 }}
             onSubmit={handleSubmit}
-            className="rounded-2xl border border-border bg-card p-6 sm:p-8 glow-border"
+            className="rounded-2xl border border-border bg-card p-4 sm:p-6 lg:p-8 glow-border"
           >
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground flex items-center gap-2">
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+              <div className="space-y-1">
+                <label className="text-xs sm:text-sm font-medium text-foreground flex items-center gap-1.5">
                   <User className="w-4 h-4 text-muted-foreground" /> Your Name <span className="text-destructive">*</span>
                 </label>
                 <Input
@@ -356,9 +356,9 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
                   required
                 />
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                  <Building2 className="w-4 h-4 text-muted-foreground" /> Business Name <span className="text-destructive">*</span>
+              <div className="space-y-1">
+                <label className="text-xs sm:text-sm font-medium text-foreground flex items-center gap-1.5">
+                  <Building2 className="w-3.5 h-3.5 text-muted-foreground" /> Business Name <span className="text-destructive">*</span>
                 </label>
                 <Input
                   placeholder="Sunrise Dental Studio"
@@ -370,10 +370,10 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
               </div>
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 mb-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                  <Globe className="w-4 h-4 text-muted-foreground" /> Website URL <span className="text-destructive">*</span>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+              <div className="space-y-1">
+                <label className="text-xs sm:text-sm font-medium text-foreground flex items-center gap-1.5">
+                  <Globe className="w-3.5 h-3.5 text-muted-foreground" /> Website URL <span className="text-destructive">*</span>
                 </label>
                 <Input
                   placeholder="bankunited.com"
@@ -387,9 +387,9 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
                   required
                 />
               </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                  <Mail className="w-4 h-4 text-muted-foreground" /> Email Address <span className="text-xs text-muted-foreground">(optional)</span>
+              <div className="space-y-1">
+                <label className="text-xs sm:text-sm font-medium text-foreground flex items-center gap-1.5">
+                  <Mail className="w-3.5 h-3.5 text-muted-foreground" /> Email <span className="text-xs text-muted-foreground">(optional)</span>
                 </label>
                 <Input
                   type="email"
@@ -401,37 +401,39 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
               </div>
             </div>
 
-            <div className="mb-4 space-y-2">
-              <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                <Phone className="w-4 h-4 text-muted-foreground" /> Cell Phone for callback <span className="text-xs text-muted-foreground">(optional)</span>
-              </label>
-              <Input
-                type="tel"
-                placeholder="(954) 555-1234"
-                value={formData.phone}
-                onChange={(e) => updateFormData({ phone: e.target.value })}
-                className="bg-secondary border-border"
-              />
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
+              <div className="space-y-1">
+                <label className="text-xs sm:text-sm font-medium text-foreground flex items-center gap-1.5">
+                  <Phone className="w-3.5 h-3.5 text-muted-foreground" /> Cell Phone <span className="text-xs text-muted-foreground">(optional)</span>
+                </label>
+                <Input
+                  type="tel"
+                  placeholder="(954) 555-1234"
+                  value={formData.phone}
+                  onChange={(e) => updateFormData({ phone: e.target.value })}
+                  className="bg-secondary border-border"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-xs sm:text-sm font-medium text-foreground flex items-center gap-1.5">
+                  <Link2 className="w-3.5 h-3.5 text-muted-foreground" /> Additional URL <span className="text-xs text-muted-foreground">(optional)</span>
+                </label>
+                <Input
+                  placeholder="https://vendor-or-partner-site.com"
+                  value={formData.secondaryUrl}
+                  onChange={(e) => updateFormData({ secondaryUrl: e.target.value })}
+                  className="bg-secondary border-border"
+                />
+              </div>
             </div>
 
-            <div className="mb-4 space-y-2">
-              <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                <Link2 className="w-4 h-4 text-muted-foreground" /> Additional URL <span className="text-xs text-muted-foreground">(optional — vendor site, partner page, etc.)</span>
-              </label>
-              <Input
-                placeholder="https://vendor-or-partner-site.com"
-                value={formData.secondaryUrl}
-                onChange={(e) => updateFormData({ secondaryUrl: e.target.value })}
-                className="bg-secondary border-border"
-              />
-            </div>
-
-            <div className="mb-6 space-y-2">
-              <label className="text-sm font-medium text-foreground flex items-center gap-2">
-                <Upload className="w-4 h-4 text-muted-foreground" /> Upload Documents <span className="text-xs text-muted-foreground">(optional — PDF, TXT, Word — up to 3 files)</span>
+            <div className="mb-4 space-y-1">
+                <label className="text-xs sm:text-sm font-medium text-foreground flex items-center gap-1.5">
+                <Upload className="w-3.5 h-3.5 text-muted-foreground" /> Upload Docs <span className="text-xs text-muted-foreground">(optional — up to 3)</span>
               </label>
               <div
-                className="rounded-xl border-2 border-dashed border-border bg-secondary/50 p-4 text-center cursor-pointer hover:border-primary/40 transition-colors"
+                className="rounded-xl border-2 border-dashed border-border bg-secondary/50 p-2 sm:p-4 text-center cursor-pointer hover:border-primary/40 transition-colors"
                 onClick={() => fileInputRef.current?.click()}
                 onDragOver={(e) => {
                   e.preventDefault();
@@ -485,7 +487,7 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
               type="submit"
               size="lg"
               disabled={isSubmitting}
-              className="w-full text-lg py-6 bg-primary text-primary-foreground hover:bg-primary/90 glow-border rounded-xl font-semibold"
+              className="w-full text-base sm:text-lg py-4 sm:py-6 bg-primary text-primary-foreground hover:bg-primary/90 glow-border rounded-xl font-semibold"
             >
               {isSubmitting ? (
                 <>
