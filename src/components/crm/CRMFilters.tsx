@@ -1,40 +1,86 @@
-import { useState, useEffect, useRef } from "react";
-import { Save, FolderOpen, Trash2, X, Search, ChevronDown, Check } from "lucide-react";
+import { useEffect, useMemo, useState, type MouseEvent } from "react";
+import { Save, FolderOpen, Trash2, X, Search } from "lucide-react";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import MultiSelectFilter, { type SelectOption } from "@/components/crm/filters/MultiSelectFilter";
 
 export interface Filters {
   temperature: string;
   hasWebsite: string;
   minScore: number;
   status: string;
-  previewType: string;
+  previewType: string[];
   phoneType: string[];
   niche: string[];
   city: string[];
   state: string[];
-  hasEmail: string;
-  smsCapable: string;
+  hasEmail: string[];
+  smsCapable: string[];
   analyzed: string;
 }
+
+interface LegacyFilters
+  extends Omit<
+    Partial<Filters>,
+    "previewType" | "phoneType" | "niche" | "city" | "state" | "hasEmail" | "smsCapable"
+  > {
+  previewType?: string | string[];
+  phoneType?: string | string[];
+  niche?: string | string[];
+  city?: string | string[];
+  state?: string | string[];
+  hasEmail?: string | string[];
+  smsCapable?: string | string[];
+}
+
+const normalizeMultiValue = (value: unknown): string[] => {
+  if (Array.isArray(value)) {
+    return value.filter((item): item is string => typeof item === "string" && item.trim().length > 0);
+  }
+
+  if (typeof value === "string" && value !== "all" && value.trim().length > 0) {
+    return [value];
+  }
+
+  return [];
+};
 
 export const DEFAULT_FILTERS: Filters = {
   temperature: "all",
   hasWebsite: "all",
   minScore: 0,
   status: "all",
-  previewType: "all",
+  previewType: [],
   phoneType: [],
   niche: [],
   city: [],
   state: [],
-  hasEmail: "all",
-  smsCapable: "all",
+  hasEmail: [],
+  smsCapable: [],
   analyzed: "all",
+};
+
+export const normalizeFilters = (filters?: LegacyFilters | null): Filters => {
+  const source = filters ?? {};
+
+  return {
+    temperature: typeof source.temperature === "string" ? source.temperature : DEFAULT_FILTERS.temperature,
+    hasWebsite: typeof source.hasWebsite === "string" ? source.hasWebsite : DEFAULT_FILTERS.hasWebsite,
+    minScore: typeof source.minScore === "number" ? source.minScore : DEFAULT_FILTERS.minScore,
+    status: typeof source.status === "string" ? source.status : DEFAULT_FILTERS.status,
+    previewType: normalizeMultiValue(source.previewType),
+    phoneType: normalizeMultiValue(source.phoneType),
+    niche: normalizeMultiValue(source.niche),
+    city: normalizeMultiValue(source.city),
+    state: normalizeMultiValue(source.state),
+    hasEmail: normalizeMultiValue(source.hasEmail),
+    smsCapable: normalizeMultiValue(source.smsCapable),
+    analyzed: typeof source.analyzed === "string" ? source.analyzed : DEFAULT_FILTERS.analyzed,
+  };
 };
 
 interface SavedPreset {
   name: string;
-  filters: Filters;
+  filters: LegacyFilters;
   createdAt: string;
 }
 
@@ -52,122 +98,32 @@ function savePresets(presets: SavedPreset[]) {
   localStorage.setItem(PRESETS_KEY, JSON.stringify(presets));
 }
 
-// Multi-select dropdown component with search
-function MultiSelect({
-  label,
-  options,
-  selected,
-  onChange,
-  placeholder,
-}: {
-  label: string;
-  options: string[];
-  selected: string[];
-  onChange: (val: string[]) => void;
-  placeholder: string;
-}) {
-  const [open, setOpen] = useState(false);
-  const [search, setSearch] = useState("");
-  const ref = useRef<HTMLDivElement>(null);
+const PHONE_TYPE_OPTIONS: SelectOption[] = [
+  { value: "mobile", label: "Mobile" },
+  { value: "landline", label: "Landline" },
+  { value: "voip", label: "VoIP" },
+];
 
-  useEffect(() => {
-    const handler = (e: MouseEvent) => {
-      if (ref.current && !ref.current.contains(e.target as Node)) setOpen(false);
-    };
-    document.addEventListener("mousedown", handler);
-    return () => document.removeEventListener("mousedown", handler);
-  }, []);
+const PREVIEW_OPTIONS: SelectOption[] = [
+  { value: "iframe", label: "iFrame" },
+  { value: "screenshot", label: "Screenshot" },
+  { value: "http", label: "HTTP" },
+  { value: "none", label: "None" },
+];
 
-  const filtered = options.filter((o) =>
-    o.toLowerCase().includes(search.toLowerCase())
-  );
+const EMAIL_OPTIONS: SelectOption[] = [
+  { value: "yes", label: "Has Email" },
+  { value: "no", label: "No Email" },
+];
 
-  const toggle = (val: string) => {
-    onChange(
-      selected.includes(val)
-        ? selected.filter((s) => s !== val)
-        : [...selected, val]
-    );
-  };
+const SMS_OPTIONS: SelectOption[] = [
+  { value: "yes", label: "SMS OK" },
+  { value: "no", label: "No SMS" },
+  { value: "unknown", label: "Unknown" },
+];
 
-  const displayText =
-    selected.length === 0
-      ? placeholder
-      : selected.length <= 2
-      ? selected.join(", ")
-      : `${selected.length} selected`;
-
-  return (
-    <div ref={ref} className="relative">
-      <label className="block text-[10px] uppercase tracking-wider text-muted-foreground mb-1">
-        {label}
-      </label>
-      <button
-        onClick={() => setOpen(!open)}
-        className={`flex items-center justify-between gap-1 w-full px-2 py-1 rounded border text-xs text-left transition-colors ${
-          selected.length > 0
-            ? "bg-primary/10 border-primary/40 text-primary"
-            : "bg-secondary border-border text-foreground"
-        }`}
-      >
-        <span className="truncate text-[11px]">{displayText}</span>
-        <ChevronDown className="w-2.5 h-2.5 shrink-0" />
-      </button>
-      {open && (
-        <div className="absolute z-50 mt-1 w-56 bg-popover border border-border rounded-lg shadow-xl overflow-hidden">
-          <div className="p-2 border-b border-border">
-            <input
-              type="text"
-              value={search}
-              onChange={(e) => setSearch(e.target.value)}
-              placeholder="Search..."
-              className="w-full px-2 py-1 rounded bg-secondary border border-border text-xs text-foreground placeholder:text-muted-foreground focus:outline-none"
-              autoFocus
-            />
-          </div>
-          <div className="max-h-48 overflow-y-auto p-1">
-            {selected.length > 0 && (
-              <button
-                onClick={() => onChange([])}
-                className="w-full text-left px-2 py-1.5 text-[10px] text-red-400 hover:bg-secondary rounded transition-colors"
-              >
-                Clear all ({selected.length})
-              </button>
-            )}
-            {filtered.length === 0 ? (
-              <p className="text-xs text-muted-foreground p-2">No matches</p>
-            ) : (
-              filtered.map((opt) => (
-                <button
-                  key={opt}
-                  onClick={() => toggle(opt)}
-                  className={`w-full flex items-center gap-2 px-2 py-1.5 rounded text-xs text-left transition-colors ${
-                    selected.includes(opt)
-                      ? "bg-primary/15 text-primary"
-                      : "hover:bg-secondary text-foreground"
-                  }`}
-                >
-                  <div
-                    className={`w-3.5 h-3.5 rounded border flex items-center justify-center shrink-0 ${
-                      selected.includes(opt)
-                        ? "bg-primary border-primary"
-                        : "border-border"
-                    }`}
-                  >
-                    {selected.includes(opt) && (
-                      <Check className="w-2.5 h-2.5 text-primary-foreground" />
-                    )}
-                  </div>
-                  {opt}
-                </button>
-              ))
-            )}
-          </div>
-        </div>
-      )}
-    </div>
-  );
-}
+const toSelectOptions = (values: string[]): SelectOption[] =>
+  values.map((value) => ({ value, label: value }));
 
 interface Props {
   filters: Filters;
@@ -194,7 +150,7 @@ const CRMFilters = ({
     savePresets(presets);
   }, [presets]);
 
-  const update = (key: keyof Filters, value: any) =>
+  const update = <K extends keyof Filters>(key: K, value: Filters[K]) =>
     onChange({ ...filters, [key]: value });
 
   const handleSavePreset = () => {
@@ -210,19 +166,36 @@ const CRMFilters = ({
   };
 
   const handleLoadPreset = (preset: SavedPreset) => {
-    onChange({ ...DEFAULT_FILTERS, ...preset.filters });
+    onChange(normalizeFilters(preset.filters));
   };
 
-  const handleDeletePreset = (idx: number, e: React.MouseEvent) => {
+  const handleDeletePreset = (idx: number, e: MouseEvent<HTMLButtonElement>) => {
     e.stopPropagation();
     setPresets((prev) => prev.filter((_, i) => i !== idx));
   };
 
   const handleReset = () => onChange({ ...DEFAULT_FILTERS });
 
+  const multiSelectOptionCounts = useMemo<Partial<Record<keyof Filters, number>>>(
+    () => ({
+      previewType: PREVIEW_OPTIONS.length,
+      phoneType: PHONE_TYPE_OPTIONS.length,
+      niche: niches.length,
+      city: cities.length,
+      state: states.length,
+      hasEmail: EMAIL_OPTIONS.length,
+      smsCapable: SMS_OPTIONS.length,
+    }),
+    [cities.length, niches.length, states.length],
+  );
+
   const activeCount = Object.entries(filters).filter(([k, v]) => {
+    if (Array.isArray(v)) {
+      const totalOptions = multiSelectOptionCounts[k as keyof Filters];
+      return v.length > 0 && (!totalOptions || v.length < totalOptions);
+    }
+
     const def = DEFAULT_FILTERS[k as keyof Filters];
-    if (Array.isArray(v)) return v.length > 0;
     return v !== def;
   }).length;
 
@@ -254,15 +227,15 @@ const CRMFilters = ({
               ) : (
                 <div className="space-y-1 max-h-48 overflow-y-auto">
                   {presets.map((p, i) => (
-                    <button key={i} onClick={() => handleLoadPreset(p)} className="w-full flex items-center justify-between px-2 py-1.5 rounded hover:bg-secondary text-left group transition-colors">
-                      <div>
+                    <div key={i} className="group flex items-center gap-1 rounded transition-colors hover:bg-secondary">
+                      <button type="button" onClick={() => handleLoadPreset(p)} className="flex-1 px-2 py-1.5 text-left">
                         <p className="text-xs font-medium text-foreground">{p.name}</p>
                         <p className="text-[10px] text-muted-foreground">{new Date(p.createdAt).toLocaleDateString()}</p>
-                      </div>
-                      <button onClick={(e) => handleDeletePreset(i, e)} className="p-0.5 rounded opacity-0 group-hover:opacity-100 hover:bg-red-500/20 text-red-400 transition-all">
+                      </button>
+                      <button type="button" onClick={(e) => handleDeletePreset(i, e)} className="p-1 rounded opacity-0 group-hover:opacity-100 text-muted-foreground transition-all hover:bg-secondary hover:text-foreground">
                         <Trash2 className="w-2.5 h-2.5" />
                       </button>
-                    </button>
+                    </div>
                   ))}
                 </div>
               )}
@@ -284,10 +257,10 @@ const CRMFilters = ({
 
       {/* All filters in a dense grid */}
       <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-6 xl:grid-cols-8 gap-2 items-end">
-        <MultiSelect label="Niche" options={niches} selected={filters.niche as string[]} onChange={(v) => update("niche", v)} placeholder="All Niches" />
-        <MultiSelect label="City" options={cities} selected={filters.city as string[]} onChange={(v) => update("city", v)} placeholder="All Cities" />
-        <MultiSelect label="State" options={states} selected={filters.state as string[]} onChange={(v) => update("state", v)} placeholder="All States" />
-        <MultiSelect label="Phone Type" options={["mobile", "landline", "voip"]} selected={filters.phoneType as string[]} onChange={(v) => update("phoneType", v)} placeholder="All Types" />
+        <MultiSelectFilter label="Niche" options={toSelectOptions(niches)} selected={filters.niche} onChange={(v) => update("niche", v)} placeholder="All Niches" />
+        <MultiSelectFilter label="City" options={toSelectOptions(cities)} selected={filters.city} onChange={(v) => update("city", v)} placeholder="All Cities" />
+        <MultiSelectFilter label="State" options={toSelectOptions(states)} selected={filters.state} onChange={(v) => update("state", v)} placeholder="All States" />
+        <MultiSelectFilter label="Phone Type" options={PHONE_TYPE_OPTIONS} selected={filters.phoneType} onChange={(v) => update("phoneType", v)} placeholder="All Types" />
         <div>
           <label className="block text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">Temperature</label>
           <select value={filters.temperature} onChange={(e) => update("temperature", e.target.value)} className={selectClass}>
@@ -305,33 +278,9 @@ const CRMFilters = ({
             <option value="no">No Website</option>
           </select>
         </div>
-        <div>
-          <label className="block text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">Has Email</label>
-          <select value={filters.hasEmail} onChange={(e) => update("hasEmail", e.target.value)} className={selectClass}>
-            <option value="all">All</option>
-            <option value="yes">✉️ Has Email</option>
-            <option value="no">No Email</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">SMS Capable</label>
-          <select value={filters.smsCapable} onChange={(e) => update("smsCapable", e.target.value)} className={selectClass}>
-            <option value="all">All</option>
-            <option value="yes">✓ SMS OK</option>
-            <option value="no">✗ No SMS</option>
-            <option value="unknown">❓ Unknown</option>
-          </select>
-        </div>
-        <div>
-          <label className="block text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">Preview</label>
-          <select value={filters.previewType} onChange={(e) => update("previewType", e.target.value)} className={selectClass}>
-            <option value="all">All</option>
-            <option value="iframe">🖥️ iFrame</option>
-            <option value="screenshot">📸 Screenshot</option>
-            <option value="http">🔗 HTTP</option>
-            <option value="none">❌ None</option>
-          </select>
-        </div>
+        <MultiSelectFilter label="Has Email" options={EMAIL_OPTIONS} selected={filters.hasEmail} onChange={(v) => update("hasEmail", v)} placeholder="All" />
+        <MultiSelectFilter label="SMS Capable" options={SMS_OPTIONS} selected={filters.smsCapable} onChange={(v) => update("smsCapable", v)} placeholder="All" />
+        <MultiSelectFilter label="Preview" options={PREVIEW_OPTIONS} selected={filters.previewType} onChange={(v) => update("previewType", v)} placeholder="All Preview" />
         <div>
           <label className="block text-[10px] uppercase tracking-wider text-muted-foreground mb-0.5">AI Analyzed</label>
           <select value={filters.analyzed} onChange={(e) => update("analyzed", e.target.value)} className={selectClass}>

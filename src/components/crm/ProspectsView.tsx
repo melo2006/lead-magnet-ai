@@ -13,6 +13,21 @@ import { useProspectSearch } from "@/hooks/useProspectSearch";
 import { useProspects, useFilterOptions } from "@/hooks/useProspects";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
+const getPreviewType = (prospect: any) => {
+  if (!prospect.website_url) return "none";
+  if (prospect.website_url.startsWith("https://")) return "iframe";
+  if (prospect.website_screenshot) return "screenshot";
+  return "http";
+};
+
+const hasAnyEmail = (prospect: any) => Boolean(prospect.owner_email || prospect.email);
+
+const getSmsCapability = (prospect: any) => {
+  if (prospect.sms_capable === true) return "yes";
+  if (prospect.sms_capable === false) return "no";
+  return "unknown";
+};
+
 const ProspectsView = () => {
   const [searchParams] = useSearchParams();
   const [showFilters, setShowFilters] = useState(false);
@@ -59,15 +74,17 @@ const ProspectsView = () => {
     let list = baseProspects;
 
     // Preview type filter (client-side)
-    if (appliedFilters.previewType !== "all") {
-      list = list.filter(p => {
-        const url = p.website_url;
-        if (appliedFilters.previewType === "iframe") return url?.startsWith("https://");
-        if (appliedFilters.previewType === "http") return url && !url.startsWith("https://") && !(p as any).website_screenshot;
-        if (appliedFilters.previewType === "screenshot") return !!(p as any).website_screenshot && !url?.startsWith("https://");
-        if (appliedFilters.previewType === "none") return !url;
-        return true;
-      });
+    if (appliedFilters.previewType.length > 0 && appliedFilters.previewType.length < 4) {
+      list = list.filter((prospect) => appliedFilters.previewType.includes(getPreviewType(prospect)));
+    }
+
+    if (appliedFilters.hasEmail.length === 1) {
+      const shouldHaveEmail = appliedFilters.hasEmail[0] === "yes";
+      list = list.filter((prospect) => hasAnyEmail(prospect) === shouldHaveEmail);
+    }
+
+    if (appliedFilters.smsCapable.length > 0 && appliedFilters.smsCapable.length < 3) {
+      list = list.filter((prospect) => appliedFilters.smsCapable.includes(getSmsCapability(prospect)));
     }
 
     if (!quickSearch.trim()) return list;
@@ -81,7 +98,7 @@ const ProspectsView = () => {
       (p as any).owner_name?.toLowerCase().includes(q) ||
       p.formatted_address?.toLowerCase().includes(q)
     );
-  }, [baseProspects, quickSearch, appliedFilters.previewType]);
+  }, [baseProspects, quickSearch, appliedFilters.hasEmail, appliedFilters.previewType, appliedFilters.smsCapable]);
 
   return (
     <div className="space-y-2">
@@ -164,7 +181,7 @@ const ProspectsView = () => {
             initial={{ height: 0, opacity: 0 }}
             animate={{ height: "auto", opacity: 1 }}
             exit={{ height: 0, opacity: 0 }}
-            className="overflow-hidden"
+            className="overflow-visible"
           >
             <CRMFilters
               filters={draftFilters}
