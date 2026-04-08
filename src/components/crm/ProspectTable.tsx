@@ -32,7 +32,7 @@ type SortKey =
   | "has_website" | "has_chat_widget" | "has_voice_ai"
   | "has_online_booking" | "website_quality_score" | "lead_temperature"
   | "city" | "ai_analyzed" | "niche" | "contact_method" | "owner_name"
-  | "voiceai_fit" | "webdev_fit" | "created_at" | "preview_type" | "phone_type" | "sms_capable";
+  | "voiceai_fit" | "webdev_fit" | "created_at" | "preview_type" | "phone_type" | "sms_capable" | "email";
 
 const tempIcons: Record<string, any> = {
   hot: Flame, warm: Thermometer, cold: Snowflake,
@@ -80,7 +80,7 @@ const ALL_COLUMNS: ColumnDef[] = [
   { id: "social", label: "Social", minWidth: "80px", removable: true },
   { id: "phone_type", label: "Phone Type", sortKey: "phone_type", minWidth: "85px", removable: true },
   { id: "sms_capable", label: "SMS OK", sortKey: "sms_capable" as SortKey, minWidth: "70px", removable: true },
-  { id: "email", label: "Email", minWidth: "140px", removable: true },
+  { id: "email", label: "Email", sortKey: "email", minWidth: "140px", removable: true },
   { id: "sources", label: "Sources", minWidth: "110px", removable: true },
 ];
 
@@ -325,6 +325,14 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign
         const aVal = getPreviewRank(a);
         const bVal = getPreviewRank(b);
         return sortDir === "desc" ? bVal - aVal : aVal - bVal;
+      }
+      if (sortBy === "email") {
+        const aEmail = (a as any).owner_email || (a as any).email || "";
+        const bEmail = (b as any).owner_email || (b as any).email || "";
+        if (!aEmail && !bEmail) return 0;
+        if (!aEmail) return sortDir === "desc" ? -1 : 1;
+        if (!bEmail) return sortDir === "desc" ? 1 : -1;
+        return sortDir === "desc" ? bEmail.localeCompare(aEmail) : aEmail.localeCompare(bEmail);
       }
       const aRaw = (a as any)[sortBy];
       const bRaw = (b as any)[sortBy];
