@@ -63,6 +63,7 @@ const ALL_COLUMNS: ColumnDef[] = [
   { id: "actions", label: "Actions", minWidth: "140px", removable: false },
   { id: "date_added", label: "Added", sortKey: "created_at", minWidth: "95px", removable: true },
   { id: "preview_type", label: "Preview", minWidth: "80px", removable: true },
+  { id: "webdev_candidate", label: "Web Dev Fit", sortKey: "webdev_fit", minWidth: "85px", removable: true },
   { id: "rating", label: "Rating", sortKey: "rating", minWidth: "60px", removable: true },
   { id: "reviews", label: "Reviews", sortKey: "review_count", minWidth: "70px", removable: true },
   { id: "score", label: "Score", sortKey: "lead_score", minWidth: "70px", removable: true },
