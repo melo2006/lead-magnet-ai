@@ -696,6 +696,12 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign
             >
               <Send className="w-3 h-3" /> SMS Selected
             </button>
+            <button
+              onClick={() => onCampaign?.(sorted.filter((p) => selectedIds.has(p.place_id)))}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/20 border border-primary/30 text-primary text-xs font-semibold hover:bg-primary/30 transition-colors"
+            >
+              <Zap className="w-3 h-3" /> Build Campaign
+            </button>
           </div>
           <button onClick={() => setSelectedIds(new Set())} className="ml-auto text-xs text-muted-foreground hover:text-foreground">Clear</button>
         </motion.div>
