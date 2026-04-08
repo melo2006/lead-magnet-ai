@@ -252,6 +252,7 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign
   const { analyze, analyzeBatch, analyzingIds, batchProgress, stopBatch, pauseBatch, resumeBatch } = useProspectAnalysis();
   const returnTo = encodeURIComponent(`${window.location.pathname}${window.location.search}${window.location.hash}`);
   const [sendingSmsId, setSendingSmsId] = useState<string | null>(null);
+  const [hideCostBanner, setHideCostBanner] = useState(false);
 
   const handleSendSms = async (prospect: Prospect, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -715,7 +716,7 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign
       </div>
 
       {/* Cost summary after batch completes */}
-      {!batchProgress.isRunning && batchProgress.costSummary.totalCost > 0 && (
+      {!batchProgress.isRunning && batchProgress.costSummary.totalCost > 0 && !hideCostBanner && (
         <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/25">
           <DollarSign className="w-4 h-4 text-emerald-400 shrink-0" />
           <div className="flex-1">
@@ -731,8 +732,7 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign
             </p>
           </div>
           <button
-            onClick={() => { /* dismiss cost banner */ }}
-            style={{ display: 'none' }}
+            onClick={() => setHideCostBanner(true)}
             className="text-muted-foreground hover:text-foreground p-1"
           >
             <X className="w-3 h-3" />
