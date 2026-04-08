@@ -172,7 +172,7 @@ const MultiSelectFilter = ({
                   >
                     <Checkbox
                       checked={isChecked}
-                      className="pointer-events-none h-3.5 w-3.5 border-muted-foreground/60 data-[state=checked]:border-primary"
+                      className="pointer-events-none h-3.5 w-3.5 rounded-none border-muted-foreground/60 data-[state=checked]:border-primary"
                     />
                     <span className="truncate">{option.label}</span>
                   </button>
