@@ -22,6 +22,7 @@ const ProspectsView = () => {
     hasWebsite: "all",
     minScore: 0,
     status: searchParams.get("status") || "all",
+    previewType: "all",
   });
   const [outreachProspects, setOutreachProspects] = useState<any[] | null>(null);
 
