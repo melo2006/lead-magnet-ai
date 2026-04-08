@@ -1,7 +1,7 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Filter, Search, UserPlus } from "lucide-react";
+import { Filter, Search, UserPlus, X } from "lucide-react";
 import ProspectSearchForm from "@/components/crm/ProspectSearchForm";
 import ProspectTable from "@/components/crm/ProspectTable";
 import CRMStats from "@/components/crm/CRMStats";
@@ -16,6 +16,7 @@ const ProspectsView = () => {
   const [searchParams] = useSearchParams();
   const [showFilters, setShowFilters] = useState(false);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [quickSearch, setQuickSearch] = useState("");
   const [filters, setFilters] = useState({
     temperature: searchParams.get("temp") || "all",
     hasWebsite: "all",
@@ -40,7 +41,21 @@ const ProspectsView = () => {
   const { search, isSearching, searchResults } = useProspectSearch();
   const { prospects, isLoading, refetch } = useProspects(filters);
 
-  const displayProspects = searchResults.length > 0 ? searchResults : prospects;
+  const baseProspects = searchResults.length > 0 ? searchResults : prospects;
+
+  const displayProspects = useMemo(() => {
+    if (!quickSearch.trim()) return baseProspects;
+    const q = quickSearch.toLowerCase();
+    return baseProspects.filter(p =>
+      p.business_name?.toLowerCase().includes(q) ||
+      (p as any).city?.toLowerCase().includes(q) ||
+      (p as any).state?.toLowerCase().includes(q) ||
+      p.niche?.toLowerCase().includes(q) ||
+      p.phone?.includes(q) ||
+      (p as any).owner_name?.toLowerCase().includes(q) ||
+      p.formatted_address?.toLowerCase().includes(q)
+    );
+  }, [baseProspects, quickSearch]);
 
   return (
     <div className="space-y-4">
@@ -66,6 +81,23 @@ const ProspectsView = () => {
       </div>
 
       <CRMStats prospects={displayProspects} />
+
+      {/* Quick Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <input
+          type="text"
+          value={quickSearch}
+          onChange={(e) => setQuickSearch(e.target.value)}
+          placeholder="Search prospects by name, city, state, niche, phone, owner..."
+          className="w-full pl-9 pr-8 py-2 rounded-lg bg-secondary border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+        />
+        {quickSearch && (
+          <button onClick={() => setQuickSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </div>
 
       <Accordion type="single" collapsible className="w-full">
         <AccordionItem value="search" className="border border-border rounded-xl overflow-hidden bg-card">
