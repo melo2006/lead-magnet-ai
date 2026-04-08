@@ -84,9 +84,9 @@ const inferNicheFromKeywords = (value: string, fallback?: string | null): Allowe
 const pickRelevantLinks = (links: string[], rootUrl: string) => {
   const rootHost = getHost(rootUrl);
   const excluded = /(privacy|terms|login|signin|signup|cart|checkout|wp-admin|feed|tag\/|category\/|author\/)/i;
-  // High-priority pages that the voice agent MUST know about (pricing, services, menu, rates)
-  const highPriority = /(pric|cost|rate|fee|menu|package|plan)/i;
-  const preferred = /(about|service|services|treatment|pricing|faq|contact|location|locations|team|gallery|reviews|testimonial|book|appointment|schedule|quote|estimate|menu|packages|plans|rates|fees|costs|offerings)/i;
+  // High-priority pages that the voice agent MUST know about (pricing, products, services, specials)
+  const highPriority = /(pric|cost|rate|fee|menu|package|plan|product|special|deal|offer|discount|promotion|shop|catalog|floor|tile|vinyl|laminate|install)/i;
+  const preferred = /(about|service|services|treatment|pricing|faq|contact|location|locations|team|gallery|reviews|testimonial|book|appointment|schedule|quote|estimate|menu|packages|plans|rates|fees|costs|offerings|product|shop|catalog|inventory|portfolio|project|work|before-after|showroom)/i;
 
   const filtered = unique(
     links
@@ -97,7 +97,7 @@ const pickRelevantLinks = (links: string[], rootUrl: string) => {
       .filter((link) => !excluded.test(link))
   ).filter((link) => link !== rootUrl);
 
-  // Sort: high-priority (pricing/rates) first, then preferred, then the rest
+  // Sort: high-priority (pricing/products) first, then preferred, then the rest
   filtered.sort((a, b) => {
     const aHigh = Number(highPriority.test(a));
     const bHigh = Number(highPriority.test(b));
@@ -105,7 +105,7 @@ const pickRelevantLinks = (links: string[], rootUrl: string) => {
     return Number(preferred.test(b)) - Number(preferred.test(a));
   });
 
-  return filtered.slice(0, 8);
+  return filtered.slice(0, 15);
 };
 
 /** Take a pixel-perfect screenshot via Browserless headless Chrome, upload to storage */
@@ -469,7 +469,7 @@ async function analyzeBusinessProfile({
           {
             role: 'system',
             content:
-              'Extract a comprehensive business profile from website content. Return strict JSON with these keys only: businessName (string), detectedNiche (string), summary (string), serviceArea (string with city/region/state), serviceHighlights (array of up to 8 short strings describing specific services offered), trustSignals (array of up to 6 short strings), faqs (array of up to 6 question strings a typical caller would ask), toneKeywords (array of up to 5 short strings), audience (string describing target customers), callGoals (array of up to 4 short strings), pricing (array of up to 6 strings with any pricing info found e.g. "Kitchen remodel: $15k-$50k"), competitors (array of up to 3 competitor company names if mentioned). detectedNiche must be one of: realtors, medspa, autodetail, veterinary, marine, general. Use the form niche only as a weak hint. If the website contradicts it, override it. Never default to realtors unless the content clearly indicates real estate. For serviceArea, extract the specific city, region, or metro area they serve.',
+              'Extract a comprehensive business profile from website content. Return strict JSON with these keys only: businessName (string), detectedNiche (string), summary (string), serviceArea (string with city/region/state), serviceHighlights (array of up to 10 short strings describing specific services offered), trustSignals (array of up to 6 short strings), faqs (array of up to 6 question strings a typical caller would ask), toneKeywords (array of up to 5 short strings), audience (string describing target customers), callGoals (array of up to 4 short strings), pricing (array of up to 12 strings with ANY and ALL pricing info found — include every single price point, package name, and tier from lowest to highest, e.g. "DIY Package #1: $1.95/sqft", "Installation Package #2: $2.99/sqft fully installed"), competitors (array of up to 3 competitor company names if mentioned). detectedNiche must be one of: realtors, medspa, autodetail, veterinary, marine, general. Use the form niche only as a weak hint. If the website contradicts it, override it. Never default to realtors unless the content clearly indicates real estate. For serviceArea, extract the specific city, region, or metro area they serve. For pricing, be EXHAUSTIVE — extract every price mentioned on every page, including promotional prices, DIY prices, installed prices, per-unit costs, and package deals. Do not summarize or skip lower-priced options.',
           },
           { role: 'user', content: source },
         ],
@@ -489,13 +489,13 @@ async function analyzeBusinessProfile({
       detectedNiche: mapDetectedNiche(parsed.detectedNiche, fallbackNiche),
       summary: cleanText(parsed.summary) || fallbackSummary,
       serviceArea: cleanText(parsed.serviceArea),
-      serviceHighlights: Array.isArray(parsed.serviceHighlights) ? unique(parsed.serviceHighlights.map((s: string) => cleanText(s))).slice(0, 8) : [],
+      serviceHighlights: Array.isArray(parsed.serviceHighlights) ? unique(parsed.serviceHighlights.map((s: string) => cleanText(s))).slice(0, 10) : [],
       trustSignals: Array.isArray(parsed.trustSignals) ? unique(parsed.trustSignals.map((s: string) => cleanText(s))).slice(0, 6) : [],
       faqs: Array.isArray(parsed.faqs) ? unique(parsed.faqs.map((s: string) => cleanText(s))).slice(0, 6) : [],
       toneKeywords: Array.isArray(parsed.toneKeywords) ? unique(parsed.toneKeywords.map((s: string) => cleanText(s))).slice(0, 5) : ['friendly', 'helpful', 'clear'],
       audience: cleanText(parsed.audience),
       callGoals: Array.isArray(parsed.callGoals) ? unique(parsed.callGoals.map((s: string) => cleanText(s))).slice(0, 4) : ['Answer questions clearly', 'Guide the caller to the next step'],
-      pricing: Array.isArray(parsed.pricing) ? unique(parsed.pricing.map((s: string) => cleanText(s))).slice(0, 6) : [],
+      pricing: Array.isArray(parsed.pricing) ? unique(parsed.pricing.map((s: string) => cleanText(s))).slice(0, 12) : [],
       competitors: Array.isArray(parsed.competitors) ? unique(parsed.competitors.map((s: string) => cleanText(s))).slice(0, 3) : [],
       reviews: [] as string[],
     };
@@ -858,7 +858,7 @@ Deno.serve(async (req) => {
     try {
       const mapResponse = await firecrawlRequest('/map', firecrawlKey, {
         url: formattedUrl,
-        limit: 20,
+        limit: 50,
         includeSubdomains: false,
       });
       const links = Array.isArray(mapResponse.links) ? mapResponse.links : [];
