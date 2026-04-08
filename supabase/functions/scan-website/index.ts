@@ -84,19 +84,28 @@ const inferNicheFromKeywords = (value: string, fallback?: string | null): Allowe
 const pickRelevantLinks = (links: string[], rootUrl: string) => {
   const rootHost = getHost(rootUrl);
   const excluded = /(privacy|terms|login|signin|signup|cart|checkout|wp-admin|feed|tag\/|category\/|author\/)/i;
-  const preferred = /(about|service|services|treatment|package|pricing|faq|contact|location|locations|team|gallery|reviews|testimonial|book|appointment|schedule|quote|estimate)/i;
+  // High-priority pages that the voice agent MUST know about (pricing, services, menu, rates)
+  const highPriority = /(pric|cost|rate|fee|menu|package|plan)/i;
+  const preferred = /(about|service|services|treatment|pricing|faq|contact|location|locations|team|gallery|reviews|testimonial|book|appointment|schedule|quote|estimate|menu|packages|plans|rates|fees|costs|offerings)/i;
 
-  return unique(
+  const filtered = unique(
     links
       .map((link) => cleanText(link))
       .filter(Boolean)
       .filter((link) => /^https?:\/\//i.test(link))
       .filter((link) => getHost(link) === rootHost)
       .filter((link) => !excluded.test(link))
-      .sort((a, b) => Number(preferred.test(b)) - Number(preferred.test(a))),
-  )
-    .filter((link) => link !== rootUrl)
-    .slice(0, 5);
+  ).filter((link) => link !== rootUrl);
+
+  // Sort: high-priority (pricing/rates) first, then preferred, then the rest
+  filtered.sort((a, b) => {
+    const aHigh = Number(highPriority.test(a));
+    const bHigh = Number(highPriority.test(b));
+    if (aHigh !== bHigh) return bHigh - aHigh;
+    return Number(preferred.test(b)) - Number(preferred.test(a));
+  });
+
+  return filtered.slice(0, 8);
 };
 
 /** Take a pixel-perfect screenshot via Browserless headless Chrome, upload to storage */
