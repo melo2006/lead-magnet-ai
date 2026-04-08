@@ -546,6 +546,20 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) =
         const label = pt.charAt(0).toUpperCase() + pt.slice(1);
         return <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded border ${phoneTypeStyles[pt] || "text-muted-foreground bg-secondary border-border"}`}>{label}</span>;
       }
+      case "email": {
+        const email = (p as any).owner_email || (p as any).email;
+        if (!email) return <span className="text-[10px] text-muted-foreground">—</span>;
+        return (
+          <a
+            href={`mailto:${email}`}
+            onClick={(e) => e.stopPropagation()}
+            className="text-[10px] text-primary hover:underline truncate block max-w-[140px]"
+            title={email}
+          >
+            {email}
+          </a>
+        );
+      }
       default:
         return null;
     }
