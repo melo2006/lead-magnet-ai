@@ -44,7 +44,7 @@ const tempColors: Record<string, string> = {
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 // Column definitions
-type ColumnId = "business" | "niche" | "temp" | "location" | "actions" | "rating" | "reviews" | "score" | "website" | "chat" | "voiceai" | "booking" | "sitequality" | "ai" | "owner" | "contact" | "social" | "voiceai_candidate" | "webdev_candidate" | "sources" | "date_added";
+type ColumnId = "business" | "niche" | "temp" | "location" | "actions" | "rating" | "reviews" | "score" | "website" | "chat" | "voiceai" | "booking" | "sitequality" | "ai" | "owner" | "contact" | "social" | "voiceai_candidate" | "webdev_candidate" | "sources" | "date_added" | "preview_type";
 
 interface ColumnDef {
   id: ColumnId;
@@ -61,8 +61,8 @@ const ALL_COLUMNS: ColumnDef[] = [
   { id: "temp", label: "Temp", sortKey: "lead_temperature", minWidth: "60px", removable: true },
   { id: "location", label: "Location", sortKey: "city", minWidth: "120px", removable: true },
   { id: "actions", label: "Actions", minWidth: "140px", removable: false },
-  { id: "date_added", label: "Added", sortKey: "created_at", minWidth: "85px", removable: true },
-  { id: "webdev_candidate", label: "Web Dev Fit", sortKey: "webdev_fit", minWidth: "85px", removable: true },
+  { id: "date_added", label: "Added", sortKey: "created_at", minWidth: "95px", removable: true },
+  { id: "preview_type", label: "Preview", minWidth: "80px", removable: true },
   { id: "rating", label: "Rating", sortKey: "rating", minWidth: "60px", removable: true },
   { id: "reviews", label: "Reviews", sortKey: "review_count", minWidth: "70px", removable: true },
   { id: "score", label: "Score", sortKey: "lead_score", minWidth: "70px", removable: true },
@@ -417,9 +417,24 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) =
         if (!date) return <span className="text-[10px] text-muted-foreground">—</span>;
         return (
           <span className="text-[10px] text-muted-foreground whitespace-nowrap" title={new Date(date).toLocaleString()}>
-            {format(new Date(date), "MMM d")}
+            {format(new Date(date), "MMM d, yyyy")}
           </span>
         );
+      }
+      case "preview_type": {
+        const hasScreenshot = !!(p as any).website_screenshot;
+        const websiteUrl = p.website_url;
+        if (!websiteUrl) return <span className="text-[10px] text-muted-foreground">—</span>;
+        // Determine preview type based on available data
+        const isHttps = websiteUrl?.startsWith("https://");
+        // If has screenshot but no https → screenshot only; if https → likely iframe capable
+        if (isHttps) {
+          return <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">iFrame</span>;
+        }
+        if (hasScreenshot) {
+          return <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-amber-500/15 text-amber-400 border border-amber-500/25">Screenshot</span>;
+        }
+        return <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-secondary text-muted-foreground border border-border">HTTP</span>;
       }
       case "rating":
         return <div className="flex items-center gap-1"><Star className="w-3 h-3 text-yellow-400 fill-yellow-400" /><span className="font-medium text-foreground">{p.rating || "—"}</span></div>;
