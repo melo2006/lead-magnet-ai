@@ -115,6 +115,12 @@ const ProspectsView = () => {
           onSent={() => { setOutreachProspects(null); refetch(); }}
         />
       )}
+
+      <QuickAddProspectDialog
+        open={showQuickAdd}
+        onOpenChange={setShowQuickAdd}
+        onAdded={refetch}
+      />
     </div>
   );
 };
