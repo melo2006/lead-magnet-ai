@@ -4,6 +4,7 @@ interface Filters {
   minScore: number;
   status: string;
   previewType: string;
+  phoneType: string;
 }
 
 interface Props {
@@ -71,6 +72,16 @@ const CRMFilters = ({ filters, onChange }: Props) => {
           <option value="demo_sent">Demo Sent</option>
           <option value="interested">Interested</option>
           <option value="closed">Closed</option>
+        </select>
+      </div>
+      <div>
+        <label className="block text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Phone Type</label>
+        <select value={filters.phoneType} onChange={(e) => update("phoneType", e.target.value)} className={selectClass}>
+          <option value="all">All</option>
+          <option value="mobile">📱 Mobile</option>
+          <option value="landline">📞 Landline</option>
+          <option value="voip">🌐 VoIP</option>
+          <option value="unknown">❓ Unknown</option>
         </select>
       </div>
     </div>
