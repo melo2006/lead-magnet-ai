@@ -4,7 +4,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Slider } from "@/components/ui/slider";
 
-const RETELL_AGENT_ID = "agent_ea256ca8441689051b9aa2b183";
+const RETELL_AGENT_ID = "agent_0dd08673d770e8adf08f920490";
 const DEFAULT_OWNER_NAME = "Ron Melo";
 const LIVE_TRANSFER_READY_PHRASE = "i'm starting the live transfer now. please stay on the line while i connect you.";
 
