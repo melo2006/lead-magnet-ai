@@ -30,7 +30,7 @@ type SortKey =
   | "has_website" | "has_chat_widget" | "has_voice_ai"
   | "has_online_booking" | "website_quality_score" | "lead_temperature"
   | "city" | "ai_analyzed" | "niche" | "contact_method" | "owner_name"
-  | "voiceai_fit" | "webdev_fit" | "created_at";
+  | "voiceai_fit" | "webdev_fit" | "created_at" | "preview_type";
 
 const tempIcons: Record<string, any> = {
   hot: Flame, warm: Thermometer, cold: Snowflake,
@@ -62,7 +62,7 @@ const ALL_COLUMNS: ColumnDef[] = [
   { id: "location", label: "Location", sortKey: "city", minWidth: "120px", removable: true },
   { id: "actions", label: "Actions", minWidth: "140px", removable: false },
   { id: "date_added", label: "Added", sortKey: "created_at", minWidth: "95px", removable: true },
-  { id: "preview_type", label: "Preview", minWidth: "80px", removable: true },
+  { id: "preview_type", label: "Preview", sortKey: "preview_type", minWidth: "80px", removable: true },
   { id: "webdev_candidate", label: "Web Dev Fit", sortKey: "webdev_fit", minWidth: "85px", removable: true },
   { id: "rating", label: "Rating", sortKey: "rating", minWidth: "60px", removable: true },
   { id: "reviews", label: "Reviews", sortKey: "review_count", minWidth: "70px", removable: true },
@@ -295,9 +295,16 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) =
     });
   }, []);
 
+  const getPreviewRank = (p: Prospect): number => {
+    const url = p.website_url;
+    if (!url) return 0;
+    if (url.startsWith("https://")) return 2; // iFrame
+    if ((p as any).website_screenshot) return 1; // Screenshot
+    return 0; // HTTP
+  };
+
   const sorted = useMemo(() => {
     return [...prospects].sort((a, b) => {
-      // Computed sort keys for fit columns
       if (sortBy === "voiceai_fit") {
         const aVal = a.has_website && !(a as any).has_voice_ai ? 2 : (a as any).has_voice_ai ? 0 : 1;
         const bVal = b.has_website && !(b as any).has_voice_ai ? 2 : (b as any).has_voice_ai ? 0 : 1;
@@ -306,6 +313,11 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) =
       if (sortBy === "webdev_fit") {
         const aVal = a.has_website ? 0 : 1;
         const bVal = b.has_website ? 0 : 1;
+        return sortDir === "desc" ? bVal - aVal : aVal - bVal;
+      }
+      if (sortBy === "preview_type") {
+        const aVal = getPreviewRank(a);
+        const bVal = getPreviewRank(b);
         return sortDir === "desc" ? bVal - aVal : aVal - bVal;
       }
       const aRaw = (a as any)[sortBy];

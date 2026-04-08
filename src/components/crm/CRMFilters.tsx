@@ -3,6 +3,7 @@ interface Filters {
   hasWebsite: string;
   minScore: number;
   status: string;
+  previewType: string;
 }
 
 interface Props {
@@ -34,6 +35,16 @@ const CRMFilters = ({ filters, onChange }: Props) => {
           <option value="all">All</option>
           <option value="yes">Has Website</option>
           <option value="no">No Website</option>
+        </select>
+      </div>
+      <div>
+        <label className="block text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Preview Type</label>
+        <select value={filters.previewType} onChange={(e) => update("previewType", e.target.value)} className={selectClass}>
+          <option value="all">All</option>
+          <option value="iframe">🖥️ iFrame (Best)</option>
+          <option value="screenshot">📸 Screenshot</option>
+          <option value="http">🔗 HTTP Only</option>
+          <option value="none">❌ No Website</option>
         </select>
       </div>
       <div>

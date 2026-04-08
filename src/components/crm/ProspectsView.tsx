@@ -22,6 +22,7 @@ const ProspectsView = () => {
     hasWebsite: "all",
     minScore: 0,
     status: searchParams.get("status") || "all",
+    previewType: "all",
   });
   const [outreachProspects, setOutreachProspects] = useState<any[] | null>(null);
 
@@ -44,9 +45,23 @@ const ProspectsView = () => {
   const baseProspects = searchResults.length > 0 ? searchResults : prospects;
 
   const displayProspects = useMemo(() => {
-    if (!quickSearch.trim()) return baseProspects;
+    let list = baseProspects;
+
+    // Preview type filter (client-side since it's derived from website_url)
+    if (filters.previewType !== "all") {
+      list = list.filter(p => {
+        const url = p.website_url;
+        if (filters.previewType === "iframe") return url?.startsWith("https://");
+        if (filters.previewType === "http") return url && !url.startsWith("https://") && !(p as any).website_screenshot;
+        if (filters.previewType === "screenshot") return !!(p as any).website_screenshot && !url?.startsWith("https://");
+        if (filters.previewType === "none") return !url;
+        return true;
+      });
+    }
+
+    if (!quickSearch.trim()) return list;
     const q = quickSearch.toLowerCase();
-    return baseProspects.filter(p =>
+    return list.filter(p =>
       p.business_name?.toLowerCase().includes(q) ||
       (p as any).city?.toLowerCase().includes(q) ||
       (p as any).state?.toLowerCase().includes(q) ||
@@ -55,7 +70,7 @@ const ProspectsView = () => {
       (p as any).owner_name?.toLowerCase().includes(q) ||
       p.formatted_address?.toLowerCase().includes(q)
     );
-  }, [baseProspects, quickSearch]);
+  }, [baseProspects, quickSearch, filters.previewType]);
 
   return (
     <div className="space-y-4">
