@@ -67,6 +67,23 @@ const ProspectsView = () => {
 
       <CRMStats prospects={displayProspects} />
 
+      {/* Quick Search */}
+      <div className="relative">
+        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+        <input
+          type="text"
+          value={quickSearch}
+          onChange={(e) => setQuickSearch(e.target.value)}
+          placeholder="Search prospects by name, city, state, niche, phone, owner..."
+          className="w-full pl-9 pr-8 py-2 rounded-lg bg-secondary border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+        />
+        {quickSearch && (
+          <button onClick={() => setQuickSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+            <X className="w-4 h-4" />
+          </button>
+        )}
+      </div>
+
       <Accordion type="single" collapsible className="w-full">
         <AccordionItem value="search" className="border border-border rounded-xl overflow-hidden bg-card">
           <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-secondary/30">
