@@ -30,7 +30,7 @@ type SortKey =
   | "has_website" | "has_chat_widget" | "has_voice_ai"
   | "has_online_booking" | "website_quality_score" | "lead_temperature"
   | "city" | "ai_analyzed" | "niche" | "contact_method" | "owner_name"
-  | "voiceai_fit" | "webdev_fit" | "created_at" | "preview_type" | "phone_type";
+  | "voiceai_fit" | "webdev_fit" | "created_at" | "preview_type" | "phone_type" | "sms_capable";
 
 const tempIcons: Record<string, any> = {
   hot: Flame, warm: Thermometer, cold: Snowflake,
@@ -44,7 +44,7 @@ const tempColors: Record<string, string> = {
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 // Column definitions
-type ColumnId = "business" | "niche" | "temp" | "location" | "actions" | "rating" | "reviews" | "score" | "website" | "chat" | "voiceai" | "booking" | "sitequality" | "ai" | "owner" | "contact" | "social" | "voiceai_candidate" | "webdev_candidate" | "sources" | "date_added" | "preview_type" | "phone_type" | "email";
+type ColumnId = "business" | "niche" | "temp" | "location" | "actions" | "rating" | "reviews" | "score" | "website" | "chat" | "voiceai" | "booking" | "sitequality" | "ai" | "owner" | "contact" | "social" | "voiceai_candidate" | "webdev_candidate" | "sources" | "date_added" | "preview_type" | "phone_type" | "email" | "sms_capable";
 
 interface ColumnDef {
   id: ColumnId;
@@ -77,6 +77,7 @@ const ALL_COLUMNS: ColumnDef[] = [
   { id: "contact", label: "Contact", sortKey: "contact_method", minWidth: "90px", removable: true },
   { id: "social", label: "Social", minWidth: "80px", removable: true },
   { id: "phone_type", label: "Phone Type", sortKey: "phone_type", minWidth: "85px", removable: true },
+  { id: "sms_capable", label: "SMS OK", sortKey: "sms_capable" as SortKey, minWidth: "70px", removable: true },
   { id: "email", label: "Email", minWidth: "140px", removable: true },
   { id: "sources", label: "Sources", minWidth: "110px", removable: true },
 ];
