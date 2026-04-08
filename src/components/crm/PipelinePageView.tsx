@@ -1,21 +1,9 @@
 import PipelineView from "@/components/crm/PipelineView";
+import { DEFAULT_FILTERS } from "@/components/crm/CRMFilters";
 import { useProspects } from "@/hooks/useProspects";
 
 const PipelinePageView = () => {
-  const { prospects, refetch } = useProspects({
-    temperature: "all",
-    hasWebsite: "all",
-    minScore: 0,
-    status: "all",
-    previewType: "all",
-    phoneType: [],
-    niche: [],
-    city: [],
-    state: [],
-    hasEmail: "all",
-    smsCapable: "all",
-    analyzed: "all",
-  });
+  const { prospects, refetch } = useProspects(DEFAULT_FILTERS);
 
   return (
     <div className="space-y-4">
