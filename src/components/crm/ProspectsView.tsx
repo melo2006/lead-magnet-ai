@@ -84,62 +84,65 @@ const ProspectsView = () => {
   }, [baseProspects, quickSearch, appliedFilters.previewType]);
 
   return (
-    <div className="space-y-4">
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl font-bold text-foreground">Prospects</h1>
-          <p className="text-sm text-muted-foreground">Search and manage your business leads</p>
+    <div className="space-y-2">
+      {/* Header row - compact */}
+      <div className="flex items-center justify-between gap-2 flex-wrap">
+        <div className="min-w-0">
+          <h1 className="text-lg font-bold text-foreground leading-tight">Prospects</h1>
+          <p className="text-xs text-muted-foreground">Search and manage your business leads</p>
         </div>
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-1.5 flex-wrap">
           <button
             onClick={() => setShowQuickAdd(true)}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-primary text-primary-foreground text-[11px] font-medium hover:bg-primary/90 transition-colors"
           >
-            <UserPlus className="w-3.5 h-3.5" />Quick Add
+            <UserPlus className="w-3 h-3" />Quick Add
           </button>
           <button
             onClick={() => {
               if (displayProspects.length > 0) setCampaignProspects(displayProspects);
               else { setShowFilters(true); }
             }}
-            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent/20 border border-accent/30 text-accent-foreground text-xs font-medium hover:bg-accent/30 transition-colors"
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-accent/20 border border-accent/30 text-accent-foreground text-[11px] font-medium hover:bg-accent/30 transition-colors"
           >
-            <Megaphone className="w-3.5 h-3.5" />Build Campaign ({displayProspects.length})
+            <Megaphone className="w-3 h-3" />Build Campaign ({displayProspects.length})
           </button>
           <button
             onClick={() => setShowFilters(!showFilters)}
-            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${showFilters ? "bg-primary/10 border-primary/30 text-primary" : "bg-secondary border-border text-muted-foreground hover:text-foreground"}`}
+            className={`flex items-center gap-1 px-2.5 py-1 rounded-lg border text-[11px] font-medium transition-colors ${showFilters ? "bg-primary/10 border-primary/30 text-primary" : "bg-secondary border-border text-muted-foreground hover:text-foreground"}`}
           >
-            <Filter className="w-3.5 h-3.5" />Filters
+            <Filter className="w-3 h-3" />Filters
           </button>
         </div>
       </div>
 
       <CRMStats prospects={displayProspects} />
 
-      {/* Quick Search */}
-      <div className="relative">
-        <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-        <input
-          type="text"
-          value={quickSearch}
-          onChange={(e) => setQuickSearch(e.target.value)}
-          placeholder="Search prospects by name, city, state, niche, phone, owner..."
-          className="w-full pl-9 pr-8 py-2 rounded-lg bg-secondary border border-border text-sm text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
-        />
-        {quickSearch && (
-          <button onClick={() => setQuickSearch("")} className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
-            <X className="w-4 h-4" />
-          </button>
-        )}
+      {/* Quick Search + Find Prospects on same visual level */}
+      <div className="flex items-stretch gap-2">
+        <div className="relative flex-1">
+          <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground" />
+          <input
+            type="text"
+            value={quickSearch}
+            onChange={(e) => setQuickSearch(e.target.value)}
+            placeholder="Search prospects by name, city, state, niche, phone, owner..."
+            className="w-full pl-8 pr-7 py-1.5 rounded-lg bg-secondary border border-border text-xs text-foreground placeholder:text-muted-foreground focus:outline-none focus:ring-1 focus:ring-primary/50"
+          />
+          {quickSearch && (
+            <button onClick={() => setQuickSearch("")} className="absolute right-2 top-1/2 -translate-y-1/2 text-muted-foreground hover:text-foreground">
+              <X className="w-3.5 h-3.5" />
+            </button>
+          )}
+        </div>
       </div>
 
       <Accordion type="single" collapsible className="w-full">
-        <AccordionItem value="search" className="border border-border rounded-xl overflow-hidden bg-card">
-          <AccordionTrigger className="px-4 py-3 hover:no-underline hover:bg-secondary/30">
+        <AccordionItem value="search" className="border border-border rounded-lg overflow-hidden bg-card">
+          <AccordionTrigger className="px-3 py-2 hover:no-underline hover:bg-secondary/30">
             <div className="flex items-center gap-2">
-              <Search className="w-4 h-4 text-primary" />
-              <span className="text-sm font-semibold text-foreground">Find Prospects</span>
+              <Search className="w-3.5 h-3.5 text-primary" />
+              <span className="text-xs font-semibold text-foreground">Find Prospects</span>
               {isSearching && <span className="text-[10px] text-primary animate-pulse">Searching...</span>}
             </div>
           </AccordionTrigger>
