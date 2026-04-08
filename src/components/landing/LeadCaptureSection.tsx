@@ -405,25 +405,26 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
               <div className="space-y-1">
                 <label className="text-xs sm:text-sm font-medium text-foreground flex items-center gap-1.5">
                   <Phone className="w-3.5 h-3.5 text-muted-foreground" /> Cell Phone <span className="text-xs text-muted-foreground">(optional)</span>
-              <Input
-                type="tel"
-                placeholder="(954) 555-1234"
-                value={formData.phone}
-                onChange={(e) => updateFormData({ phone: e.target.value })}
-                className="bg-secondary border-border"
-              />
+                </label>
+                <Input
+                  type="tel"
+                  placeholder="(954) 555-1234"
+                  value={formData.phone}
+                  onChange={(e) => updateFormData({ phone: e.target.value })}
+                  className="bg-secondary border-border"
+                />
               </div>
 
               <div className="space-y-1">
                 <label className="text-xs sm:text-sm font-medium text-foreground flex items-center gap-1.5">
                   <Link2 className="w-3.5 h-3.5 text-muted-foreground" /> Additional URL <span className="text-xs text-muted-foreground">(optional)</span>
                 </label>
-              <Input
-                placeholder="https://vendor-or-partner-site.com"
-                value={formData.secondaryUrl}
-                onChange={(e) => updateFormData({ secondaryUrl: e.target.value })}
-                className="bg-secondary border-border"
-              />
+                <Input
+                  placeholder="https://vendor-or-partner-site.com"
+                  value={formData.secondaryUrl}
+                  onChange={(e) => updateFormData({ secondaryUrl: e.target.value })}
+                  className="bg-secondary border-border"
+                />
               </div>
             </div>
 
