@@ -16,6 +16,9 @@ import { toast } from "sonner";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import type { Prospect } from "@/hooks/useProspectSearch";
 import { useProspectAnalysis } from "@/hooks/useProspectAnalysis";
 
@@ -253,6 +256,8 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign
   const returnTo = encodeURIComponent(`${window.location.pathname}${window.location.search}${window.location.hash}`);
   const [sendingSmsId, setSendingSmsId] = useState<string | null>(null);
   const [hideCostBanner, setHideCostBanner] = useState(false);
+  const [showAnalyzeConfirm, setShowAnalyzeConfirm] = useState(false);
+  const [analyzeTarget, setAnalyzeTarget] = useState<"all" | "selected">("all");
 
   const handleSendSms = async (prospect: Prospect, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -292,6 +297,22 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign
 
   const colMap = useMemo(() => Object.fromEntries(ALL_COLUMNS.map(c => [c.id, c])), []);
   const activeColumns = useMemo(() => columnOrder.filter(id => visibleColumns.has(id)), [columnOrder, visibleColumns]);
+
+  const confirmAndAnalyze = (target: "all" | "selected") => {
+    setAnalyzeTarget(target);
+    setShowAnalyzeConfirm(true);
+  };
+
+  const startConfirmedAnalysis = () => {
+    setShowAnalyzeConfirm(false);
+    if (analyzeTarget === "all") handleAnalyzeAll();
+    else handleBatchAnalyze();
+  };
+
+  const getAnalyzeCount = () => {
+    if (analyzeTarget === "all") return sorted.filter((p) => !(p as any).ai_analyzed && p.has_website && p.id).length;
+    return sorted.filter((p) => selectedIds.has(p.place_id) && !(p as any).ai_analyzed && p.has_website).length;
+  };
 
   const toggleColumnVisibility = useCallback((id: ColumnId) => {
     setVisibleColumns(prev => {
@@ -618,87 +639,9 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign
           <ScoringLegend />
         </div>
         <div className="flex items-center gap-2">
-          {batchProgress.isRunning && (
-            <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30">
-              {batchProgress.isPaused ? (
-                <Pause className="w-3.5 h-3.5 text-amber-400" />
-              ) : (
-                <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
-              )}
-              <span className="text-xs text-amber-400 font-medium">
-                {batchProgress.completed}/{batchProgress.total}
-                {batchProgress.isPaused && <span className="ml-1 text-yellow-300">(Paused)</span>}
-                {!batchProgress.isPaused && batchProgress.current && <span className="text-muted-foreground ml-1">— {batchProgress.current}</span>}
-              </span>
-              {batchProgress.costSummary.totalCost > 0 && (
-                <Popover>
-                  <PopoverTrigger asChild>
-                    <button className="flex items-center gap-0.5 px-1.5 py-0.5 rounded bg-emerald-500/15 border border-emerald-500/25 text-emerald-400 text-[10px] font-bold hover:bg-emerald-500/25 transition-colors">
-                      <DollarSign className="w-3 h-3" />
-                      ${batchProgress.costSummary.totalCost.toFixed(3)}
-                    </button>
-                  </PopoverTrigger>
-                  <PopoverContent className="w-64 p-3" align="end">
-                    <h4 className="text-xs font-semibold text-foreground mb-2">Enrichment Cost Breakdown</h4>
-                    <div className="space-y-1.5">
-                      {Object.entries(batchProgress.costSummary.apiTotals)
-                        .filter(([, v]) => v.calls > 0)
-                        .map(([api, usage]) => (
-                          <div key={api} className="flex items-center justify-between text-[11px]">
-                            <span className="text-muted-foreground capitalize">{api} ({usage.calls} calls)</span>
-                            <span className={`font-mono font-medium ${usage.cost > 0 ? "text-foreground" : "text-primary"}`}>
-                              {usage.cost > 0 ? `$${usage.cost.toFixed(3)}` : "Free"}
-                            </span>
-                          </div>
-                        ))}
-                      <div className="border-t border-border pt-1.5 mt-1.5 flex items-center justify-between text-xs font-semibold">
-                        <span className="text-foreground">Total ({batchProgress.completed} prospects)</span>
-                        <span className="text-primary">${batchProgress.costSummary.totalCost.toFixed(3)}</span>
-                      </div>
-                      {batchProgress.completed > 0 && (
-                        <p className="text-[10px] text-muted-foreground mt-1">
-                          ~${(batchProgress.costSummary.totalCost / batchProgress.completed).toFixed(3)}/prospect
-                          {batchProgress.total > batchProgress.completed && (
-                            <> · Est. total for {batchProgress.total}: <span className="text-foreground font-medium">${((batchProgress.costSummary.totalCost / batchProgress.completed) * batchProgress.total).toFixed(2)}</span></>
-                          )}
-                        </p>
-                      )}
-                    </div>
-                  </PopoverContent>
-                </Popover>
-              )}
-              <div className="w-20 h-1.5 rounded-full bg-secondary overflow-hidden">
-                <div
-                  className="h-full rounded-full bg-amber-400 transition-all"
-                  style={{ width: `${(batchProgress.completed / batchProgress.total) * 100}%` }}
-                />
-              </div>
-              {batchProgress.isPaused ? (
-                <button
-                  onClick={resumeBatch}
-                  className="flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold hover:bg-emerald-500/30 transition-colors"
-                >
-                  <Play className="w-3 h-3" />Resume
-                </button>
-              ) : (
-                <button
-                  onClick={pauseBatch}
-                  className="flex items-center gap-1 px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/30 text-amber-400 text-[10px] font-bold hover:bg-amber-500/30 transition-colors"
-                >
-                  <Pause className="w-3 h-3" />Pause
-                </button>
-              )}
-              <button
-                onClick={stopBatch}
-                className="flex items-center gap-1 px-2 py-0.5 rounded bg-red-500/20 border border-red-500/30 text-red-400 text-[10px] font-bold hover:bg-red-500/30 transition-colors"
-              >
-                <StopCircle className="w-3 h-3" />Stop
-              </button>
-            </div>
-          )}
           {unanalyzedCount > 0 && !batchProgress.isRunning && (
             <button
-              onClick={handleAnalyzeAll}
+              onClick={() => confirmAndAnalyze("all")}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/20 border border-primary/30 text-primary text-xs font-semibold hover:bg-primary/30 transition-colors"
             >
               <Brain className="w-3.5 h-3.5" />
@@ -722,6 +665,73 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign
           </select>
         </div>
       </div>
+
+      {/* Live Enrichment Progress Banner */}
+      {batchProgress.isRunning && (() => {
+        const pct = batchProgress.total > 0 ? (batchProgress.completed / batchProgress.total) * 100 : 0;
+        const elapsed = batchProgress.startedAt ? (Date.now() - batchProgress.startedAt) / 1000 : 0;
+        const perProspectSec = batchProgress.completed > 0 ? elapsed / batchProgress.completed : 0;
+        const remainingSec = (batchProgress.total - batchProgress.completed) * perProspectSec;
+        const etaMin = Math.ceil(remainingSec / 60);
+        const costPerProspect = batchProgress.completed > 0 ? batchProgress.costSummary.totalCost / batchProgress.completed : 0.025;
+        const estTotalCost = costPerProspect * batchProgress.total;
+        return (
+          <div className="rounded-xl border-2 border-amber-500/40 bg-amber-500/5 p-4 space-y-3">
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="flex items-center gap-2">
+                {batchProgress.isPaused ? <Pause className="w-5 h-5 text-amber-400" /> : <Loader2 className="w-5 h-5 animate-spin text-amber-400" />}
+                <h3 className="text-sm font-bold text-foreground">{batchProgress.isPaused ? "Enrichment Paused" : "Enrichment In Progress"}</h3>
+              </div>
+              <div className="flex items-center gap-2">
+                {batchProgress.isPaused ? (
+                  <button onClick={resumeBatch} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-bold hover:bg-emerald-500/30 transition-colors"><Play className="w-3.5 h-3.5" />Resume</button>
+                ) : (
+                  <button onClick={pauseBatch} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-amber-500/20 border border-amber-500/30 text-amber-400 text-xs font-bold hover:bg-amber-500/30 transition-colors"><Pause className="w-3.5 h-3.5" />Pause</button>
+                )}
+                <button onClick={stopBatch} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 text-xs font-bold hover:bg-red-500/30 transition-colors"><StopCircle className="w-3.5 h-3.5" />Stop</button>
+              </div>
+            </div>
+            <div className="space-y-1">
+              <div className="flex items-center justify-between text-xs">
+                <span className="text-muted-foreground">
+                  {batchProgress.completed} of {batchProgress.total} prospects
+                  {batchProgress.current && !batchProgress.isPaused && <span className="text-foreground ml-1">— <strong>{batchProgress.current}</strong></span>}
+                </span>
+                <span className="font-mono font-bold text-foreground">{pct.toFixed(0)}%</span>
+              </div>
+              <Progress value={pct} className="h-3" />
+              {batchProgress.completed > 0 && !batchProgress.isPaused && (
+                <p className="text-[10px] text-muted-foreground">~{etaMin > 0 ? `${etaMin} min` : "<1 min"} remaining · ~{perProspectSec.toFixed(0)}s per prospect</p>
+              )}
+            </div>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <div className="bg-card/60 rounded-lg px-3 py-2 border border-border/50">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Emails Found</p>
+                <p className="text-lg font-bold text-emerald-400">{batchProgress.emailsFound}</p>
+              </div>
+              <div className="bg-card/60 rounded-lg px-3 py-2 border border-border/50">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Phones Classified</p>
+                <p className="text-lg font-bold text-blue-400">{batchProgress.phonesClassified}</p>
+              </div>
+              <div className="bg-card/60 rounded-lg px-3 py-2 border border-border/50">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Running Cost</p>
+                <p className="text-lg font-bold text-primary">${batchProgress.costSummary.totalCost.toFixed(3)}</p>
+              </div>
+              <div className="bg-card/60 rounded-lg px-3 py-2 border border-border/50">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Est. Total Cost</p>
+                <p className="text-lg font-bold text-foreground">${estTotalCost.toFixed(2)}</p>
+              </div>
+            </div>
+            {Object.keys(batchProgress.costSummary.apiTotals).length > 0 && (
+              <div className="flex flex-wrap gap-2 text-[10px]">
+                {Object.entries(batchProgress.costSummary.apiTotals).filter(([, v]) => v.calls > 0).map(([api, usage]) => (
+                  <span key={api} className="px-2 py-1 rounded bg-secondary border border-border text-muted-foreground">{api}: {usage.calls} calls {usage.cost > 0 ? `($${usage.cost.toFixed(3)})` : "(free)"}</span>
+                ))}
+              </div>
+            )}
+          </div>
+        );
+      })()}
 
       {/* Cost summary after batch completes */}
       {!batchProgress.isRunning && batchProgress.costSummary.totalCost > 0 && !hideCostBanner && (
@@ -753,7 +763,7 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign
         <motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} className="bg-primary/10 border border-primary/30 rounded-xl px-4 py-3 flex flex-wrap items-center gap-3">
           <span className="text-sm font-semibold text-primary">{selectedIds.size} selected</span>
           <div className="flex gap-2 flex-wrap">
-            <button onClick={handleBatchAnalyze} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors">
+            <button onClick={() => confirmAndAnalyze("selected")} className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-semibold hover:bg-primary/90 transition-colors">
               <Brain className="w-3 h-3" /> Analyze Selected
             </button>
             <button
@@ -915,6 +925,46 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign
           </div>
         </div>
       )}
+
+      {/* Cost Estimate Confirmation Dialog */}
+      <Dialog open={showAnalyzeConfirm} onOpenChange={setShowAnalyzeConfirm}>
+        <DialogContent className="sm:max-w-md">
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2"><Brain className="w-5 h-5 text-primary" />Confirm Enrichment</DialogTitle>
+            <DialogDescription>Review the estimated cost before starting.</DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <div className="grid grid-cols-2 gap-3">
+              <div className="bg-secondary/50 rounded-lg px-3 py-3 border border-border">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Prospects</p>
+                <p className="text-2xl font-bold text-foreground">{getAnalyzeCount()}</p>
+                <p className="text-[10px] text-muted-foreground">with websites to analyze</p>
+              </div>
+              <div className="bg-primary/5 rounded-lg px-3 py-3 border border-primary/20">
+                <p className="text-[10px] text-muted-foreground uppercase tracking-wider mb-1">Est. Cost</p>
+                <p className="text-2xl font-bold text-primary">${(getAnalyzeCount() * 0.025).toFixed(2)}</p>
+                <p className="text-[10px] text-muted-foreground">~$0.02–0.03 per prospect</p>
+              </div>
+            </div>
+            <div className="bg-secondary/30 rounded-lg p-3 border border-border space-y-1.5">
+              <p className="text-xs font-semibold text-foreground">What enrichment does:</p>
+              <ul className="text-[11px] text-muted-foreground space-y-1">
+                <li className="flex items-center gap-1.5"><Mail className="w-3 h-3 text-emerald-400 shrink-0" /><strong>Hunter.io</strong> — Finds owner/business emails</li>
+                <li className="flex items-center gap-1.5"><Phone className="w-3 h-3 text-blue-400 shrink-0" /><strong>Twilio</strong> — Classifies phone type & SMS capability</li>
+                <li className="flex items-center gap-1.5"><Globe className="w-3 h-3 text-orange-400 shrink-0" /><strong>Firecrawl</strong> — Scrapes website content & screenshots</li>
+                <li className="flex items-center gap-1.5"><Brain className="w-3 h-3 text-primary shrink-0" /><strong>AI</strong> — Sales assessment & lead scoring</li>
+              </ul>
+            </div>
+            <div className="bg-amber-500/10 rounded-lg p-3 border border-amber-500/20">
+              <p className="text-xs text-amber-200"><strong>Est. time:</strong> ~{Math.ceil(getAnalyzeCount() * 10 / 60)} min. You can pause or stop anytime.</p>
+            </div>
+          </div>
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setShowAnalyzeConfirm(false)}>Cancel</Button>
+            <Button onClick={startConfirmedAnalysis} className="gap-2"><Brain className="w-4 h-4" />Start Enrichment (${(getAnalyzeCount() * 0.025).toFixed(2)})</Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 };
