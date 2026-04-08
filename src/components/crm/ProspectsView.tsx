@@ -18,11 +18,15 @@ const ProspectsView = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [quickSearch, setQuickSearch] = useState("");
-  const [filters, setFilters] = useState<Filters>({
+
+  // Draft filters (user edits these) vs applied filters (sent to query)
+  const [draftFilters, setDraftFilters] = useState<Filters>({
     ...DEFAULT_FILTERS,
     temperature: searchParams.get("temp") || "all",
     status: searchParams.get("status") || "all",
   });
+  const [appliedFilters, setAppliedFilters] = useState<Filters>(draftFilters);
+
   const [outreachProspects, setOutreachProspects] = useState<any[] | null>(null);
   const [campaignProspects, setCampaignProspects] = useState<any[] | null>(null);
 
@@ -30,18 +34,24 @@ const ProspectsView = () => {
     const temp = searchParams.get("temp");
     const status = searchParams.get("status");
     if (temp || status) {
-      setFilters(f => ({
-        ...f,
+      const updated = {
+        ...draftFilters,
         temperature: temp || "all",
         status: status || "all",
-      }));
+      };
+      setDraftFilters(updated);
+      setAppliedFilters(updated);
       setShowFilters(true);
     }
   }, [searchParams]);
 
   const { search, isSearching, searchResults } = useProspectSearch();
-  const { prospects, isLoading, refetch } = useProspects(filters);
+  const { prospects, isLoading, refetch } = useProspects(appliedFilters);
   const { niches, cities, states } = useFilterOptions();
+
+  const handleApplyFilters = () => {
+    setAppliedFilters({ ...draftFilters });
+  };
 
   const baseProspects = searchResults.length > 0 ? searchResults : prospects;
 
@@ -49,23 +59,14 @@ const ProspectsView = () => {
     let list = baseProspects;
 
     // Preview type filter (client-side)
-    if (filters.previewType !== "all") {
+    if (appliedFilters.previewType !== "all") {
       list = list.filter(p => {
         const url = p.website_url;
-        if (filters.previewType === "iframe") return url?.startsWith("https://");
-        if (filters.previewType === "http") return url && !url.startsWith("https://") && !(p as any).website_screenshot;
-        if (filters.previewType === "screenshot") return !!(p as any).website_screenshot && !url?.startsWith("https://");
-        if (filters.previewType === "none") return !url;
+        if (appliedFilters.previewType === "iframe") return url?.startsWith("https://");
+        if (appliedFilters.previewType === "http") return url && !url.startsWith("https://") && !(p as any).website_screenshot;
+        if (appliedFilters.previewType === "screenshot") return !!(p as any).website_screenshot && !url?.startsWith("https://");
+        if (appliedFilters.previewType === "none") return !url;
         return true;
-      });
-    }
-
-    // Phone type filter (client-side)
-    if (filters.phoneType !== "all") {
-      list = list.filter(p => {
-        const pt = (p as any).phone_type;
-        if (filters.phoneType === "unknown") return !pt;
-        return pt === filters.phoneType;
       });
     }
 
@@ -80,7 +81,7 @@ const ProspectsView = () => {
       (p as any).owner_name?.toLowerCase().includes(q) ||
       p.formatted_address?.toLowerCase().includes(q)
     );
-  }, [baseProspects, quickSearch, filters.previewType, filters.phoneType]);
+  }, [baseProspects, quickSearch, appliedFilters.previewType]);
 
   return (
     <div className="space-y-4">
@@ -163,8 +164,9 @@ const ProspectsView = () => {
             className="overflow-hidden"
           >
             <CRMFilters
-              filters={filters}
-              onChange={setFilters}
+              filters={draftFilters}
+              onChange={setDraftFilters}
+              onApply={handleApplyFilters}
               niches={niches}
               cities={cities}
               states={states}

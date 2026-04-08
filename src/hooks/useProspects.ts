@@ -1,21 +1,9 @@
 import { useQuery } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
 import type { Prospect } from "./useProspectSearch";
+import type { Filters } from "@/components/crm/CRMFilters";
 
-export interface Filters {
-  temperature: string;
-  hasWebsite: string;
-  minScore: number;
-  status: string;
-  previewType: string;
-  phoneType: string;
-  niche: string;
-  city: string;
-  state: string;
-  hasEmail: string;
-  smsCapable: string;
-  analyzed: string;
-}
+export type { Filters };
 
 export const useProspects = (filters: Filters) => {
   const { data, isLoading, refetch } = useQuery({
@@ -41,14 +29,21 @@ export const useProspects = (filters: Filters) => {
       if (filters.status !== "all") {
         query = query.eq("status", filters.status);
       }
-      if (filters.niche !== "all") {
-        query = query.eq("niche", filters.niche);
+      // Multi-select: niche
+      if (filters.niche.length > 0) {
+        query = query.in("niche", filters.niche);
       }
-      if (filters.city !== "all") {
-        query = query.eq("city", filters.city);
+      // Multi-select: city
+      if (filters.city.length > 0) {
+        query = query.in("city", filters.city);
       }
-      if (filters.state !== "all") {
-        query = query.eq("state", filters.state);
+      // Multi-select: state
+      if (filters.state.length > 0) {
+        query = query.in("state", filters.state);
+      }
+      // Multi-select: phone_type
+      if (filters.phoneType.length > 0) {
+        query = query.in("phone_type", filters.phoneType);
       }
       if (filters.hasEmail === "yes") {
         query = query.or("email.neq.,owner_email.neq.");
@@ -77,7 +72,7 @@ export const useProspects = (filters: Filters) => {
   return { prospects: data || [], isLoading, refetch };
 };
 
-// Hook to get distinct filter options
+// Hook to get distinct filter options (dynamic from DB)
 export const useFilterOptions = () => {
   const { data } = useQuery({
     queryKey: ["filter-options"],
@@ -92,7 +87,7 @@ export const useFilterOptions = () => {
       const states = [...new Set((stateRes.data || []).map((r: any) => r.state).filter(Boolean))].sort();
       return { niches, cities, states };
     },
-    staleTime: 60000,
+    staleTime: 30000, // refresh every 30s so new scrapes show up
   });
 
   return { niches: data?.niches || [], cities: data?.cities || [], states: data?.states || [] };
