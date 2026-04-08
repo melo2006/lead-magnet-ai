@@ -82,12 +82,12 @@ export function CRMSidebar() {
                 <span className="text-[11px] text-foreground">Google Places</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40" />
-                <span className="text-[11px] text-muted-foreground">Email (not set)</span>
+                <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                <span className="text-[11px] text-foreground">Email (Resend)</span>
               </div>
               <div className="flex items-center gap-2">
-                <div className="w-1.5 h-1.5 rounded-full bg-muted-foreground/40" />
-                <span className="text-[11px] text-muted-foreground">SMS (not set)</span>
+                <div className="w-1.5 h-1.5 rounded-full bg-primary" />
+                <span className="text-[11px] text-foreground">SMS (Twilio)</span>
               </div>
             </div>
           </div>

@@ -7,7 +7,7 @@ import {
   ArrowUpDown, Gauge, ChevronLeft, ChevronRight,
   Linkedin, Facebook, Instagram, Smartphone,
   Settings2, GripVertical, Eye, EyeOff, Info,
-  Mic, Globe, Calendar, MessageCircle
+  Mic, Globe, MessageCircle
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
