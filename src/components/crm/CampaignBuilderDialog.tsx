@@ -1,7 +1,7 @@
 import { useState, useMemo } from "react";
 import {
   X, ChevronRight, ChevronLeft, Mail, Smartphone, Send, Monitor,
-  Zap, Brain, Loader2, Eye, Sparkles, Check, AlertTriangle
+  Zap, Brain, Loader2, Sparkles, Check, AlertTriangle
 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";

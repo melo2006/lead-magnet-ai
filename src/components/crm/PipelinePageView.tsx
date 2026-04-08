@@ -9,6 +9,12 @@ const PipelinePageView = () => {
     status: "all",
     previewType: "all",
     phoneType: "all",
+    niche: "all",
+    city: "all",
+    state: "all",
+    hasEmail: "all",
+    smsCapable: "all",
+    analyzed: "all",
   });
 
   return (

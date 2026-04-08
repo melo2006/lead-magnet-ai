@@ -1,15 +1,16 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Filter, Search, UserPlus, X } from "lucide-react";
+import { Filter, Search, UserPlus, X, Megaphone } from "lucide-react";
 import ProspectSearchForm from "@/components/crm/ProspectSearchForm";
 import ProspectTable from "@/components/crm/ProspectTable";
 import CRMStats from "@/components/crm/CRMStats";
-import CRMFilters from "@/components/crm/CRMFilters";
+import CRMFilters, { DEFAULT_FILTERS, type Filters } from "@/components/crm/CRMFilters";
 import OutreachDialog from "@/components/crm/OutreachDialog";
 import QuickAddProspectDialog from "@/components/crm/QuickAddProspectDialog";
+import CampaignBuilderDialog from "@/components/crm/CampaignBuilderDialog";
 import { useProspectSearch } from "@/hooks/useProspectSearch";
-import { useProspects } from "@/hooks/useProspects";
+import { useProspects, useFilterOptions } from "@/hooks/useProspects";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
 
 const ProspectsView = () => {
@@ -17,15 +18,13 @@ const ProspectsView = () => {
   const [showFilters, setShowFilters] = useState(false);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
   const [quickSearch, setQuickSearch] = useState("");
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState<Filters>({
+    ...DEFAULT_FILTERS,
     temperature: searchParams.get("temp") || "all",
-    hasWebsite: "all",
-    minScore: 0,
     status: searchParams.get("status") || "all",
-    previewType: "all",
-    phoneType: "all",
   });
   const [outreachProspects, setOutreachProspects] = useState<any[] | null>(null);
+  const [campaignProspects, setCampaignProspects] = useState<any[] | null>(null);
 
   useEffect(() => {
     const temp = searchParams.get("temp");
@@ -42,13 +41,14 @@ const ProspectsView = () => {
 
   const { search, isSearching, searchResults } = useProspectSearch();
   const { prospects, isLoading, refetch } = useProspects(filters);
+  const { niches, cities, states } = useFilterOptions();
 
   const baseProspects = searchResults.length > 0 ? searchResults : prospects;
 
   const displayProspects = useMemo(() => {
     let list = baseProspects;
 
-    // Preview type filter (client-side since it's derived from website_url)
+    // Preview type filter (client-side)
     if (filters.previewType !== "all") {
       list = list.filter(p => {
         const url = p.website_url;
@@ -60,7 +60,7 @@ const ProspectsView = () => {
       });
     }
 
-    // Phone type filter
+    // Phone type filter (client-side)
     if (filters.phoneType !== "all") {
       list = list.filter(p => {
         const pt = (p as any).phone_type;
@@ -95,6 +95,15 @@ const ProspectsView = () => {
             className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
           >
             <UserPlus className="w-3.5 h-3.5" />Quick Add
+          </button>
+          <button
+            onClick={() => {
+              if (displayProspects.length > 0) setCampaignProspects(displayProspects);
+              else { setShowFilters(true); }
+            }}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-accent/20 border border-accent/30 text-accent-foreground text-xs font-medium hover:bg-accent/30 transition-colors"
+          >
+            <Megaphone className="w-3.5 h-3.5" />Build Campaign ({displayProspects.length})
           </button>
           <button
             onClick={() => setShowFilters(!showFilters)}
@@ -153,7 +162,13 @@ const ProspectsView = () => {
             exit={{ height: 0, opacity: 0 }}
             className="overflow-hidden"
           >
-            <CRMFilters filters={filters} onChange={setFilters} />
+            <CRMFilters
+              filters={filters}
+              onChange={setFilters}
+              niches={niches}
+              cities={cities}
+              states={states}
+            />
           </motion.div>
         )}
       </AnimatePresence>
@@ -163,6 +178,7 @@ const ProspectsView = () => {
         isLoading={isLoading || isSearching}
         onRefetch={refetch}
         onOutreach={(selected) => setOutreachProspects(selected)}
+        onCampaign={(selected) => setCampaignProspects(selected)}
       />
 
       {outreachProspects && outreachProspects.length > 0 && (
@@ -170,6 +186,14 @@ const ProspectsView = () => {
           prospects={outreachProspects}
           onClose={() => setOutreachProspects(null)}
           onSent={() => { setOutreachProspects(null); refetch(); }}
+        />
+      )}
+
+      {campaignProspects && campaignProspects.length > 0 && (
+        <CampaignBuilderDialog
+          prospects={campaignProspects}
+          onClose={() => setCampaignProspects(null)}
+          onSent={() => { setCampaignProspects(null); refetch(); }}
         />
       )}
 
