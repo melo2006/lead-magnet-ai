@@ -7,6 +7,7 @@ const PipelinePageView = () => {
     hasWebsite: "all",
     minScore: 0,
     status: "all",
+    previewType: "all",
   });
 
   return (
