@@ -49,12 +49,20 @@ const ProspectsView = () => {
           <h1 className="text-xl font-bold text-foreground">Prospects</h1>
           <p className="text-sm text-muted-foreground">Search and manage your business leads</p>
         </div>
-        <button
-          onClick={() => setShowFilters(!showFilters)}
-          className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${showFilters ? "bg-primary/10 border-primary/30 text-primary" : "bg-secondary border-border text-muted-foreground hover:text-foreground"}`}
-        >
-          <Filter className="w-3.5 h-3.5" />Filters
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowQuickAdd(true)}
+            className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary text-primary-foreground text-xs font-medium hover:bg-primary/90 transition-colors"
+          >
+            <UserPlus className="w-3.5 h-3.5" />Quick Add
+          </button>
+          <button
+            onClick={() => setShowFilters(!showFilters)}
+            className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg border text-xs font-medium transition-colors ${showFilters ? "bg-primary/10 border-primary/30 text-primary" : "bg-secondary border-border text-muted-foreground hover:text-foreground"}`}
+          >
+            <Filter className="w-3.5 h-3.5" />Filters
+          </button>
+        </div>
       </div>
 
       <CRMStats prospects={displayProspects} />
