@@ -20,6 +20,9 @@ export interface BatchProgress {
   isRunning: boolean;
   isPaused: boolean;
   costSummary: BatchCostSummary;
+  emailsFound: number;
+  phonesClassified: number;
+  startedAt: number | null;
 }
 
 export const useProspectAnalysis = () => {
@@ -27,6 +30,7 @@ export const useProspectAnalysis = () => {
   const [batchProgress, setBatchProgress] = useState<BatchProgress>({
     total: 0, completed: 0, current: null, isRunning: false, isPaused: false,
     costSummary: { totalCost: 0, perProspect: [], apiTotals: {} },
+    emailsFound: 0, phonesClassified: 0, startedAt: null,
   });
   const abortRef = useRef(false);
   const pauseRef = useRef(false);
@@ -107,10 +111,12 @@ export const useProspectAnalysis = () => {
     abortRef.current = false;
     pauseRef.current = false;
     const costSummary: BatchCostSummary = { totalCost: 0, perProspect: [], apiTotals: {} };
-    setBatchProgress({ total: withWebsite.length, completed: 0, current: null, isRunning: true, isPaused: false, costSummary });
+    setBatchProgress({ total: withWebsite.length, completed: 0, current: null, isRunning: true, isPaused: false, costSummary, emailsFound: 0, phonesClassified: 0, startedAt: Date.now() });
     toast.info(`Analyzing ${withWebsite.length} prospects...`);
 
     let completed = 0;
+    let emailsFound = 0;
+    let phonesClassified = 0;
     for (const prospect of withWebsite) {
       if (abortRef.current) {
         toast.info(`Batch stopped. ${completed}/${withWebsite.length} completed.`);
@@ -129,7 +135,7 @@ export const useProspectAnalysis = () => {
       setBatchProgress(prev => ({ ...prev, current: prospect.business_name, completed }));
       const result = await analyze(prospect);
 
-      // Track cost
+      // Track cost and enrichment stats
       if (result?.cost) {
         const cost = result.cost as CostBreakdown;
         costSummary.totalCost += cost.total_usd;
@@ -140,14 +146,16 @@ export const useProspectAnalysis = () => {
           costSummary.apiTotals[api].cost += usage.cost;
         }
       }
+      if (result?.owner_email || result?.email) emailsFound++;
+      if (result?.phone_type) phonesClassified++;
 
       completed++;
-      setBatchProgress(prev => ({ ...prev, completed, costSummary: { ...costSummary } }));
+      setBatchProgress(prev => ({ ...prev, completed, costSummary: { ...costSummary }, emailsFound, phonesClassified }));
       // Small delay to avoid rate limits
       await new Promise((r) => setTimeout(r, 1500));
     }
 
-    setBatchProgress(prev => ({ ...prev, isRunning: false, isPaused: false }));
+    setBatchProgress(prev => ({ ...prev, isRunning: false, isPaused: false, startedAt: null }));
     if (!abortRef.current) {
       toast.success(`Batch analysis complete! Est. cost: $${costSummary.totalCost.toFixed(3)}`);
     }
