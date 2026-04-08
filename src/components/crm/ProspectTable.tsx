@@ -7,7 +7,7 @@ import {
   ArrowUpDown, Gauge, ChevronLeft, ChevronRight,
   Linkedin, Facebook, Instagram, Smartphone,
   Settings2, GripVertical, Eye, EyeOff, Info,
-  Mic, Globe, MessageCircle
+  Mic, Globe, MessageCircle, StopCircle, AtSign
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -44,7 +44,7 @@ const tempColors: Record<string, string> = {
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 // Column definitions
-type ColumnId = "business" | "niche" | "temp" | "location" | "actions" | "rating" | "reviews" | "score" | "website" | "chat" | "voiceai" | "booking" | "sitequality" | "ai" | "owner" | "contact" | "social" | "voiceai_candidate" | "webdev_candidate" | "sources" | "date_added" | "preview_type" | "phone_type";
+type ColumnId = "business" | "niche" | "temp" | "location" | "actions" | "rating" | "reviews" | "score" | "website" | "chat" | "voiceai" | "booking" | "sitequality" | "ai" | "owner" | "contact" | "social" | "voiceai_candidate" | "webdev_candidate" | "sources" | "date_added" | "preview_type" | "phone_type" | "email";
 
 interface ColumnDef {
   id: ColumnId;
@@ -77,6 +77,7 @@ const ALL_COLUMNS: ColumnDef[] = [
   { id: "contact", label: "Contact", sortKey: "contact_method", minWidth: "90px", removable: true },
   { id: "social", label: "Social", minWidth: "80px", removable: true },
   { id: "phone_type", label: "Phone Type", sortKey: "phone_type", minWidth: "85px", removable: true },
+  { id: "email", label: "Email", minWidth: "140px", removable: true },
   { id: "sources", label: "Sources", minWidth: "110px", removable: true },
 ];
 
