@@ -7,7 +7,8 @@ import {
   ArrowUpDown, Gauge, ChevronLeft, ChevronRight,
   Linkedin, Facebook, Instagram, Smartphone,
   Settings2, GripVertical, Eye, EyeOff, Info,
-  Mic, Globe, MessageCircle, StopCircle, Pause, Play
+  Mic, Globe, MessageCircle, StopCircle, Pause, Play,
+  DollarSign, X
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -17,7 +18,6 @@ import { format } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { Prospect } from "@/hooks/useProspectSearch";
 import { useProspectAnalysis } from "@/hooks/useProspectAnalysis";
-import { DollarSign } from "lucide-react";
 
 interface Props {
   prospects: Prospect[];
@@ -731,7 +731,8 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign
             </p>
           </div>
           <button
-            onClick={() => setBatchProgress(prev => ({ ...prev, costSummary: { totalCost: 0, perProspect: [], apiTotals: {} } }))}
+            onClick={() => { /* dismiss cost banner */ }}
+            style={{ display: 'none' }}
             className="text-muted-foreground hover:text-foreground p-1"
           >
             <X className="w-3 h-3" />
