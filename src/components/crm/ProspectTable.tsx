@@ -7,7 +7,7 @@ import {
   ArrowUpDown, Gauge, ChevronLeft, ChevronRight,
   Linkedin, Facebook, Instagram, Smartphone,
   Settings2, GripVertical, Eye, EyeOff, Info,
-  Mic, Globe, MessageCircle, StopCircle, AtSign
+  Mic, Globe, MessageCircle, StopCircle
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -16,7 +16,7 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { Prospect } from "@/hooks/useProspectSearch";
-import { useProspectAnalysis, type BatchProgress } from "@/hooks/useProspectAnalysis";
+import { useProspectAnalysis } from "@/hooks/useProspectAnalysis";
 
 interface Props {
   prospects: Prospect[];
