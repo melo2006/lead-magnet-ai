@@ -6,6 +6,7 @@ const corsHeaders = {
 };
 
 const RETELL_BASE = 'https://api.retellai.com';
+const DEFAULT_RETELL_AGENT_ID = 'agent_0dd08673d770e8adf08f920490';
 
 async function retellFetch(path: string, apiKey: string, options: RequestInit = {}) {
   const res = await fetch(`${RETELL_BASE}${path}`, {
@@ -99,7 +100,7 @@ Deno.serve(async (req) => {
     }
 
     // Get the agent ID - use provided or find the first available
-    let targetAgentId = agent_id;
+    let targetAgentId = agent_id || DEFAULT_RETELL_AGENT_ID;
     if (!targetAgentId) {
       const agents = await retellFetch('/list-agents', retellApiKey);
       if (agents && agents.length > 0) {
