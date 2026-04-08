@@ -23,6 +23,7 @@ interface Props {
   isLoading: boolean;
   onRefetch?: () => void;
   onOutreach?: (selected: Prospect[]) => void;
+  onCampaign?: (selected: Prospect[]) => void;
 }
 
 type SortKey =
@@ -238,7 +239,7 @@ const ColumnManager = ({
   );
 };
 
-const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) => {
+const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign }: Props) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortKey>("voiceai_fit");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -694,6 +695,12 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) =
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-secondary border border-border text-foreground text-xs font-medium hover:bg-secondary/80 transition-colors"
             >
               <Send className="w-3 h-3" /> SMS Selected
+            </button>
+            <button
+              onClick={() => onCampaign?.(sorted.filter((p) => selectedIds.has(p.place_id)))}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/20 border border-primary/30 text-primary text-xs font-semibold hover:bg-primary/30 transition-colors"
+            >
+              <Zap className="w-3 h-3" /> Build Campaign
             </button>
           </div>
           <button onClick={() => setSelectedIds(new Set())} className="ml-auto text-xs text-muted-foreground hover:text-foreground">Clear</button>
