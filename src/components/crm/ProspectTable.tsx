@@ -561,6 +561,15 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) =
           </a>
         );
       }
+      case "sms_capable": {
+        const sc = (p as any).sms_capable;
+        if (sc === null || sc === undefined) return <span className="text-[10px] text-muted-foreground">—</span>;
+        return sc ? (
+          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-emerald-500/15 text-emerald-400 border border-emerald-500/25">✓ Yes</span>
+        ) : (
+          <span className="text-[9px] font-bold px-1.5 py-0.5 rounded bg-red-500/15 text-red-400 border border-red-500/25">✗ No</span>
+        );
+      }
       default:
         return null;
     }
@@ -600,10 +609,15 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) =
         <div className="flex items-center gap-2">
           {batchProgress.isRunning && (
             <div className="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-amber-500/10 border border-amber-500/30">
-              <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+              {batchProgress.isPaused ? (
+                <Pause className="w-3.5 h-3.5 text-amber-400" />
+              ) : (
+                <Loader2 className="w-3.5 h-3.5 animate-spin text-amber-400" />
+              )}
               <span className="text-xs text-amber-400 font-medium">
                 {batchProgress.completed}/{batchProgress.total}
-                {batchProgress.current && <span className="text-muted-foreground ml-1">— {batchProgress.current}</span>}
+                {batchProgress.isPaused && <span className="ml-1 text-yellow-300">(Paused)</span>}
+                {!batchProgress.isPaused && batchProgress.current && <span className="text-muted-foreground ml-1">— {batchProgress.current}</span>}
               </span>
               <div className="w-20 h-1.5 rounded-full bg-secondary overflow-hidden">
                 <div
@@ -611,6 +625,21 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) =
                   style={{ width: `${(batchProgress.completed / batchProgress.total) * 100}%` }}
                 />
               </div>
+              {batchProgress.isPaused ? (
+                <button
+                  onClick={resumeBatch}
+                  className="flex items-center gap-1 px-2 py-0.5 rounded bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-[10px] font-bold hover:bg-emerald-500/30 transition-colors"
+                >
+                  <Play className="w-3 h-3" />Resume
+                </button>
+              ) : (
+                <button
+                  onClick={pauseBatch}
+                  className="flex items-center gap-1 px-2 py-0.5 rounded bg-amber-500/20 border border-amber-500/30 text-amber-400 text-[10px] font-bold hover:bg-amber-500/30 transition-colors"
+                >
+                  <Pause className="w-3 h-3" />Pause
+                </button>
+              )}
               <button
                 onClick={stopBatch}
                 className="flex items-center gap-1 px-2 py-0.5 rounded bg-red-500/20 border border-red-500/30 text-red-400 text-[10px] font-bold hover:bg-red-500/30 transition-colors"
