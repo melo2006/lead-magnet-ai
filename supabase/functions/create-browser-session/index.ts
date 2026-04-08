@@ -43,6 +43,19 @@ Deno.serve(async (req) => {
     if (!createRes.ok) {
       const errorBody = await createRes.text();
       console.error("Session creation failed:", createRes.status, errorBody);
+
+      // Handle billing/quota errors gracefully so frontend can fallback
+      if (createRes.status === 402 || createRes.status === 429) {
+        return new Response(
+          JSON.stringify({
+            error: "QUOTA_EXCEEDED",
+            message: "Browser session quota reached. Falling back to iframe preview.",
+            fallback: true,
+          }),
+          { status: 200, headers: { ...corsHeaders, "Content-Type": "application/json" } }
+        );
+      }
+
       throw new Error(`Browserbase API error [${createRes.status}]: ${errorBody}`);
     }
 
