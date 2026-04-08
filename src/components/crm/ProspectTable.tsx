@@ -7,10 +7,13 @@ import {
   ArrowUpDown, Gauge, ChevronLeft, ChevronRight,
   Linkedin, Facebook, Instagram, Smartphone,
   Settings2, GripVertical, Eye, EyeOff, Info,
-  Mic, Globe
+  Mic, Globe, MessageCircle
 } from "lucide-react";
 import { Link } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { toast } from "sonner";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
+import { format } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { Prospect } from "@/hooks/useProspectSearch";
 import { useProspectAnalysis } from "@/hooks/useProspectAnalysis";
@@ -27,7 +30,7 @@ type SortKey =
   | "has_website" | "has_chat_widget" | "has_voice_ai"
   | "has_online_booking" | "website_quality_score" | "lead_temperature"
   | "city" | "ai_analyzed" | "niche" | "contact_method" | "owner_name"
-  | "voiceai_fit" | "webdev_fit";
+  | "voiceai_fit" | "webdev_fit" | "created_at";
 
 const tempIcons: Record<string, any> = {
   hot: Flame, warm: Thermometer, cold: Snowflake,
@@ -41,7 +44,7 @@ const tempColors: Record<string, string> = {
 const PAGE_SIZE_OPTIONS = [10, 25, 50, 100];
 
 // Column definitions
-type ColumnId = "business" | "niche" | "temp" | "location" | "actions" | "rating" | "reviews" | "score" | "website" | "chat" | "voiceai" | "booking" | "sitequality" | "ai" | "owner" | "contact" | "social" | "voiceai_candidate" | "webdev_candidate" | "sources";
+type ColumnId = "business" | "niche" | "temp" | "location" | "actions" | "rating" | "reviews" | "score" | "website" | "chat" | "voiceai" | "booking" | "sitequality" | "ai" | "owner" | "contact" | "social" | "voiceai_candidate" | "webdev_candidate" | "sources" | "date_added";
 
 interface ColumnDef {
   id: ColumnId;
@@ -57,7 +60,8 @@ const ALL_COLUMNS: ColumnDef[] = [
   { id: "voiceai_candidate", label: "Voice AI Fit", sortKey: "voiceai_fit", minWidth: "85px", removable: true },
   { id: "temp", label: "Temp", sortKey: "lead_temperature", minWidth: "60px", removable: true },
   { id: "location", label: "Location", sortKey: "city", minWidth: "120px", removable: true },
-  { id: "actions", label: "Actions", minWidth: "120px", removable: false },
+  { id: "actions", label: "Actions", minWidth: "140px", removable: false },
+  { id: "date_added", label: "Added", sortKey: "created_at", minWidth: "85px", removable: true },
   { id: "webdev_candidate", label: "Web Dev Fit", sortKey: "webdev_fit", minWidth: "85px", removable: true },
   { id: "rating", label: "Rating", sortKey: "rating", minWidth: "60px", removable: true },
   { id: "reviews", label: "Reviews", sortKey: "review_count", minWidth: "70px", removable: true },
@@ -241,6 +245,43 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) =
   const [visibleColumns, setVisibleColumns] = useState<Set<ColumnId>>(new Set(DEFAULT_VISIBLE));
   const { analyze, analyzeBatch, analyzingIds } = useProspectAnalysis();
   const returnTo = encodeURIComponent(`${window.location.pathname}${window.location.search}${window.location.hash}`);
+  const [sendingSmsId, setSendingSmsId] = useState<string | null>(null);
+
+  const handleSendSms = async (prospect: Prospect, e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!prospect.phone || !prospect.id) {
+      toast.error("This prospect has no phone number");
+      return;
+    }
+    setSendingSmsId(prospect.id);
+    try {
+      const { data, error } = await supabase.functions.invoke("send-outreach-sms", {
+        body: {
+          prospects: [{
+            id: prospect.id,
+            business_name: prospect.business_name,
+            phone: prospect.phone,
+            owner_name: (prospect as any).owner_name || null,
+            website_url: prospect.website_url || null,
+            niche: prospect.niche || null,
+          }],
+          customMessage: "",
+          baseUrl: window.location.origin,
+        },
+      });
+      if (error) throw error;
+      if (data?.sent > 0) {
+        toast.success(`SMS sent to ${prospect.business_name}!`);
+        onRefetch?.();
+      } else {
+        toast.error(data?.results?.[0]?.error || "SMS failed to send");
+      }
+    } catch (err: any) {
+      toast.error(err.message || "Failed to send SMS");
+    } finally {
+      setSendingSmsId(null);
+    }
+  };
 
   const colMap = useMemo(() => Object.fromEntries(ALL_COLUMNS.map(c => [c.id, c])), []);
   const activeColumns = useMemo(() => columnOrder.filter(id => visibleColumns.has(id)), [columnOrder, visibleColumns]);
@@ -359,8 +400,27 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) =
               <button onClick={(e) => { e.stopPropagation(); handleAnalyze(p); }} disabled={isAnalyzing} className="p-1 rounded hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors disabled:opacity-50" title="AI Analyze"><Brain className="w-3.5 h-3.5" /></button>
             )}
             <Link to={`/demo?url=${encodeURIComponent(p.website_url || "")}&name=${encodeURIComponent(p.business_name)}&niche=${encodeURIComponent(p.niche || "")}&prospectId=${encodeURIComponent(p.id || "")}&callerPhone=${encodeURIComponent(p.phone || "")}&returnTo=${returnTo}`} onClick={(e) => e.stopPropagation()} className="p-1 rounded hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors" title="Generate Demo"><Zap className="w-3.5 h-3.5" /></Link>
+            {p.phone && (
+              <button
+                onClick={(e) => handleSendSms(p, e)}
+                disabled={sendingSmsId === p.id}
+                className={`p-1 rounded transition-colors disabled:opacity-50 ${(p as any).sms_sent_at ? "text-emerald-400 hover:bg-emerald-400/20" : "text-muted-foreground hover:bg-primary/20 hover:text-primary"}`}
+                title={(p as any).sms_sent_at ? "SMS sent — click to resend" : "Send SMS with demo link"}
+              >
+                {sendingSmsId === p.id ? <Loader2 className="w-3.5 h-3.5 animate-spin" /> : <MessageCircle className="w-3.5 h-3.5" />}
+              </button>
+            )}
           </div>
         );
+      case "date_added": {
+        const date = (p as any).created_at;
+        if (!date) return <span className="text-[10px] text-muted-foreground">—</span>;
+        return (
+          <span className="text-[10px] text-muted-foreground whitespace-nowrap" title={new Date(date).toLocaleString()}>
+            {format(new Date(date), "MMM d")}
+          </span>
+        );
+      }
       case "rating":
         return <div className="flex items-center gap-1"><Star className="w-3 h-3 text-yellow-400 fill-yellow-400" /><span className="font-medium text-foreground">{p.rating || "—"}</span></div>;
       case "reviews":
