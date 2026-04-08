@@ -16,7 +16,7 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { format } from "date-fns";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import type { Prospect } from "@/hooks/useProspectSearch";
-import { useProspectAnalysis } from "@/hooks/useProspectAnalysis";
+import { useProspectAnalysis, type BatchProgress } from "@/hooks/useProspectAnalysis";
 
 interface Props {
   prospects: Prospect[];
@@ -246,7 +246,7 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach }: Props) =
   const [pageSize, setPageSize] = useState(25);
   const [columnOrder, setColumnOrder] = useState<ColumnId[]>(DEFAULT_ORDER);
   const [visibleColumns, setVisibleColumns] = useState<Set<ColumnId>>(new Set(DEFAULT_VISIBLE));
-  const { analyze, analyzeBatch, analyzingIds } = useProspectAnalysis();
+  const { analyze, analyzeBatch, analyzingIds, batchProgress, stopBatch } = useProspectAnalysis();
   const returnTo = encodeURIComponent(`${window.location.pathname}${window.location.search}${window.location.hash}`);
   const [sendingSmsId, setSendingSmsId] = useState<string | null>(null);
 
