@@ -59,7 +59,7 @@ serve(async (req) => {
     }
 
     const { query, location, radius, useGeolocation, lat, lng, maxResults } = parsed.data;
-    const radiusMeters = radius * 1609.34;
+    const radiusMeters = Math.min(radius * 1609.34, 50000);
 
     // Step 1: Geocode the location (if not using geolocation)
     let searchLat = lat;
