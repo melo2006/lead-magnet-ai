@@ -511,7 +511,7 @@ export const useProspectAnalysis = () => {
             isRunning: false,
             isPaused: false,
             current: null,
-            startedAt: saved.startedAt,
+            startedAt: startTime,
             status: "stopped",
             lastUpdatedAt: stoppedAt,
             events,
