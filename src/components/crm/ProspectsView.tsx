@@ -10,6 +10,7 @@ import OutreachDialog from "@/components/crm/OutreachDialog";
 import QuickAddProspectDialog from "@/components/crm/QuickAddProspectDialog";
 import CampaignBuilderDialog from "@/components/crm/CampaignBuilderDialog";
 import SmartPreScan from "@/components/crm/SmartPreScan";
+import { useProspectAnalysis } from "@/hooks/useProspectAnalysis";
 import { useProspectSearch } from "@/hooks/useProspectSearch";
 import { useProspects, useFilterOptions } from "@/hooks/useProspects";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -64,6 +65,7 @@ const ProspectsView = () => {
   const { search, isSearching, searchResults } = useProspectSearch();
   const { prospects, isLoading, refetch } = useProspects(appliedFilters);
   const { niches, cities, states } = useFilterOptions();
+  const prospectAnalysis = useProspectAnalysis();
 
   const handleApplyFilters = () => {
     setAppliedFilters({ ...draftFilters });
@@ -149,6 +151,7 @@ const ProspectsView = () => {
       <CRMStats prospects={displayProspects} />
 
       <SmartPreScan
+        analysis={prospectAnalysis}
         prospects={displayProspects}
         onFilterTripleQualified={handleFilterTripleQualified}
         onRefetch={refetch}
@@ -215,6 +218,7 @@ const ProspectsView = () => {
       </AnimatePresence>
 
       <ProspectTable
+        analysis={prospectAnalysis}
         prospects={displayProspects}
         isLoading={isLoading || isSearching}
         onRefetch={refetch}

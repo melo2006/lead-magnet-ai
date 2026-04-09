@@ -20,9 +20,10 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, Di
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import type { Prospect } from "@/hooks/useProspectSearch";
-import { useProspectAnalysis } from "@/hooks/useProspectAnalysis";
+import type { UseProspectAnalysisReturn } from "@/hooks/useProspectAnalysis";
 
 interface Props {
+  analysis: UseProspectAnalysisReturn;
   prospects: Prospect[];
   isLoading: boolean;
   onRefetch?: () => void;
@@ -246,7 +247,7 @@ const ColumnManager = ({
   );
 };
 
-const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign, onReviewAnalyzed, onReviewEmails, onReviewSms }: Props) => {
+const ProspectTable = ({ analysis, prospects, isLoading, onRefetch, onOutreach, onCampaign, onReviewAnalyzed, onReviewEmails, onReviewSms }: Props) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortKey>("voiceai_fit");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -267,7 +268,7 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign
     lastBatchState,
     resumeInterrupted,
     dismissInterrupted,
-  } = useProspectAnalysis();
+  } = analysis;
   const hasMonitorState = batchProgress.total > 0 || Boolean(interruptedState) || Boolean(lastBatchState);
   const returnTo = encodeURIComponent(`${window.location.pathname}${window.location.search}${window.location.hash}`);
   const [sendingSmsId, setSendingSmsId] = useState<string | null>(null);
@@ -660,6 +661,7 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign
   const persistedEmails = persistedBatch?.emailsFound ?? 0;
   const persistedPhones = persistedBatch?.phonesClassified ?? 0;
   const persistedCost = persistedBatch?.costSummary.totalCost ?? 0;
+  const interruptedRemaining = hasRecoverableBatch ? Math.max(0, persistedTotal - persistedCompleted) : 0;
   const livePct = batchProgress.total > 0 ? (batchProgress.completed / batchProgress.total) * 100 : 0;
   const persistedPct = persistedTotal > 0 ? (persistedCompleted / persistedTotal) * 100 : 0;
   const coveragePct = websiteProspectCount > 0 ? (analyzedCount / websiteProspectCount) * 100 : 0;
@@ -668,12 +670,15 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign
     ? batchProgress.costSummary
     : persistedBatch?.costSummary ?? batchProgress.costSummary;
   const apiUsageChips = Object.entries(activeCostSummary.apiTotals).filter(([, v]) => v.calls > 0);
-  const liveElapsed = batchProgress.startedAt ? (Date.now() - batchProgress.startedAt) / 1000 : 0;
+  const liveClockEnd = batchProgress.isPaused && batchProgress.lastUpdatedAt ? batchProgress.lastUpdatedAt : Date.now();
+  const liveElapsed = batchProgress.startedAt ? (liveClockEnd - batchProgress.startedAt) / 1000 : 0;
   const livePerProspectSec =
     batchProgress.completed > 0 && liveElapsed > 0 ? liveElapsed / batchProgress.completed : 0;
   const liveRemainingSec = Math.max(0, batchProgress.total - batchProgress.completed) * livePerProspectSec;
   const liveEtaMin = livePerProspectSec > 0 ? Math.ceil(liveRemainingSec / 60) : null;
-  const persistedElapsed = persistedBatch?.startedAt ? (Date.now() - persistedBatch.startedAt) / 1000 : 0;
+  const persistedElapsed = persistedBatch?.startedAt && persistedBatch?.updatedAt
+    ? Math.max(0, persistedBatch.updatedAt - persistedBatch.startedAt) / 1000
+    : 0;
   const persistedPerProspectSec =
     persistedCompleted > 0 && persistedElapsed > 0 ? persistedElapsed / persistedCompleted : 0;
   const persistedRemainingSec = Math.max(0, persistedTotal - persistedCompleted) * persistedPerProspectSec;
@@ -755,7 +760,7 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign
   const monitorSummary = batchProgress.isRunning
     ? `${batchProgress.completed}/${batchProgress.total} completed${monitorCurrentName && !batchProgress.isPaused ? ` · analyzing ${monitorCurrentName}` : ""}${liveEtaMin !== null && !batchProgress.isPaused ? ` · ETA ${formatEta(liveEtaMin)}` : ""}`
     : hasRecoverableBatch
-      ? `${persistedCompleted}/${persistedTotal} completed before the browser session ended · resume without re-running finished leads`
+      ? `${persistedCompleted}/${persistedTotal} completed before the browser session ended · press Continue to finish the remaining ${interruptedRemaining} without re-running finished leads`
       : monitorStatus === "failed"
         ? `Last run failed after ${progressDoneValue}/${persistedTotal || websiteProspectCount} leads${monitorLastError ? ` · ${monitorLastError}` : ""}`
         : monitorStatus === "stopped"
@@ -791,7 +796,7 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign
                   : monitorStatus === "paused"
                     ? "Enhancement is paused"
                     : monitorStatus === "interrupted"
-                      ? "Enhancement was interrupted"
+                      ? "Continue the saved enhancement"
                       : monitorStatus === "failed"
                         ? "Enhancement needs attention"
                         : monitorStatus === "completed"
@@ -810,7 +815,7 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign
                 {batchProgress.isPaused ? (
                   <Button size="sm" onClick={resumeBatch}>
                     <Play className="w-3.5 h-3.5" />
-                    Resume
+                    Continue
                   </Button>
                 ) : (
                   <Button size="sm" variant="outline" onClick={pauseBatch}>
@@ -828,17 +833,16 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign
                 {hasRecoverableBatch && (
                   <Button size="sm" onClick={resumeInterrupted}>
                     <Play className="w-3.5 h-3.5" />
-                    Resume
+                    Continue {interruptedRemaining > 0 ? `(${interruptedRemaining} left)` : "Run"}
                   </Button>
                 )}
-                {unanalyzedCount > 0 && (
+                {!hasRecoverableBatch && unanalyzedCount > 0 && (
                   <Button
                     size="sm"
-                    variant={hasRecoverableBatch || persistedBatch ? "outline" : "default"}
                     onClick={() => confirmAndAnalyze("all")}
                   >
                     <Brain className="w-3.5 h-3.5" />
-                    {persistedBatch ? `Restart (${unanalyzedCount})` : `Start (${unanalyzedCount})`}
+                    Enhance Remaining ({unanalyzedCount})
                   </Button>
                 )}
                 {hasRecoverableBatch && (
@@ -939,6 +943,16 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign
           </div>
         )}
 
+        {hasRecoverableBatch && (
+          <div className="rounded-lg border border-primary/30 bg-primary/5 px-3 py-3">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-primary">Recommended next step</p>
+            <p className="text-xs text-foreground">Press Continue.</p>
+            <p className="text-xs text-muted-foreground">
+              It resumes from the remaining {interruptedRemaining} leads and skips the {persistedCompleted} already finished.
+            </p>
+          </div>
+        )}
+
         {(monitorEvents.length > 0 || monitorLastCompletedName) && (
           <div className="rounded-lg border border-border/60 bg-secondary/20 p-3 space-y-2">
             <div className="flex items-center justify-between gap-2 flex-wrap">
@@ -1001,7 +1015,7 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign
           <ScoringLegend />
         </div>
         <div className="flex items-center gap-2">
-          {unanalyzedCount > 0 && !batchProgress.isRunning && (
+          {unanalyzedCount > 0 && !batchProgress.isRunning && !hasRecoverableBatch && (
             <button
               onClick={() => confirmAndAnalyze("all")}
               className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary/20 border border-primary/30 text-primary text-xs font-semibold hover:bg-primary/30 transition-colors"
