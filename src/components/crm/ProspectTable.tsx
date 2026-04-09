@@ -632,10 +632,180 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign
   }
 
   const unanalyzedCount = sorted.filter((p) => !(p as any).ai_analyzed && p.has_website).length;
+  const analyzedCount = sorted.filter((p) => !!(p as any).ai_analyzed && p.has_website).length;
+  const websiteProspectCount = sorted.filter((p) => p.has_website && p.id).length;
+  const withAnyEmailCount = sorted.filter((p) => Boolean((p as any).owner_email || (p as any).email)).length;
+  const withPhoneTypeCount = sorted.filter((p) => Boolean((p as any).phone_type)).length;
+  const smsReadyCount = sorted.filter((p) => (p as any).sms_capable === true).length;
+  const interruptedCompleted = interruptedState?.completed ?? 0;
+  const interruptedTotal = interruptedState?.total ?? 0;
+  const interruptedEmails = interruptedState?.emailsFound ?? 0;
+  const interruptedPhones = interruptedState?.phonesClassified ?? 0;
+  const interruptedCost = interruptedState?.costSummary.totalCost ?? 0;
+  const livePct = batchProgress.total > 0 ? (batchProgress.completed / batchProgress.total) * 100 : 0;
+  const interruptedPct = interruptedTotal > 0 ? (interruptedCompleted / interruptedTotal) * 100 : 0;
+  const coveragePct = websiteProspectCount > 0 ? (analyzedCount / websiteProspectCount) * 100 : 0;
+  const hasRecoverableBatch = Boolean(interruptedState && !batchProgress.isRunning);
+  const activeCostSummary = batchProgress.isRunning
+    ? batchProgress.costSummary
+    : interruptedState?.costSummary ?? batchProgress.costSummary;
+  const apiUsageChips = Object.entries(activeCostSummary.apiTotals).filter(([, v]) => v.calls > 0);
+  const liveElapsed = batchProgress.startedAt ? (Date.now() - batchProgress.startedAt) / 1000 : 0;
+  const livePerProspectSec = batchProgress.completed > 0 ? liveElapsed / batchProgress.completed : 0;
+  const liveRemainingSec = (batchProgress.total - batchProgress.completed) * livePerProspectSec;
+  const liveEtaMin = Math.ceil(liveRemainingSec / 60);
+  const monitorPct = batchProgress.isRunning ? livePct : hasRecoverableBatch ? interruptedPct : coveragePct;
+  const progressDoneValue = batchProgress.isRunning ? batchProgress.completed : hasRecoverableBatch ? interruptedCompleted : analyzedCount;
+  const progressLeftValue = batchProgress.isRunning
+    ? batchProgress.total - batchProgress.completed
+    : hasRecoverableBatch
+      ? interruptedTotal - interruptedCompleted
+      : unanalyzedCount;
+  const emailMetricValue = batchProgress.isRunning ? batchProgress.emailsFound : hasRecoverableBatch ? interruptedEmails : withAnyEmailCount;
+  const phoneMetricValue = batchProgress.isRunning ? batchProgress.phonesClassified : hasRecoverableBatch ? interruptedPhones : withPhoneTypeCount;
+  const costValue = batchProgress.isRunning
+    ? `$${batchProgress.costSummary.totalCost.toFixed(3)}`
+    : hasRecoverableBatch
+      ? `$${interruptedCost.toFixed(3)}`
+      : activeCostSummary.totalCost > 0
+        ? `$${activeCostSummary.totalCost.toFixed(3)}`
+        : `~$${(unanalyzedCount * 0.025).toFixed(2)}`;
 
   return (
     <div className="space-y-3">
-      {/* Top bar */}
+      <div className="rounded-xl border border-border bg-card p-4 space-y-4">
+        <div className="flex items-start justify-between gap-3 flex-wrap">
+          <div className="min-w-0">
+            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Enrichment Monitor</p>
+            <h2 className="text-sm font-bold text-foreground">
+              {batchProgress.isRunning
+                ? batchProgress.isPaused
+                  ? "Enhancement paused"
+                  : "Enhancement running"
+                : hasRecoverableBatch
+                  ? "Enhancement ready to resume"
+                  : analyzedCount > 0
+                    ? "Enhancement progress is visible here"
+                    : "No enhancement running yet"}
+            </h2>
+            <p className="text-xs text-muted-foreground">
+              {batchProgress.isRunning
+                ? `${batchProgress.completed}/${batchProgress.total} completed${batchProgress.current && !batchProgress.isPaused ? ` · analyzing ${batchProgress.current}` : ""}${batchProgress.completed > 0 && !batchProgress.isPaused ? ` · ~${liveEtaMin > 0 ? `${liveEtaMin} min` : "<1 min"} left` : ""}`
+                : hasRecoverableBatch
+                  ? `${interruptedCompleted}/${interruptedTotal} completed before refresh · resume without re-running finished leads`
+                  : `${analyzedCount} of ${websiteProspectCount} website prospects in this view already enhanced · ${unanalyzedCount} still remaining`}
+            </p>
+          </div>
+
+          <div className="flex items-center gap-2 flex-wrap">
+            {hasRecoverableBatch && (
+              <>
+                <button
+                  onClick={resumeInterrupted}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary/20 border border-primary/30 text-primary text-xs font-bold hover:bg-primary/30 transition-colors"
+                >
+                  <Play className="w-3.5 h-3.5" />Resume ({interruptedTotal - interruptedCompleted} left)
+                </button>
+                <button
+                  onClick={dismissInterrupted}
+                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-secondary border border-border text-muted-foreground text-xs font-bold hover:bg-secondary/80 transition-colors"
+                >
+                  <X className="w-3.5 h-3.5" />Dismiss
+                </button>
+              </>
+            )}
+
+            {batchProgress.isRunning && (
+              <>
+                {batchProgress.isPaused ? (
+                  <button onClick={resumeBatch} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-bold hover:bg-emerald-500/30 transition-colors"><Play className="w-3.5 h-3.5" />Resume</button>
+                ) : (
+                  <button onClick={pauseBatch} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-amber-500/20 border border-amber-500/30 text-amber-400 text-xs font-bold hover:bg-amber-500/30 transition-colors"><Pause className="w-3.5 h-3.5" />Pause</button>
+                )}
+                <button onClick={stopBatch} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 text-xs font-bold hover:bg-red-500/30 transition-colors"><StopCircle className="w-3.5 h-3.5" />Stop</button>
+              </>
+            )}
+          </div>
+        </div>
+
+        <div className="space-y-1">
+          <div className="flex items-center justify-between text-xs">
+            <span className="text-muted-foreground">
+              {batchProgress.isRunning ? "Live batch progress" : hasRecoverableBatch ? "Interrupted batch progress" : "Enhanced coverage in this view"}
+            </span>
+            <span className="font-mono font-bold text-foreground">{monitorPct.toFixed(0)}%</span>
+          </div>
+          <Progress value={monitorPct} className="h-3" />
+        </div>
+
+        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2">
+          <div className="bg-card/60 rounded-lg px-3 py-2 border border-border/50">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Done</p>
+            <p className="text-lg font-bold text-foreground">{progressDoneValue}</p>
+          </div>
+          <div className="bg-card/60 rounded-lg px-3 py-2 border border-border/50">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Remaining</p>
+            <p className="text-lg font-bold text-foreground">{progressLeftValue}</p>
+          </div>
+          <div className="bg-card/60 rounded-lg px-3 py-2 border border-border/50">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Emails</p>
+            <p className="text-lg font-bold text-emerald-400">{emailMetricValue}</p>
+          </div>
+          <div className="bg-card/60 rounded-lg px-3 py-2 border border-border/50">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Phones</p>
+            <p className="text-lg font-bold text-blue-400">{phoneMetricValue}</p>
+          </div>
+          <div className="bg-card/60 rounded-lg px-3 py-2 border border-border/50">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">SMS OK</p>
+            <p className="text-lg font-bold text-primary">{smsReadyCount}</p>
+          </div>
+          <div className="bg-card/60 rounded-lg px-3 py-2 border border-border/50">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Cost</p>
+            <p className="text-lg font-bold text-foreground">{costValue}</p>
+          </div>
+        </div>
+
+        {apiUsageChips.length > 0 && (
+          <div className="flex flex-wrap gap-2 text-[10px]">
+            {apiUsageChips.map(([api, usage]) => (
+              <span key={api} className="px-2 py-1 rounded bg-secondary border border-border text-muted-foreground">
+                {api}: {usage.calls} calls {usage.cost > 0 ? `($${usage.cost.toFixed(3)})` : "(free)"}
+              </span>
+            ))}
+          </div>
+        )}
+
+        <div className="flex flex-wrap gap-2">
+          <button
+            onClick={() => onReviewAnalyzed?.()}
+            disabled={!analyzedCount}
+            className="px-3 py-1.5 rounded-lg bg-secondary border border-border text-xs font-medium text-foreground disabled:opacity-40 disabled:cursor-not-allowed hover:bg-secondary/80 transition-colors"
+          >
+            View Analyzed
+          </button>
+          <button
+            onClick={() => onReviewEmails?.()}
+            disabled={!withAnyEmailCount}
+            className="px-3 py-1.5 rounded-lg bg-secondary border border-border text-xs font-medium text-foreground disabled:opacity-40 disabled:cursor-not-allowed hover:bg-secondary/80 transition-colors"
+          >
+            View Emails
+          </button>
+          <button
+            onClick={() => onReviewSms?.()}
+            disabled={!smsReadyCount}
+            className="px-3 py-1.5 rounded-lg bg-secondary border border-border text-xs font-medium text-foreground disabled:opacity-40 disabled:cursor-not-allowed hover:bg-secondary/80 transition-colors"
+          >
+            View SMS OK
+          </button>
+        </div>
+
+        {!batchProgress.isRunning && unanalyzedCount > 0 && (
+          <p className="text-[10px] text-muted-foreground">
+            Estimated remaining enrichment cost is ~${(unanalyzedCount * 0.025).toFixed(2)} at about $0.025 per prospect.
+          </p>
+        )}
+      </div>
+
       <div className="flex items-center justify-between flex-wrap gap-2">
         <div className="flex items-center gap-2">
           <p className="text-xs text-muted-foreground">{prospects.length} prospects · Page {safePage}/{totalPages}</p>
@@ -668,147 +838,6 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign
           </select>
         </div>
       </div>
-
-      {/* Interrupted Batch Banner — shown after refresh */}
-      {interruptedState && !batchProgress.isRunning && (
-        <div className="rounded-xl border-2 border-blue-500/40 bg-blue-500/5 p-4 space-y-3">
-          <div className="flex items-center justify-between flex-wrap gap-2">
-            <div className="flex items-center gap-2">
-              <Pause className="w-5 h-5 text-blue-400" />
-              <div>
-                <h3 className="text-sm font-bold text-foreground">Enrichment Interrupted</h3>
-                <p className="text-xs text-muted-foreground">
-                  {interruptedState.completed} of {interruptedState.total} prospects completed before page was refreshed
-                </p>
-              </div>
-            </div>
-            <div className="flex items-center gap-2">
-              <button
-                onClick={resumeInterrupted}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary/20 border border-primary/30 text-primary text-xs font-bold hover:bg-primary/30 transition-colors"
-              >
-                <Play className="w-3.5 h-3.5" />Resume ({interruptedState.total - interruptedState.completed} remaining)
-              </button>
-              <button
-                onClick={dismissInterrupted}
-                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-secondary border border-border text-muted-foreground text-xs font-bold hover:bg-secondary/80 transition-colors"
-              >
-                <X className="w-3.5 h-3.5" />Dismiss
-              </button>
-            </div>
-          </div>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-            <div className="bg-card/60 rounded-lg px-3 py-2 border border-border/50">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Completed</p>
-              <p className="text-lg font-bold text-foreground">{interruptedState.completed}/{interruptedState.total}</p>
-            </div>
-            <div className="bg-card/60 rounded-lg px-3 py-2 border border-border/50">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Emails Found</p>
-              <p className="text-lg font-bold text-emerald-400">{interruptedState.emailsFound}</p>
-            </div>
-            <div className="bg-card/60 rounded-lg px-3 py-2 border border-border/50">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Phones Classified</p>
-              <p className="text-lg font-bold text-blue-400">{interruptedState.phonesClassified}</p>
-            </div>
-            <div className="bg-card/60 rounded-lg px-3 py-2 border border-border/50">
-              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Cost So Far</p>
-              <p className="text-lg font-bold text-primary">${interruptedState.costSummary.totalCost.toFixed(3)}</p>
-            </div>
-          </div>
-        </div>
-      )}
-
-      {/* Live Enrichment Progress Banner */}
-      {batchProgress.isRunning && (() => {
-        const pct = batchProgress.total > 0 ? (batchProgress.completed / batchProgress.total) * 100 : 0;
-        const elapsed = batchProgress.startedAt ? (Date.now() - batchProgress.startedAt) / 1000 : 0;
-        const perProspectSec = batchProgress.completed > 0 ? elapsed / batchProgress.completed : 0;
-        const remainingSec = (batchProgress.total - batchProgress.completed) * perProspectSec;
-        const etaMin = Math.ceil(remainingSec / 60);
-        const costPerProspect = batchProgress.completed > 0 ? batchProgress.costSummary.totalCost / batchProgress.completed : 0.025;
-        const estTotalCost = costPerProspect * batchProgress.total;
-        return (
-          <div className="rounded-xl border-2 border-amber-500/40 bg-amber-500/5 p-4 space-y-3">
-            <div className="flex items-center justify-between flex-wrap gap-2">
-              <div className="flex items-center gap-2">
-                {batchProgress.isPaused ? <Pause className="w-5 h-5 text-amber-400" /> : <Loader2 className="w-5 h-5 animate-spin text-amber-400" />}
-                <h3 className="text-sm font-bold text-foreground">{batchProgress.isPaused ? "Enrichment Paused" : "Enrichment In Progress"}</h3>
-              </div>
-              <div className="flex items-center gap-2">
-                {batchProgress.isPaused ? (
-                  <button onClick={resumeBatch} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-bold hover:bg-emerald-500/30 transition-colors"><Play className="w-3.5 h-3.5" />Resume</button>
-                ) : (
-                  <button onClick={pauseBatch} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-amber-500/20 border border-amber-500/30 text-amber-400 text-xs font-bold hover:bg-amber-500/30 transition-colors"><Pause className="w-3.5 h-3.5" />Pause</button>
-                )}
-                <button onClick={stopBatch} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 text-xs font-bold hover:bg-red-500/30 transition-colors"><StopCircle className="w-3.5 h-3.5" />Stop</button>
-              </div>
-            </div>
-            <div className="space-y-1">
-              <div className="flex items-center justify-between text-xs">
-                <span className="text-muted-foreground">
-                  {batchProgress.completed} of {batchProgress.total} prospects
-                  {batchProgress.current && !batchProgress.isPaused && <span className="text-foreground ml-1">— <strong>{batchProgress.current}</strong></span>}
-                </span>
-                <span className="font-mono font-bold text-foreground">{pct.toFixed(0)}%</span>
-              </div>
-              <Progress value={pct} className="h-3" />
-              {batchProgress.completed > 0 && !batchProgress.isPaused && (
-                <p className="text-[10px] text-muted-foreground">~{etaMin > 0 ? `${etaMin} min` : "<1 min"} remaining · ~{perProspectSec.toFixed(0)}s per prospect</p>
-              )}
-            </div>
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
-              <div className="bg-card/60 rounded-lg px-3 py-2 border border-border/50">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Emails Found</p>
-                <p className="text-lg font-bold text-emerald-400">{batchProgress.emailsFound}</p>
-              </div>
-              <div className="bg-card/60 rounded-lg px-3 py-2 border border-border/50">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Phones Classified</p>
-                <p className="text-lg font-bold text-blue-400">{batchProgress.phonesClassified}</p>
-              </div>
-              <div className="bg-card/60 rounded-lg px-3 py-2 border border-border/50">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Running Cost</p>
-                <p className="text-lg font-bold text-primary">${batchProgress.costSummary.totalCost.toFixed(3)}</p>
-              </div>
-              <div className="bg-card/60 rounded-lg px-3 py-2 border border-border/50">
-                <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Est. Total Cost</p>
-                <p className="text-lg font-bold text-foreground">${estTotalCost.toFixed(2)}</p>
-              </div>
-            </div>
-            {Object.keys(batchProgress.costSummary.apiTotals).length > 0 && (
-              <div className="flex flex-wrap gap-2 text-[10px]">
-                {Object.entries(batchProgress.costSummary.apiTotals).filter(([, v]) => v.calls > 0).map(([api, usage]) => (
-                  <span key={api} className="px-2 py-1 rounded bg-secondary border border-border text-muted-foreground">{api}: {usage.calls} calls {usage.cost > 0 ? `($${usage.cost.toFixed(3)})` : "(free)"}</span>
-                ))}
-              </div>
-            )}
-          </div>
-        );
-      })()}
-
-      {/* Cost summary after batch completes */}
-      {!batchProgress.isRunning && batchProgress.costSummary.totalCost > 0 && !hideCostBanner && (
-        <div className="flex items-center gap-3 px-3 py-2 rounded-lg bg-emerald-500/10 border border-emerald-500/25">
-          <DollarSign className="w-4 h-4 text-emerald-400 shrink-0" />
-          <div className="flex-1">
-            <p className="text-xs font-semibold text-foreground">
-              Last batch: {batchProgress.completed} prospects analyzed · Est. cost: <span className="text-primary">${batchProgress.costSummary.totalCost.toFixed(3)}</span>
-            </p>
-            <p className="text-[10px] text-muted-foreground">
-              {Object.entries(batchProgress.costSummary.apiTotals)
-                .filter(([, v]) => v.calls > 0)
-                .map(([api, v]) => `${api}: ${v.calls} calls${v.cost > 0 ? ` ($${v.cost.toFixed(3)})` : ' (free)'}`)
-                .join(' · ')}
-              {batchProgress.completed > 0 && ` · ~$${(batchProgress.costSummary.totalCost / batchProgress.completed).toFixed(3)}/prospect`}
-            </p>
-          </div>
-          <button
-            onClick={() => setHideCostBanner(true)}
-            className="text-muted-foreground hover:text-foreground p-1"
-          >
-            <X className="w-3 h-3" />
-          </button>
-        </div>
-      )}
 
       {/* Bulk Actions Bar */}
       {selectedIds.size > 0 && (
