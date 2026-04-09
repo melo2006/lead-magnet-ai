@@ -738,7 +738,7 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign
           <Progress value={monitorPct} className="h-3" />
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-3 xl:grid-cols-6 gap-2">
+        <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-2">
           <div className="bg-card/60 rounded-lg px-3 py-2 border border-border/50">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Done</p>
             <p className="text-lg font-bold text-foreground">{progressDoneValue}</p>
@@ -746,6 +746,27 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign
           <div className="bg-card/60 rounded-lg px-3 py-2 border border-border/50">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Remaining</p>
             <p className="text-lg font-bold text-foreground">{progressLeftValue}</p>
+          </div>
+          <div className="bg-card/60 rounded-lg px-3 py-2 border border-border/50">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider">ETA</p>
+            <p className="text-lg font-bold text-amber-400">
+              {batchProgress.isRunning && !batchProgress.isPaused
+                ? batchProgress.completed > 0
+                  ? liveEtaMin > 60
+                    ? `${Math.floor(liveEtaMin / 60)}h ${liveEtaMin % 60}m`
+                    : liveEtaMin > 0
+                      ? `${liveEtaMin} min`
+                      : "<1 min"
+                  : "Calculating…"
+                : batchProgress.isPaused
+                  ? "Paused"
+                  : "—"}
+            </p>
+            {batchProgress.isRunning && batchProgress.completed > 0 && (
+              <p className="text-[9px] text-muted-foreground mt-0.5">
+                ~{Math.round(livePerProspectSec)}s per lead
+              </p>
+            )}
           </div>
           <div className="bg-card/60 rounded-lg px-3 py-2 border border-border/50">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Emails</p>
