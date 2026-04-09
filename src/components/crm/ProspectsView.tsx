@@ -9,6 +9,7 @@ import CRMFilters, { DEFAULT_FILTERS, type Filters } from "@/components/crm/CRMF
 import OutreachDialog from "@/components/crm/OutreachDialog";
 import QuickAddProspectDialog from "@/components/crm/QuickAddProspectDialog";
 import CampaignBuilderDialog from "@/components/crm/CampaignBuilderDialog";
+import SmartPreScan from "@/components/crm/SmartPreScan";
 import { useProspectSearch } from "@/hooks/useProspectSearch";
 import { useProspects, useFilterOptions } from "@/hooks/useProspects";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
@@ -78,6 +79,7 @@ const ProspectsView = () => {
   const handleReviewAnalyzed = () => applyMonitorFilters({ analyzed: "yes" });
   const handleReviewEmails = () => applyMonitorFilters({ hasEmail: ["yes"] });
   const handleReviewSms = () => applyMonitorFilters({ smsCapable: ["yes"] });
+  const handleFilterTripleQualified = () => applyMonitorFilters({ previewType: ["iframe"], hasEmail: ["yes"], smsCapable: ["yes"] });
 
   const baseProspects = searchResults.length > 0 ? searchResults : prospects;
 
@@ -145,6 +147,12 @@ const ProspectsView = () => {
       </div>
 
       <CRMStats prospects={displayProspects} />
+
+      <SmartPreScan
+        prospects={displayProspects}
+        onFilterTripleQualified={handleFilterTripleQualified}
+        onRefetch={refetch}
+      />
 
       {/* Quick Search + Find Prospects on same visual level */}
       <div className="flex items-stretch gap-2">
