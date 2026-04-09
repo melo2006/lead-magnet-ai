@@ -666,6 +666,55 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign
         </div>
       </div>
 
+      {/* Interrupted Batch Banner — shown after refresh */}
+      {interruptedState && !batchProgress.isRunning && (
+        <div className="rounded-xl border-2 border-blue-500/40 bg-blue-500/5 p-4 space-y-3">
+          <div className="flex items-center justify-between flex-wrap gap-2">
+            <div className="flex items-center gap-2">
+              <Pause className="w-5 h-5 text-blue-400" />
+              <div>
+                <h3 className="text-sm font-bold text-foreground">Enrichment Interrupted</h3>
+                <p className="text-xs text-muted-foreground">
+                  {interruptedState.completed} of {interruptedState.total} prospects completed before page was refreshed
+                </p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2">
+              <button
+                onClick={resumeInterrupted}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary/20 border border-primary/30 text-primary text-xs font-bold hover:bg-primary/30 transition-colors"
+              >
+                <Play className="w-3.5 h-3.5" />Resume ({interruptedState.total - interruptedState.completed} remaining)
+              </button>
+              <button
+                onClick={dismissInterrupted}
+                className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-secondary border border-border text-muted-foreground text-xs font-bold hover:bg-secondary/80 transition-colors"
+              >
+                <X className="w-3.5 h-3.5" />Dismiss
+              </button>
+            </div>
+          </div>
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+            <div className="bg-card/60 rounded-lg px-3 py-2 border border-border/50">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Completed</p>
+              <p className="text-lg font-bold text-foreground">{interruptedState.completed}/{interruptedState.total}</p>
+            </div>
+            <div className="bg-card/60 rounded-lg px-3 py-2 border border-border/50">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Emails Found</p>
+              <p className="text-lg font-bold text-emerald-400">{interruptedState.emailsFound}</p>
+            </div>
+            <div className="bg-card/60 rounded-lg px-3 py-2 border border-border/50">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Phones Classified</p>
+              <p className="text-lg font-bold text-blue-400">{interruptedState.phonesClassified}</p>
+            </div>
+            <div className="bg-card/60 rounded-lg px-3 py-2 border border-border/50">
+              <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Cost So Far</p>
+              <p className="text-lg font-bold text-primary">${interruptedState.costSummary.totalCost.toFixed(3)}</p>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Live Enrichment Progress Banner */}
       {batchProgress.isRunning && (() => {
         const pct = batchProgress.total > 0 ? (batchProgress.completed / batchProgress.total) * 100 : 0;
