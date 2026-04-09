@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Search, Megaphone, LayoutGrid, FileText, Settings, Zap, Radar, PhoneIncoming, FolderInput
+  LayoutDashboard, Search, Megaphone, LayoutGrid, FileText, Zap, Radar, PhoneIncoming, FolderInput, Monitor, Play
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import { useLocation } from "react-router-dom";
@@ -9,7 +9,7 @@ import {
   useSidebar,
 } from "@/components/ui/sidebar";
 
-const navItems = [
+const crmItems = [
   { title: "Dashboard", url: "/", icon: LayoutDashboard },
   { title: "Prospects", url: "/prospects", icon: Search },
   { title: "Intent Leads", url: "/intent-leads", icon: Radar },
@@ -18,6 +18,11 @@ const navItems = [
   { title: "Call History", url: "/calls", icon: PhoneIncoming },
   { title: "Imported Lists", url: "/imported", icon: FolderInput },
   { title: "Templates", url: "/templates", icon: FileText },
+];
+
+const pageItems = [
+  { title: "Marketing Page", url: "/marketing", icon: Monitor },
+  { title: "Demo Page", url: "/demo", icon: Play },
 ];
 
 export function CRMSidebar() {
