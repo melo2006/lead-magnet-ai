@@ -266,6 +266,12 @@ const ProspectsView = () => {
         onOpenChange={setShowQuickAdd}
         onAdded={refetch}
       />
+
+      <ApolloImportDialog
+        open={showApolloImport}
+        onOpenChange={setShowApolloImport}
+        onImportComplete={refetch}
+      />
     </div>
   );
 };
