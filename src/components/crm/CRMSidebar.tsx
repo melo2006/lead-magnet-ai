@@ -2,7 +2,6 @@ import {
   LayoutDashboard, Search, Megaphone, LayoutGrid, FileText, Zap, Radar, PhoneIncoming, FolderInput, Monitor, Play
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
-import { useLocation } from "react-router-dom";
 import {
   Sidebar, SidebarContent, SidebarGroup, SidebarGroupContent,
   SidebarGroupLabel, SidebarMenu, SidebarMenuButton, SidebarMenuItem,
@@ -28,7 +27,7 @@ const pageItems = [
 export function CRMSidebar() {
   const { state } = useSidebar();
   const collapsed = state === "collapsed";
-  const location = useLocation();
+  
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
