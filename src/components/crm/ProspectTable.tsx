@@ -315,11 +315,13 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign
   const activeColumns = useMemo(() => columnOrder.filter(id => visibleColumns.has(id)), [columnOrder, visibleColumns]);
 
   const confirmAndAnalyze = (target: "all" | "selected") => {
+    console.log("[ProspectTable] confirmAndAnalyze target:", target, "selectedIds:", selectedIds.size, "sorted:", sorted.length);
     setAnalyzeTarget(target);
     setShowAnalyzeConfirm(true);
   };
 
   const startConfirmedAnalysis = () => {
+    console.log("[ProspectTable] startConfirmedAnalysis target:", analyzeTarget);
     setShowAnalyzeConfirm(false);
     if (analyzeTarget === "all") handleAnalyzeAll();
     else handleBatchAnalyze();
