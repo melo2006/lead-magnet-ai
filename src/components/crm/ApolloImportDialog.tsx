@@ -189,10 +189,6 @@ const ApolloImportDialog = ({ open, onOpenChange, onImportComplete }: Props) => 
     // Build field mapping (which CSV column → which DB column)
     const fieldMap: Record<string, string> = {};
     const firstNameCol = Object.entries(columnMap).find(([, v]) => v === "owner_name")?.[0];
-    const lastNameCols = headers.filter(h => {
-      const lower = h.toLowerCase();
-      return lower === "last name" && columnMap[h] !== "_skip";
-    });
 
     Object.entries(columnMap).forEach(([csvCol, dbCol]) => {
       if (dbCol !== "_skip") {

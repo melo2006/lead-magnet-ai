@@ -1,7 +1,8 @@
 import { useState, useEffect, useMemo } from "react";
 import { useSearchParams } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import { Filter, Search, UserPlus, X, Megaphone } from "lucide-react";
+import { Filter, Search, UserPlus, X, Megaphone, FileSpreadsheet } from "lucide-react";
+import ApolloImportDialog from "@/components/crm/ApolloImportDialog";
 import ProspectSearchForm from "@/components/crm/ProspectSearchForm";
 import ProspectTable from "@/components/crm/ProspectTable";
 import CRMStats from "@/components/crm/CRMStats";
