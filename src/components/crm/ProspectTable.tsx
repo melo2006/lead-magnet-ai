@@ -8,7 +8,7 @@ import {
   Linkedin, Facebook, Instagram, Smartphone,
   Settings2, GripVertical, Eye, EyeOff, Info,
   Mic, Globe, MessageCircle, StopCircle, Pause, Play,
-  DollarSign, X
+  X
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
@@ -255,7 +255,20 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign
   const [pageSize, setPageSize] = useState(25);
   const [columnOrder, setColumnOrder] = useState<ColumnId[]>(DEFAULT_ORDER);
   const [visibleColumns, setVisibleColumns] = useState<Set<ColumnId>>(new Set(DEFAULT_VISIBLE));
-  const { analyze, analyzeBatch, analyzingIds, batchProgress, stopBatch, pauseBatch, resumeBatch, interruptedState, resumeInterrupted, dismissInterrupted } = useProspectAnalysis();
+  const {
+    analyze,
+    analyzeBatch,
+    analyzingIds,
+    batchProgress,
+    stopBatch,
+    pauseBatch,
+    resumeBatch,
+    interruptedState,
+    lastBatchState,
+    resumeInterrupted,
+    dismissInterrupted,
+  } = useProspectAnalysis();
+  const hasMonitorState = batchProgress.total > 0 || Boolean(interruptedState) || Boolean(lastBatchState);
   const returnTo = encodeURIComponent(`${window.location.pathname}${window.location.search}${window.location.hash}`);
   const [sendingSmsId, setSendingSmsId] = useState<string | null>(null);
   
@@ -621,7 +634,7 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign
     );
   }
 
-  if (prospects.length === 0) {
+  if (prospects.length === 0 && !hasMonitorState) {
     return (
       <div className="bg-card border border-border rounded-xl p-12 text-center">
         <MapPin className="w-10 h-10 text-muted-foreground mx-auto mb-3" />
@@ -637,92 +650,199 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign
   const withAnyEmailCount = sorted.filter((p) => Boolean((p as any).owner_email || (p as any).email)).length;
   const withPhoneTypeCount = sorted.filter((p) => Boolean((p as any).phone_type)).length;
   const smsReadyCount = sorted.filter((p) => (p as any).sms_capable === true).length;
-  const interruptedCompleted = interruptedState?.completed ?? 0;
-  const interruptedTotal = interruptedState?.total ?? 0;
-  const interruptedEmails = interruptedState?.emailsFound ?? 0;
-  const interruptedPhones = interruptedState?.phonesClassified ?? 0;
-  const interruptedCost = interruptedState?.costSummary.totalCost ?? 0;
+  const persistedBatch = interruptedState ?? lastBatchState;
+  const persistedCompleted = persistedBatch?.completed ?? 0;
+  const persistedTotal = persistedBatch?.total ?? 0;
+  const persistedEmails = persistedBatch?.emailsFound ?? 0;
+  const persistedPhones = persistedBatch?.phonesClassified ?? 0;
+  const persistedCost = persistedBatch?.costSummary.totalCost ?? 0;
   const livePct = batchProgress.total > 0 ? (batchProgress.completed / batchProgress.total) * 100 : 0;
-  const interruptedPct = interruptedTotal > 0 ? (interruptedCompleted / interruptedTotal) * 100 : 0;
+  const persistedPct = persistedTotal > 0 ? (persistedCompleted / persistedTotal) * 100 : 0;
   const coveragePct = websiteProspectCount > 0 ? (analyzedCount / websiteProspectCount) * 100 : 0;
   const hasRecoverableBatch = Boolean(interruptedState && !batchProgress.isRunning);
   const activeCostSummary = batchProgress.isRunning
     ? batchProgress.costSummary
-    : interruptedState?.costSummary ?? batchProgress.costSummary;
+    : persistedBatch?.costSummary ?? batchProgress.costSummary;
   const apiUsageChips = Object.entries(activeCostSummary.apiTotals).filter(([, v]) => v.calls > 0);
   const liveElapsed = batchProgress.startedAt ? (Date.now() - batchProgress.startedAt) / 1000 : 0;
-  const livePerProspectSec = batchProgress.completed > 0 ? liveElapsed / batchProgress.completed : 0;
-  const liveRemainingSec = (batchProgress.total - batchProgress.completed) * livePerProspectSec;
-  const liveEtaMin = Math.ceil(liveRemainingSec / 60);
-  const monitorPct = batchProgress.isRunning ? livePct : hasRecoverableBatch ? interruptedPct : coveragePct;
-  const progressDoneValue = batchProgress.isRunning ? batchProgress.completed : hasRecoverableBatch ? interruptedCompleted : analyzedCount;
+  const livePerProspectSec =
+    batchProgress.completed > 0 && liveElapsed > 0 ? liveElapsed / batchProgress.completed : 0;
+  const liveRemainingSec = Math.max(0, batchProgress.total - batchProgress.completed) * livePerProspectSec;
+  const liveEtaMin = livePerProspectSec > 0 ? Math.ceil(liveRemainingSec / 60) : null;
+  const persistedElapsed = persistedBatch?.startedAt ? (Date.now() - persistedBatch.startedAt) / 1000 : 0;
+  const persistedPerProspectSec =
+    persistedCompleted > 0 && persistedElapsed > 0 ? persistedElapsed / persistedCompleted : 0;
+  const persistedRemainingSec = Math.max(0, persistedTotal - persistedCompleted) * persistedPerProspectSec;
+  const persistedEtaMin = persistedPerProspectSec > 0 ? Math.ceil(persistedRemainingSec / 60) : null;
+  const monitorPct = batchProgress.isRunning ? livePct : persistedBatch ? persistedPct : coveragePct;
+  const progressDoneValue = batchProgress.isRunning
+    ? batchProgress.completed
+    : persistedBatch
+      ? persistedCompleted
+      : analyzedCount;
   const progressLeftValue = batchProgress.isRunning
-    ? batchProgress.total - batchProgress.completed
-    : hasRecoverableBatch
-      ? interruptedTotal - interruptedCompleted
+    ? Math.max(0, batchProgress.total - batchProgress.completed)
+    : persistedBatch
+      ? Math.max(0, persistedTotal - persistedCompleted)
       : unanalyzedCount;
-  const emailMetricValue = batchProgress.isRunning ? batchProgress.emailsFound : hasRecoverableBatch ? interruptedEmails : withAnyEmailCount;
-  const phoneMetricValue = batchProgress.isRunning ? batchProgress.phonesClassified : hasRecoverableBatch ? interruptedPhones : withPhoneTypeCount;
+  const emailMetricValue = batchProgress.isRunning
+    ? batchProgress.emailsFound
+    : persistedBatch
+      ? persistedEmails
+      : withAnyEmailCount;
+  const phoneMetricValue = batchProgress.isRunning
+    ? batchProgress.phonesClassified
+    : persistedBatch
+      ? persistedPhones
+      : withPhoneTypeCount;
   const costValue = batchProgress.isRunning
     ? `$${batchProgress.costSummary.totalCost.toFixed(3)}`
-    : hasRecoverableBatch
-      ? `$${interruptedCost.toFixed(3)}`
+    : persistedBatch
+      ? `$${persistedCost.toFixed(3)}`
       : activeCostSummary.totalCost > 0
         ? `$${activeCostSummary.totalCost.toFixed(3)}`
         : `~$${(unanalyzedCount * 0.025).toFixed(2)}`;
+  const monitorStatus = batchProgress.isRunning
+    ? batchProgress.isPaused
+      ? "paused"
+      : "running"
+    : persistedBatch?.status ?? (analyzedCount > 0 ? "completed" : "idle");
+  const monitorEvents = [...(batchProgress.isRunning ? batchProgress.events : persistedBatch?.events ?? [])]
+    .slice(-4)
+    .reverse();
+  const monitorLastUpdatedAt = batchProgress.isRunning
+    ? batchProgress.lastUpdatedAt
+    : persistedBatch?.updatedAt ?? null;
+  const monitorLastError = batchProgress.isRunning
+    ? batchProgress.lastError
+    : persistedBatch?.lastError ?? null;
+  const monitorCurrentName = batchProgress.isRunning
+    ? batchProgress.current
+    : persistedBatch?.current ?? null;
+  const monitorLastCompletedName = batchProgress.isRunning
+    ? batchProgress.lastCompletedName
+    : persistedBatch?.lastCompletedName ?? null;
+  const statusBadgeClasses: Record<string, string> = {
+    idle: "border-border bg-secondary text-muted-foreground",
+    running: "border-primary/30 bg-primary/10 text-primary",
+    paused: "border-border bg-secondary text-foreground",
+    interrupted: "border-border bg-secondary text-foreground",
+    stopped: "border-destructive/30 bg-destructive/10 text-destructive",
+    completed: "border-primary/30 bg-primary/10 text-primary",
+    failed: "border-destructive/30 bg-destructive/10 text-destructive",
+  };
+  const formatEta = (etaMin: number | null) => {
+    if (etaMin === null) return "Calculating…";
+    if (etaMin <= 0) return "<1 min";
+    if (etaMin >= 60) return `${Math.floor(etaMin / 60)}h ${etaMin % 60}m`;
+    return `${etaMin} min`;
+  };
+  const formatRelativeTime = (timestamp: number | null) => {
+    if (!timestamp) return "just now";
+    const diffMs = Math.max(0, Date.now() - timestamp);
+    const diffMin = Math.floor(diffMs / 60000);
+    if (diffMin < 1) return "just now";
+    if (diffMin < 60) return `${diffMin}m ago`;
+    const diffHr = Math.floor(diffMin / 60);
+    if (diffHr < 24) return `${diffHr}h ago`;
+    const diffDay = Math.floor(diffHr / 24);
+    return `${diffDay}d ago`;
+  };
+  const monitorSummary = batchProgress.isRunning
+    ? `${batchProgress.completed}/${batchProgress.total} completed${monitorCurrentName && !batchProgress.isPaused ? ` · analyzing ${monitorCurrentName}` : ""}${liveEtaMin !== null && !batchProgress.isPaused ? ` · ETA ${formatEta(liveEtaMin)}` : ""}`
+    : hasRecoverableBatch
+      ? `${persistedCompleted}/${persistedTotal} completed before the browser session ended · resume without re-running finished leads`
+      : monitorStatus === "failed"
+        ? `Last run failed after ${progressDoneValue}/${persistedTotal || websiteProspectCount} leads${monitorLastError ? ` · ${monitorLastError}` : ""}`
+        : monitorStatus === "stopped"
+          ? `Last run was stopped at ${progressDoneValue}/${persistedTotal || websiteProspectCount} leads`
+          : monitorStatus === "completed" && persistedTotal > 0
+            ? `Last run completed ${persistedCompleted}/${persistedTotal} leads${monitorLastCompletedName ? ` · last finished ${monitorLastCompletedName}` : ""}`
+            : `${analyzedCount} of ${websiteProspectCount} website prospects in this view already enhanced · ${unanalyzedCount} still remaining`;
 
   return (
     <div className="space-y-3">
       <div className="rounded-xl border border-border bg-card p-4 space-y-4">
         <div className="flex items-start justify-between gap-3 flex-wrap">
-          <div className="min-w-0">
-            <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Enrichment Monitor</p>
-            <h2 className="text-sm font-bold text-foreground">
-              {batchProgress.isRunning
-                ? batchProgress.isPaused
-                  ? "Enhancement paused"
-                  : "Enhancement running"
-                : hasRecoverableBatch
-                  ? "Enhancement ready to resume"
-                  : analyzedCount > 0
-                    ? "Enhancement progress is visible here"
-                    : "No enhancement running yet"}
-            </h2>
-            <p className="text-xs text-muted-foreground">
-              {batchProgress.isRunning
-                ? `${batchProgress.completed}/${batchProgress.total} completed${batchProgress.current && !batchProgress.isPaused ? ` · analyzing ${batchProgress.current}` : ""}${batchProgress.completed > 0 && !batchProgress.isPaused ? ` · ~${liveEtaMin > 0 ? `${liveEtaMin} min` : "<1 min"} left` : ""}`
-                : hasRecoverableBatch
-                  ? `${interruptedCompleted}/${interruptedTotal} completed before refresh · resume without re-running finished leads`
-                  : `${analyzedCount} of ${websiteProspectCount} website prospects in this view already enhanced · ${unanalyzedCount} still remaining`}
-            </p>
+          <div className="min-w-0 space-y-2">
+            <div className="flex items-center gap-2 flex-wrap">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Enrichment Monitor</p>
+              <span
+                className={`inline-flex items-center rounded-full border px-2 py-0.5 text-[10px] font-semibold uppercase tracking-wider ${
+                  statusBadgeClasses[monitorStatus] ?? statusBadgeClasses.idle
+                }`}
+              >
+                {monitorStatus}
+              </span>
+              {monitorLastUpdatedAt && (
+                <span className="text-[10px] text-muted-foreground">
+                  Updated {formatRelativeTime(monitorLastUpdatedAt)}
+                </span>
+              )}
+            </div>
+            <div>
+              <h2 className="text-sm font-bold text-foreground">
+                {monitorStatus === "running"
+                  ? "Enhancement is running"
+                  : monitorStatus === "paused"
+                    ? "Enhancement is paused"
+                    : monitorStatus === "interrupted"
+                      ? "Enhancement was interrupted"
+                      : monitorStatus === "failed"
+                        ? "Enhancement needs attention"
+                        : monitorStatus === "completed"
+                          ? "Enhancement completed"
+                          : monitorStatus === "stopped"
+                            ? "Enhancement was stopped"
+                            : "Enhancement controls live here"}
+              </h2>
+              <p className="text-xs text-muted-foreground">{monitorSummary}</p>
+            </div>
           </div>
 
           <div className="flex items-center gap-2 flex-wrap">
-            {hasRecoverableBatch && (
-              <>
-                <button
-                  onClick={resumeInterrupted}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-primary/20 border border-primary/30 text-primary text-xs font-bold hover:bg-primary/30 transition-colors"
-                >
-                  <Play className="w-3.5 h-3.5" />Resume ({interruptedTotal - interruptedCompleted} left)
-                </button>
-                <button
-                  onClick={dismissInterrupted}
-                  className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-secondary border border-border text-muted-foreground text-xs font-bold hover:bg-secondary/80 transition-colors"
-                >
-                  <X className="w-3.5 h-3.5" />Dismiss
-                </button>
-              </>
-            )}
-
-            {batchProgress.isRunning && (
+            {batchProgress.isRunning ? (
               <>
                 {batchProgress.isPaused ? (
-                  <button onClick={resumeBatch} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-emerald-500/20 border border-emerald-500/30 text-emerald-400 text-xs font-bold hover:bg-emerald-500/30 transition-colors"><Play className="w-3.5 h-3.5" />Resume</button>
+                  <Button size="sm" onClick={resumeBatch}>
+                    <Play className="w-3.5 h-3.5" />
+                    Resume
+                  </Button>
                 ) : (
-                  <button onClick={pauseBatch} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-amber-500/20 border border-amber-500/30 text-amber-400 text-xs font-bold hover:bg-amber-500/30 transition-colors"><Pause className="w-3.5 h-3.5" />Pause</button>
+                  <Button size="sm" variant="outline" onClick={pauseBatch}>
+                    <Pause className="w-3.5 h-3.5" />
+                    Pause
+                  </Button>
                 )}
-                <button onClick={stopBatch} className="flex items-center gap-1 px-3 py-1.5 rounded-lg bg-red-500/20 border border-red-500/30 text-red-400 text-xs font-bold hover:bg-red-500/30 transition-colors"><StopCircle className="w-3.5 h-3.5" />Stop</button>
+                <Button size="sm" variant="destructive" onClick={stopBatch}>
+                  <StopCircle className="w-3.5 h-3.5" />
+                  Stop
+                </Button>
+              </>
+            ) : (
+              <>
+                {hasRecoverableBatch && (
+                  <Button size="sm" onClick={resumeInterrupted}>
+                    <Play className="w-3.5 h-3.5" />
+                    Resume
+                  </Button>
+                )}
+                {unanalyzedCount > 0 && (
+                  <Button
+                    size="sm"
+                    variant={hasRecoverableBatch || persistedBatch ? "outline" : "default"}
+                    onClick={() => confirmAndAnalyze("all")}
+                  >
+                    <Brain className="w-3.5 h-3.5" />
+                    {persistedBatch ? `Restart (${unanalyzedCount})` : `Start (${unanalyzedCount})`}
+                  </Button>
+                )}
+                {hasRecoverableBatch && (
+                  <Button size="sm" variant="secondary" onClick={dismissInterrupted}>
+                    <X className="w-3.5 h-3.5" />
+                    Clear
+                  </Button>
+                )}
               </>
             )}
           </div>
@@ -731,14 +851,20 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign
         <div className="space-y-1">
           <div className="flex items-center justify-between text-xs">
             <span className="text-muted-foreground">
-              {batchProgress.isRunning ? "Live batch progress" : hasRecoverableBatch ? "Interrupted batch progress" : "Enhanced coverage in this view"}
+              {batchProgress.isRunning
+                ? "Live batch progress"
+                : hasRecoverableBatch
+                  ? "Interrupted batch progress"
+                  : persistedBatch
+                    ? "Last batch progress"
+                    : "Enhanced coverage in this view"}
             </span>
             <span className="font-mono font-bold text-foreground">{monitorPct.toFixed(0)}%</span>
           </div>
           <Progress value={monitorPct} className="h-3" />
         </div>
 
-        <div className="grid grid-cols-2 md:grid-cols-4 xl:grid-cols-7 gap-2">
+        <div className="grid grid-cols-2 gap-2 md:grid-cols-4 xl:grid-cols-7">
           <div className="bg-card/60 rounded-lg px-3 py-2 border border-border/50">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Done</p>
             <p className="text-lg font-bold text-foreground">{progressDoneValue}</p>
@@ -749,36 +875,42 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign
           </div>
           <div className="bg-card/60 rounded-lg px-3 py-2 border border-border/50">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider">ETA</p>
-            <p className="text-lg font-bold text-amber-400">
-              {batchProgress.isRunning && !batchProgress.isPaused
+            <p className="text-lg font-bold text-foreground">
+              {monitorStatus === "running"
                 ? batchProgress.completed > 0
-                  ? liveEtaMin > 60
-                    ? `${Math.floor(liveEtaMin / 60)}h ${liveEtaMin % 60}m`
-                    : liveEtaMin > 0
-                      ? `${liveEtaMin} min`
-                      : "<1 min"
+                  ? formatEta(liveEtaMin)
                   : "Calculating…"
-                : batchProgress.isPaused
-                  ? "Paused"
-                  : "—"}
+                : hasRecoverableBatch
+                  ? persistedCompleted > 0
+                    ? formatEta(persistedEtaMin)
+                    : "Resume"
+                  : monitorStatus === "completed"
+                    ? "Done"
+                    : monitorStatus === "failed" || monitorStatus === "stopped"
+                      ? "Stopped"
+                      : "—"}
             </p>
-            {batchProgress.isRunning && batchProgress.completed > 0 && (
+            {monitorStatus === "running" && livePerProspectSec > 0 ? (
               <p className="text-[9px] text-muted-foreground mt-0.5">
                 ~{Math.round(livePerProspectSec)}s per lead
               </p>
-            )}
+            ) : hasRecoverableBatch && persistedPerProspectSec > 0 ? (
+              <p className="text-[9px] text-muted-foreground mt-0.5">
+                ~{Math.round(persistedPerProspectSec)}s per lead before interruption
+              </p>
+            ) : null}
           </div>
           <div className="bg-card/60 rounded-lg px-3 py-2 border border-border/50">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Emails</p>
-            <p className="text-lg font-bold text-emerald-400">{emailMetricValue}</p>
+            <p className="text-lg font-bold text-foreground">{emailMetricValue}</p>
           </div>
           <div className="bg-card/60 rounded-lg px-3 py-2 border border-border/50">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Phones</p>
-            <p className="text-lg font-bold text-blue-400">{phoneMetricValue}</p>
+            <p className="text-lg font-bold text-foreground">{phoneMetricValue}</p>
           </div>
           <div className="bg-card/60 rounded-lg px-3 py-2 border border-border/50">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider">SMS OK</p>
-            <p className="text-lg font-bold text-primary">{smsReadyCount}</p>
+            <p className="text-lg font-bold text-foreground">{smsReadyCount}</p>
           </div>
           <div className="bg-card/60 rounded-lg px-3 py-2 border border-border/50">
             <p className="text-[10px] text-muted-foreground uppercase tracking-wider">Cost</p>
@@ -793,6 +925,38 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign
                 {api}: {usage.calls} calls {usage.cost > 0 ? `($${usage.cost.toFixed(3)})` : "(free)"}
               </span>
             ))}
+          </div>
+        )}
+
+        {monitorLastError && (
+          <div className="rounded-lg border border-destructive/30 bg-destructive/10 px-3 py-2">
+            <p className="text-[10px] font-semibold uppercase tracking-wider text-destructive">Latest error</p>
+            <p className="text-xs text-foreground">{monitorLastError}</p>
+          </div>
+        )}
+
+        {(monitorEvents.length > 0 || monitorLastCompletedName) && (
+          <div className="rounded-lg border border-border/60 bg-secondary/20 p-3 space-y-2">
+            <div className="flex items-center justify-between gap-2 flex-wrap">
+              <p className="text-[10px] font-semibold uppercase tracking-[0.18em] text-muted-foreground">Recent activity</p>
+              {monitorLastCompletedName && (
+                <p className="text-[10px] text-muted-foreground">
+                  Last finished <span className="text-foreground">{monitorLastCompletedName}</span>
+                </p>
+              )}
+            </div>
+            {monitorEvents.length > 0 ? (
+              <div className="space-y-1.5">
+                {monitorEvents.map((event) => (
+                  <div key={`${event.type}-${event.at}`} className="flex items-start justify-between gap-3 text-xs">
+                    <span className="text-foreground">{event.message}</span>
+                    <span className="shrink-0 text-[10px] text-muted-foreground">{formatRelativeTime(event.at)}</span>
+                  </div>
+                ))}
+              </div>
+            ) : (
+              <p className="text-xs text-muted-foreground">No audit events yet.</p>
+            )}
           </div>
         )}
 
