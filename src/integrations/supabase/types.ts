@@ -639,6 +639,155 @@ export type Database = {
         }
         Relationships: []
       }
+      prospect_enrichment_job_items: {
+        Row: {
+          attempts: number
+          completed_at: string | null
+          cost: Json
+          created_at: string
+          id: string
+          job_id: string
+          last_error: string | null
+          order_index: number
+          prospect_id: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["prospect_enrichment_item_status"]
+          updated_at: string
+        }
+        Insert: {
+          attempts?: number
+          completed_at?: string | null
+          cost?: Json
+          created_at?: string
+          id?: string
+          job_id: string
+          last_error?: string | null
+          order_index?: number
+          prospect_id: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["prospect_enrichment_item_status"]
+          updated_at?: string
+        }
+        Update: {
+          attempts?: number
+          completed_at?: string | null
+          cost?: Json
+          created_at?: string
+          id?: string
+          job_id?: string
+          last_error?: string | null
+          order_index?: number
+          prospect_id?: string
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["prospect_enrichment_item_status"]
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prospect_enrichment_job_items_job_id_fkey"
+            columns: ["job_id"]
+            isOneToOne: false
+            referencedRelation: "prospect_enrichment_jobs"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "prospect_enrichment_job_items_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      prospect_enrichment_jobs: {
+        Row: {
+          api_totals: Json
+          auto_resume: boolean
+          completed: number
+          created_at: string
+          current_prospect_id: string | null
+          current_prospect_name: string | null
+          emails_found: number
+          failed: number
+          finished_at: string | null
+          id: string
+          label: string | null
+          last_error: string | null
+          last_heartbeat_at: string | null
+          pause_requested: boolean
+          phase: string
+          phones_classified: number
+          recent_events: Json
+          sms_ready: number
+          started_at: string | null
+          status: Database["public"]["Enums"]["prospect_enrichment_job_status"]
+          stop_requested: boolean
+          total: number
+          total_cost_usd: number
+          updated_at: string
+        }
+        Insert: {
+          api_totals?: Json
+          auto_resume?: boolean
+          completed?: number
+          created_at?: string
+          current_prospect_id?: string | null
+          current_prospect_name?: string | null
+          emails_found?: number
+          failed?: number
+          finished_at?: string | null
+          id?: string
+          label?: string | null
+          last_error?: string | null
+          last_heartbeat_at?: string | null
+          pause_requested?: boolean
+          phase?: string
+          phones_classified?: number
+          recent_events?: Json
+          sms_ready?: number
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["prospect_enrichment_job_status"]
+          stop_requested?: boolean
+          total?: number
+          total_cost_usd?: number
+          updated_at?: string
+        }
+        Update: {
+          api_totals?: Json
+          auto_resume?: boolean
+          completed?: number
+          created_at?: string
+          current_prospect_id?: string | null
+          current_prospect_name?: string | null
+          emails_found?: number
+          failed?: number
+          finished_at?: string | null
+          id?: string
+          label?: string | null
+          last_error?: string | null
+          last_heartbeat_at?: string | null
+          pause_requested?: boolean
+          phase?: string
+          phones_classified?: number
+          recent_events?: Json
+          sms_ready?: number
+          started_at?: string | null
+          status?: Database["public"]["Enums"]["prospect_enrichment_job_status"]
+          stop_requested?: boolean
+          total?: number
+          total_cost_usd?: number
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "prospect_enrichment_jobs_current_prospect_id_fkey"
+            columns: ["current_prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       prospect_sequence_enrollments: {
         Row: {
           created_at: string
@@ -922,7 +1071,68 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      claim_next_prospect_enrichment_items: {
+        Args: { _job_id: string; _limit?: number }
+        Returns: {
+          attempts: number
+          completed_at: string | null
+          cost: Json
+          created_at: string
+          id: string
+          job_id: string
+          last_error: string | null
+          order_index: number
+          prospect_id: string
+          started_at: string | null
+          status: Database["public"]["Enums"]["prospect_enrichment_item_status"]
+          updated_at: string
+        }[]
+        SetofOptions: {
+          from: "*"
+          to: "prospect_enrichment_job_items"
+          isOneToOne: false
+          isSetofReturn: true
+        }
+      }
+      refresh_prospect_enrichment_job: {
+        Args: { _job_id: string }
+        Returns: {
+          api_totals: Json
+          auto_resume: boolean
+          completed: number
+          created_at: string
+          current_prospect_id: string | null
+          current_prospect_name: string | null
+          emails_found: number
+          failed: number
+          finished_at: string | null
+          id: string
+          label: string | null
+          last_error: string | null
+          last_heartbeat_at: string | null
+          pause_requested: boolean
+          phase: string
+          phones_classified: number
+          recent_events: Json
+          sms_ready: number
+          started_at: string | null
+          status: Database["public"]["Enums"]["prospect_enrichment_job_status"]
+          stop_requested: boolean
+          total: number
+          total_cost_usd: number
+          updated_at: string
+        }
+        SetofOptions: {
+          from: "*"
+          to: "prospect_enrichment_jobs"
+          isOneToOne: true
+          isSetofReturn: false
+        }
+      }
+      requeue_stalled_prospect_enrichment_items: {
+        Args: { _stale_minutes?: number }
+        Returns: number
+      }
     }
     Enums: {
       call_transfer_status:
@@ -935,6 +1145,18 @@ export type Database = {
         | "completed"
         | "failed"
         | "cancelled"
+      prospect_enrichment_item_status:
+        | "queued"
+        | "processing"
+        | "completed"
+        | "failed"
+      prospect_enrichment_job_status:
+        | "queued"
+        | "running"
+        | "paused"
+        | "completed"
+        | "failed"
+        | "stopped"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -1072,6 +1294,20 @@ export const Constants = {
         "completed",
         "failed",
         "cancelled",
+      ],
+      prospect_enrichment_item_status: [
+        "queued",
+        "processing",
+        "completed",
+        "failed",
+      ],
+      prospect_enrichment_job_status: [
+        "queued",
+        "running",
+        "paused",
+        "completed",
+        "failed",
+        "stopped",
       ],
     },
   },
