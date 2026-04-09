@@ -7,7 +7,7 @@ import Index from "./pages/Index.tsx";
 import DemoSite from "./pages/DemoSite.tsx";
 import CRM from "./pages/CRM.tsx";
 import TryDemo from "./pages/TryDemo.tsx";
-import NotFound from "./pages/NotFound.tsx";
+
 
 const queryClient = new QueryClient();
 
