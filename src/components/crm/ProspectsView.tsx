@@ -68,6 +68,17 @@ const ProspectsView = () => {
     setAppliedFilters({ ...draftFilters });
   };
 
+  const applyMonitorFilters = (overrides: Partial<Filters>) => {
+    const updated: Filters = { ...appliedFilters, ...overrides };
+    setDraftFilters(updated);
+    setAppliedFilters(updated);
+    setShowFilters(true);
+  };
+
+  const handleReviewAnalyzed = () => applyMonitorFilters({ analyzed: "yes" });
+  const handleReviewEmails = () => applyMonitorFilters({ hasEmail: ["yes"] });
+  const handleReviewSms = () => applyMonitorFilters({ smsCapable: ["yes"] });
+
   const baseProspects = searchResults.length > 0 ? searchResults : prospects;
 
   const displayProspects = useMemo(() => {
@@ -201,6 +212,9 @@ const ProspectsView = () => {
         onRefetch={refetch}
         onOutreach={(selected) => setOutreachProspects(selected)}
         onCampaign={(selected) => setCampaignProspects(selected)}
+        onReviewAnalyzed={handleReviewAnalyzed}
+        onReviewEmails={handleReviewEmails}
+        onReviewSms={handleReviewSms}
       />
 
       {outreachProspects && outreachProspects.length > 0 && (
