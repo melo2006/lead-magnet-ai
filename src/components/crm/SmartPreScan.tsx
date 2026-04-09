@@ -26,6 +26,7 @@ interface ScanResult {
 const COST_PER_PROSPECT = 0.025;
 
 const SmartPreScan = ({ prospects, onFilterTripleQualified, onRefetch }: Props) => {
+  const { analyzeBatch } = useProspectAnalysis();
   const [phase, setPhase] = useState<"idle" | "scanning" | "scan_done" | "enriching">("idle");
   const [scanProgress, setScanProgress] = useState({ completed: 0, total: 0 });
   const [scanResults, setScanResults] = useState<ScanResult[]>([]);
@@ -105,14 +106,16 @@ const SmartPreScan = ({ prospects, onFilterTripleQualified, onRefetch }: Props) 
   const handleResume = () => { pauseRef.current = false; setIsPaused(false); };
   const handleStop = () => { stopRef.current = true; pauseRef.current = false; setIsPaused(false); setPhase("scan_done"); };
 
-  const handleEnrichIframeOnly = () => {
+  const handleEnrichIframeOnly = async () => {
     const passedIds = new Set(scanResults.filter(r => r.embeddable).map(r => r.prospectId));
     const toEnrich = prospects.filter(p => p.id && passedIds.has(p.id) && !(p as any).ai_analyzed);
     if (toEnrich.length === 0) {
       toast.info("No new iframe-capable prospects to enrich");
       return;
     }
-    onStartEnrichment?.(toEnrich);
+    setPhase("enriching");
+    await analyzeBatch(toEnrich.map(p => ({ id: p.id!, website_url: p.website_url, business_name: p.business_name, niche: p.niche })));
+    onRefetch?.();
   };
 
   const scanPct = scanProgress.total > 0 ? (scanProgress.completed / scanProgress.total) * 100 : 0;

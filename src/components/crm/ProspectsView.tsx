@@ -151,14 +151,7 @@ const ProspectsView = () => {
       <SmartPreScan
         prospects={displayProspects}
         onFilterTripleQualified={handleFilterTripleQualified}
-        onStartEnrichment={(toEnrich) => {
-          // Trigger the enrichment via the ProspectTable's exposed analyzeBatch
-          // by setting campaign prospects or directly - for now we pass to campaign builder
-          // Actually we should trigger analyze directly - let's use a ref approach
-          // For simplicity, we set a state that ProspectTable can pick up
-          setCampaignProspects(null); // clear any open dialogs
-          // The SmartPreScan will trigger enrichment via the analyze hook
-        }}
+        onRefetch={refetch}
       />
 
       {/* Quick Search + Find Prospects on same visual level */}
