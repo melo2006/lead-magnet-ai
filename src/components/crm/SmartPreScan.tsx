@@ -4,7 +4,7 @@ import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import {
-  Shield, Play, Pause, StopCircle, CheckCircle2, Loader2,
+  Shield, Play, Pause, StopCircle, Loader2,
   Globe, Mail, Smartphone, Zap, DollarSign, Filter
 } from "lucide-react";
 import type { Prospect } from "@/hooks/useProspectSearch";
@@ -25,7 +25,7 @@ interface ScanResult {
 
 const COST_PER_PROSPECT = 0.025;
 
-const SmartPreScan = ({ prospects, onRefetch, onFilterTripleQualified, onStartEnrichment }: Props) => {
+const SmartPreScan = ({ prospects, onFilterTripleQualified, onStartEnrichment }: Props) => {
   const [phase, setPhase] = useState<"idle" | "scanning" | "scan_done" | "enriching">("idle");
   const [scanProgress, setScanProgress] = useState({ completed: 0, total: 0 });
   const [scanResults, setScanResults] = useState<ScanResult[]>([]);
@@ -35,7 +35,7 @@ const SmartPreScan = ({ prospects, onRefetch, onFilterTripleQualified, onStartEn
 
   // Compute stats from current prospect data
   const httpsProspects = prospects.filter(p => p.website_url?.startsWith("https://"));
-  const alreadyEnriched = prospects.filter(p => (p as any).ai_analyzed);
+  
   const withEmail = prospects.filter(p => (p as any).owner_email || (p as any).email);
   const smsCapable = prospects.filter(p => (p as any).sms_capable === true);
   const tripleQualified = prospects.filter(p => {

@@ -9,6 +9,7 @@ import CRMFilters, { DEFAULT_FILTERS, type Filters } from "@/components/crm/CRMF
 import OutreachDialog from "@/components/crm/OutreachDialog";
 import QuickAddProspectDialog from "@/components/crm/QuickAddProspectDialog";
 import CampaignBuilderDialog from "@/components/crm/CampaignBuilderDialog";
+import SmartPreScan from "@/components/crm/SmartPreScan";
 import { useProspectSearch } from "@/hooks/useProspectSearch";
 import { useProspects, useFilterOptions } from "@/hooks/useProspects";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
