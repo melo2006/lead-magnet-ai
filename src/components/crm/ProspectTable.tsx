@@ -415,12 +415,14 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign
 
   const handleBatchAnalyze = async () => {
     const selected = sorted.filter((p) => selectedIds.has(p.place_id));
+    console.log("[ProspectTable] handleBatchAnalyze selectedIds:", [...selectedIds], "matched:", selected.length);
     await analyzeBatch(selected.map((p) => ({ id: p.id, website_url: p.website_url, business_name: p.business_name, niche: p.niche })));
     onRefetch?.();
   };
 
   const handleAnalyzeAll = async () => {
     const unanalyzed = sorted.filter((p) => !(p as any).ai_analyzed && p.has_website && p.id);
+    console.log("[ProspectTable] handleAnalyzeAll sorted:", sorted.length, "unanalyzed:", unanalyzed.length, "first 3:", unanalyzed.slice(0, 3).map(p => ({ id: p.id, name: p.business_name, url: p.website_url, analyzed: (p as any).ai_analyzed })));
     if (unanalyzed.length === 0) return;
     await analyzeBatch(unanalyzed.map((p) => ({ id: p.id, website_url: p.website_url, business_name: p.business_name, niche: p.niche })));
     onRefetch?.();
