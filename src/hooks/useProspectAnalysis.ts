@@ -418,7 +418,7 @@ export const useProspectAnalysis = () => {
     processedIdsRef.current = resumeFrom?.processedIds || [];
 
     const totalCount = resumeFrom?.total || withWebsite.length;
-    const startTime = Date.now();
+    const startTime = resumeFrom?.startedAt || Date.now();
     const startAt = Date.now();
     const startEvent: BatchAuditEvent = {
       at: startAt,
@@ -511,7 +511,7 @@ export const useProspectAnalysis = () => {
             isRunning: false,
             isPaused: false,
             current: null,
-            startedAt: null,
+            startedAt: saved.startedAt,
             status: "stopped",
             lastUpdatedAt: stoppedAt,
             events,
