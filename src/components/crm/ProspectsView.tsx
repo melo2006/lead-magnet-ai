@@ -35,6 +35,7 @@ const ProspectsView = () => {
   const [searchParams] = useSearchParams();
   const [showFilters, setShowFilters] = useState(false);
   const [showQuickAdd, setShowQuickAdd] = useState(false);
+  const [showApolloImport, setShowApolloImport] = useState(false);
   const [quickSearch, setQuickSearch] = useState("");
 
   // Draft filters (user edits these) vs applied filters (sent to query)
@@ -137,6 +138,12 @@ const ProspectsView = () => {
             className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-primary text-primary-foreground text-[11px] font-medium hover:bg-primary/90 transition-colors"
           >
             <UserPlus className="w-3 h-3" />Quick Add
+          </button>
+          <button
+            onClick={() => setShowApolloImport(true)}
+            className="flex items-center gap-1 px-2.5 py-1 rounded-lg bg-secondary border border-border text-[11px] font-medium hover:bg-secondary/80 transition-colors text-foreground"
+          >
+            <FileSpreadsheet className="w-3 h-3" />Import CSV
           </button>
           <button
             onClick={() => {
