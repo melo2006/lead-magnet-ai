@@ -260,6 +260,40 @@ const normalizePhoneNumber = (value?: string) => {
   return value.trim();
 };
 
+const extractHostnameForSpeech = (value?: string) => {
+  if (!value) return '';
+
+  const trimmed = value.trim();
+  if (!trimmed) return '';
+
+  return trimmed
+    .replace(/^https?:\/\//i, '')
+    .replace(/^www\./i, '')
+    .split('/')[0]
+    .trim();
+};
+
+const getSpokenBusinessName = (businessName?: string, websiteUrl?: string) => {
+  const rawBusinessName = typeof businessName === 'string' ? businessName.trim() : '';
+  const hostname = extractHostnameForSpeech(websiteUrl || rawBusinessName);
+  const source = rawBusinessName || hostname;
+  const normalizedSource = source.toLowerCase();
+  const normalizedHostname = hostname.toLowerCase();
+
+  if (!source) return 'your business';
+  if (normalizedHostname === 'si2.com') return 'S I 2 dot com';
+  if (normalizedHostname === 'si.com' || normalizedHostname === 's-i.com') return 'S I dot com';
+  if (/^site\s*2(?:\s+technologies)?$/i.test(rawBusinessName)) return 'S I 2 Technologies';
+  if (/^si2\s+technologies$/i.test(rawBusinessName)) return 'S I 2 Technologies';
+  if (/^s-?i\s+technologies$/i.test(rawBusinessName)) return 'S I Technologies';
+  if (/^si2(?:\.com)?$/i.test(normalizedSource)) return 'S I 2 dot com';
+  if (/^s-i(?:\.com)?$/i.test(normalizedSource) || /^si(?:\.com)?$/i.test(normalizedSource)) return 'S I dot com';
+  if (/^si2\b/i.test(rawBusinessName)) return rawBusinessName.replace(/^si2\b/i, 'S I 2');
+  if (/^si\b/i.test(rawBusinessName)) return rawBusinessName.replace(/^si\b/i, 'S I');
+
+  return source;
+};
+
 const isLikelyCallablePhoneNumber = (value?: string | null) => {
   const normalized = normalizePhoneNumber(value ?? '');
   if (!/^\+\d{11,15}$/.test(normalized)) return false;
@@ -1410,6 +1444,10 @@ Deno.serve(async (req) => {
     const resolvedCallerName = typeof callerName === 'string' ? callerName.trim() : '';
     const resolvedCallerEmail = typeof callerEmail === 'string' ? normalizeEmailCandidate(callerEmail) : '';
     const resolvedCallerPhone = sanitizeCallerPhone(callerPhone);
+    const spokenBusinessName = getSpokenBusinessName(
+      typeof businessName === 'string' ? businessName : '',
+      typeof websiteUrl === 'string' ? websiteUrl : '',
+    );
 
     console.log('Creating web call for agent:', agentId, 'niche:', businessNiche, 'callbackPhone:', normalizedOwnerPhone);
 
@@ -1423,6 +1461,7 @@ Deno.serve(async (req) => {
         agent_id: agentId,
         retell_llm_dynamic_variables: {
           business_name: businessName || 'Demo Business',
+          spoken_business_name: spokenBusinessName,
           business_niche: businessNiche || 'general',
           owner_name: resolvedOwnerName,
           owner_email: ownerEmail || '',
@@ -1436,24 +1475,27 @@ Deno.serve(async (req) => {
 
 ===== CRITICAL OPENING — TWO-PHASE GREETING =====
 
-PHASE 1 — AI HIDDEN LEADS INTRO (KEEP THIS VERY SHORT — about 10-15 seconds MAX):
-1. Start with a warm time-of-day greeting: "Hey, good morning!" or "Hey, good afternoon!" or "Hey, good evening!" — NEVER say the exact time.
-2. "This is Aspen with AI Hidden Leads."
-3. ONE quick sentence about what this demo shows: "I'm gonna give you a quick taste of how our AI voice agent can answer calls as your receptionist, make outbound calls, do live warm transfers, schedule appointments, and capture every lead into your own custom database."
-4. Quick transition — say something like: "Alright, I'm gonna switch personas now and act like I'm already installed on your website as your AI receptionist. Keep in mind this is just a quick demo — we don't have your full knowledge base yet. Here we go!"
-- DO NOT drag this out. Get to Phase 2 within 10-15 seconds. The caller wants to experience the simulation, not listen to a sales pitch.
+PHASE 1 — AIHIDDENLEADS.COM INTRO (KEEP THIS TO 5-8 SECONDS MAX):
+1. Start with exactly one warm time-of-day greeting: "Good morning," or "Good afternoon," or "Good evening." NEVER say the exact time.
+2. Then say exactly: "This is Aspen with AIHiddenLeads.com."
+3. Give ONE very short sentence about the demo: "I'm going to give you a quick sample of how I can work as your AI receptionist."
+4. Immediately say this transition almost word-for-word: "Now I'm gonna be simulating as if I was already working on your website. Keep in mind, this is just a demo."
+5. Stop Phase 1 there. Do NOT add filler, extra explanation, or a sales pitch.
 
 PHASE 2 — BUSINESS SIMULATION (THIS IS THE MAIN EVENT):
-1. Start with a fresh, warm greeting: "Hi there, good morning!" / "Hi there, good afternoon!" / "Hi there, good evening!"
-2. "This is Aspen with ${businessName || 'your business'}."
-3. IMPORTANT — Give ONE or TWO sentences about the company as a warm welcome slogan. Pull specific facts from the business_info — mention what they do, how long they've been around, what city they're in, what makes them special. Make it sound like a polished, friendly welcome. Examples:
-   - "We've been creating stunning websites and digital solutions for businesses across Texas for over 30 years!"
-   - "We're your go-to team for custom home remodeling right here in Fort Lauderdale!"
-   Do NOT just jump straight to "How can I help you?" — give the caller a feel for the business first.
-4. ${resolvedCallerName ? `Since the caller filled in their name, greet them warmly: "Hey ${resolvedCallerName}, so glad you called! How are you doing today?"` : `The caller did NOT provide their name, so ask naturally: "And who do I have the pleasure of chatting with today?" — remember their name and use it throughout the rest of the call.`}
-5. Then invite conversation: "Is there anything specific I can help you with, or would you like to hear about what we offer?"
+1. Start immediately with a fresh, warm greeting: "Hi, good morning!" / "Hi, good afternoon!" / "Hi, good evening!"
+2. Introduce yourself as the business using the correct spoken name: "My name is Aspen with ${spokenBusinessName}."
+3. BEFORE you ask any question, give exactly ONE or TWO short, polished sentences that sound like the company's welcome slogan. Pull them from business_info. Mention what the company does, the city, specialty, differentiator, or first two key lines from the website. Do NOT skip this.
+4. ${resolvedCallerName ? `Since the caller already gave their name, acknowledge it naturally after the company intro: "Hi ${resolvedCallerName}, thanks for sharing your name." Then continue.` : `The caller did NOT provide their name, so after the company intro ask naturally: "May I ask your name?" Then remember it and use it throughout the rest of the call.`}
+5. ONLY AFTER the greeting + company intro + 1-2 slogan sentences + name handling, ask one help question: "How can I help you today?"
 
 ===== END OF OPENING =====
+
+NON-NEGOTIABLE PRONUNCIATION RULES:
+- The correct spoken business name for this call is "${spokenBusinessName}".
+- If the brand or website uses initials or letter-number combinations, spell the letters individually.
+- Example: si2.com must be spoken as "S I 2 dot com" or "S I 2 Technologies" if that is the business name.
+- NEVER say "site2.com" unless the company literally brands itself that way.
 
 CALLER NAME HANDLING (CRITICAL):
 - caller_name = ${resolvedCallerName || 'NOT PROVIDED'}
@@ -1485,6 +1527,7 @@ PERSONALITY & CONVERSATION STYLE:
 
 KNOWLEDGE — CRITICAL ACCURACY RULE:
 - You MUST answer questions using ONLY the specific data from business_info. This includes ALL products, ALL pricing tiers, ALL packages, ALL specials, and ALL promotions listed on the website.
+- Speak as though you scraped and studied the entire website thoroughly, so you can explain the company's features, benefits, services, offers, pricing, and differentiators with confidence.
 - When asked about pricing, ALWAYS list ALL available price points from lowest to highest. Do NOT cherry-pick or skip cheaper options.
 - If a caller asks "what is the cheapest option?" or "what is the lowest price?", you MUST cite the actual lowest price from the business_info data.
 - Reference specific product names, package names, and exact dollar amounts as listed in the business_info.
