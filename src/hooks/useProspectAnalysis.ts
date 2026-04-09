@@ -391,7 +391,9 @@ export const useProspectAnalysis = () => {
     }>,
     resumeFrom?: PersistedBatchState
   ) => {
+    console.log("[analyzeBatch] Called with", prospects.length, "prospects. First 3:", prospects.slice(0, 3));
     const withWebsite = prospects.filter((p) => p.id && p.website_url);
+    console.log("[analyzeBatch] After filter (id + website_url):", withWebsite.length);
     if (withWebsite.length === 0) {
       toast.error("No prospects with websites to analyze");
       return;
