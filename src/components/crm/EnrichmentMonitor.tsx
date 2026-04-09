@@ -1,7 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useLocation } from "react-router-dom";
 import { Progress } from "@/components/ui/progress";
-import { Loader2, Pause, Play, StopCircle, X, ChevronDown, ChevronUp, Mail, Phone, DollarSign, Activity } from "lucide-react";
+import { Loader2, X, ChevronDown, ChevronUp, Mail, Phone, DollarSign, Activity } from "lucide-react";
 
 const STORAGE_KEY = "leadengine_batch_progress";
 
