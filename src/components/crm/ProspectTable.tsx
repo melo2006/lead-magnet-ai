@@ -28,6 +28,9 @@ interface Props {
   onRefetch?: () => void;
   onOutreach?: (selected: Prospect[]) => void;
   onCampaign?: (selected: Prospect[]) => void;
+  onReviewAnalyzed?: () => void;
+  onReviewEmails?: () => void;
+  onReviewSms?: () => void;
 }
 
 type SortKey =
@@ -243,7 +246,7 @@ const ColumnManager = ({
   );
 };
 
-const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign }: Props) => {
+const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign, onReviewAnalyzed, onReviewEmails, onReviewSms }: Props) => {
   const [expandedId, setExpandedId] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortKey>("voiceai_fit");
   const [sortDir, setSortDir] = useState<"asc" | "desc">("desc");
@@ -255,7 +258,7 @@ const ProspectTable = ({ prospects, isLoading, onRefetch, onOutreach, onCampaign
   const { analyze, analyzeBatch, analyzingIds, batchProgress, stopBatch, pauseBatch, resumeBatch, interruptedState, resumeInterrupted, dismissInterrupted } = useProspectAnalysis();
   const returnTo = encodeURIComponent(`${window.location.pathname}${window.location.search}${window.location.hash}`);
   const [sendingSmsId, setSendingSmsId] = useState<string | null>(null);
-  const [hideCostBanner, setHideCostBanner] = useState(false);
+  
   const [showAnalyzeConfirm, setShowAnalyzeConfirm] = useState(false);
   const [analyzeTarget, setAnalyzeTarget] = useState<"all" | "selected">("all");
 
