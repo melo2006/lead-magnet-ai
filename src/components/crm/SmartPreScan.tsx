@@ -8,9 +8,10 @@ import {
   Globe, Mail, Smartphone, Zap, DollarSign, Filter
 } from "lucide-react";
 import type { Prospect } from "@/hooks/useProspectSearch";
-import { useProspectAnalysis } from "@/hooks/useProspectAnalysis";
+import type { UseProspectAnalysisReturn } from "@/hooks/useProspectAnalysis";
 
 interface Props {
+  analysis: UseProspectAnalysisReturn;
   prospects: Prospect[];
   onFilterTripleQualified?: () => void;
   onRefetch?: () => void;
@@ -25,14 +26,16 @@ interface ScanResult {
 
 const COST_PER_PROSPECT = 0.025;
 
-const SmartPreScan = ({ prospects, onFilterTripleQualified, onRefetch }: Props) => {
-  const { analyzeBatch } = useProspectAnalysis();
+const SmartPreScan = ({ analysis, prospects, onFilterTripleQualified, onRefetch }: Props) => {
+  const { analyzeBatch, batchProgress, interruptedState, resumeInterrupted } = analysis;
   const [phase, setPhase] = useState<"idle" | "scanning" | "scan_done" | "enriching">("idle");
   const [scanProgress, setScanProgress] = useState({ completed: 0, total: 0 });
   const [scanResults, setScanResults] = useState<ScanResult[]>([]);
   const [isPaused, setIsPaused] = useState(false);
   const pauseRef = useRef(false);
   const stopRef = useRef(false);
+  const hasInterruptedEnrichment = Boolean(interruptedState && !batchProgress.isRunning);
+  const interruptedRemaining = interruptedState ? Math.max(0, interruptedState.total - interruptedState.completed) : 0;
 
   // Compute stats from current prospect data
   const httpsProspects = prospects.filter(p => p.website_url?.startsWith("https://"));
@@ -136,6 +139,21 @@ const SmartPreScan = ({ prospects, onFilterTripleQualified, onRefetch }: Props) 
           </p>
         </div>
       </div>
+
+      {hasInterruptedEnrichment && interruptedState && (
+        <div className="rounded-lg border border-primary/30 bg-primary/10 p-3 flex items-center justify-between gap-3 flex-wrap">
+          <div className="space-y-1">
+            <p className="text-xs font-semibold text-foreground">Continue the saved enrichment run</p>
+            <p className="text-[11px] text-muted-foreground">
+              Press <span className="font-semibold text-foreground">Continue</span> to resume from {interruptedState.completed}/{interruptedState.total}. Finished leads will be skipped.
+            </p>
+          </div>
+          <Button size="sm" onClick={resumeInterrupted}>
+            <Play className="w-3.5 h-3.5" />
+            Continue {interruptedRemaining > 0 ? `(${interruptedRemaining} left)` : "Run"}
+          </Button>
+        </div>
+      )}
 
       {/* Phase Overview with Cost Estimates */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
@@ -261,7 +279,7 @@ const SmartPreScan = ({ prospects, onFilterTripleQualified, onRefetch }: Props) 
         {phase === "scan_done" && (
           <>
             {iframePassedCount > 0 && (
-              <Button size="sm" onClick={handleEnrichIframeOnly}>
+              <Button size="sm" onClick={handleEnrichIframeOnly} disabled={batchProgress.isRunning}>
                 <Zap className="w-3.5 h-3.5" />
                 Enrich {iframePassedCount} iFrame-Capable (~${(iframePassedCount * COST_PER_PROSPECT).toFixed(2)})
               </Button>

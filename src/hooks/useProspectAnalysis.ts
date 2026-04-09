@@ -50,7 +50,14 @@ export interface BatchProgress {
   events: BatchAuditEvent[];
 }
 
-interface PersistedBatchState {
+export interface AnalysisProspectInput {
+  id?: string;
+  website_url: string | null;
+  business_name: string;
+  niche?: string | null;
+}
+
+export interface PersistedBatchState {
   total: number;
   completed: number;
   costSummary: BatchCostSummary;
@@ -72,6 +79,20 @@ interface PersistedBatchState {
     business_name: string;
     niche: string;
   }>;
+}
+
+export interface UseProspectAnalysisReturn {
+  analyze: (prospect: AnalysisProspectInput) => Promise<Record<string, any> | null>;
+  analyzeBatch: (prospects: AnalysisProspectInput[], resumeFrom?: PersistedBatchState) => Promise<void>;
+  analyzingIds: Set<string>;
+  batchProgress: BatchProgress;
+  stopBatch: () => void;
+  pauseBatch: () => void;
+  resumeBatch: () => void;
+  interruptedState: PersistedBatchState | null;
+  lastBatchState: PersistedBatchState | null;
+  resumeInterrupted: () => void;
+  dismissInterrupted: () => void;
 }
 
 export const STORAGE_KEY = "leadengine_batch_progress";
@@ -163,7 +184,7 @@ const clearBatchState = () => {
   } catch {}
 };
 
-export const useProspectAnalysis = () => {
+export const useProspectAnalysis = (): UseProspectAnalysisReturn => {
   const [analyzingIds, setAnalyzingIds] = useState<Set<string>>(new Set());
   const [batchProgress, setBatchProgress] = useState<BatchProgress>({
     total: 0,
@@ -233,12 +254,7 @@ export const useProspectAnalysis = () => {
     });
   }, []);
 
-  const analyze = async (prospect: {
-    id?: string;
-    website_url: string | null;
-    business_name: string;
-    niche?: string | null;
-  }) => {
+  const analyze = async (prospect: AnalysisProspectInput) => {
     if (!prospect.id || !prospect.website_url) {
       toast.error("No website to analyze");
       return null;
@@ -383,12 +399,7 @@ export const useProspectAnalysis = () => {
   }, []);
 
   const analyzeBatch = async (
-    prospects: Array<{
-      id?: string;
-      website_url: string | null;
-      business_name: string;
-      niche?: string | null;
-    }>,
+    prospects: AnalysisProspectInput[],
     resumeFrom?: PersistedBatchState
   ) => {
     console.log("[analyzeBatch] Called with", prospects.length, "prospects. First 3:", prospects.slice(0, 3));
