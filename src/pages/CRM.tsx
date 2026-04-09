@@ -11,6 +11,7 @@ import TemplatesView from "@/components/crm/TemplatesView";
 import CallHistoryView from "@/components/crm/CallHistoryView";
 import ImportedListsView from "@/components/crm/ImportedListsView";
 import ImportedListDetailView from "@/components/crm/ImportedListDetailView";
+import EnrichmentMonitor from "@/components/crm/EnrichmentMonitor";
 
 const CRM = () => {
   return (
@@ -22,6 +23,7 @@ const CRM = () => {
             <SidebarTrigger className="mr-3" />
             <span className="text-xs text-muted-foreground">LeadEngine CRM</span>
           </header>
+          <EnrichmentMonitor />
           <main className="flex-1 p-4 sm:p-6 overflow-y-auto">
             <Routes>
               <Route index element={<CRMDashboard />} />
