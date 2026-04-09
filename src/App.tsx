@@ -13,8 +13,7 @@ import NotFound from "./pages/NotFound.tsx";
 const queryClient = new QueryClient();
 
 const AppLayout = () => {
-  const { pathname } = useLocation();
-  const isStandalone = pathname === "/demo" || pathname.startsWith("/demo/");
+  return (
 
   return (
     <Routes>

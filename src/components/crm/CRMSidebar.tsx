@@ -30,9 +30,6 @@ export function CRMSidebar() {
   const collapsed = state === "collapsed";
   const location = useLocation();
 
-  const isActive = (path: string) =>
-    path === "/" ? location.pathname === "/" : location.pathname.startsWith(path);
-
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
       <SidebarContent>
@@ -50,16 +47,40 @@ export function CRMSidebar() {
 
         <SidebarGroup>
           <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">
-            {!collapsed && "Navigation"}
+            {!collapsed && "CRM"}
           </SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {navItems.map((item) => (
+              {crmItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
                     <NavLink
                       to={item.url}
                       end={item.url === "/"}
+                      className="hover:bg-muted/50"
+                      activeClassName="bg-primary/10 text-primary font-medium"
+                    >
+                      <item.icon className="mr-2 h-4 w-4" />
+                      {!collapsed && <span>{item.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+        <SidebarGroup>
+          <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">
+            {!collapsed && "Pages"}
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {pageItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to={item.url}
                       className="hover:bg-muted/50"
                       activeClassName="bg-primary/10 text-primary font-medium"
                     >
