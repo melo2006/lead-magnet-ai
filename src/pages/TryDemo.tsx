@@ -1,0 +1,287 @@
+import { useState, useCallback, useEffect } from "react";
+import { useNavigate } from "react-router-dom";
+import { motion } from "framer-motion";
+import { Globe, Loader2, PhoneOff, Clock, Zap, Star, Shield } from "lucide-react";
+import { z } from "zod";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { supabase } from "@/integrations/supabase/client";
+import { useToast } from "@/hooks/use-toast";
+import ScanningAnimation from "@/components/landing/ScanningAnimation";
+import type { DemoLeadData } from "@/components/landing/demo-results/demoResultsUtils";
+
+const LAST_DEMO_STORAGE_KEY = "lastDemoLeadData";
+
+const normalizeUrl = (raw: string): string => {
+  let url = raw.trim().replace(/^["']+|["']+$/g, "").trim();
+  url = url.replace(/^(?:https?:\/\/)/i, "");
+  url = url.replace(/\/+$/, "");
+  if (!url) return raw.trim();
+  return `https://${url}`;
+};
+
+const looksLikeDomain = (value: string) =>
+  /^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z]{2,})+/.test(
+    value.replace(/^(?:https?:\/\/)/i, "").replace(/^www\./i, "")
+  );
+
+const extractBusinessName = (url: string): string => {
+  try {
+    const clean = url.replace(/^(?:https?:\/\/)/i, "").replace(/^www\./i, "");
+    const domain = clean.split("/")[0].split(".")[0];
+    return domain.charAt(0).toUpperCase() + domain.slice(1);
+  } catch {
+    return "Business";
+  }
+};
+
+const urlSchema = z
+  .string()
+  .trim()
+  .min(1, "Enter your website URL")
+  .max(255)
+  .refine((v) => looksLikeDomain(v), { message: "Enter a valid domain (e.g. mybusiness.com)" })
+  .transform(normalizeUrl);
+
+const benefits = [
+  { icon: PhoneOff, label: "Never Miss a Call", desc: "AI answers 24/7" },
+  { icon: Clock, label: "24/7 AI Receptionist", desc: "Books appointments" },
+  { icon: Zap, label: "Instant Lead Capture", desc: "Converts visitors" },
+];
+
+const TryDemo = () => {
+  const { toast } = useToast();
+  const navigate = useNavigate();
+  const [url, setUrl] = useState("");
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [isScanning, setIsScanning] = useState(false);
+  const [scanData, setScanData] = useState<DemoLeadData | null>(null);
+  const [scanAnimationDone, setScanAnimationDone] = useState(false);
+
+  useEffect(() => {
+    if (!isScanning || !scanAnimationDone || !scanData) return;
+    navigate("/demo", { state: { leadData: scanData } });
+  }, [isScanning, scanAnimationDone, scanData, navigate]);
+
+  const handleScanComplete = useCallback(() => {
+    setScanAnimationDone(true);
+  }, []);
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+
+    const parsed = urlSchema.safeParse(url);
+    if (!parsed.success) {
+      toast({ title: "Invalid URL", description: parsed.error.issues[0]?.message, variant: "destructive" });
+      return;
+    }
+
+    const websiteUrl = parsed.data;
+    const businessName = extractBusinessName(websiteUrl);
+
+    setIsSubmitting(true);
+    setScanAnimationDone(false);
+
+    try {
+      const { data: lead, error } = await supabase
+        .from("leads")
+        .insert([{
+          business_name: businessName,
+          full_name: "Website Visitor",
+          website_url: websiteUrl,
+          niche: "general",
+        }])
+        .select("id")
+        .single();
+
+      if (error) throw error;
+
+      setIsScanning(true);
+
+      const scanResult = await supabase.functions.invoke("scan-website", {
+        body: {
+          leadId: lead.id,
+          websiteUrl,
+          businessName,
+          initialNiche: "general",
+        },
+      });
+
+      if (scanResult.error) {
+        console.error("Scan error:", scanResult.error);
+        toast({ title: "Loading demo", description: "Opening with saved details." });
+      }
+
+      const { data: updatedLead } = await supabase
+        .from("leads")
+        .select("*")
+        .eq("id", lead.id)
+        .single();
+
+      const leadData: DemoLeadData = {
+        leadId: lead.id,
+        fullName: "Website Visitor",
+        businessName: updatedLead?.business_name || businessName,
+        websiteUrl,
+        niche: updatedLead?.niche || "general",
+        screenshot: updatedLead?.website_screenshot ?? undefined,
+        title: updatedLead?.website_title ?? undefined,
+        description: updatedLead?.website_description ?? undefined,
+        websiteContent: updatedLead?.website_content ?? undefined,
+        colors: updatedLead?.brand_colors && typeof updatedLead.brand_colors === "object" && !Array.isArray(updatedLead.brand_colors)
+          ? (updatedLead.brand_colors as Record<string, string | undefined>)
+          : undefined,
+        logo: updatedLead?.brand_logo ?? undefined,
+      };
+
+      setScanData(leadData);
+      try { localStorage.setItem(LAST_DEMO_STORAGE_KEY, JSON.stringify(leadData)); } catch {}
+    } catch (err) {
+      console.error("Error:", err);
+      toast({ title: "Something went wrong", description: "Please try again.", variant: "destructive" });
+      setIsScanning(false);
+    } finally {
+      setIsSubmitting(false);
+    }
+  };
+
+  if (isScanning) {
+    return (
+      <div className="min-h-screen bg-background flex items-center justify-center px-4">
+        <ScanningAnimation websiteUrl={url} onComplete={handleScanComplete} />
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 py-8 relative overflow-hidden">
+      {/* Background glow */}
+      <div className="absolute inset-0 pointer-events-none">
+        <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-primary/8 blur-[120px]" />
+        <div className="absolute bottom-0 right-0 w-[300px] h-[300px] rounded-full bg-accent/5 blur-[100px]" />
+      </div>
+
+      <div className="relative z-10 w-full max-w-lg mx-auto text-center">
+        {/* Logo */}
+        <motion.div
+          initial={{ opacity: 0, y: -10 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.4 }}
+          className="mb-6"
+        >
+          <div className="inline-flex items-center gap-2">
+            <img src="/favicon.png" alt="AI Hidden Leads" className="w-7 h-7" />
+            <span className="text-sm font-semibold tracking-tight text-muted-foreground">
+              AI <span className="text-primary">Hidden</span> Leads
+            </span>
+          </div>
+        </motion.div>
+
+        {/* Headline */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.1 }}
+        >
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight mb-3">
+            See Your Website With{" "}
+            <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
+              AI
+            </span>
+            {" "}— In 10 Seconds
+          </h1>
+          <p className="text-muted-foreground text-base sm:text-lg mb-6">
+            Enter your URL below and watch your website come alive with Voice AI and Chat AI — instantly.
+          </p>
+        </motion.div>
+
+        {/* Benefits */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.2 }}
+          className="flex flex-wrap justify-center gap-2 sm:gap-3 mb-8"
+        >
+          {benefits.map(({ icon: Icon, label, desc }) => (
+            <div
+              key={label}
+              className="flex items-center gap-2 px-3 py-2 rounded-xl border border-border bg-card/60 backdrop-blur-sm"
+            >
+              <Icon className="w-4 h-4 text-primary shrink-0" />
+              <div className="text-left">
+                <p className="text-xs font-semibold text-foreground leading-tight">{label}</p>
+                <p className="text-[10px] text-muted-foreground leading-tight">{desc}</p>
+              </div>
+            </div>
+          ))}
+        </motion.div>
+
+        {/* URL Input */}
+        <motion.form
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.5, delay: 0.3 }}
+          onSubmit={handleSubmit}
+          className="w-full"
+        >
+          <div className="flex flex-col sm:flex-row gap-3">
+            <div className="relative flex-1">
+              <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-muted-foreground" />
+              <Input
+                placeholder="mybusiness.com"
+                value={url}
+                onChange={(e) => setUrl(e.target.value)}
+                onBlur={() => {
+                  if (url.trim()) {
+                    const normalized = normalizeUrl(url);
+                    if (normalized !== url) setUrl(normalized);
+                  }
+                }}
+                className="pl-10 h-14 text-base sm:text-lg bg-card border-border rounded-xl focus-visible:ring-primary"
+                disabled={isSubmitting}
+              />
+            </div>
+            <Button
+              type="submit"
+              size="lg"
+              disabled={isSubmitting || !url.trim()}
+              className="h-14 px-8 text-base font-bold rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-[0_0_30px_-5px_hsl(var(--primary)/0.4)] hover:shadow-[0_0_40px_-5px_hsl(var(--primary)/0.6)] transition-all"
+            >
+              {isSubmitting ? (
+                <Loader2 className="w-5 h-5 animate-spin" />
+              ) : (
+                "Show Me My AI Demo"
+              )}
+            </Button>
+          </div>
+        </motion.form>
+
+        {/* Trust strip */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.5, delay: 0.5 }}
+          className="mt-8 flex flex-col items-center gap-3"
+        >
+          <div className="flex items-center gap-1">
+            {[...Array(5)].map((_, i) => (
+              <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
+            ))}
+            <span className="text-sm text-muted-foreground ml-1.5">Trusted by 500+ local businesses</span>
+          </div>
+          <div className="flex items-center gap-4 text-xs text-muted-foreground">
+            <span className="flex items-center gap-1">
+              <Shield className="w-3.5 h-3.5 text-primary" /> Free
+            </span>
+            <span>·</span>
+            <span>No signup</span>
+            <span>·</span>
+            <span>10 seconds</span>
+          </div>
+        </motion.div>
+      </div>
+    </div>
+  );
+};
+
+export default TryDemo;
