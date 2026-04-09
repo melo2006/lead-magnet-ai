@@ -278,14 +278,18 @@ const getSpokenBusinessName = (businessName?: string, websiteUrl?: string) => {
   const hostname = extractHostnameForSpeech(websiteUrl || rawBusinessName);
   const source = rawBusinessName || hostname;
   const normalizedSource = source.toLowerCase();
+  const normalizedHostname = hostname.toLowerCase();
 
   if (!source) return 'your business';
+  if (normalizedHostname === 'si2.com') return 'S I 2 dot com';
+  if (normalizedHostname === 'si.com' || normalizedHostname === 's-i.com') return 'S I dot com';
+  if (/^site\s*2(?:\s+technologies)?$/i.test(rawBusinessName)) return 'S I 2 Technologies';
+  if (/^si2\s+technologies$/i.test(rawBusinessName)) return 'S I 2 Technologies';
+  if (/^s-?i\s+technologies$/i.test(rawBusinessName)) return 'S I Technologies';
   if (/^si2(?:\.com)?$/i.test(normalizedSource)) return 'S I 2 dot com';
   if (/^s-i(?:\.com)?$/i.test(normalizedSource) || /^si(?:\.com)?$/i.test(normalizedSource)) return 'S I dot com';
   if (/^si2\b/i.test(rawBusinessName)) return rawBusinessName.replace(/^si2\b/i, 'S I 2');
   if (/^si\b/i.test(rawBusinessName)) return rawBusinessName.replace(/^si\b/i, 'S I');
-  if (!rawBusinessName && /^si2\.com$/i.test(hostname)) return 'S I 2 dot com';
-  if (!rawBusinessName && (/^si\.com$/i.test(hostname) || /^s-i\.com$/i.test(hostname))) return 'S I dot com';
 
   return source;
 };
@@ -1474,8 +1478,8 @@ Deno.serve(async (req) => {
 PHASE 1 — AIHIDDENLEADS.COM INTRO (KEEP THIS TO 5-8 SECONDS MAX):
 1. Start with exactly one warm time-of-day greeting: "Good morning," or "Good afternoon," or "Good evening." NEVER say the exact time.
 2. Then say exactly: "This is Aspen with AIHiddenLeads.com."
-3. Give ONE short sentence about what the demo shows: "I'm going to give you a quick sample of how I can answer calls, capture leads, schedule appointments, and do warm transfers for your business."
-4. Immediately say a transition very close to this: "Now I'm gonna be simulating as if I was already working on your website, so you'll hear me greet you like your live receptionist. Keep in mind, this is just a demo."
+3. Give ONE very short sentence about the demo: "I'm going to give you a quick sample of how I can work as your AI receptionist."
+4. Immediately say this transition almost word-for-word: "Now I'm gonna be simulating as if I was already working on your website. Keep in mind, this is just a demo."
 5. Stop Phase 1 there. Do NOT add filler, extra explanation, or a sales pitch.
 
 PHASE 2 — BUSINESS SIMULATION (THIS IS THE MAIN EVENT):
