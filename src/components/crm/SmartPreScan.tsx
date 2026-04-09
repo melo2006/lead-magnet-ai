@@ -26,7 +26,6 @@ interface ScanResult {
   unreachable?: boolean;
 }
 
-const COST_CONTACT_ONLY = 0.015; // Hunter + Twilio only
 const COST_FULL_ENRICH = 0.025;  // Full: Firecrawl + Hunter + Twilio + AI
 
 type WorkflowPhase = "idle" | "contact_scan" | "contact_done" | "iframe_scan" | "iframe_done" | "enriching";
@@ -45,7 +44,6 @@ const SmartPreScan = ({ analysis, prospects, onFilterTripleQualified, onFilterDe
   const interruptedRemaining = interruptedState ? Math.max(0, interruptedState.total - interruptedState.completed) : 0;
 
   // Stats from current prospect data
-  const withWebsite = prospects.filter(p => p.website_url);
   const httpsProspects = prospects.filter(p => p.website_url?.startsWith("https://"));
   const withEmail = prospects.filter(p => (p as any).owner_email || (p as any).email);
   const smsCapable = prospects.filter(p => (p as any).sms_capable === true);
@@ -81,7 +79,6 @@ const SmartPreScan = ({ analysis, prospects, onFilterTripleQualified, onFilterDe
   });
 
   // iFrame scan helpers
-  const scanEligible = httpsProspects.filter(p => !(p as any).ai_analyzed && p.id);
   const iframePassedCount = iframeScanResults.filter(r => r.embeddable).length;
   const iframeFailedCount = iframeScanResults.filter(r => !r.embeddable).length;
 
