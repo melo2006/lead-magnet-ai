@@ -486,7 +486,7 @@ export const useProspectAnalysis = () => {
       events,
     });
 
-    toast.info(`${resumeFrom ? "Resuming" : "Analyzing"} ${toProcess.length} prospects...");
+    toast.info(`${resumeFrom ? "Resuming" : "Analyzing"} ${toProcess.length} prospects...`);
 
     try {
       for (const prospect of toProcess) {
