@@ -8,12 +8,12 @@ import {
   Globe, Mail, Smartphone, Zap, DollarSign, Filter
 } from "lucide-react";
 import type { Prospect } from "@/hooks/useProspectSearch";
+import { useProspectAnalysis } from "@/hooks/useProspectAnalysis";
 
 interface Props {
   prospects: Prospect[];
-  onRefetch?: () => void;
   onFilterTripleQualified?: () => void;
-  onStartEnrichment?: (prospects: Prospect[]) => void;
+  onRefetch?: () => void;
 }
 
 interface ScanResult {
@@ -25,7 +25,7 @@ interface ScanResult {
 
 const COST_PER_PROSPECT = 0.025;
 
-const SmartPreScan = ({ prospects, onFilterTripleQualified, onStartEnrichment }: Props) => {
+const SmartPreScan = ({ prospects, onFilterTripleQualified, onRefetch }: Props) => {
   const [phase, setPhase] = useState<"idle" | "scanning" | "scan_done" | "enriching">("idle");
   const [scanProgress, setScanProgress] = useState({ completed: 0, total: 0 });
   const [scanResults, setScanResults] = useState<ScanResult[]>([]);
