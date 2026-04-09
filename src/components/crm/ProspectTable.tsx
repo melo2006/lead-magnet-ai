@@ -661,11 +661,11 @@ const ProspectTable = ({ analysis, prospects, isLoading, onRefetch, onOutreach, 
   const persistedEmails = persistedBatch?.emailsFound ?? 0;
   const persistedPhones = persistedBatch?.phonesClassified ?? 0;
   const persistedCost = persistedBatch?.costSummary.totalCost ?? 0;
+  const hasRecoverableBatch = Boolean(interruptedState && !batchProgress.isRunning);
   const interruptedRemaining = hasRecoverableBatch ? Math.max(0, persistedTotal - persistedCompleted) : 0;
   const livePct = batchProgress.total > 0 ? (batchProgress.completed / batchProgress.total) * 100 : 0;
   const persistedPct = persistedTotal > 0 ? (persistedCompleted / persistedTotal) * 100 : 0;
   const coveragePct = websiteProspectCount > 0 ? (analyzedCount / websiteProspectCount) * 100 : 0;
-  const hasRecoverableBatch = Boolean(interruptedState && !batchProgress.isRunning);
   const activeCostSummary = batchProgress.isRunning
     ? batchProgress.costSummary
     : persistedBatch?.costSummary ?? batchProgress.costSummary;
