@@ -82,6 +82,13 @@ const ProspectsView = () => {
   const handleReviewEmails = () => applyMonitorFilters({ hasEmail: ["yes"] });
   const handleReviewSms = () => applyMonitorFilters({ smsCapable: ["yes"] });
   const handleFilterTripleQualified = () => applyMonitorFilters({ previewType: ["iframe"], hasEmail: ["yes"], smsCapable: ["yes"] });
+  const handleFilterDemoReady = (mode: "live" | "screenshot") => {
+    if (mode === "live") {
+      applyMonitorFilters({ previewType: ["iframe"], hasEmail: ["yes"] });
+    } else {
+      applyMonitorFilters({ previewType: ["http", "screenshot"], hasEmail: ["yes"] });
+    }
+  };
 
   const baseProspects = searchResults.length > 0 ? searchResults : prospects;
 
@@ -154,6 +161,7 @@ const ProspectsView = () => {
         analysis={prospectAnalysis}
         prospects={displayProspects}
         onFilterTripleQualified={handleFilterTripleQualified}
+        onFilterDemoReady={handleFilterDemoReady}
         onRefetch={refetch}
       />
 
