@@ -130,6 +130,49 @@ const NICHE_CATEGORIES = [
       { value: "driving schools", label: "Driving Schools" },
       { value: "daycare centers", label: "Daycare" },
       { value: "printing services", label: "Printing" },
+      { value: "coding bootcamps", label: "Coding Bootcamps" },
+      { value: "professional language schools", label: "Language Schools" },
+      { value: "certification exam prep centers", label: "Exam Prep" },
+    ],
+  },
+  {
+    label: "🔐 B2B Consulting & Specialized Services",
+    niches: [
+      { value: "cybersecurity firms", label: "Cybersecurity" },
+      { value: "fractional CFO services", label: "Fractional CFO" },
+      { value: "HR consulting firms", label: "HR Consultants" },
+      { value: "business consulting firms", label: "Business Consulting" },
+      { value: "management consulting", label: "Management Consulting" },
+    ],
+  },
+  {
+    label: "🎯 Boutique Recruitment & Staffing",
+    niches: [
+      { value: "tech recruitment agencies", label: "Tech Recruiters" },
+      { value: "healthcare staffing agencies", label: "Healthcare Staffing" },
+      { value: "executive search firms", label: "Executive Search" },
+      { value: "IT staffing agencies", label: "IT Staffing" },
+      { value: "temporary staffing agencies", label: "Temp Staffing" },
+    ],
+  },
+  {
+    label: "⚙️ Industrial Equipment & Service",
+    niches: [
+      { value: "CNC machine dealers", label: "CNC Machines" },
+      { value: "laboratory equipment services", label: "Lab Equipment" },
+      { value: "commercial HVAC integrators", label: "Commercial HVAC" },
+      { value: "industrial equipment suppliers", label: "Industrial Equipment" },
+      { value: "machinery repair services", label: "Machinery Repair" },
+    ],
+  },
+  {
+    label: "💚 Non-Profit Organizations",
+    niches: [
+      { value: "environmental non-profit organizations", label: "Environmental" },
+      { value: "community arts organizations", label: "Community Arts" },
+      { value: "advocacy organizations", label: "Advocacy Groups" },
+      { value: "local charities", label: "Local Charities" },
+      { value: "youth development non-profits", label: "Youth Programs" },
     ],
   },
 ];
