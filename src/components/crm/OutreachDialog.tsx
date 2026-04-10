@@ -82,6 +82,7 @@ const OutreachDialog = ({ prospects, onClose, onSent }: Props) => {
           phone: p.phone || null,
           owner_name: p.owner_name || null,
           website_url: p.website_url || null,
+          website_screenshot: p.website_screenshot || null,
           niche: p.niche || null,
         }));
 
