@@ -8,7 +8,7 @@ import {
   Linkedin, Facebook, Instagram, Smartphone,
   Settings2, GripVertical, Eye, EyeOff, Info,
   Mic, Globe, MessageCircle, StopCircle, Pause, Play,
-  X
+  X, Trash2, AlertTriangle
 } from "lucide-react";
 import { Link } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
