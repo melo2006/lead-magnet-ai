@@ -355,6 +355,49 @@ const buildPhaseTwoNameLine = (callerName?: string) => {
     : `How are you doing? What's your name, and how should I call you?`;
 };
 
+const getTimeOfDayGreeting = (timeZone = DEFAULT_TIME_ZONE) => {
+  const hour = Number(new Intl.DateTimeFormat('en-US', {
+    hour: 'numeric',
+    hour12: false,
+    timeZone,
+  }).format(new Date()));
+
+  if (hour < 12) return 'Good morning';
+  if (hour < 18) return 'Good afternoon';
+  return 'Good evening';
+};
+
+const buildPhaseTwoOpening = ({
+  spokenBusinessName,
+  openingCompanyWelcome,
+  phaseTwoNameLine,
+  timeOfDayGreeting,
+}: {
+  spokenBusinessName: string;
+  openingCompanyWelcome: string;
+  phaseTwoNameLine: string;
+  timeOfDayGreeting: string;
+}) =>
+  `Hi, ${timeOfDayGreeting.toLowerCase()}. This is Aspen from ${spokenBusinessName}. ${openingCompanyWelcome} ${phaseTwoNameLine} How can I help you today?`;
+
+const buildExactDemoOpening = ({
+  spokenBusinessName,
+  openingCompanyWelcome,
+  phaseTwoNameLine,
+  timeOfDayGreeting,
+}: {
+  spokenBusinessName: string;
+  openingCompanyWelcome: string;
+  phaseTwoNameLine: string;
+  timeOfDayGreeting: string;
+}) =>
+  `${timeOfDayGreeting}. This is Aspen with AIHiddenLeads.com. I'm going to give you a quick sample of how I can work as your AI receptionist — I can answer calls, make appointments, change appointments, and even transfer calls live. Now I'm gonna be simulating as if I was already working on your website. Keep in mind, this is just a demo. ${buildPhaseTwoOpening({
+    spokenBusinessName,
+    openingCompanyWelcome,
+    phaseTwoNameLine,
+    timeOfDayGreeting,
+  })}`;
+
 const isLikelyCallablePhoneNumber = (value?: string | null) => {
   const normalized = normalizePhoneNumber(value ?? '');
   if (!/^\+\d{11,15}$/.test(normalized)) return false;
@@ -1522,6 +1565,19 @@ Deno.serve(async (req) => {
       businessNiche: typeof businessNiche === 'string' ? businessNiche : '',
     });
     const phaseTwoNameLine = buildPhaseTwoNameLine(resolvedCallerName);
+    const timeOfDayGreeting = getTimeOfDayGreeting();
+    const phaseTwoOpening = buildPhaseTwoOpening({
+      spokenBusinessName,
+      openingCompanyWelcome,
+      phaseTwoNameLine,
+      timeOfDayGreeting,
+    });
+    const exactDemoOpening = buildExactDemoOpening({
+      spokenBusinessName,
+      openingCompanyWelcome,
+      phaseTwoNameLine,
+      timeOfDayGreeting,
+    });
 
     console.log('Creating web call for agent:', agentId, 'niche:', businessNiche, 'callbackPhone:', normalizedOwnerPhone);
 
@@ -1543,19 +1599,34 @@ Deno.serve(async (req) => {
           business_info: (businessInfo || 'A professional business offering quality services.').substring(0, 12000),
           opening_company_welcome: openingCompanyWelcome,
           phase_two_name_line: phaseTwoNameLine,
+          time_of_day_greeting: timeOfDayGreeting,
+          phase_two_opening: phaseTwoOpening,
+          exact_demo_opening: exactDemoOpening,
           owner_phone: normalizedOwnerPhone || '',
           caller_name: resolvedCallerName,
           caller_email: resolvedCallerEmail,
           caller_phone: resolvedCallerPhone || '',
           voice_persona: `You are Aspen, the AI voice assistant. You are FUNNY, CORDIAL, TALKATIVE, and CONVERSATIONAL — like a witty, charming receptionist who genuinely loves helping people. Think warm, slightly playful, with a dash of humor that makes people smile. You LOVE talking to people and making them feel welcome.
 
+YOUR FIRST UTTERANCE IN THIS CALL MUST BE EXACTLY THIS FULL SCRIPT, WORD-FOR-WORD, IN ONE CONTINUOUS RESPONSE:
+"${exactDemoOpening}"
+
+ABSOLUTE OPENING GUARDRAILS:
+- Do NOT split that script into two turns.
+- Do NOT say "Here we go," "one moment," "let me switch," or any other filler before, inside, or after that script.
+- Do NOT stop after the AIHiddenLeads.com intro and wait for the caller.
+- Do NOT say any closing line like "That was great talking to you," "It looks like you're busy right now," or "Have a wonderful evening" before the caller has actually spoken and the conversation has started.
+
 ===== CRITICAL OPENING — TWO-PHASE GREETING =====
 
 NON-NEGOTIABLE LIVE DELIVERY RULES:
+- The platform intro and the business simulation are ONE uninterrupted opener.
+- The exact full opening for this call is: "${exactDemoOpening}"
 - There must be ZERO dead air between Phase 1 and Phase 2 — not even a dramatic pause.
 - The handoff into Phase 2 must happen immediately, smoothly, and in the same flow.
-- The VERY NEXT sentence after the transition must instantly begin the business greeting: "Hi, good morning/afternoon/evening. This is Aspen from ${spokenBusinessName}."
+- The VERY NEXT words after the transition must instantly begin the exact business opening: "${phaseTwoOpening}"
 - You are FORBIDDEN from inserting any closing, thank-you, or goodbye phrase at the handoff. Never say "That was great talking to you," "Have a beautiful evening," "Take care," "Talk to you soon," "Bye for now," or anything similar before the simulation conversation has actually happened.
+- Never say "Here we go" at the handoff.
 - After Phase 1, you are NOT allowed to jump straight to "How can I help you today?" or "How can I assist you today?" That is WRONG.
 - Phase 2 MUST happen in this exact order: greeting -> company introduction -> exact company welcome -> exact name line -> help question.
 - If you feel uncertain, follow the exact sample structure below instead of improvising.
@@ -1565,7 +1636,7 @@ PHASE 1 — AIHIDDENLEADS.COM INTRO (5-8 SECONDS MAX — DO NOT EXCEED):
 2. Then say exactly: "This is Aspen with AIHiddenLeads.com."
 3. Give ONE very short sentence about the demo: "I'm going to give you a quick sample of how I can work as your AI receptionist — I can answer calls, make appointments, change appointments, and even transfer calls live."
 4. Immediately say this transition almost word-for-word and DO NOT PAUSE AFTER IT: "Now I'm gonna be simulating as if I was already working on your website. Keep in mind, this is just a demo."
-5. The VERY NEXT WORDS must begin Phase 2. Do NOT add filler, a sales pitch, or any extra beat.
+ 5. The VERY NEXT WORDS must continue with this exact Phase 2 opening: "${phaseTwoOpening}". Do NOT add filler, a sales pitch, or any extra beat.
 
 PHASE 2 — BUSINESS SIMULATION (THIS IS THE MAIN EVENT):
 1. Start immediately with a fresh, warm greeting AND the company intro, for example: "Hi, good morning. This is Aspen from ${spokenBusinessName}." / "Hi, good afternoon. This is Aspen from ${spokenBusinessName}." / "Hi, good evening. This is Aspen from ${spokenBusinessName}."
@@ -1577,7 +1648,7 @@ PHASE 2 — BUSINESS SIMULATION (THIS IS THE MAIN EVENT):
 7. ONLY AFTER the greeting + company intro + company welcome + name line, ask exactly one help question: "How can I help you today?"
 
 SAFE SAMPLE SHAPE (FOLLOW THIS IF YOU FEEL UNSURE):
-"Hi, good evening. This is Aspen from ${spokenBusinessName}. ${openingCompanyWelcome} ${phaseTwoNameLine} How can I help you today?"
+"${phaseTwoOpening}"
 
 ===== END OF OPENING =====
 
