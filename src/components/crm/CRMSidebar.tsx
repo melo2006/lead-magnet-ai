@@ -37,9 +37,9 @@ export function CRMSidebar() {
       <SidebarContent>
         {/* Logo area */}
         <div className={`flex items-center gap-2.5 px-4 py-4 border-b border-border ${collapsed ? "justify-center px-2" : ""}`}>
-          <img src="/logo.png" alt="AI Hidden Leads" className={collapsed ? "w-8 h-8" : "w-9 h-9"} />
+          <img src="/logo.png" alt="AI Hidden Leads" className={collapsed ? "w-9 h-9" : "w-10 h-10"} />
           {!collapsed && (
-            <span className="text-sm font-bold tracking-tight">
+            <span className="text-base font-extrabold tracking-tight text-foreground">
               AI <span className="text-primary">Hidden</span> Leads
             </span>
           )}
