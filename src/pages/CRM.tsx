@@ -11,6 +11,7 @@ import TemplatesView from "@/components/crm/TemplatesView";
 import CallHistoryView from "@/components/crm/CallHistoryView";
 import ImportedListsView from "@/components/crm/ImportedListsView";
 import ImportedListDetailView from "@/components/crm/ImportedListDetailView";
+import EngagementDashboard from "@/components/crm/EngagementDashboard";
 
 const CRM = () => {
   return (
@@ -34,6 +35,7 @@ const CRM = () => {
               <Route path="calls" element={<CallHistoryView />} />
               <Route path="imported" element={<ImportedListsView />} />
               <Route path="imported/:id" element={<ImportedListDetailView />} />
+              <Route path="engagement" element={<EngagementDashboard />} />
               <Route path="templates" element={<TemplatesView />} />
               <Route path="*" element={<CRMDashboard />} />
             </Routes>
