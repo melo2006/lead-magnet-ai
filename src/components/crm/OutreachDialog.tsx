@@ -155,35 +155,63 @@ const OutreachDialog = ({ prospects, onClose, onSent }: Props) => {
               </div>
             </div>
 
-            <div>
-              <label className="block text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Email Template</label>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  onClick={() => setTemplateStyle("browser_mockup")}
-                  className={`p-3 rounded-lg border text-left transition-colors ${templateStyle === "browser_mockup" ? "bg-primary/10 border-primary/40" : "bg-secondary border-border hover:border-primary/20"}`}
-                >
-                  <Monitor className="w-5 h-5 mb-1 text-primary" />
-                  <p className="text-xs font-semibold text-foreground">Browser + AI</p>
-                  <p className="text-[10px] text-muted-foreground">Website with Chat & Voice buttons</p>
-                </button>
-                <button
-                  onClick={() => setTemplateStyle("phone_mockup")}
-                  className={`p-3 rounded-lg border text-left transition-colors ${templateStyle === "phone_mockup" ? "bg-primary/10 border-primary/40" : "bg-secondary border-border hover:border-primary/20"}`}
-                >
-                  <Smartphone className="w-5 h-5 mb-1 text-primary" />
-                  <p className="text-xs font-semibold text-foreground">Phone Mockup</p>
-                  <p className="text-[10px] text-muted-foreground">Website in phone frame</p>
-                </button>
-                <button
-                  onClick={() => setTemplateStyle("clean_card")}
-                  className={`p-3 rounded-lg border text-left transition-colors ${templateStyle === "clean_card" ? "bg-primary/10 border-primary/40" : "bg-secondary border-border hover:border-primary/20"}`}
-                >
-                  <Zap className="w-5 h-5 mb-1 text-primary" />
-                  <p className="text-xs font-semibold text-foreground">Clean Card</p>
-                  <p className="text-[10px] text-muted-foreground">Branded card with demo</p>
-                </button>
+            {channel !== "sms" && (
+              <div>
+                <label className="block text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Email Template</label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    onClick={() => setTemplateStyle("browser_mockup")}
+                    className={`p-3 rounded-lg border text-left transition-colors ${templateStyle === "browser_mockup" ? "bg-primary/10 border-primary/40" : "bg-secondary border-border hover:border-primary/20"}`}
+                  >
+                    <Monitor className="w-5 h-5 mb-1 text-primary" />
+                    <p className="text-xs font-semibold text-foreground">Browser + AI</p>
+                    <p className="text-[10px] text-muted-foreground">Website with Chat & Voice buttons</p>
+                  </button>
+                  <button
+                    onClick={() => setTemplateStyle("phone_mockup")}
+                    className={`p-3 rounded-lg border text-left transition-colors ${templateStyle === "phone_mockup" ? "bg-primary/10 border-primary/40" : "bg-secondary border-border hover:border-primary/20"}`}
+                  >
+                    <Smartphone className="w-5 h-5 mb-1 text-primary" />
+                    <p className="text-xs font-semibold text-foreground">Phone Mockup</p>
+                    <p className="text-[10px] text-muted-foreground">Website in phone frame</p>
+                  </button>
+                  <button
+                    onClick={() => setTemplateStyle("clean_card")}
+                    className={`p-3 rounded-lg border text-left transition-colors ${templateStyle === "clean_card" ? "bg-primary/10 border-primary/40" : "bg-secondary border-border hover:border-primary/20"}`}
+                  >
+                    <Zap className="w-5 h-5 mb-1 text-primary" />
+                    <p className="text-xs font-semibold text-foreground">Clean Card</p>
+                    <p className="text-[10px] text-muted-foreground">Branded card with demo</p>
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
+
+            {channel !== "email" && (
+              <div>
+                <label className="block text-[10px] uppercase tracking-wider text-muted-foreground mb-2">SMS Template</label>
+                <div className="grid grid-cols-1 gap-2 max-h-[180px] overflow-y-auto pr-1">
+                  {smsTemplates.map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => setSmsTemplateId(t.id)}
+                      className={`p-3 rounded-lg border text-left transition-colors flex items-start gap-3 ${smsTemplateId === t.id ? "bg-primary/10 border-primary/40" : "bg-secondary border-border hover:border-primary/20"}`}
+                    >
+                      <div className="shrink-0 mt-0.5">
+                        {t.mms ? <Image className="w-4 h-4 text-primary" /> : <MessageSquareText className="w-4 h-4 text-muted-foreground" />}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                          {t.name}
+                          {t.mms && <span className="text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-bold">MMS</span>}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">{t.description}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {channel !== "sms" && (
               <div>
