@@ -7,6 +7,8 @@ import Index from "./pages/Index.tsx";
 import DemoSite from "./pages/DemoSite.tsx";
 import CRM from "./pages/CRM.tsx";
 import TryDemo from "./pages/TryDemo.tsx";
+import PrivacyPolicy from "./pages/PrivacyPolicy.tsx";
+import TermsOfService from "./pages/TermsOfService.tsx";
 
 
 const queryClient = new QueryClient();
@@ -18,10 +20,12 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/marketing" element={<Index />} />
+          <Route path="/" element={<Index />} />
           <Route path="/demo-site" element={<DemoSite />} />
           <Route path="/demo" element={<TryDemo />} />
-          <Route path="/*" element={<CRM />} />
+          <Route path="/privacy" element={<PrivacyPolicy />} />
+          <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/dashboard/*" element={<CRM />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
