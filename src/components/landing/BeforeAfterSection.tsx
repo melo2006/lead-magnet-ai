@@ -102,21 +102,23 @@ const DeviceAiBadges = ({ device }: DeviceAiBadgesProps) => {
       : "absolute inset-x-[13%] top-[6%] bottom-[33%]";
 
   return (
-    <div className={`${screenBounds} pointer-events-none`}>
-      <div className="absolute bottom-[10%] left-[8%] flex flex-col items-center gap-0.5">
-        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[hsl(262,83%,58%)] shadow-lg shadow-[hsl(262,83%,58%)]/40 sm:h-10 sm:w-10">
-          <MessageSquare className="h-3.5 w-3.5 text-white sm:h-4.5 sm:w-4.5" />
+    <div className={`${screenBounds} pointer-events-none overflow-hidden rounded-lg`}>
+      {/* AI Chat - bottom left inside screen */}
+      <div className="absolute bottom-[12%] left-[10%] flex flex-col items-center gap-0.5">
+        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[hsl(262,83%,58%)] shadow-lg shadow-[hsl(262,83%,58%)]/40 sm:h-9 sm:w-9">
+          <MessageSquare className="h-3.5 w-3.5 text-white sm:h-4 sm:w-4" />
         </div>
-        <span className="text-[7px] font-bold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] sm:text-[9px]">
+        <span className="text-[6px] font-bold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] sm:text-[8px]">
           AI Chat
         </span>
       </div>
 
-      <div className="absolute bottom-[10%] right-[8%] flex flex-col items-center gap-0.5">
-        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[hsl(142,71%,45%)] shadow-lg shadow-[hsl(142,71%,45%)]/40 sm:h-10 sm:w-10">
-          <Mic className="h-3.5 w-3.5 text-white sm:h-4.5 sm:w-4.5" />
+      {/* Voice AI - bottom right inside screen */}
+      <div className="absolute bottom-[12%] right-[10%] flex flex-col items-center gap-0.5">
+        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[hsl(142,71%,45%)] shadow-lg shadow-[hsl(142,71%,45%)]/40 sm:h-9 sm:w-9">
+          <Mic className="h-3.5 w-3.5 text-white sm:h-4 sm:w-4" />
         </div>
-        <span className="text-[7px] font-bold text-white drop-shadow-[0_1px_3px_rgba(0,0,0,0.8)] sm:text-[9px]">
+        <span className="text-[6px] font-bold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] sm:text-[8px]">
           Voice AI
         </span>
       </div>
