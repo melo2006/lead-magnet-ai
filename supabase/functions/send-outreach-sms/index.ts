@@ -9,6 +9,8 @@ const corsHeaders = {
 const TWILIO_GATEWAY_URL = 'https://connector-gateway.lovable.dev/twilio';
 const TWILIO_CALLER_ID = '+15612755757';
 
+const OPT_OUT = `\n\nWant to keep getting new leads? Great — do nothing! Reply STOP to opt out.`;
+
 const ProspectSchema = z.object({
   id: z.string().uuid(),
   business_name: z.string().min(1).max(500),
@@ -24,9 +26,11 @@ const BodySchema = z.object({
   smsTemplateId: z.string().max(100).optional().default('quick_demo'),
   customMessage: z.string().max(500).optional().default(''),
   baseUrl: z.string().url(),
+  testMode: z.boolean().optional().default(false),
+  testPhone: z.string().max(30).optional(),
 });
 
-// ── Template definitions (mirrored from client) ──────────────────────
+// ── Template definitions ──────────────────────
 type Prospect = z.infer<typeof ProspectSchema>;
 
 const pName = (p: Prospect) => p.owner_name?.trim() || p.business_name;
@@ -35,27 +39,27 @@ const TEMPLATES: Record<string, { mms: boolean; body: (p: Prospect, demoUrl: str
   quick_demo: {
     mms: false,
     body: (p, url) =>
-      `Hi ${pName(p)}! We built a quick AI demo for ${p.business_name} — see Chat AI & Voice AI live on your site.\n\nTry it now, it's totally free:\n${url}\n\n— AI Hidden Leads`,
+      `Hi ${pName(p)}! We built a quick AI demo for ${p.business_name} — see Chat AI & Voice AI live on your site.\n\nTry it now, it's totally free:\n${url}\n\n— AI Hidden Leads${OPT_OUT}`,
   },
   quick_demo_mms: {
     mms: true,
     body: (p, url) =>
-      `Hi ${pName(p)}! We built a quick AI demo for ${p.business_name} — see Chat AI & Voice AI live on your site.\n\nTry it now, it's totally free:\n${url}\n\n— AI Hidden Leads`,
+      `Hi ${pName(p)}! We built a quick AI demo for ${p.business_name} — see Chat AI & Voice AI live on your site.\n\nTry it now, it's totally free:\n${url}\n\n— AI Hidden Leads${OPT_OUT}`,
   },
   missed_calls: {
     mms: false,
     body: (p, url) =>
-      `Hey ${pName(p)}, have you missed any leads lately from calls going to voicemail or visitors leaving your site?\n\nI built a Voice AI that talks to your customers, takes notes, books appointments & transfers qualified leads to you live.\n\nCheck out what I set up for ${p.business_name}:\n${url}\n\n— AI Hidden Leads`,
+      `Hey ${pName(p)}, have you missed any leads lately from calls going to voicemail or visitors leaving your site?\n\nI built a Voice AI that talks to your customers, takes notes, books appointments & transfers qualified leads to you live.\n\nCheck out what I set up for ${p.business_name}:\n${url}\n\n— AI Hidden Leads${OPT_OUT}`,
   },
   industry_fomo: {
     mms: false,
     body: (p, url) =>
-      `Hi ${pName(p)}, most ${p.niche || 'business'} owners in your area are missing out by not answering calls fast enough.\n\nI built an AI assistant for ${p.business_name} that picks up every call, answers FAQs, and books appointments 24/7.\n\nSee it in action — totally free:\n${url}\n\n— AI Hidden Leads`,
+      `Hi ${pName(p)}, most ${p.niche || 'business'} owners in your area are missing out by not answering calls fast enough.\n\nI built an AI assistant for ${p.business_name} that picks up every call, answers FAQs, and books appointments 24/7.\n\nSee it in action — totally free:\n${url}\n\n— AI Hidden Leads${OPT_OUT}`,
   },
   industry_fomo_mms: {
     mms: true,
     body: (p, url) =>
-      `Hi ${pName(p)}, most ${p.niche || 'business'} owners in your area are missing out by not answering calls fast enough.\n\nI built an AI assistant for ${p.business_name} that picks up every call, answers FAQs, and books appointments 24/7.\n\nSee it in action — totally free:\n${url}\n\n— AI Hidden Leads`,
+      `Hi ${pName(p)}, most ${p.niche || 'business'} owners in your area are missing out by not answering calls fast enough.\n\nI built an AI assistant for ${p.business_name} that picks up every call, answers FAQs, and books appointments 24/7.\n\nSee it in action — totally free:\n${url}\n\n— AI Hidden Leads${OPT_OUT}`,
   },
 };
 
@@ -90,16 +94,30 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { prospects, smsTemplateId, customMessage, baseUrl } = parsed.data;
+    const { prospects, smsTemplateId, customMessage, baseUrl, testMode, testPhone } = parsed.data;
     const template = TEMPLATES[smsTemplateId] ?? TEMPLATES['quick_demo'];
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
     const supabase = createClient(supabaseUrl, supabaseKey);
 
+    // Check do_not_contact flag
+    const prospectIds = prospects.map(p => p.id);
+    const { data: dncRows } = await supabase
+      .from('prospects')
+      .select('id, do_not_contact')
+      .in('id', prospectIds)
+      .eq('do_not_contact', true);
+    const dncSet = new Set((dncRows || []).map(r => r.id));
+
     const results: { id: string; success: boolean; error?: string; messageSid?: string }[] = [];
 
     for (const prospect of prospects) {
+      if (dncSet.has(prospect.id)) {
+        results.push({ id: prospect.id, success: false, error: 'Do-not-contact flagged' });
+        continue;
+      }
+
       const phone = prospect.phone;
       if (!phone) {
         results.push({ id: prospect.id, success: false, error: 'No phone number' });
@@ -113,15 +131,18 @@ Deno.serve(async (req) => {
       else if (digits.length === 11 && digits.startsWith('1')) normalizedPhone = `+${digits}`;
       else if (!normalizedPhone.startsWith('+')) normalizedPhone = `+${digits}`;
 
+      // In test mode, override the destination number
+      const destinationPhone = testMode && testPhone ? testPhone : normalizedPhone;
+
       const demoUrl = `${baseUrl}/demo?url=${encodeURIComponent(prospect.website_url || '')}&name=${encodeURIComponent(prospect.business_name)}&niche=${encodeURIComponent(prospect.niche || '')}&prospectId=${encodeURIComponent(prospect.id)}`;
 
       const smsBody = customMessage
-        ? `${customMessage}\n\nTry it now:\n${demoUrl}\n\n— AI Hidden Leads`
+        ? `${customMessage}\n\nTry it now:\n${demoUrl}\n\n— AI Hidden Leads${OPT_OUT}`
         : template.body(prospect, demoUrl);
 
       try {
         const params: Record<string, string> = {
-          To: normalizedPhone,
+          To: destinationPhone,
           From: TWILIO_CALLER_ID,
           Body: smsBody,
         };
@@ -151,18 +172,20 @@ Deno.serve(async (req) => {
           continue;
         }
 
-        console.log(`SMS sent to ${normalizedPhone} for ${prospect.business_name}: ${data?.sid}`);
+        console.log(`SMS sent to ${destinationPhone} for ${prospect.business_name}: ${data?.sid}${testMode ? ' [TEST]' : ''}`);
 
-        // Update prospect
-        await supabase
-          .from('prospects')
-          .update({
-            sms_sent_at: new Date().toISOString(),
-            demo_link: demoUrl,
-            pipeline_stage: 'contacted',
-            last_contacted_at: new Date().toISOString(),
-          })
-          .eq('id', prospect.id);
+        // Only update prospect in non-test mode
+        if (!testMode) {
+          await supabase
+            .from('prospects')
+            .update({
+              sms_sent_at: new Date().toISOString(),
+              demo_link: demoUrl,
+              pipeline_stage: 'contacted',
+              last_contacted_at: new Date().toISOString(),
+            })
+            .eq('id', prospect.id);
+        }
 
         results.push({ id: prospect.id, success: true, messageSid: data?.sid });
       } catch (err) {

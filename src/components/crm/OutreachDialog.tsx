@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Mail, Send, Smartphone, X, Zap, ExternalLink, ChevronLeft, ChevronRight, Monitor, Image, MessageSquareText } from "lucide-react";
+import { Mail, Send, Smartphone, X, Zap, ExternalLink, ChevronLeft, ChevronRight, Monitor, Image, MessageSquareText, FlaskConical } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Prospect } from "@/hooks/useProspectSearch";
@@ -28,12 +28,55 @@ const OutreachDialog = ({ prospects, onClose, onSent }: Props) => {
   const [customMessage, setCustomMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [previewIndex, setPreviewIndex] = useState(0);
+  const [testPhone, setTestPhone] = useState(() => localStorage.getItem("test_sms_phone") || "");
+  const [sendingTest, setSendingTest] = useState(false);
 
   const activeSmsTemplate = getSmsTemplate(smsTemplateId);
 
   const previewProspect = prospects[previewIndex] || null;
 
   const demoUrl = (p: Prospect) => buildDemoUrl(p);
+
+  const handleSendTest = async () => {
+    if (!testPhone.trim()) {
+      toast.error("Enter a test phone number first");
+      return;
+    }
+    if (!previewProspect) return;
+    localStorage.setItem("test_sms_phone", testPhone);
+    setSendingTest(true);
+    try {
+      const smsProspect = {
+        id: previewProspect.id!,
+        business_name: previewProspect.business_name,
+        phone: previewProspect.phone || "+10000000000",
+        owner_name: previewProspect.owner_name || null,
+        website_url: previewProspect.website_url || null,
+        website_screenshot: previewProspect.website_screenshot || null,
+        niche: previewProspect.niche || null,
+      };
+      const { data, error } = await supabase.functions.invoke("send-outreach-sms", {
+        body: {
+          prospects: [smsProspect],
+          smsTemplateId,
+          customMessage,
+          baseUrl: window.location.origin,
+          testMode: true,
+          testPhone: testPhone.trim(),
+        },
+      });
+      if (error) throw error;
+      if (data?.sent > 0) {
+        toast.success(`Test SMS sent to ${testPhone}!`);
+      } else {
+        toast.error("Test SMS failed", { description: data?.results?.[0]?.error });
+      }
+    } catch (err) {
+      toast.error("Test SMS failed");
+    } finally {
+      setSendingTest(false);
+    }
+  };
 
   const handleSend = async () => {
     setSending(true);
@@ -234,6 +277,32 @@ const OutreachDialog = ({ prospects, onClose, onSent }: Props) => {
                 placeholder="Add a personalized intro..."
               />
             </div>
+
+            {/* Test SMS section */}
+            {channel !== "email" && (
+              <div className="border border-dashed border-primary/30 rounded-xl p-3 space-y-2 bg-primary/5">
+                <label className="block text-[10px] uppercase tracking-wider text-primary font-semibold flex items-center gap-1.5">
+                  <FlaskConical className="w-3.5 h-3.5" /> Send Test SMS
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    value={testPhone}
+                    onChange={(e) => setTestPhone(e.target.value)}
+                    placeholder="+1 954-770-6622"
+                    className="flex-1 px-3 py-2 rounded-lg bg-secondary border border-border text-sm text-foreground focus:outline-none focus:border-primary/50"
+                  />
+                  <button
+                    onClick={handleSendTest}
+                    disabled={sendingTest || !testPhone.trim()}
+                    className="px-4 py-2 rounded-lg bg-primary/20 text-primary font-semibold text-sm hover:bg-primary/30 transition-colors disabled:opacity-40 flex items-center gap-1.5 shrink-0"
+                  >
+                    <FlaskConical className="w-4 h-4" />
+                    {sendingTest ? "Sending..." : "Test"}
+                  </button>
+                </div>
+                <p className="text-[10px] text-muted-foreground">Sends to your phone using the current preview prospect — won't update CRM records.</p>
+              </div>
+            )}
 
             <button
               onClick={handleSend}
