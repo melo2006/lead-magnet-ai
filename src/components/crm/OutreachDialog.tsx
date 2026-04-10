@@ -278,6 +278,32 @@ const OutreachDialog = ({ prospects, onClose, onSent }: Props) => {
               />
             </div>
 
+            {/* Test SMS section */}
+            {channel !== "email" && (
+              <div className="border border-dashed border-primary/30 rounded-xl p-3 space-y-2 bg-primary/5">
+                <label className="block text-[10px] uppercase tracking-wider text-primary font-semibold flex items-center gap-1.5">
+                  <FlaskConical className="w-3.5 h-3.5" /> Send Test SMS
+                </label>
+                <div className="flex gap-2">
+                  <input
+                    value={testPhone}
+                    onChange={(e) => setTestPhone(e.target.value)}
+                    placeholder="+1 954-770-6622"
+                    className="flex-1 px-3 py-2 rounded-lg bg-secondary border border-border text-sm text-foreground focus:outline-none focus:border-primary/50"
+                  />
+                  <button
+                    onClick={handleSendTest}
+                    disabled={sendingTest || !testPhone.trim()}
+                    className="px-4 py-2 rounded-lg bg-primary/20 text-primary font-semibold text-sm hover:bg-primary/30 transition-colors disabled:opacity-40 flex items-center gap-1.5 shrink-0"
+                  >
+                    <FlaskConical className="w-4 h-4" />
+                    {sendingTest ? "Sending..." : "Test"}
+                  </button>
+                </div>
+                <p className="text-[10px] text-muted-foreground">Sends to your phone using the current preview prospect — won't update CRM records.</p>
+              </div>
+            )}
+
             <button
               onClick={handleSend}
               disabled={sending}
