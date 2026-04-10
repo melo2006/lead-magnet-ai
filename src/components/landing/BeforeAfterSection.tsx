@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { ArrowRight, MessageSquare, Mic } from "lucide-react";
+import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { NicheData } from "@/data/nicheData";
 
@@ -91,41 +91,6 @@ const nicheAssets: Record<string, NicheAssets> = {
   },
 };
 
-interface DeviceAiBadgesProps {
-  device: "phone" | "laptop";
-}
-
-const DeviceAiBadges = ({ device }: DeviceAiBadgesProps) => {
-  const screenBounds =
-    device === "phone"
-      ? "absolute inset-x-[24%] top-[7%] bottom-[8%]"
-      : "absolute inset-x-[13%] top-[6%] bottom-[33%]";
-
-  return (
-    <div className={`${screenBounds} pointer-events-none overflow-hidden rounded-lg`}>
-      {/* AI Chat - bottom left inside screen */}
-      <div className="absolute bottom-[12%] left-[10%] flex flex-col items-center gap-0.5">
-        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[hsl(262,83%,58%)] shadow-lg shadow-[hsl(262,83%,58%)]/40 sm:h-9 sm:w-9">
-          <MessageSquare className="h-3.5 w-3.5 text-white sm:h-4 sm:w-4" />
-        </div>
-        <span className="text-[6px] font-bold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] sm:text-[8px]">
-          AI Chat
-        </span>
-      </div>
-
-      {/* Voice AI - bottom right inside screen */}
-      <div className="absolute bottom-[12%] right-[10%] flex flex-col items-center gap-0.5">
-        <div className="flex h-7 w-7 items-center justify-center rounded-full bg-[hsl(142,71%,45%)] shadow-lg shadow-[hsl(142,71%,45%)]/40 sm:h-9 sm:w-9">
-          <Mic className="h-3.5 w-3.5 text-white sm:h-4 sm:w-4" />
-        </div>
-        <span className="text-[6px] font-bold text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] sm:text-[8px]">
-          Voice AI
-        </span>
-      </div>
-    </div>
-  );
-};
-
 interface BeforeAfterSectionProps {
   niche: NicheData;
 }
@@ -200,7 +165,6 @@ const BeforeAfterSection = ({ niche }: BeforeAfterSectionProps) => {
             <div className="absolute -inset-2 rounded-3xl bg-primary/10 blur-xl" />
             <div className="relative overflow-hidden rounded-2xl">
               <img src={assets.newPhone} alt={`Modern AI-powered ${niche.label} website`} className="w-full h-auto" />
-              <DeviceAiBadges device="phone" />
             </div>
             <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-primary text-[10px] sm:text-sm font-semibold whitespace-nowrap">
               {assets.afterLabel}
@@ -250,7 +214,6 @@ const BeforeAfterSection = ({ niche }: BeforeAfterSectionProps) => {
             <div className="absolute -inset-2 rounded-3xl bg-primary/10 blur-xl" />
             <div className="relative overflow-hidden rounded-xl">
               <img src={assets.newLaptop} alt={`Modern AI-powered ${niche.label} website on a laptop`} className="w-full h-auto" />
-              <DeviceAiBadges device="laptop" />
             </div>
             <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-primary text-[10px] sm:text-sm font-semibold whitespace-nowrap">
               Desktop — With AI Hidden Leads ✨
