@@ -353,7 +353,16 @@ const TryDemo = () => {
           className="mt-4 px-4 py-3 rounded-xl border border-border/50 bg-card/40 backdrop-blur-sm"
         >
           <p className="text-[11px] text-muted-foreground leading-relaxed">
-            <span className="font-semibold text-foreground/80">⚡ Quick demo disclaimer:</span> This is a rapid AI-generated simulation built in about 90 seconds — not a full knowledge base. It gives you a taste of what your AI receptionist will sound like. The production version we build for you will be much more detailed and accurate. You can even test a live warm transfer during the demo!
+            <button
+              type="button"
+              onClick={() => navigate("/prospects")}
+              className="mr-1 inline-flex items-center font-semibold text-foreground/80 transition-colors hover:text-primary"
+              title="Go to Prospects"
+              aria-label="Go to Prospects"
+            >
+              ⚡ Quick demo disclaimer:
+            </button>
+            This is a rapid AI-generated simulation built in about 90 seconds — not a full knowledge base. It gives you a taste of what your AI receptionist will sound like. The production version we build for you will be much more detailed and accurate. You can even test a live warm transfer during the demo!
           </p>
         </motion.div>
 
