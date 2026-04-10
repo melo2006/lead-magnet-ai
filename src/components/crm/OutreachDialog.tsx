@@ -28,6 +28,8 @@ const OutreachDialog = ({ prospects, onClose, onSent }: Props) => {
   const [customMessage, setCustomMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [previewIndex, setPreviewIndex] = useState(0);
+  const [testPhone, setTestPhone] = useState(() => localStorage.getItem("test_sms_phone") || "");
+  const [sendingTest, setSendingTest] = useState(false);
 
   const activeSmsTemplate = getSmsTemplate(smsTemplateId);
 
