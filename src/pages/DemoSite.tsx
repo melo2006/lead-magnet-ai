@@ -652,7 +652,7 @@ const DemoSite = () => {
 
             <button
               onClick={() => navigate("/prospects")}
-              className="hidden rounded-full border border-transparent bg-transparent px-1 py-1 text-[8px] text-transparent hover:text-muted-foreground hover:border-border transition-colors sm:inline-flex"
+              className="rounded-full border border-transparent bg-transparent px-1.5 py-1 text-[8px] text-muted-foreground/30 hover:text-muted-foreground hover:border-border transition-colors inline-flex"
               title="Go to Prospects"
             >
               •
