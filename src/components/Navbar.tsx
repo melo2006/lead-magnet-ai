@@ -26,9 +26,9 @@ const Navbar = () => {
     <nav className="sticky top-0 z-[90] bg-background/80 backdrop-blur-xl border-b border-border">
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 flex items-center justify-between h-14">
         {/* Logo */}
-        <Link to="/" className="flex items-center gap-2">
-          <img src="/logo.png" alt="AI Hidden Leads" className="w-8 h-8" />
-          <span className="text-lg font-bold tracking-tight">
+        <Link to="/" className="flex items-center gap-2.5">
+          <img src="/logo.png" alt="AI Hidden Leads" className="w-9 h-9" />
+          <span className="text-lg font-extrabold tracking-tight text-foreground">
             AI <span className="text-primary">Hidden</span> Leads
           </span>
         </Link>
