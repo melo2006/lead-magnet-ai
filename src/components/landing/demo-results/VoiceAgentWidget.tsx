@@ -638,6 +638,7 @@ const VoiceAgentWidget = ({
 
       retellClient.on("call_ended", () => {
         setIsMuted(false);
+        setIsAgentSpeaking(false);
         clearTimer();
 
         // If a live transfer is in progress, keep the widget in "active" state
@@ -661,6 +662,14 @@ const VoiceAgentWidget = ({
 
       retellClient.on("node_transition", (event: unknown) => {
         maybeStartTransferFromLiveCall(event);
+      });
+
+      retellClient.on("agent_start_talking", () => {
+        setIsAgentSpeaking(true);
+      });
+
+      retellClient.on("agent_stop_talking", () => {
+        setIsAgentSpeaking(false);
       });
 
       retellClient.on("error", (err: any) => {
