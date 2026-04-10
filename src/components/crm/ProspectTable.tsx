@@ -275,6 +275,27 @@ const ProspectTable = ({ analysis, prospects, isLoading, onRefetch, onOutreach, 
   
   const [showAnalyzeConfirm, setShowAnalyzeConfirm] = useState(false);
   const [analyzeTarget, setAnalyzeTarget] = useState<"all" | "selected">("all");
+  const [deleteConfirmOpen, setDeleteConfirmOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteSelected = async () => {
+    const selectedProspects = sorted.filter(p => selectedIds.has(p.place_id));
+    const ids = selectedProspects.map(p => p.id).filter(Boolean);
+    if (ids.length === 0) return;
+    setIsDeleting(true);
+    try {
+      const { error } = await supabase.from("prospects").delete().in("id", ids);
+      if (error) throw error;
+      toast.success(`Deleted ${ids.length} prospect${ids.length > 1 ? "s" : ""}`);
+      setSelectedIds(new Set());
+      setDeleteConfirmOpen(false);
+      onRefetch?.();
+    } catch (err: any) {
+      toast.error(err.message || "Failed to delete prospects");
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const handleSendSms = async (prospect: Prospect, e: React.MouseEvent) => {
     e.stopPropagation();
