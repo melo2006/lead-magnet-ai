@@ -15,27 +15,49 @@ const ProspectSchema = z.object({
   phone: z.string().max(30).nullable().optional(),
   owner_name: z.string().max(500).nullable().optional(),
   website_url: z.string().max(2000).nullable().optional(),
+  website_screenshot: z.string().max(4000).nullable().optional(),
   niche: z.string().max(200).nullable().optional(),
 });
 
 const BodySchema = z.object({
   prospects: z.array(ProspectSchema).min(1).max(50),
+  smsTemplateId: z.string().max(100).optional().default('quick_demo'),
   customMessage: z.string().max(500).optional().default(''),
   baseUrl: z.string().url(),
 });
 
-function buildSmsBody(
-  prospect: z.infer<typeof ProspectSchema>,
-  customMessage: string,
-  demoUrl: string,
-): string {
-  const name = prospect.owner_name || prospect.business_name;
-  const intro = customMessage
-    ? customMessage
-    : `Hi ${name}! We built a personalized AI demo for ${prospect.business_name} — chat or talk with your own AI employee.`;
+// ── Template definitions (mirrored from client) ──────────────────────
+type Prospect = z.infer<typeof ProspectSchema>;
 
-  return `${intro}\n\nTry it now: ${demoUrl}\n\n— AgentFlow AI`;
-}
+const pName = (p: Prospect) => p.owner_name?.trim() || p.business_name;
+
+const TEMPLATES: Record<string, { mms: boolean; body: (p: Prospect, demoUrl: string) => string }> = {
+  quick_demo: {
+    mms: false,
+    body: (p, url) =>
+      `Hi ${pName(p)}! We built a quick AI demo for ${p.business_name} — see Chat AI & Voice AI live on your site.\n\nTry it now, it's totally free:\n${url}\n\n— AI Hidden Leads`,
+  },
+  quick_demo_mms: {
+    mms: true,
+    body: (p, url) =>
+      `Hi ${pName(p)}! We built a quick AI demo for ${p.business_name} — see Chat AI & Voice AI live on your site.\n\nTry it now, it's totally free:\n${url}\n\n— AI Hidden Leads`,
+  },
+  missed_calls: {
+    mms: false,
+    body: (p, url) =>
+      `Hey ${pName(p)}, have you missed any leads lately from calls going to voicemail or visitors leaving your site?\n\nI built a Voice AI that talks to your customers, takes notes, books appointments & transfers qualified leads to you live.\n\nCheck out what I set up for ${p.business_name}:\n${url}\n\n— AI Hidden Leads`,
+  },
+  industry_fomo: {
+    mms: false,
+    body: (p, url) =>
+      `Hi ${pName(p)}, most ${p.niche || 'business'} owners in your area are missing out by not answering calls fast enough.\n\nI built an AI assistant for ${p.business_name} that picks up every call, answers FAQs, and books appointments 24/7.\n\nSee it in action — totally free:\n${url}\n\n— AI Hidden Leads`,
+  },
+  industry_fomo_mms: {
+    mms: true,
+    body: (p, url) =>
+      `Hi ${pName(p)}, most ${p.niche || 'business'} owners in your area are missing out by not answering calls fast enough.\n\nI built an AI assistant for ${p.business_name} that picks up every call, answers FAQs, and books appointments 24/7.\n\nSee it in action — totally free:\n${url}\n\n— AI Hidden Leads`,
+  },
+};
 
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
@@ -68,7 +90,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    const { prospects, customMessage, baseUrl } = parsed.data;
+    const { prospects, smsTemplateId, customMessage, baseUrl } = parsed.data;
+    const template = TEMPLATES[smsTemplateId] ?? TEMPLATES['quick_demo'];
 
     const supabaseUrl = Deno.env.get('SUPABASE_URL')!;
     const supabaseKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
@@ -91,9 +114,23 @@ Deno.serve(async (req) => {
       else if (!normalizedPhone.startsWith('+')) normalizedPhone = `+${digits}`;
 
       const demoUrl = `${baseUrl}/demo?url=${encodeURIComponent(prospect.website_url || '')}&name=${encodeURIComponent(prospect.business_name)}&niche=${encodeURIComponent(prospect.niche || '')}&prospectId=${encodeURIComponent(prospect.id)}`;
-      const smsBody = buildSmsBody(prospect, customMessage, demoUrl);
+
+      const smsBody = customMessage
+        ? `${customMessage}\n\nTry it now:\n${demoUrl}\n\n— AI Hidden Leads`
+        : template.body(prospect, demoUrl);
 
       try {
+        const params: Record<string, string> = {
+          To: normalizedPhone,
+          From: TWILIO_CALLER_ID,
+          Body: smsBody,
+        };
+
+        // Attach screenshot as MMS if template is MMS and screenshot exists
+        if (template.mms && prospect.website_screenshot) {
+          params.MediaUrl = prospect.website_screenshot;
+        }
+
         const response = await fetch(`${TWILIO_GATEWAY_URL}/Messages.json`, {
           method: 'POST',
           headers: {
@@ -101,11 +138,7 @@ Deno.serve(async (req) => {
             'X-Connection-Api-Key': twilioApiKey,
             'Content-Type': 'application/x-www-form-urlencoded',
           },
-          body: new URLSearchParams({
-            To: normalizedPhone,
-            From: TWILIO_CALLER_ID,
-            Body: smsBody,
-          }),
+          body: new URLSearchParams(params),
         });
 
         const data = await response.json().catch(() => null);
