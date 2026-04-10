@@ -849,6 +849,7 @@ export type Database = {
           created_at: string
           demo_link: string | null
           demo_viewed_at: string | null
+          do_not_contact: boolean
           email: string | null
           email_clicked_at: string | null
           email_opened_at: string | null
@@ -912,6 +913,7 @@ export type Database = {
           created_at?: string
           demo_link?: string | null
           demo_viewed_at?: string | null
+          do_not_contact?: boolean
           email?: string | null
           email_clicked_at?: string | null
           email_opened_at?: string | null
@@ -975,6 +977,7 @@ export type Database = {
           created_at?: string
           demo_link?: string | null
           demo_viewed_at?: string | null
+          do_not_contact?: boolean
           email?: string | null
           email_clicked_at?: string | null
           email_opened_at?: string | null
