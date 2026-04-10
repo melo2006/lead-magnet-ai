@@ -18,9 +18,9 @@ const CRM = () => {
       <div className="min-h-screen flex w-full">
         <CRMSidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="h-12 flex items-center border-b border-border px-4 bg-background/50 backdrop-blur-sm">
+          <header className="sticky top-0 z-40 h-12 flex items-center border-b border-border px-4 bg-background/95 backdrop-blur-sm">
             <SidebarTrigger className="mr-3" />
-            <span className="text-xs text-muted-foreground">LeadEngine CRM</span>
+            <span className="text-xs text-muted-foreground">AI Hidden Leads</span>
           </header>
           <main className="flex-1 p-4 sm:p-6 overflow-y-auto">
             <Routes>
