@@ -116,3 +116,11 @@
     box-shadow: 0 0 40px -10px hsl(var(--primary) / 0.3);
   }
 }
+
+@keyframes lipSync {
+  0% { transform: scaleY(1); }
+  25% { transform: scaleY(2.5); }
+  50% { transform: scaleY(0.8); }
+  75% { transform: scaleY(2); }
+  100% { transform: scaleY(1.2); }
+}
