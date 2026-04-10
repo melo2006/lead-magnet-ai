@@ -3,6 +3,7 @@ import { Mic, MicOff, Phone, PhoneOff, Loader2, Maximize2, Minimize2, X, Volume2
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Slider } from "@/components/ui/slider";
+import aspenAvatar from "@/assets/aspen-avatar.jpg";
 
 const RETELL_AGENT_ID = "agent_0dd08673d770e8adf08f920490";
 const DEFAULT_OWNER_NAME = "Ron Melo";
@@ -194,6 +195,7 @@ const VoiceAgentWidget = ({
   const [transferInProgress, setTransferInProgress] = useState(false);
   const [lastAgentMessage, setLastAgentMessage] = useState<string>("");
   const [isReplaying, setIsReplaying] = useState(false);
+  const [isAgentSpeaking, setIsAgentSpeaking] = useState(false);
   const retellClientRef = useRef<any>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const callIdRef = useRef<string | null>(null);
