@@ -325,8 +325,7 @@ const buildOpeningCompanyWelcome = ({
   businessNiche?: string;
 }) => {
   const candidateLines = (businessInfo || '')
-    .split(/?
-/)
+    .split(/\r?\n/)
     .map((line) => line.trim())
     .filter(Boolean)
     .map((line) => line.replace(/^[-*]\s*/, ''))
@@ -345,7 +344,7 @@ const buildOpeningCompanyWelcome = ({
     .map((sentence) => /[.!?]$/.test(sentence) ? sentence : `${sentence}.`)
     .filter((sentence) => sentence.length >= 28 && sentence.length <= 220)
     .filter((sentence) => !/^(home|about|contact|services|reviews|faq)$/i.test(sentence))
-    .filter((sentence) => !/(HOMEPAGE SUMMARY|PAGE TITLE|BUSINESS NAME|DETECTED NICHE|TARGET AUDIENCE|WEBSITE)/i.test(sentence));
+    .filter((sentence) => !/\b(HOMEPAGE SUMMARY|PAGE TITLE|BUSINESS NAME|DETECTED NICHE|TARGET AUDIENCE|WEBSITE)\b/i.test(sentence));
 
   const selected = Array.from(new Set(sentences)).slice(0, 2).join(' ');
   if (selected) return selected;
@@ -392,8 +391,6 @@ const buildPhaseTwoOpening = ({
 }) =>
   `Hi, ${timeOfDayGreeting.toLowerCase()}. This is Aspen from ${spokenBusinessName}. ${openingCompanyWelcome} ${phaseTwoNameLine}${askHelpQuestion ? ' How can I help you today?' : ''}`;
 
-const DEMO_SIMULATION_PAUSE_MARKER = '<break time="4s"/>';
-
 const buildExactDemoOpening = ({
   spokenBusinessName,
   openingCompanyWelcome,
@@ -407,7 +404,7 @@ const buildExactDemoOpening = ({
   timeOfDayGreeting: string;
   askHelpQuestion: boolean;
 }) =>
-  `${timeOfDayGreeting}. This is Aspen with AIHiddenLeads.com. I'm going to give you a quick sample of how I can work as your AI receptionist — I can answer calls, make appointments, change appointments, and even transfer calls live. Now I'm gonna be simulating as if I was already working on your website. Keep in mind, this is just a demo. ${DEMO_SIMULATION_PAUSE_MARKER} ${buildPhaseTwoOpening({
+  `${timeOfDayGreeting}. This is Aspen with AIHiddenLeads.com. I'm going to give you a quick sample of how I can work as your AI receptionist — I can answer calls, make appointments, change appointments, and even transfer calls live. Now I'm gonna be simulating as if I was already working on your website. Keep in mind, this is just a demo. ${buildPhaseTwoOpening({
     spokenBusinessName,
     openingCompanyWelcome,
     phaseTwoNameLine,
@@ -1633,7 +1630,7 @@ YOUR FIRST UTTERANCE MUST FOLLOW THIS EXACT OPENING SCRIPT:
 
 ABSOLUTE OPENING GUARDRAILS:
 - Follow that exact opening script.
-- The opening includes a deliberate 4-second silent break marker between the AIHiddenLeads.com intro and the business simulation. Honor that break as silence and NEVER read the break marker aloud.
+- After the line "Keep in mind, this is just a demo.", pause silently for about 4 seconds before Phase 2.
 - Do NOT say "Here we go," "one moment," "let me switch," or any filler before, during, or after the opening.
 - Do NOT say any closing line like "That was great talking to you," "It looks like you're busy right now," or "Have a wonderful evening" before the caller has actually spoken and the conversation has started.
 - Do NOT read structural website labels aloud. Never say "BUSINESS NAME:", "SUMMARY:", "HOMEPAGE SUMMARY:", "PAGE TITLE:", "TARGET AUDIENCE:", "WEBSITE:", section headers, or bullet markers.
