@@ -89,6 +89,7 @@ const OutreachDialog = ({ prospects, onClose, onSent }: Props) => {
         const { data: smsData, error: smsError } = await supabase.functions.invoke("send-outreach-sms", {
           body: {
             prospects: smsProspects,
+            smsTemplateId,
             customMessage,
             baseUrl: window.location.origin,
           },
