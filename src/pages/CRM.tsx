@@ -19,7 +19,7 @@ const CRM = () => {
       <div className="min-h-screen flex w-full">
         <CRMSidebar />
         <div className="flex-1 flex flex-col min-w-0">
-          <header className="sticky top-0 z-40 h-12 flex items-center border-b border-border px-4 bg-background/95 backdrop-blur-sm">
+          <header className="sticky top-0 z-40 h-14 flex items-center border-b border-border px-4 bg-background/95 backdrop-blur-sm">
             <SidebarTrigger className="mr-3" />
             <img src="/logo.png" alt="AI Hidden Leads" className="w-9 h-9 mr-2" />
             <span className="text-lg font-extrabold text-foreground tracking-tight">AI <span className="text-primary">Hidden</span> Leads</span>
