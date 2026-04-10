@@ -315,6 +315,38 @@ const getSpokenBusinessName = (businessName?: string, websiteUrl?: string) => {
   return source;
 };
 
+const buildOpeningCompanyWelcome = ({
+  businessInfo,
+  spokenBusinessName,
+  businessNiche,
+}: {
+  businessInfo?: string;
+  spokenBusinessName: string;
+  businessNiche?: string;
+}) => {
+  const cleaned = (businessInfo || '')
+    .replace(/https?:\/\/\S+/gi, ' ')
+    .replace(/\bwww\.\S+/gi, ' ')
+    .replace(/[|•*_#>`]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+
+  const sentences = cleaned
+    .split(/(?<=[.!?])\s+/)
+    .map((sentence) => sentence.trim())
+    .filter((sentence) => sentence.length >= 28 && sentence.length <= 220)
+    .filter((sentence) => !/^(home|about|contact|services|reviews|faq)$/i.test(sentence));
+
+  const selected = sentences.slice(0, 2).join(' ');
+  if (selected) return selected;
+
+  if (businessNiche && businessNiche !== 'general') {
+    return `${spokenBusinessName} specializes in ${businessNiche} services tailored to each customer. The team focuses on clear communication, quality work, and a smooth customer experience.`;
+  }
+
+  return `${spokenBusinessName} welcomes customers with friendly, professional service. The team focuses on clear communication, quality work, and a smooth customer experience.`;
+};
+
 const isLikelyCallablePhoneNumber = (value?: string | null) => {
   const normalized = normalizePhoneNumber(value ?? '');
   if (!/^\+\d{11,15}$/.test(normalized)) return false;
@@ -1469,6 +1501,11 @@ Deno.serve(async (req) => {
       typeof businessName === 'string' ? businessName : '',
       typeof websiteUrl === 'string' ? websiteUrl : '',
     );
+    const openingCompanyWelcome = buildOpeningCompanyWelcome({
+      businessInfo: typeof businessInfo === 'string' ? businessInfo : '',
+      spokenBusinessName,
+      businessNiche: typeof businessNiche === 'string' ? businessNiche : '',
+    });
 
     console.log('Creating web call for agent:', agentId, 'niche:', businessNiche, 'callbackPhone:', normalizedOwnerPhone);
 
@@ -1496,6 +1533,13 @@ Deno.serve(async (req) => {
 
 ===== CRITICAL OPENING — TWO-PHASE GREETING =====
 
+NON-NEGOTIABLE LIVE DELIVERY RULES:
+- There must be NO dead air, NO silent thinking, and NO long pause between Phase 1 and Phase 2.
+- The handoff into Phase 2 must happen immediately, smoothly, and in the same flow.
+- After Phase 1, you are NOT allowed to jump straight to "How can I help you today?" or "How can I assist you today?" That is WRONG.
+- Phase 2 MUST happen in this exact order: greeting -> company introduction -> 1-2 sentence company welcome -> name handling -> help question.
+- If you feel uncertain, follow the exact sample structure below instead of improvising.
+
 PHASE 1 — AIHIDDENLEADS.COM INTRO (5-8 SECONDS MAX — DO NOT EXCEED):
 1. Start with exactly one warm time-of-day greeting: "Good morning," or "Good afternoon," or "Good evening." NEVER say the exact time.
 2. Then say exactly: "This is Aspen with AIHiddenLeads.com."
@@ -1504,11 +1548,12 @@ PHASE 1 — AIHIDDENLEADS.COM INTRO (5-8 SECONDS MAX — DO NOT EXCEED):
 5. Stop Phase 1 there. Do NOT add filler, extra explanation, or a sales pitch. Move IMMEDIATELY to Phase 2.
 
 PHASE 2 — BUSINESS SIMULATION (THIS IS THE MAIN EVENT):
-1. Start immediately with a fresh, warm greeting: "Hi, good morning!" / "Hi, good afternoon!" / "Hi, good evening!"
-2. Introduce yourself as the business using the correct spoken name: "My name is Aspen with ${spokenBusinessName}."
-3. BEFORE you ask any question, give exactly ONE or TWO short, polished sentences that sound like the company's welcome slogan. Pull them from business_info. Mention what the company does, the city, specialty, differentiator, or first two key lines from the website. Do NOT skip this. This is MANDATORY.
-4. ${resolvedCallerName ? `Since the caller already gave their name, acknowledge it naturally after the company intro: "Hi ${resolvedCallerName}, thanks for reaching out." Then continue.` : `The caller did NOT provide their name, so after the company intro ask naturally: "May I ask your name?" Then remember it and use it throughout the rest of the call.`}
-5. ONLY AFTER the greeting + company intro + 1-2 slogan sentences + name handling, ask one help question: "How can I help you today?"
+1. Start immediately with a fresh, warm greeting AND the company intro, for example: "Hi, good morning. This is Aspen from ${spokenBusinessName}." / "Hi, good afternoon. This is Aspen from ${spokenBusinessName}." / "Hi, good evening. This is Aspen from ${spokenBusinessName}."
+2. BEFORE you ask any question, say the company's welcome message in one or two short sentences. Use this welcome foundation almost word-for-word unless you need a tiny smoothing edit: "${openingCompanyWelcome}"
+3. The welcome message MUST say what the company does and should mention the city, specialty, differentiator, or core offer if that information is available. Do NOT skip it.
+4. Do NOT replace the company welcome with a generic line. A bare "How can I help you today?" without the company intro and welcome is incorrect.
+5. ${resolvedCallerName ? `Since the caller already gave their name, acknowledge it naturally AFTER the company welcome: "Hi ${resolvedCallerName}, thanks for reaching out." Then continue.` : `The caller did NOT provide their name, so AFTER the company welcome ask naturally: "May I ask your name?" Then remember it and use it throughout the rest of the call.`}
+6. ONLY AFTER the greeting + company intro + company welcome + name handling, ask exactly one help question: "How can I help you today?"
 
 ===== END OF OPENING =====
 
@@ -1583,7 +1628,7 @@ LIVE CALENDAR HONESTY:
 - If someone asks about availability, say you can REQUEST their preferred time and the calendar will be checked right after the call.
 
 CLOSING THE CALL — APPOINTMENT & TRANSFER OFFER:
-- Before ending the call, ALWAYS offer next steps: "Before I let you go — would you like me to set up a quick appointment with ${resolvedOwnerName}? Or if you'd prefer, I can connect you right now for a live conversation. What sounds best?"
+- Before ending the call, ALWAYS offer next steps in friendly, simple language: "Before I let you go, would you like me to set up an appointment, or would you prefer to speak with someone live right now?" Then add: "If you'd rather, I can also have ${resolvedOwnerName} call you back."
 - If they want an appointment: Ask for their preferred day and time, confirm it, and let them know ${resolvedOwnerName} will follow up.
 - If they want a live transfer: Proceed with the transfer protocol below.
 - If they're good: Wrap up warmly and use their name: "It was a pleasure chatting with you, [name]! Don't forget, you can always call back anytime. Have an amazing day!"
