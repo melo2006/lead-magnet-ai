@@ -87,7 +87,7 @@ const TryDemo = () => {
   useEffect(() => {
     const urlParam = searchParams.get("url");
     const nameParam = searchParams.get("name");
-    const nicheParam = searchParams.get("niche");
+    const _nicheParam = searchParams.get("niche");
     const phoneParam = searchParams.get("callerPhone");
     const emailParam = searchParams.get("callerEmail");
     const callerNameParam = searchParams.get("callerName");

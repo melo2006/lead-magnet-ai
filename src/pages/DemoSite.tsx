@@ -650,6 +650,14 @@ const DemoSite = () => {
               <Phone className="h-3.5 w-3.5" />
             </button>
 
+            <button
+              onClick={() => navigate("/prospects")}
+              className="hidden rounded-full border border-transparent bg-transparent px-1 py-1 text-[8px] text-transparent hover:text-muted-foreground hover:border-border transition-colors sm:inline-flex"
+              title="Go to Prospects"
+            >
+              •
+            </button>
+
             <a
               href={homepageUrl}
               target="_blank"

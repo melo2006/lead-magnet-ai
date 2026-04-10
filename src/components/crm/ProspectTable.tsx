@@ -468,7 +468,7 @@ const ProspectTable = ({ analysis, prospects, isLoading, onRefetch, onOutreach, 
             {!aiAnalyzed && p.has_website && (
               <button onClick={(e) => { e.stopPropagation(); handleAnalyze(p); }} disabled={isAnalyzing} className="p-1 rounded hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors disabled:opacity-50" title="AI Analyze"><Brain className="w-3.5 h-3.5" /></button>
             )}
-            <Link to={`/demo?url=${encodeURIComponent(p.website_url || "")}&name=${encodeURIComponent(p.business_name)}&niche=${encodeURIComponent(p.niche || "")}&prospectId=${encodeURIComponent(p.id || "")}&callerPhone=${encodeURIComponent(p.phone || "")}&returnTo=${returnTo}`} onClick={(e) => e.stopPropagation()} className="p-1 rounded hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors" title="Generate Demo"><Zap className="w-3.5 h-3.5" /></Link>
+            <Link to={`/demo?url=${encodeURIComponent(p.website_url || "")}&name=${encodeURIComponent(p.business_name)}&niche=${encodeURIComponent(p.niche || "")}&prospectId=${encodeURIComponent(p.id || "")}&callerPhone=${encodeURIComponent(p.phone || "")}&callerName=${encodeURIComponent(p.owner_name || "")}&callerEmail=${encodeURIComponent((p as any).owner_email || (p as any).email || "")}&returnTo=${returnTo}`} onClick={(e) => e.stopPropagation()} className="p-1 rounded hover:bg-primary/20 text-muted-foreground hover:text-primary transition-colors" title="Generate Demo"><Zap className="w-3.5 h-3.5" /></Link>
             {p.phone && (
               <button
                 onClick={(e) => handleSendSms(p, e)}
