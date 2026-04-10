@@ -37,6 +37,47 @@ const OutreachDialog = ({ prospects, onClose, onSent }: Props) => {
 
   const demoUrl = (p: Prospect) => buildDemoUrl(p);
 
+  const handleSendTest = async () => {
+    if (!testPhone.trim()) {
+      toast.error("Enter a test phone number first");
+      return;
+    }
+    if (!previewProspect) return;
+    localStorage.setItem("test_sms_phone", testPhone);
+    setSendingTest(true);
+    try {
+      const smsProspect = {
+        id: previewProspect.id!,
+        business_name: previewProspect.business_name,
+        phone: previewProspect.phone || "+10000000000",
+        owner_name: previewProspect.owner_name || null,
+        website_url: previewProspect.website_url || null,
+        website_screenshot: previewProspect.website_screenshot || null,
+        niche: previewProspect.niche || null,
+      };
+      const { data, error } = await supabase.functions.invoke("send-outreach-sms", {
+        body: {
+          prospects: [smsProspect],
+          smsTemplateId,
+          customMessage,
+          baseUrl: window.location.origin,
+          testMode: true,
+          testPhone: testPhone.trim(),
+        },
+      });
+      if (error) throw error;
+      if (data?.sent > 0) {
+        toast.success(`Test SMS sent to ${testPhone}!`);
+      } else {
+        toast.error("Test SMS failed", { description: data?.results?.[0]?.error });
+      }
+    } catch (err) {
+      toast.error("Test SMS failed");
+    } finally {
+      setSendingTest(false);
+    }
+  };
+
   const handleSend = async () => {
     setSending(true);
     try {
