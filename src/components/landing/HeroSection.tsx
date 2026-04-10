@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Phone, PhoneOff, Zap } from "lucide-react";
+import { Phone, PhoneOff, Zap, TrendingUp } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import type { NicheData } from "@/data/nicheData";
 
@@ -32,7 +32,7 @@ const HeroSection = ({ niche, onGetDemo }: HeroSectionProps) => {
               <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
             </span>
             <span className="text-sm font-medium text-primary">
-              AI Voice is not the future — it's today
+              AI-Powered Lead Generation & Sales Automation
             </span>
           </motion.div>
 
@@ -43,24 +43,24 @@ const HeroSection = ({ niche, onGetDemo }: HeroSectionProps) => {
             transition={{ duration: 0.6, delay: 0.1 }}
             className="text-4xl sm:text-5xl lg:text-7xl font-bold leading-tight mb-6"
           >
-            <span className="text-foreground">Your Competitors Are</span>
+            <span className="text-foreground">Stop Losing Leads.</span>
             <br />
-            <span className="text-gradient-primary glow-text">Already Using AI.</span>
+            <span className="text-gradient-primary glow-text">Start Closing Them</span>
             <br />
-            <span className="text-foreground">Are You?</span>
+            <span className="text-foreground">— With AI.</span>
           </motion.h1>
 
-          {/* Dynamic subheadline */}
+          {/* Subheadline */}
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.2 }}
             className="text-lg sm:text-xl text-muted-foreground max-w-3xl mx-auto mb-8"
           >
-            {niche.subheadline}
+            AI Hidden Leads finds your ideal customers, reaches out automatically, and answers every call, chat, and text — 24/7. See it work on YOUR business in 90 seconds.
           </motion.p>
 
-          {/* Missed call counter */}
+          {/* Stats */}
           <motion.div
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
@@ -70,22 +70,22 @@ const HeroSection = ({ niche, onGetDemo }: HeroSectionProps) => {
             <div className="flex items-center gap-3 px-5 py-3 rounded-xl border border-destructive/30 bg-destructive/5">
               <PhoneOff className="w-5 h-5 text-destructive" />
               <div className="text-left">
-                <p className="text-2xl font-bold text-destructive">{niche.stats.missedCallRate}</p>
-                <p className="text-xs text-muted-foreground">Calls Missed</p>
+                <p className="text-2xl font-bold text-destructive">78%</p>
+                <p className="text-xs text-muted-foreground">Leads Go to First Responder</p>
               </div>
             </div>
             <div className="flex items-center gap-3 px-5 py-3 rounded-xl border border-primary/30 bg-primary/5">
               <Phone className="w-5 h-5 text-primary" />
               <div className="text-left">
-                <p className="text-2xl font-bold text-primary">0%</p>
-                <p className="text-xs text-muted-foreground">With AI Hidden Leads</p>
+                <p className="text-2xl font-bold text-primary">27%</p>
+                <p className="text-xs text-muted-foreground">Of Leads Ever Get Contacted</p>
               </div>
             </div>
             <div className="flex items-center gap-3 px-5 py-3 rounded-xl border border-accent/30 bg-accent/5">
-              <Zap className="w-5 h-5 text-accent" />
+              <TrendingUp className="w-5 h-5 text-accent" />
               <div className="text-left">
-                <p className="text-2xl font-bold text-accent">{niche.stats.conversionLift}</p>
-                <p className="text-xs text-muted-foreground">More Conversions</p>
+                <p className="text-2xl font-bold text-accent">$1,200</p>
+                <p className="text-xs text-muted-foreground">Lost Per Missed Opportunity</p>
               </div>
             </div>
           </motion.div>
@@ -102,14 +102,14 @@ const HeroSection = ({ niche, onGetDemo }: HeroSectionProps) => {
               size="lg"
               className="text-lg px-8 py-6 bg-primary text-primary-foreground hover:bg-primary/90 glow-border rounded-xl font-semibold"
             >
-              See Your AI Demo — Free
+              See Your Free AI Demo
             </Button>
             <Button
               variant="outline"
               size="lg"
               className="text-lg px-8 py-6 border-border hover:bg-secondary rounded-xl"
             >
-              Watch 60s Video
+              Watch How It Works
             </Button>
           </motion.div>
 
@@ -120,7 +120,7 @@ const HeroSection = ({ niche, onGetDemo }: HeroSectionProps) => {
             transition={{ duration: 0.5, delay: 0.6 }}
             className="text-sm text-muted-foreground mt-6"
           >
-            No credit card · 60-second setup · See it work on YOUR business
+            No credit card · 90-second setup · Works for any local business
           </motion.p>
         </div>
       </div>
