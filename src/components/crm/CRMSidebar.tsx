@@ -25,9 +25,12 @@ const pageItems = [
 ];
 
 export function CRMSidebar() {
-  const { state } = useSidebar();
+  const { state, setOpenMobile } = useSidebar();
   const collapsed = state === "collapsed";
-  
+
+  const handleNavClick = () => {
+    setOpenMobile(false);
+  };
 
   return (
     <Sidebar collapsible="icon" className="border-r border-border">
@@ -39,7 +42,7 @@ export function CRMSidebar() {
           </div>
           {!collapsed && (
             <span className="text-sm font-bold tracking-tight">
-              Lead<span className="text-primary">Engine</span>
+              AI <span className="text-primary">Hidden</span> Leads
             </span>
           )}
         </div>
@@ -58,6 +61,7 @@ export function CRMSidebar() {
                       end={item.url === "/"}
                       className="hover:bg-muted/50"
                       activeClassName="bg-primary/10 text-primary font-medium"
+                      onClick={handleNavClick}
                     >
                       <item.icon className="mr-2 h-4 w-4" />
                       {!collapsed && <span>{item.title}</span>}
@@ -82,6 +86,7 @@ export function CRMSidebar() {
                       to={item.url}
                       className="hover:bg-muted/50"
                       activeClassName="bg-primary/10 text-primary font-medium"
+                      onClick={handleNavClick}
                     >
                       <item.icon className="mr-2 h-4 w-4" />
                       {!collapsed && <span>{item.title}</span>}
