@@ -9,19 +9,19 @@ import {
 } from "@/components/ui/sidebar";
 
 const crmItems = [
-  { title: "Dashboard", url: "/", icon: LayoutDashboard },
-  { title: "Prospects", url: "/prospects", icon: Search },
-  { title: "Intent Leads", url: "/intent-leads", icon: Radar },
-  { title: "Campaigns", url: "/campaigns", icon: Megaphone },
-  { title: "Pipeline", url: "/pipeline", icon: LayoutGrid },
-  { title: "Call History", url: "/calls", icon: PhoneIncoming },
-  { title: "Imported Lists", url: "/imported", icon: FolderInput },
-  { title: "Engagement", url: "/engagement", icon: Activity },
-  { title: "Templates", url: "/templates", icon: FileText },
+  { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+  { title: "Prospects", url: "/dashboard/prospects", icon: Search },
+  { title: "Intent Leads", url: "/dashboard/intent-leads", icon: Radar },
+  { title: "Campaigns", url: "/dashboard/campaigns", icon: Megaphone },
+  { title: "Pipeline", url: "/dashboard/pipeline", icon: LayoutGrid },
+  { title: "Call History", url: "/dashboard/calls", icon: PhoneIncoming },
+  { title: "Imported Lists", url: "/dashboard/imported", icon: FolderInput },
+  { title: "Engagement", url: "/dashboard/engagement", icon: Activity },
+  { title: "Templates", url: "/dashboard/templates", icon: FileText },
 ];
 
 const pageItems = [
-  { title: "Marketing Page", url: "/marketing", icon: Monitor },
+  { title: "Homepage", url: "/", icon: Monitor },
   { title: "Demo Page", url: "/demo", icon: Play },
 ];
 
