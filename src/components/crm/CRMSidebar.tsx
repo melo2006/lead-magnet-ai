@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Search, Megaphone, LayoutGrid, FileText, Zap, Radar, PhoneIncoming, FolderInput, Monitor, Play
+  LayoutDashboard, Search, Megaphone, LayoutGrid, FileText, Radar, PhoneIncoming, FolderInput, Monitor, Play
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -36,10 +36,8 @@ export function CRMSidebar() {
     <Sidebar collapsible="icon" className="border-r border-border">
       <SidebarContent>
         {/* Logo area */}
-        <div className={`flex items-center gap-2 px-4 py-4 border-b border-border ${collapsed ? "justify-center" : ""}`}>
-          <div className="w-7 h-7 rounded-lg bg-primary/20 flex items-center justify-center shrink-0">
-            <Zap className="w-3.5 h-3.5 text-primary" />
-          </div>
+        <div className={`flex items-center gap-2.5 px-4 py-4 border-b border-border ${collapsed ? "justify-center px-2" : ""}`}>
+          <img src="/logo.png" alt="AI Hidden Leads" className={collapsed ? "w-8 h-8" : "w-9 h-9"} />
           {!collapsed && (
             <span className="text-sm font-bold tracking-tight">
               AI <span className="text-primary">Hidden</span> Leads

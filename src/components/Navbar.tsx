@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Zap, Home, Users, Monitor, Menu, X, Search, Radar, LayoutGrid, PhoneIncoming, FolderInput, FileText, Megaphone } from "lucide-react";
+import { Home, Users, Monitor, Menu, X, Search, Radar, LayoutGrid, PhoneIncoming, FolderInput, FileText, Megaphone } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
@@ -27,7 +27,7 @@ const Navbar = () => {
       <div className="max-w-[1600px] mx-auto px-4 sm:px-6 flex items-center justify-between h-14">
         {/* Logo */}
         <Link to="/" className="flex items-center gap-2">
-          <img src="/favicon.png" alt="AI Hidden Leads" className="w-8 h-8" />
+          <img src="/logo.png" alt="AI Hidden Leads" className="w-8 h-8" />
           <span className="text-lg font-bold tracking-tight">
             AI <span className="text-primary">Hidden</span> Leads
           </span>
