@@ -1068,10 +1068,47 @@ const ProspectTable = ({ analysis, prospects, isLoading, onRefetch, onOutreach, 
             >
               <Zap className="w-3 h-3" /> Build Campaign
             </button>
+            <button
+              onClick={() => setDeleteConfirmOpen(true)}
+              className="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-destructive/20 border border-destructive/30 text-destructive text-xs font-semibold hover:bg-destructive/30 transition-colors"
+            >
+              <Trash2 className="w-3 h-3" /> Delete Selected
+            </button>
           </div>
           <button onClick={() => setSelectedIds(new Set())} className="ml-auto text-xs text-muted-foreground hover:text-foreground">Clear</button>
         </motion.div>
       )}
+
+      {/* Delete Confirmation Dialog */}
+      <Dialog open={deleteConfirmOpen} onOpenChange={setDeleteConfirmOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle className="flex items-center gap-2">
+              <AlertTriangle className="w-5 h-5 text-destructive" />
+              Delete {selectedIds.size} Prospect{selectedIds.size > 1 ? "s" : ""}?
+            </DialogTitle>
+            <DialogDescription className="space-y-2 pt-2">
+              <p>This will permanently remove the selected prospects from your database.</p>
+              {selectedIds.size > 0 && (() => {
+                const selectedProspects = sorted.filter(p => selectedIds.has(p.place_id));
+                const contactedCount = selectedProspects.filter(p => (p as any).sms_sent_at || (p as any).email_sent_at || (p as any).last_contacted_at).length;
+                return contactedCount > 0 ? (
+                  <p className="text-destructive font-medium">
+                    ⚠️ {contactedCount} of these prospect{contactedCount > 1 ? "s have" : " has"} been previously contacted via SMS or email. Deleting will erase all outreach history.
+                  </p>
+                ) : null;
+              })()}
+            </DialogDescription>
+          </DialogHeader>
+          <DialogFooter className="gap-2 sm:gap-0">
+            <Button variant="outline" onClick={() => setDeleteConfirmOpen(false)}>Cancel</Button>
+            <Button variant="destructive" disabled={isDeleting} onClick={handleDeleteSelected}>
+              {isDeleting ? <Loader2 className="w-4 h-4 animate-spin mr-1" /> : <Trash2 className="w-4 h-4 mr-1" />}
+              Delete Forever
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
 
       <div className="bg-card border border-border rounded-xl overflow-hidden">
         <ScrollArea className="w-full">
