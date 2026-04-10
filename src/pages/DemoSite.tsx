@@ -561,15 +561,21 @@ const DemoSite = () => {
   const requiresBrowserFallback =
     !isWebsiteUnreachable && (iframeBlocked || isMixedContentPreview(livePreviewUrl, embedOrigin));
   const hasCrmContext = Boolean(leadData.prospectId || prospectIdParam);
-  const knownCallerName = callerNameParam || (!hasCrmContext && leadData.fullName !== "CRM Prospect" ? leadData.fullName : undefined);
-  const knownCallerEmail = callerEmailParam || (!hasCrmContext ? leadData.email : undefined);
-  const knownCallerPhone = callerPhoneParam || (!hasCrmContext && isLikelyCallablePhoneNumber(leadData.phone)
-    ? normalizePhoneNumber(leadData.phone)
-    : undefined);
+  const knownCallerName = callerNameParam || undefined;
+  const knownCallerEmail = callerEmailParam || undefined;
+  const knownCallerPhone = callerPhoneParam || undefined;
 
-  const followUpName = prospectOwner?.name || DEFAULT_DEMO_OWNER_NAME;
-  const followUpEmail = prospectOwner?.email || undefined;
-  const rawFollowUpPhone = prospectOwner?.phone || undefined;
+  const fallbackOwnerName = !hasCrmContext && leadData.fullName !== "CRM Prospect"
+    ? leadData.fullName
+    : undefined;
+  const fallbackOwnerEmail = !hasCrmContext ? leadData.email : undefined;
+  const fallbackOwnerPhone = !hasCrmContext && isLikelyCallablePhoneNumber(leadData.phone)
+    ? normalizePhoneNumber(leadData.phone)
+    : undefined;
+
+  const followUpName = prospectOwner?.name || fallbackOwnerName || DEFAULT_DEMO_OWNER_NAME;
+  const followUpEmail = prospectOwner?.email || fallbackOwnerEmail || undefined;
+  const rawFollowUpPhone = prospectOwner?.phone || fallbackOwnerPhone || undefined;
   const followUpPhone = (testPhoneOverride && isLikelyCallablePhoneNumber(testPhoneOverride))
     ? normalizePhoneNumber(testPhoneOverride)
     : rawFollowUpPhone;
