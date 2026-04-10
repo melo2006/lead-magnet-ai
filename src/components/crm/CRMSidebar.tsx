@@ -61,6 +61,7 @@ export function CRMSidebar() {
                       end={item.url === "/"}
                       className="hover:bg-muted/50"
                       activeClassName="bg-primary/10 text-primary font-medium"
+                      onClick={handleNavClick}
                     >
                       <item.icon className="mr-2 h-4 w-4" />
                       {!collapsed && <span>{item.title}</span>}
@@ -85,6 +86,7 @@ export function CRMSidebar() {
                       to={item.url}
                       className="hover:bg-muted/50"
                       activeClassName="bg-primary/10 text-primary font-medium"
+                      onClick={handleNavClick}
                     >
                       <item.icon className="mr-2 h-4 w-4" />
                       {!collapsed && <span>{item.title}</span>}
