@@ -597,7 +597,7 @@ const VoiceAgentWidget = ({
           ownerEmail: ownerEmail || "",
           ownerPhone: ownerPhone || "",
           websiteUrl,
-          businessInfo: businessInfo?.substring(0, 6000) || "",
+          businessInfo: businessInfo?.substring(0, 12000) || "",
           callerName: callerName || "",
           callerEmail: callerEmail || "",
           callerPhone: isLikelyCallablePhoneNumber(callerPhone) ? normalizePhoneNumber(callerPhone || "") : "",
