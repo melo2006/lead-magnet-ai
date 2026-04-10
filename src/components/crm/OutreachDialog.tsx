@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Mail, Send, Smartphone, X, Zap, ExternalLink, ChevronLeft, ChevronRight, Monitor } from "lucide-react";
+import { Mail, Send, Smartphone, X, Zap, ExternalLink, ChevronLeft, ChevronRight, Monitor, Image, MessageSquareText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Prospect } from "@/hooks/useProspectSearch";
@@ -9,6 +9,7 @@ import {
   PhoneMockupPreview,
   buildDemoUrl,
 } from "@/components/crm/OutreachTemplatePreviews";
+import { smsTemplates, getSmsTemplate } from "@/components/crm/SmsTemplates";
 
 interface Props {
   prospects: Prospect[];
