@@ -1,5 +1,5 @@
 import { useState, useCallback, useEffect } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
   Globe,
@@ -73,6 +73,7 @@ const benefits = [
 const TryDemo = () => {
   const { toast } = useToast();
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
   const [fullName, setFullName] = useState("");
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
@@ -81,6 +82,22 @@ const TryDemo = () => {
   const [isScanning, setIsScanning] = useState(false);
   const [scanData, setScanData] = useState<DemoLeadData | null>(null);
   const [scanAnimationDone, setScanAnimationDone] = useState(false);
+
+  // Pre-fill form fields from URL params (e.g. coming from CRM prospect table)
+  useEffect(() => {
+    const urlParam = searchParams.get("url");
+    const nameParam = searchParams.get("name");
+    const _nicheParam = searchParams.get("niche");
+    const phoneParam = searchParams.get("callerPhone");
+    const emailParam = searchParams.get("callerEmail");
+    const callerNameParam = searchParams.get("callerName");
+
+    if (urlParam && !url) setUrl(urlParam.replace(/^https?:\/\//i, ""));
+    if (callerNameParam && !fullName) setFullName(callerNameParam);
+    else if (nameParam && !fullName) setFullName(nameParam);
+    if (phoneParam && !phone) setPhone(phoneParam);
+    if (emailParam && !email) setEmail(emailParam);
+  }, []);
 
   useEffect(() => {
     if (!isScanning || !scanAnimationDone || !scanData) return;
