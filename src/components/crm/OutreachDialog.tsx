@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Mail, Send, Smartphone, X, Zap, ExternalLink, ChevronLeft, ChevronRight, Monitor } from "lucide-react";
+import { Mail, Send, Smartphone, X, Zap, ExternalLink, ChevronLeft, ChevronRight, Monitor, Image, MessageSquareText } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import type { Prospect } from "@/hooks/useProspectSearch";
@@ -9,6 +9,7 @@ import {
   PhoneMockupPreview,
   buildDemoUrl,
 } from "@/components/crm/OutreachTemplatePreviews";
+import { smsTemplates, getSmsTemplate } from "@/components/crm/SmsTemplates";
 
 interface Props {
   prospects: Prospect[];
@@ -22,10 +23,13 @@ type Channel = "email" | "sms" | "both";
 const OutreachDialog = ({ prospects, onClose, onSent }: Props) => {
   const [channel, setChannel] = useState<Channel>("email");
   const [templateStyle, setTemplateStyle] = useState<TemplateStyle>("browser_mockup");
+  const [smsTemplateId, setSmsTemplateId] = useState("quick_demo");
   const [subject, setSubject] = useState("Quick idea for your website");
   const [customMessage, setCustomMessage] = useState("");
   const [sending, setSending] = useState(false);
   const [previewIndex, setPreviewIndex] = useState(0);
+
+  const activeSmsTemplate = getSmsTemplate(smsTemplateId);
 
   const previewProspect = prospects[previewIndex] || null;
 
@@ -78,12 +82,14 @@ const OutreachDialog = ({ prospects, onClose, onSent }: Props) => {
           phone: p.phone || null,
           owner_name: p.owner_name || null,
           website_url: p.website_url || null,
+          website_screenshot: p.website_screenshot || null,
           niche: p.niche || null,
         }));
 
         const { data: smsData, error: smsError } = await supabase.functions.invoke("send-outreach-sms", {
           body: {
             prospects: smsProspects,
+            smsTemplateId,
             customMessage,
             baseUrl: window.location.origin,
           },
@@ -149,35 +155,63 @@ const OutreachDialog = ({ prospects, onClose, onSent }: Props) => {
               </div>
             </div>
 
-            <div>
-              <label className="block text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Email Template</label>
-              <div className="grid grid-cols-3 gap-2">
-                <button
-                  onClick={() => setTemplateStyle("browser_mockup")}
-                  className={`p-3 rounded-lg border text-left transition-colors ${templateStyle === "browser_mockup" ? "bg-primary/10 border-primary/40" : "bg-secondary border-border hover:border-primary/20"}`}
-                >
-                  <Monitor className="w-5 h-5 mb-1 text-primary" />
-                  <p className="text-xs font-semibold text-foreground">Browser + AI</p>
-                  <p className="text-[10px] text-muted-foreground">Website with Chat & Voice buttons</p>
-                </button>
-                <button
-                  onClick={() => setTemplateStyle("phone_mockup")}
-                  className={`p-3 rounded-lg border text-left transition-colors ${templateStyle === "phone_mockup" ? "bg-primary/10 border-primary/40" : "bg-secondary border-border hover:border-primary/20"}`}
-                >
-                  <Smartphone className="w-5 h-5 mb-1 text-primary" />
-                  <p className="text-xs font-semibold text-foreground">Phone Mockup</p>
-                  <p className="text-[10px] text-muted-foreground">Website in phone frame</p>
-                </button>
-                <button
-                  onClick={() => setTemplateStyle("clean_card")}
-                  className={`p-3 rounded-lg border text-left transition-colors ${templateStyle === "clean_card" ? "bg-primary/10 border-primary/40" : "bg-secondary border-border hover:border-primary/20"}`}
-                >
-                  <Zap className="w-5 h-5 mb-1 text-primary" />
-                  <p className="text-xs font-semibold text-foreground">Clean Card</p>
-                  <p className="text-[10px] text-muted-foreground">Branded card with demo</p>
-                </button>
+            {channel !== "sms" && (
+              <div>
+                <label className="block text-[10px] uppercase tracking-wider text-muted-foreground mb-2">Email Template</label>
+                <div className="grid grid-cols-3 gap-2">
+                  <button
+                    onClick={() => setTemplateStyle("browser_mockup")}
+                    className={`p-3 rounded-lg border text-left transition-colors ${templateStyle === "browser_mockup" ? "bg-primary/10 border-primary/40" : "bg-secondary border-border hover:border-primary/20"}`}
+                  >
+                    <Monitor className="w-5 h-5 mb-1 text-primary" />
+                    <p className="text-xs font-semibold text-foreground">Browser + AI</p>
+                    <p className="text-[10px] text-muted-foreground">Website with Chat & Voice buttons</p>
+                  </button>
+                  <button
+                    onClick={() => setTemplateStyle("phone_mockup")}
+                    className={`p-3 rounded-lg border text-left transition-colors ${templateStyle === "phone_mockup" ? "bg-primary/10 border-primary/40" : "bg-secondary border-border hover:border-primary/20"}`}
+                  >
+                    <Smartphone className="w-5 h-5 mb-1 text-primary" />
+                    <p className="text-xs font-semibold text-foreground">Phone Mockup</p>
+                    <p className="text-[10px] text-muted-foreground">Website in phone frame</p>
+                  </button>
+                  <button
+                    onClick={() => setTemplateStyle("clean_card")}
+                    className={`p-3 rounded-lg border text-left transition-colors ${templateStyle === "clean_card" ? "bg-primary/10 border-primary/40" : "bg-secondary border-border hover:border-primary/20"}`}
+                  >
+                    <Zap className="w-5 h-5 mb-1 text-primary" />
+                    <p className="text-xs font-semibold text-foreground">Clean Card</p>
+                    <p className="text-[10px] text-muted-foreground">Branded card with demo</p>
+                  </button>
+                </div>
               </div>
-            </div>
+            )}
+
+            {channel !== "email" && (
+              <div>
+                <label className="block text-[10px] uppercase tracking-wider text-muted-foreground mb-2">SMS Template</label>
+                <div className="grid grid-cols-1 gap-2 max-h-[180px] overflow-y-auto pr-1">
+                  {smsTemplates.map((t) => (
+                    <button
+                      key={t.id}
+                      onClick={() => setSmsTemplateId(t.id)}
+                      className={`p-3 rounded-lg border text-left transition-colors flex items-start gap-3 ${smsTemplateId === t.id ? "bg-primary/10 border-primary/40" : "bg-secondary border-border hover:border-primary/20"}`}
+                    >
+                      <div className="shrink-0 mt-0.5">
+                        {t.mms ? <Image className="w-4 h-4 text-primary" /> : <MessageSquareText className="w-4 h-4 text-muted-foreground" />}
+                      </div>
+                      <div className="min-w-0">
+                        <p className="text-xs font-semibold text-foreground flex items-center gap-1.5">
+                          {t.name}
+                          {t.mms && <span className="text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-bold">MMS</span>}
+                        </p>
+                        <p className="text-[10px] text-muted-foreground leading-tight mt-0.5">{t.description}</p>
+                      </div>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            )}
 
             {channel !== "sms" && (
               <div>
@@ -251,13 +285,62 @@ const OutreachDialog = ({ prospects, onClose, onSent }: Props) => {
               </div>
             )}
 
-            {previewProspect && !previewProspect.website_screenshot && (templateStyle === "browser_mockup" || templateStyle === "phone_mockup") && (
+            {/* SMS preview */}
+            {previewProspect && channel !== "email" && (
+              <div className="bg-secondary/50 rounded-2xl p-4 border border-border">
+                <div className="flex items-center gap-2 mb-3">
+                  <Smartphone className="w-4 h-4 text-primary" />
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                    SMS Preview — {activeSmsTemplate.name}
+                  </span>
+                  {activeSmsTemplate.mms && (
+                    <span className="text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-bold">MMS</span>
+                  )}
+                </div>
+
+                {activeSmsTemplate.mms && previewProspect.website_screenshot && (
+                  <div className="mb-3 rounded-lg overflow-hidden border border-border relative">
+                    <img
+                      src={previewProspect.website_screenshot}
+                      alt={`${previewProspect.business_name} website`}
+                      className="w-full h-40 object-cover object-top"
+                    />
+                    <div className="absolute bottom-2 right-2 flex gap-1.5">
+                      <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-lg">
+                        <MessageSquareText className="w-5 h-5 text-primary-foreground" />
+                      </div>
+                      <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg">
+                        <Smartphone className="w-5 h-5 text-white" />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeSmsTemplate.mms && !previewProspect.website_screenshot && (
+                  <p className="mb-3 text-[11px] text-muted-foreground italic">
+                    No screenshot available — MMS will be sent as text-only for this prospect.
+                  </p>
+                )}
+
+                <div className="bg-background rounded-xl px-4 py-3 text-sm text-foreground whitespace-pre-wrap leading-relaxed border border-border">
+                  {customMessage
+                    ? `${customMessage}\n\nTry it now:\n${demoUrl(previewProspect)}\n\n— AI Hidden Leads`
+                    : activeSmsTemplate.buildBody(
+                        previewProspect,
+                        demoUrl(previewProspect),
+                      )}
+                </div>
+              </div>
+            )}
+
+            {/* Email previews */}
+            {previewProspect && channel !== "sms" && !previewProspect.website_screenshot && (templateStyle === "browser_mockup" || templateStyle === "phone_mockup") && (
               <p className="mb-3 text-[11px] text-muted-foreground">
                 This business does not have a saved website screenshot yet, so the preview uses the branded fallback instead of a live site image.
               </p>
             )}
 
-            {previewProspect && templateStyle === "browser_mockup" && (
+            {previewProspect && channel !== "sms" && templateStyle === "browser_mockup" && (
               <BrowserMockupPreview
                 prospect={previewProspect}
                 subject={subject}
@@ -265,7 +348,7 @@ const OutreachDialog = ({ prospects, onClose, onSent }: Props) => {
                 demoUrl={demoUrl(previewProspect)}
               />
             )}
-            {previewProspect && templateStyle === "phone_mockup" && (
+            {previewProspect && channel !== "sms" && templateStyle === "phone_mockup" && (
               <PhoneMockupPreview
                 prospect={previewProspect}
                 subject={subject}
@@ -273,7 +356,7 @@ const OutreachDialog = ({ prospects, onClose, onSent }: Props) => {
                 demoUrl={demoUrl(previewProspect)}
               />
             )}
-            {previewProspect && templateStyle === "clean_card" && (
+            {previewProspect && channel !== "sms" && templateStyle === "clean_card" && (
               <CleanCardPreview
                 prospect={previewProspect}
                 subject={subject}
