@@ -800,11 +800,26 @@ const VoiceAgentWidget = ({
       <div className="flex items-center justify-between px-4 py-3 bg-primary/10 border-b border-primary/20">
         <div className="flex items-center gap-2.5">
           <div className="relative">
-            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-primary/20">
-              <Mic className="h-4 w-4 text-primary" />
+            <div className={`h-9 w-9 rounded-full overflow-hidden border-2 transition-all duration-200 ${
+              isAgentSpeaking ? "border-primary shadow-[0_0_8px_hsl(var(--primary)/0.5)]" : "border-primary/30"
+            }`}>
+              <img
+                src={aspenAvatar}
+                alt="Aspen"
+                className="h-full w-full object-cover"
+              />
+              {/* Lip-sync overlay — subtle mouth movement animation */}
+              {isAgentSpeaking && (
+                <div className="absolute bottom-[15%] left-1/2 -translate-x-1/2 w-[40%] flex flex-col items-center gap-[1px] pointer-events-none">
+                  <div className="w-full h-[3px] bg-black/20 rounded-full animate-[lipSync_0.25s_ease-in-out_infinite_alternate]" />
+                </div>
+              )}
             </div>
             {callStatus === "active" && (
               <span className="absolute -right-0.5 -top-0.5 h-2.5 w-2.5 rounded-full bg-green-500 ring-2 ring-card" />
+            )}
+            {isAgentSpeaking && (
+              <span className="absolute -bottom-0.5 -right-0.5 h-2.5 w-2.5 rounded-full bg-primary animate-pulse ring-2 ring-card" />
             )}
           </div>
           <div>
