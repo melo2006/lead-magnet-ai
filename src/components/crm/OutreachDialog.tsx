@@ -285,13 +285,62 @@ const OutreachDialog = ({ prospects, onClose, onSent }: Props) => {
               </div>
             )}
 
-            {previewProspect && !previewProspect.website_screenshot && (templateStyle === "browser_mockup" || templateStyle === "phone_mockup") && (
+            {/* SMS preview */}
+            {previewProspect && channel !== "email" && (
+              <div className="bg-secondary/50 rounded-2xl p-4 border border-border">
+                <div className="flex items-center gap-2 mb-3">
+                  <Smartphone className="w-4 h-4 text-primary" />
+                  <span className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">
+                    SMS Preview — {activeSmsTemplate.name}
+                  </span>
+                  {activeSmsTemplate.mms && (
+                    <span className="text-[9px] bg-primary/20 text-primary px-1.5 py-0.5 rounded-full font-bold">MMS</span>
+                  )}
+                </div>
+
+                {activeSmsTemplate.mms && previewProspect.website_screenshot && (
+                  <div className="mb-3 rounded-lg overflow-hidden border border-border relative">
+                    <img
+                      src={previewProspect.website_screenshot}
+                      alt={`${previewProspect.business_name} website`}
+                      className="w-full h-40 object-cover object-top"
+                    />
+                    <div className="absolute bottom-2 right-2 flex gap-1.5">
+                      <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center shadow-lg">
+                        <MessageSquareText className="w-5 h-5 text-primary-foreground" />
+                      </div>
+                      <div className="w-10 h-10 rounded-full bg-emerald-500 flex items-center justify-center shadow-lg">
+                        <Smartphone className="w-5 h-5 text-white" />
+                      </div>
+                    </div>
+                  </div>
+                )}
+
+                {activeSmsTemplate.mms && !previewProspect.website_screenshot && (
+                  <p className="mb-3 text-[11px] text-muted-foreground italic">
+                    No screenshot available — MMS will be sent as text-only for this prospect.
+                  </p>
+                )}
+
+                <div className="bg-background rounded-xl px-4 py-3 text-sm text-foreground whitespace-pre-wrap leading-relaxed border border-border">
+                  {customMessage
+                    ? `${customMessage}\n\nTry it now:\n${demoUrl(previewProspect)}\n\n— AI Hidden Leads`
+                    : activeSmsTemplate.buildBody(
+                        previewProspect,
+                        demoUrl(previewProspect),
+                      )}
+                </div>
+              </div>
+            )}
+
+            {/* Email previews */}
+            {previewProspect && channel !== "sms" && !previewProspect.website_screenshot && (templateStyle === "browser_mockup" || templateStyle === "phone_mockup") && (
               <p className="mb-3 text-[11px] text-muted-foreground">
                 This business does not have a saved website screenshot yet, so the preview uses the branded fallback instead of a live site image.
               </p>
             )}
 
-            {previewProspect && templateStyle === "browser_mockup" && (
+            {previewProspect && channel !== "sms" && templateStyle === "browser_mockup" && (
               <BrowserMockupPreview
                 prospect={previewProspect}
                 subject={subject}
@@ -299,7 +348,7 @@ const OutreachDialog = ({ prospects, onClose, onSent }: Props) => {
                 demoUrl={demoUrl(previewProspect)}
               />
             )}
-            {previewProspect && templateStyle === "phone_mockup" && (
+            {previewProspect && channel !== "sms" && templateStyle === "phone_mockup" && (
               <PhoneMockupPreview
                 prospect={previewProspect}
                 subject={subject}
@@ -307,7 +356,7 @@ const OutreachDialog = ({ prospects, onClose, onSent }: Props) => {
                 demoUrl={demoUrl(previewProspect)}
               />
             )}
-            {previewProspect && templateStyle === "clean_card" && (
+            {previewProspect && channel !== "sms" && templateStyle === "clean_card" && (
               <CleanCardPreview
                 prospect={previewProspect}
                 subject={subject}
