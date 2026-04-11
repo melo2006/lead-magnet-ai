@@ -1,13 +1,17 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { X, Mic, MicOff, Phone, PhoneOff, ExternalLink, Loader2, Minimize2, Maximize2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import realisticAvatar from "@/assets/sample_realistic_avatar.jpg";
+import realisticAvatar from "@/assets/aspen_blonde_avatar.jpg";
 
 type WidgetState = "collapsed" | "expanded" | "minimized";
 type CallStatus = "idle" | "connecting" | "active" | "ending";
 
 const AVATAR_MODEL_URL = "/aspen-brunette.glb";
 const AUTO_MINIMIZE_DELAY = 25000; // 25 seconds
+
+// Blonde hair color (warm golden blonde)
+const BLONDE_COLOR = { r: 0.85, g: 0.72, b: 0.45 };
+const BLUE_EYE_COLOR = { r: 0.25, g: 0.45, b: 0.85 };
 
 const clamp = (value: number, min = 0, max = 1) => Math.min(max, Math.max(min, value));
 
@@ -123,6 +127,35 @@ const TalkingAvatarWidget = () => {
           avatarSpeakingEyeContact: 1,
           avatarSpeakingHeadMove: 0.95,
         });
+
+        // Recolor hair to blonde and eyes to blue on the 3D model
+        try {
+          const scene = (head as any).model || (head as any).scene || (head as any).avatar;
+          const traverseTarget = scene?.scene || scene;
+          if (traverseTarget?.traverse) {
+            traverseTarget.traverse((child: any) => {
+              if (!child.isMesh) return;
+              const name = (child.name || "").toLowerCase();
+              const matName = (child.material?.name || "").toLowerCase();
+              // Hair meshes
+              if (name.includes("hair") || matName.includes("hair") || name.includes("bangs") || matName.includes("bangs")) {
+                if (child.material?.color?.setRGB) {
+                  child.material.color.setRGB(BLONDE_COLOR.r, BLONDE_COLOR.g, BLONDE_COLOR.b);
+                  child.material.needsUpdate = true;
+                }
+              }
+              // Eye meshes
+              if (name.includes("eye") && (name.includes("iris") || name.includes("color") || name.includes("left") || name.includes("right"))) {
+                if (child.material?.color?.setRGB && !name.includes("lash") && !name.includes("brow")) {
+                  child.material.color.setRGB(BLUE_EYE_COLOR.r, BLUE_EYE_COLOR.g, BLUE_EYE_COLOR.b);
+                  child.material.needsUpdate = true;
+                }
+              }
+            });
+          }
+        } catch (e) {
+          console.warn("Could not recolor avatar materials:", e);
+        }
 
         head.setView?.("head", { cameraDistance: 0.2, cameraY: 0.02, cameraRotateX: 0.02 });
         head.lookAtCamera?.(300000);
@@ -287,6 +320,28 @@ const TalkingAvatarWidget = () => {
         emitRawAudioSamples: true,
       });
       await retellClient.startAudioPlayback?.().catch(() => {});
+
+      // Audio output follows active device (Bluetooth, speaker, etc.)
+      // The Retell SDK uses an <audio> element under the hood; find it and
+      // keep its sinkId in sync with the OS default output.
+      try {
+        const syncAudioOutput = () => {
+          const audioEls = document.querySelectorAll("audio");
+          audioEls.forEach((el: any) => {
+            if (typeof el.setSinkId === "function" && navigator.mediaDevices) {
+              // Use default device (empty string = system default, follows OS routing)
+              el.setSinkId("").catch(() => {});
+            }
+          });
+        };
+        syncAudioOutput();
+        // Re-sync whenever the user changes audio devices
+        const handleDeviceChange = () => syncAudioOutput();
+        navigator.mediaDevices?.addEventListener("devicechange", handleDeviceChange);
+        retellClient.on("call_ended", () => {
+          navigator.mediaDevices?.removeEventListener("devicechange", handleDeviceChange);
+        });
+      } catch { /* audio routing not supported in this browser */ }
     } catch (err) {
       console.error("Failed to start spokesperson call:", err);
       setCallStatus("idle");
