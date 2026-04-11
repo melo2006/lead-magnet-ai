@@ -9,11 +9,136 @@ type CallStatus = "idle" | "connecting" | "active" | "ending";
 const AVATAR_MODEL_URL = "/aspen-brunette.glb";
 const AUTO_MINIMIZE_DELAY = 25000; // 25 seconds
 
-// Blonde hair color (warm golden blonde)
-const BLONDE_COLOR = { r: 0.85, g: 0.72, b: 0.45 };
-const BLUE_EYE_COLOR = { r: 0.25, g: 0.45, b: 0.85 };
+const BLUE_EYE_COLOR = { r: 88, g: 153, b: 232 };
+
+const clampByte = (value: number) => Math.max(0, Math.min(255, Math.round(value)));
 
 const clamp = (value: number, min = 0, max = 1) => Math.min(max, Math.max(min, value));
+
+const toMaterialList = (material: any) => (Array.isArray(material) ? material : [material]).filter(Boolean);
+
+const replaceTextureImage = (
+  texture: any,
+  draw: (ctx: CanvasRenderingContext2D, width: number, height: number, source: CanvasImageSource | null) => void,
+) => {
+  if (!texture) return;
+
+  const source = texture.image ?? null;
+  const width = Math.max(64, source?.width ?? 512);
+  const height = Math.max(64, source?.height ?? 512);
+  const canvas = document.createElement("canvas");
+  canvas.width = width;
+  canvas.height = height;
+
+  const ctx = canvas.getContext("2d");
+  if (!ctx) return;
+
+  draw(ctx, width, height, source);
+  texture.image = canvas;
+  texture.needsUpdate = true;
+};
+
+const applyBlondeHairMaterial = (material: any) => {
+  toMaterialList(material).forEach((mat) => {
+    if (mat?.map) {
+      replaceTextureImage(mat.map, (ctx, width, height, source) => {
+        const fill = ctx.createLinearGradient(0, 0, width, height);
+        fill.addColorStop(0, "rgb(251, 240, 194)");
+        fill.addColorStop(0.38, "rgb(232, 205, 145)");
+        fill.addColorStop(0.72, "rgb(202, 162, 100)");
+        fill.addColorStop(1, "rgb(142, 102, 59)");
+        ctx.fillStyle = fill;
+        ctx.fillRect(0, 0, width, height);
+
+        if (source) {
+          ctx.globalAlpha = 0.18;
+          ctx.drawImage(source, 0, 0, width, height);
+          ctx.globalAlpha = 1;
+        }
+
+        const highlight = ctx.createLinearGradient(width * 0.08, 0, width * 0.48, height);
+        highlight.addColorStop(0, "rgba(255,255,255,0.34)");
+        highlight.addColorStop(0.28, "rgba(255,255,255,0.12)");
+        highlight.addColorStop(1, "rgba(255,255,255,0)");
+        ctx.fillStyle = highlight;
+        ctx.fillRect(0, 0, width, height);
+      });
+    }
+
+    mat.color?.setRGB(1, 1, 1);
+    mat.roughness = 0.78;
+    mat.metalness = 0.02;
+    mat.needsUpdate = true;
+  });
+};
+
+const applyBlueEyeMaterial = (material: any) => {
+  toMaterialList(material).forEach((mat) => {
+    if (mat?.map) {
+      replaceTextureImage(mat.map, (ctx, width, height, source) => {
+        if (source) {
+          ctx.drawImage(source, 0, 0, width, height);
+        } else {
+          ctx.fillStyle = "rgb(248,250,255)";
+          ctx.fillRect(0, 0, width, height);
+        }
+
+        const image = ctx.getImageData(0, 0, width, height);
+        const { data } = image;
+
+        for (let index = 0; index < data.length; index += 4) {
+          const red = data[index];
+          const green = data[index + 1];
+          const blue = data[index + 2];
+          const alpha = data[index + 3];
+          if (alpha < 10) continue;
+
+          const maxChannel = Math.max(red, green, blue);
+          const minChannel = Math.min(red, green, blue);
+          const saturation = maxChannel === 0 ? 0 : (maxChannel - minChannel) / maxChannel;
+          const isBrownIris = red > 42 && green > 22 && blue > 12 && red > green && green >= blue && maxChannel < 220 && saturation > 0.12;
+
+          if (isBrownIris) {
+            const detail = maxChannel / 255;
+            data[index] = clampByte(BLUE_EYE_COLOR.r * (0.7 + detail * 0.3));
+            data[index + 1] = clampByte(BLUE_EYE_COLOR.g * (0.68 + detail * 0.32));
+            data[index + 2] = clampByte(BLUE_EYE_COLOR.b * (0.78 + detail * 0.22));
+          }
+        }
+
+        ctx.putImageData(image, 0, 0);
+      });
+    }
+
+    mat.color?.setRGB(1, 1, 1);
+    mat.needsUpdate = true;
+  });
+};
+
+const restyleAspenAvatar = (head: any) => {
+  const armature = head?.armature;
+  if (!armature?.traverse) return;
+
+  armature.traverse((child: any) => {
+    if (!child?.isMesh) return;
+
+    const meshName = (child.name || "").toLowerCase();
+    const materialName = (child.material?.name || "").toLowerCase();
+
+    if (meshName.includes("glasses") || materialName.includes("glasses")) {
+      child.visible = false;
+      return;
+    }
+
+    if (meshName.includes("hair") || materialName.includes("hair")) {
+      applyBlondeHairMaterial(child.material);
+    }
+
+    if (meshName.includes("eye") || materialName.includes("eye")) {
+      applyBlueEyeMaterial(child.material);
+    }
+  });
+};
 
 const averageRange = (values: Uint8Array, start: number, end: number) => {
   const safeEnd = Math.min(values.length, end);
@@ -105,6 +230,7 @@ const TalkingAvatarWidget = () => {
           cameraRotateEnable: false,
           cameraPanEnable: false,
           cameraZoomEnable: false,
+          lipsyncModules: [],
           modelPixelRatio: Math.min(window.devicePixelRatio || 1, 1.5),
           modelFPS: 48,
           lightAmbientIntensity: 3.2,
@@ -128,34 +254,7 @@ const TalkingAvatarWidget = () => {
           avatarSpeakingHeadMove: 0.95,
         });
 
-        // Recolor hair to blonde and eyes to blue on the 3D model
-        try {
-          const scene = (head as any).model || (head as any).scene || (head as any).avatar;
-          const traverseTarget = scene?.scene || scene;
-          if (traverseTarget?.traverse) {
-            traverseTarget.traverse((child: any) => {
-              if (!child.isMesh) return;
-              const name = (child.name || "").toLowerCase();
-              const matName = (child.material?.name || "").toLowerCase();
-              // Hair meshes
-              if (name.includes("hair") || matName.includes("hair") || name.includes("bangs") || matName.includes("bangs")) {
-                if (child.material?.color?.setRGB) {
-                  child.material.color.setRGB(BLONDE_COLOR.r, BLONDE_COLOR.g, BLONDE_COLOR.b);
-                  child.material.needsUpdate = true;
-                }
-              }
-              // Eye meshes
-              if (name.includes("eye") && (name.includes("iris") || name.includes("color") || name.includes("left") || name.includes("right"))) {
-                if (child.material?.color?.setRGB && !name.includes("lash") && !name.includes("brow")) {
-                  child.material.color.setRGB(BLUE_EYE_COLOR.r, BLUE_EYE_COLOR.g, BLUE_EYE_COLOR.b);
-                  child.material.needsUpdate = true;
-                }
-              }
-            });
-          }
-        } catch (e) {
-          console.warn("Could not recolor avatar materials:", e);
-        }
+        restyleAspenAvatar(head);
 
         head.setView?.("head", { cameraDistance: 0.2, cameraY: 0.02, cameraRotateX: 0.02 });
         head.lookAtCamera?.(300000);
