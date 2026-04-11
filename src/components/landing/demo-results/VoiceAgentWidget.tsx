@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { Mic, MicOff, Phone, PhoneOff, Loader2, Maximize2, Minimize2, X, Volume2, VolumeX, Bluetooth, Speaker, Smartphone, Pause, Play, RotateCcw } from "lucide-react";
+import { Mic, MicOff, Phone, PhoneOff, Loader2, Maximize2, Minimize2, X, Volume2, VolumeX, Bluetooth, Speaker, Smartphone, Pause, Play, RotateCcw, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Slider } from "@/components/ui/slider";
@@ -196,6 +196,9 @@ const VoiceAgentWidget = ({
   const [lastAgentMessage, setLastAgentMessage] = useState<string>("");
   const [isReplaying, setIsReplaying] = useState(false);
   const [isAgentSpeaking, setIsAgentSpeaking] = useState(false);
+  const [lastCallHistoryId, setLastCallHistoryId] = useState<string | null>(null);
+  const [isSendingRecap, setIsSendingRecap] = useState(false);
+  const [recapSent, setRecapSent] = useState(false);
   const retellClientRef = useRef<any>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const callIdRef = useRef<string | null>(null);
@@ -509,11 +512,18 @@ const VoiceAgentWidget = ({
           callerEmail: callerEmail || "",
           callerPhone: isLikelyCallablePhoneNumber(callerPhone) ? normalizePhoneNumber(callerPhone || "") : "",
           transferAlreadyStarted: transferTriggeredRef.current,
+          skipEmail: true,
         },
       });
 
       if (error || !data?.success) {
         throw new Error(error?.message || data?.error || "Couldn't finish the call recap.");
+      }
+
+      // Store call history ID for on-demand recap
+      if (data.callHistoryId) {
+        setLastCallHistoryId(data.callHistoryId);
+        setRecapSent(false);
       }
 
       const transferWasAttempted = Boolean(data.transferRequested && (transferTriggeredRef.current || data.liveTransferStarted));
@@ -528,7 +538,7 @@ const VoiceAgentWidget = ({
           ? "Live transfer initiated"
           : data.callbackRequested
             ? "Callback request captured"
-            : "Call summary sent";
+            : "Call processed";
 
       const detailLine = data.appointmentRequested
         ? appointmentBooked && data.appointmentScheduledFor
@@ -546,15 +556,9 @@ const VoiceAgentWidget = ({
           ? "Calendar booking could not be completed automatically."
           : null;
 
-      const deliveryLine = data.emailWarning
-        ? data.emailWarning
-        : Array.isArray(data.emailDeliveredTo) && data.emailDeliveredTo.length > 0
-          ? `Recap sent to ${data.emailDeliveredTo.join(", ")}.`
-          : `Recap prepared for ${ownerEmail}.`;
-
       toast({
         title: headline,
-        description: [detailLine, calendarLine, deliveryLine].filter(Boolean).join(" "),
+        description: [detailLine, calendarLine, "Tap 📧 to send the email recap."].filter(Boolean).join(" "),
       });
     } catch (err) {
       console.error("Failed to email call summary:", err);
@@ -566,6 +570,32 @@ const VoiceAgentWidget = ({
       });
     }
   }, [businessName, leadId, ownerEmail, ownerPhone, prospectId, resolvedOwnerName, toast, websiteUrl]);
+
+  const sendRecapEmail = useCallback(async () => {
+    if (!lastCallHistoryId || isSendingRecap || recapSent) return;
+    setIsSendingRecap(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("retell-web-call", {
+        body: { action: "send-recap-email", callHistoryId: lastCallHistoryId },
+      });
+      if (error || !data?.success) {
+        throw new Error(data?.error || "Failed to send recap email");
+      }
+      setRecapSent(true);
+      toast({
+        title: "📧 Recap sent!",
+        description: `Delivered to ${data.emailDeliveredTo?.join(", ") || "your inbox"}.`,
+      });
+    } catch (err) {
+      toast({
+        title: "Couldn't send recap",
+        description: err instanceof Error ? err.message : "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSendingRecap(false);
+    }
+  }, [lastCallHistoryId, isSendingRecap, recapSent, toast]);
 
   useEffect(() => {
     return () => {
@@ -588,6 +618,8 @@ const VoiceAgentWidget = ({
     transferAttemptedRef.current = false;
     transferTriggeredRef.current = false;
     setTransferInProgress(false);
+    setLastCallHistoryId(null);
+    setRecapSent(false);
 
     try {
       const { data, error } = await supabase.functions.invoke("retell-web-call", {
@@ -887,13 +919,28 @@ const VoiceAgentWidget = ({
           </p>
 
           {callStatus === "idle" && (
-            <button
-              onClick={startCall}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-            >
-              <Phone className="h-4 w-4" />
-              Start Voice Call
-            </button>
+            <div className="space-y-2">
+              <button
+                onClick={startCall}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+              >
+                <Phone className="h-4 w-4" />
+                Start Voice Call
+              </button>
+              {lastCallHistoryId && !recapSent && (
+                <button
+                  onClick={sendRecapEmail}
+                  disabled={isSendingRecap}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-4 py-2.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
+                >
+                  {isSendingRecap ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
+                  {isSendingRecap ? "Sending recap…" : "📧 Send me the email recap"}
+                </button>
+              )}
+              {recapSent && (
+                <p className="text-center text-[11px] text-muted-foreground">✅ Recap email sent!</p>
+              )}
+            </div>
           )}
 
           {callStatus === "connecting" && (
