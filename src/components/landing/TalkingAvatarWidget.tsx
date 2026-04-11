@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { X, Mic, MicOff, Volume2, VolumeX, Phone, PhoneOff, ExternalLink } from "lucide-react";
+import { X, Mic, MicOff, Phone, PhoneOff, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import cartoonAvatar from "@/assets/sample_cartoon_avatar.jpg";
 
