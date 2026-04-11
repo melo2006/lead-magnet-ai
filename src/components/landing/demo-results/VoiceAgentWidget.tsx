@@ -512,6 +512,7 @@ const VoiceAgentWidget = ({
           callerEmail: callerEmail || "",
           callerPhone: isLikelyCallablePhoneNumber(callerPhone) ? normalizePhoneNumber(callerPhone || "") : "",
           transferAlreadyStarted: transferTriggeredRef.current,
+          skipEmail: true,
         },
       });
 
