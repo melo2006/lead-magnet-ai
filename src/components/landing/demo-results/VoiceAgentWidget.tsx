@@ -571,7 +571,32 @@ const VoiceAgentWidget = ({
     }
   }, [businessName, leadId, ownerEmail, ownerPhone, prospectId, resolvedOwnerName, toast, websiteUrl]);
 
-  useEffect(() => {
+  const sendRecapEmail = useCallback(async () => {
+    if (!lastCallHistoryId || isSendingRecap || recapSent) return;
+    setIsSendingRecap(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("retell-web-call", {
+        body: { action: "send-recap-email", callHistoryId: lastCallHistoryId },
+      });
+      if (error || !data?.success) {
+        throw new Error(data?.error || "Failed to send recap email");
+      }
+      setRecapSent(true);
+      toast({
+        title: "📧 Recap sent!",
+        description: `Delivered to ${data.emailDeliveredTo?.join(", ") || "your inbox"}.`,
+      });
+    } catch (err) {
+      toast({
+        title: "Couldn't send recap",
+        description: err instanceof Error ? err.message : "Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSendingRecap(false);
+    }
+  }, [lastCallHistoryId, isSendingRecap, recapSent, toast]);
+
     return () => {
       clearTimer();
       if (retellClientRef.current) {
