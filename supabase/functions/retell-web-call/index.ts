@@ -1515,34 +1515,38 @@ Deno.serve(async (req) => {
       let emailResult: { id: string | null; deliveredTo: string[]; warning: string | null } | null = null;
       let emailWarning: string | null = null;
 
-      try {
-        emailResult = await sendSummaryEmail({
-          resendApiKey,
-          callerName: resolvedCallerName,
-          callerEmail: resolvedCallerEmail,
-          callerPhone: resolvedCallerPhone,
-          ownerName: resolvedOwnerName,
-          ownerEmail: effectiveOwnerEmail,
-          ownerPhone,
-          businessName,
-          websiteUrl,
-          transcript,
-          summary: aiSummary.summary,
-          nextStep: aiSummary.nextStep,
-          callbackRequested: aiSummary.callbackRequested,
-          appointmentRequested: aiSummary.appointmentRequested,
-          transferRequested: aiSummary.transferRequested,
-          appointmentScheduledFor,
-          keyPoints: aiSummary.keyPoints,
-          callDurationSeconds:
-            typeof callData?.duration_ms === 'number' ? Math.round(callData.duration_ms / 1000) : undefined,
-        });
+      if (!skipEmail) {
+        try {
+          emailResult = await sendSummaryEmail({
+            resendApiKey,
+            callerName: resolvedCallerName,
+            callerEmail: resolvedCallerEmail,
+            callerPhone: resolvedCallerPhone,
+            ownerName: resolvedOwnerName,
+            ownerEmail: effectiveOwnerEmail,
+            ownerPhone,
+            businessName,
+            websiteUrl,
+            transcript,
+            summary: aiSummary.summary,
+            nextStep: aiSummary.nextStep,
+            callbackRequested: aiSummary.callbackRequested,
+            appointmentRequested: aiSummary.appointmentRequested,
+            transferRequested: aiSummary.transferRequested,
+            appointmentScheduledFor,
+            keyPoints: aiSummary.keyPoints,
+            callDurationSeconds:
+              typeof callData?.duration_ms === 'number' ? Math.round(callData.duration_ms / 1000) : undefined,
+          });
 
-        emailWarning = emailResult.warning;
-        console.log('Call summary email sent:', emailResult.id || 'no-id');
-      } catch (emailErr) {
-        emailWarning = emailErr instanceof Error ? emailErr.message : 'Unable to send recap email.';
-        console.error('Failed to send recap email (non-fatal):', emailErr);
+          emailWarning = emailResult.warning;
+          console.log('Call summary email sent:', emailResult.id || 'no-id');
+        } catch (emailErr) {
+          emailWarning = emailErr instanceof Error ? emailErr.message : 'Unable to send recap email.';
+          console.error('Failed to send recap email (non-fatal):', emailErr);
+        }
+      } else {
+        console.log('Email skipped (skipEmail flag set) — call history ID:', callHistoryId);
       }
 
       return jsonResponse({
