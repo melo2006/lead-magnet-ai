@@ -15,6 +15,8 @@ const clampByte = (value: number) => Math.max(0, Math.min(255, Math.round(value)
 
 const clamp = (value: number, min = 0, max = 1) => Math.min(max, Math.max(min, value));
 
+const lerp = (start: number, end: number, alpha: number) => start + (end - start) * alpha;
+
 const toMaterialList = (material: any) => (Array.isArray(material) ? material : [material]).filter(Boolean);
 
 const replaceTextureImage = (
@@ -164,6 +166,23 @@ const LIPSYNC_KEYS = [
   "mouthOpen", "jawOpen", "headRotateX", "headRotateY", "bodyRotateX", "bodyRotateY",
 ] as const;
 
+type LipSyncMorphName = typeof LIPSYNC_KEYS[number];
+
+const NEUTRAL_MORPHS: Record<LipSyncMorphName, number> = {
+  viseme_aa: 0,
+  viseme_E: 0,
+  viseme_I: 0,
+  viseme_O: 0,
+  viseme_U: 0,
+  viseme_PP: 0,
+  mouthOpen: 0,
+  jawOpen: 0,
+  headRotateX: 0,
+  headRotateY: 0,
+  bodyRotateX: 0,
+  bodyRotateY: 0,
+};
+
 const TalkingAvatarWidget = () => {
   const [widgetState, setWidgetState] = useState<WidgetState>("collapsed");
   const [callStatus, setCallStatus] = useState<CallStatus>("idle");
@@ -179,15 +198,38 @@ const TalkingAvatarWidget = () => {
   const avatarAnimationFrameRef = useRef<number | null>(null);
   const motionTickRef = useRef(0);
   const autoMinimizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const morphStateRef = useRef<Record<LipSyncMorphName, number>>({ ...NEUTRAL_MORPHS });
 
-  const resetAvatarMotion = useCallback(() => {
+  const focusAvatarOnViewer = useCallback((duration = 300000) => {
     const head = talkingHeadRef.current;
     if (!head) return;
-    LIPSYNC_KEYS.forEach((morphName) => setMorphRealtime(head, morphName, null));
+    head.lookAhead?.(duration);
+    head.makeEyeContact?.(duration);
+    head.setMood?.("neutral");
   }, []);
 
+  const applyMorphTarget = useCallback((head: any, morphName: LipSyncMorphName, target: number, alpha: number) => {
+    const next = lerp(morphStateRef.current[morphName] ?? 0, target, alpha);
+    morphStateRef.current[morphName] = next;
+    setMorphRealtime(head, morphName, next);
+  }, []);
+
+  const resetAvatarMotion = useCallback((mode: "neutral" | "release" = "neutral") => {
+    const head = talkingHeadRef.current;
+    if (!head) return;
+    motionTickRef.current = 0;
+    const release = mode === "release";
+    LIPSYNC_KEYS.forEach((morphName) => {
+      morphStateRef.current[morphName] = NEUTRAL_MORPHS[morphName];
+      setMorphRealtime(head, morphName, release ? null : NEUTRAL_MORPHS[morphName]);
+    });
+    if (!release) {
+      focusAvatarOnViewer(300000);
+    }
+  }, [focusAvatarOnViewer]);
+
   const cleanupAvatar = useCallback(() => {
-    resetAvatarMotion();
+    resetAvatarMotion("release");
     if (avatarAnimationFrameRef.current !== null) {
       window.cancelAnimationFrame(avatarAnimationFrameRef.current);
       avatarAnimationFrameRef.current = null;
@@ -227,20 +269,25 @@ const TalkingAvatarWidget = () => {
 
         const head = new TalkingHead(avatarContainerRef.current, {
           cameraView: "head",
+          cameraDistance: 0.12,
+          cameraY: 0.01,
+          cameraRotateX: 0,
+          cameraRotateY: 0,
           cameraRotateEnable: false,
           cameraPanEnable: false,
           cameraZoomEnable: false,
           lipsyncModules: [],
           modelPixelRatio: Math.min(window.devicePixelRatio || 1, 1.5),
           modelFPS: 48,
+          modelMovementFactor: 0.16,
           lightAmbientIntensity: 3.2,
           lightDirectIntensity: 12,
           lightDirectPhi: 0.85,
           lightDirectTheta: 2.2,
-          avatarIdleEyeContact: 0.8,
-          avatarIdleHeadMove: 0.18,
+          avatarIdleEyeContact: 1,
+          avatarIdleHeadMove: 0.04,
           avatarSpeakingEyeContact: 1,
-          avatarSpeakingHeadMove: 0.95,
+          avatarSpeakingHeadMove: 0.22,
         });
 
         await head.showAvatar({
@@ -248,17 +295,18 @@ const TalkingAvatarWidget = () => {
           body: "F",
           lipsyncLang: "en",
           avatarMood: "neutral",
-          avatarIdleEyeContact: 0.8,
-          avatarIdleHeadMove: 0.18,
+          avatarIdleEyeContact: 1,
+          avatarIdleHeadMove: 0.04,
           avatarSpeakingEyeContact: 1,
-          avatarSpeakingHeadMove: 0.95,
+          avatarSpeakingHeadMove: 0.22,
         });
 
         restyleAspenAvatar(head);
 
-        head.setView?.("head", { cameraDistance: 0.2, cameraY: 0.02, cameraRotateX: 0.02 });
-        head.lookAtCamera?.(300000);
-        head.makeEyeContact?.(300000);
+        head.setView?.("head", { cameraDistance: 0.12, cameraY: 0.01, cameraRotateX: 0, cameraRotateY: 0 });
+        head.setMood?.("neutral");
+        resetAvatarMotion();
+        focusAvatarOnViewer(300000);
         head.start?.();
 
         if (cancelled) { head.stop?.(); return; }
@@ -272,7 +320,7 @@ const TalkingAvatarWidget = () => {
 
     void initializeAvatar();
     return () => { cancelled = true; };
-  }, [widgetState]);
+  }, [focusAvatarOnViewer, resetAvatarMotion, widgetState]);
 
   // Animate lip-sync with SUBTLE mouth movements
   useEffect(() => {
@@ -289,8 +337,9 @@ const TalkingAvatarWidget = () => {
       const head = talkingHeadRef.current;
       const analyser = retellClientRef.current?.analyzerComponent?.analyser as AnalyserNode | undefined;
 
-      if (head?.lookAtCamera) head.lookAtCamera(250);
-      if (head?.makeEyeContact) head.makeEyeContact(250);
+      if (head && callStatus === "active") {
+        focusAvatarOnViewer(300);
+      }
 
       if (head?.mtAvatar && analyser) {
         const timeData = new Float32Array(analyser.fftSize);
@@ -313,41 +362,45 @@ const TalkingAvatarWidget = () => {
         const low = averageRange(frequencyData, 0, 12) / 255;
         const mid = averageRange(frequencyData, 12, 36) / 255;
         const high = averageRange(frequencyData, 36, 84) / 255;
-        const energy = clamp(rms * 4.0 + (low + mid + high) / 3);
-        const active = isAgentSpeaking || energy > 0.05;
+        const energy = clamp(rms * 4.8 + low * 0.35 + mid * 0.7 + high * 0.5);
+        const active = isAgentSpeaking && energy > 0.018;
+        const targetMorphs: Record<LipSyncMorphName, number> = { ...NEUTRAL_MORPHS };
 
         if (active) {
           motionTickRef.current += 1;
           const brightness = clamp((high + mid * 0.6) / Math.max(low + mid + high, 0.001));
           const roundness = clamp(low / Math.max(mid + high + 0.15, 0.001));
-          const plosive = clamp(0.22 - energy + (zeroCrossings / timeData.length) * 1.4);
+          const plosive = clamp(0.18 - energy + (zeroCrossings / timeData.length) * 1.3);
+          const subtlety = 0.28;
+          const aa = energy * clamp(1 - Math.abs(brightness - 0.32) * 2.3) * subtlety;
+          const eh = energy * clamp(1 - Math.abs(brightness - 0.5) * 2.5) * subtlety;
+          const ih = energy * clamp((brightness - 0.44) * 2.1) * subtlety;
+          const oh = energy * clamp(roundness * 1.15) * subtlety;
+          const uh = energy * clamp((roundness - 0.2) * 1.7) * subtlety;
+          const phase = motionTickRef.current / 10;
+          const motionScale = clamp(energy * 0.75, 0.08, 0.2);
 
-          // SUBTLE multipliers — mouth opens gently, not wide
-          const subtlety = 0.45;
-          const aa = energy * clamp(1 - Math.abs(brightness - 0.32) * 2.4) * subtlety;
-          const eh = energy * clamp(1 - Math.abs(brightness - 0.52) * 2.8) * subtlety;
-          const ih = energy * clamp((brightness - 0.46) * 2.2) * subtlety;
-          const oh = energy * clamp(roundness * 1.2) * subtlety;
-          const uh = energy * clamp((roundness - 0.22) * 1.8) * subtlety;
-          const phase = motionTickRef.current / 7;
-          const motionScale = energy * (isAgentSpeaking ? 0.7 : 0.35);
-
-          // Reduced mouth/jaw opening — much more natural
-          setMorphRealtime(head, "mouthOpen", energy * 0.3);
-          setMorphRealtime(head, "jawOpen", energy * 0.2);
-          setMorphRealtime(head, "viseme_aa", aa);
-          setMorphRealtime(head, "viseme_E", eh * 0.6);
-          setMorphRealtime(head, "viseme_I", ih * 0.55);
-          setMorphRealtime(head, "viseme_O", oh * 0.65);
-          setMorphRealtime(head, "viseme_U", uh * 0.6);
-          setMorphRealtime(head, "viseme_PP", plosive * 0.2);
-          setMorphRealtime(head, "headRotateY", Math.sin(phase) * 0.08 * motionScale);
-          setMorphRealtime(head, "headRotateX", (Math.cos(phase * 0.7) * 0.05 - 0.01) * motionScale);
-          setMorphRealtime(head, "bodyRotateY", Math.sin(phase * 0.58) * 0.04 * motionScale);
-          setMorphRealtime(head, "bodyRotateX", Math.cos(phase * 0.5) * 0.025 * motionScale);
-        } else {
-          resetAvatarMotion();
+          targetMorphs.mouthOpen = energy * 0.18;
+          targetMorphs.jawOpen = energy * 0.11;
+          targetMorphs.viseme_aa = aa * 0.95;
+          targetMorphs.viseme_E = eh * 0.56;
+          targetMorphs.viseme_I = ih * 0.5;
+          targetMorphs.viseme_O = oh * 0.6;
+          targetMorphs.viseme_U = uh * 0.56;
+          targetMorphs.viseme_PP = plosive * 0.16;
+          targetMorphs.headRotateY = Math.sin(phase) * 0.03 * motionScale;
+          targetMorphs.headRotateX = Math.cos(phase * 0.7) * 0.018 * motionScale;
+          targetMorphs.bodyRotateY = Math.sin(phase * 0.58) * 0.012 * motionScale;
+          targetMorphs.bodyRotateX = Math.cos(phase * 0.5) * 0.008 * motionScale;
+        } else if (head) {
+          focusAvatarOnViewer(400);
         }
+
+        LIPSYNC_KEYS.forEach((morphName) => {
+          const isRotation = morphName.includes("Rotate");
+          const smoothing = active ? (isRotation ? 0.18 : 0.55) : (isRotation ? 0.14 : 0.35);
+          applyMorphTarget(head, morphName, targetMorphs[morphName], smoothing);
+        });
       }
       avatarAnimationFrameRef.current = window.requestAnimationFrame(animateAvatar);
     };
@@ -360,7 +413,7 @@ const TalkingAvatarWidget = () => {
       }
       resetAvatarMotion();
     };
-  }, [callStatus, isAgentSpeaking, resetAvatarMotion]);
+  }, [applyMorphTarget, callStatus, focusAvatarOnViewer, isAgentSpeaking, resetAvatarMotion]);
 
   // Cleanup on unmount
   useEffect(() => {
@@ -387,6 +440,8 @@ const TalkingAvatarWidget = () => {
       retellClient.on("call_started", () => {
         setCallStatus("active");
         setDuration(0);
+        resetAvatarMotion();
+        focusAvatarOnViewer(300000);
         if (timerRef.current) clearInterval(timerRef.current);
         timerRef.current = setInterval(() => setDuration((prev) => prev + 1), 1000);
       });
@@ -400,7 +455,8 @@ const TalkingAvatarWidget = () => {
       });
 
       retellClient.on("call_ready", () => {
-        talkingHeadRef.current?.lookAtCamera?.(300000);
+        resetAvatarMotion();
+        focusAvatarOnViewer(300000);
       });
 
       retellClient.on("agent_start_talking", () => setIsAgentSpeaking(true));
@@ -419,6 +475,12 @@ const TalkingAvatarWidget = () => {
         emitRawAudioSamples: true,
       });
       await retellClient.startAudioPlayback?.().catch(() => {});
+
+      const analyser = retellClient.analyzerComponent?.analyser as AnalyserNode | undefined;
+      if (analyser) {
+        analyser.fftSize = 1024;
+        analyser.smoothingTimeConstant = 0.18;
+      }
 
       // Audio output follows active device (Bluetooth, speaker, etc.)
       // The Retell SDK uses an <audio> element under the hood; find it and
@@ -445,7 +507,7 @@ const TalkingAvatarWidget = () => {
       console.error("Failed to start spokesperson call:", err);
       setCallStatus("idle");
     }
-  }, [resetAvatarMotion]);
+  }, [focusAvatarOnViewer, resetAvatarMotion]);
 
   const endCall = useCallback(() => {
     try { retellClientRef.current?.stopCall(); } catch { /* noop */ }
