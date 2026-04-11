@@ -940,6 +940,16 @@ const VoiceAgentWidget = ({
               {recapSent && (
                 <p className="text-center text-[11px] text-muted-foreground">✅ Recap email sent!</p>
               )}
+
+              {/* CTA to website */}
+              <a
+                href="https://aihiddenleads.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 px-4 py-2.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
+              >
+                🚀 See Our Promo — Visit AIHiddenLeads.com
+              </a>
             </div>
           )}
 

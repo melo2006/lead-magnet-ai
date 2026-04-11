@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from "react";
-import { Send, Bot, User, Maximize2, Minimize2, X } from "lucide-react";
+import { Send, Bot, User, Maximize2, Minimize2, X, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 
 interface ChatWidgetProps {
@@ -351,6 +351,17 @@ CRITICAL RULES:
           <Send className="h-4 w-4" />
         </button>
       </div>
+
+      {/* CTA Banner */}
+      <a
+        href="https://aihiddenleads.com"
+        target="_blank"
+        rel="noopener noreferrer"
+        className="flex items-center justify-center gap-2 bg-gradient-to-r from-emerald-600 to-emerald-500 px-3 py-2.5 text-[11px] font-bold text-white transition-opacity hover:opacity-90"
+      >
+        <ExternalLink className="h-3 w-3" />
+        🚀 Take advantage of our promo — Visit AIHiddenLeads.com
+      </a>
       </>
       )}
     </div>
