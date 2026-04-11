@@ -597,6 +597,7 @@ const VoiceAgentWidget = ({
     }
   }, [lastCallHistoryId, isSendingRecap, recapSent, toast]);
 
+  useEffect(() => {
     return () => {
       clearTimer();
       if (retellClientRef.current) {
