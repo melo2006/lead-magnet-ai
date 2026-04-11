@@ -279,7 +279,6 @@ const TalkingAvatarWidget = () => {
           lipsyncModules: [],
           modelPixelRatio: Math.min(window.devicePixelRatio || 1, 1.5),
           modelFPS: 48,
-          modelMovementFactor: 0.16,
           lightAmbientIntensity: 3.2,
           lightDirectIntensity: 12,
           lightDirectPhi: 0.85,
@@ -304,7 +303,6 @@ const TalkingAvatarWidget = () => {
         restyleAspenAvatar(head);
 
         head.setView?.("head", { cameraDistance: 0.12, cameraY: 0.01, cameraRotateX: 0, cameraRotateY: 0 });
-        head.setMood?.("neutral");
         resetAvatarMotion();
         focusAvatarOnViewer(300000);
         head.start?.();
