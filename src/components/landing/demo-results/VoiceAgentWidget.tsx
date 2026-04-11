@@ -618,6 +618,8 @@ const VoiceAgentWidget = ({
     transferAttemptedRef.current = false;
     transferTriggeredRef.current = false;
     setTransferInProgress(false);
+    setLastCallHistoryId(null);
+    setRecapSent(false);
 
     try {
       const { data, error } = await supabase.functions.invoke("retell-web-call", {
