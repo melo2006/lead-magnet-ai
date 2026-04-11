@@ -1,5 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { BrowserRouter, Route, Routes } from "react-router-dom";
+import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -12,6 +12,19 @@ import TermsOfService from "./pages/TermsOfService.tsx";
 
 
 const queryClient = new QueryClient();
+
+const legacyCrmRedirects = [
+  { path: "/prospects", to: "/dashboard/prospects" },
+  { path: "/intent-leads", to: "/dashboard/intent-leads" },
+  { path: "/campaigns", to: "/dashboard/campaigns" },
+  { path: "/campaigns/:id", to: "/dashboard/campaigns" },
+  { path: "/pipeline", to: "/dashboard/pipeline" },
+  { path: "/calls", to: "/dashboard/calls" },
+  { path: "/imported", to: "/dashboard/imported" },
+  { path: "/imported/:id", to: "/dashboard/imported" },
+  { path: "/engagement", to: "/dashboard/engagement" },
+  { path: "/templates", to: "/dashboard/templates" },
+];
 
 const App = () => (
   <QueryClientProvider client={queryClient}>
@@ -26,6 +39,10 @@ const App = () => (
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/dashboard/*" element={<CRM />} />
+          {legacyCrmRedirects.map(({ path, to }) => (
+            <Route key={path} path={path} element={<Navigate to={to} replace />} />
+          ))}
+          <Route path="*" element={<Navigate to="/" replace />} />
         </Routes>
       </BrowserRouter>
     </TooltipProvider>
