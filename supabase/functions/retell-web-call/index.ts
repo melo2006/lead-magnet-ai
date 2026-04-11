@@ -1017,36 +1017,125 @@ async function sendSummaryEmail({
     ? `<p style="margin: 0 0 8px;"><strong>Confirmed time:</strong> ${escapeHtml(appointmentScheduledFor)}</p>`
     : '';
 
+  // Format transcript as chat-style conversation
+  const formatTranscriptChat = (raw: string) => {
+    if (!raw) return '<p style="color:#94a3b8;font-style:italic;">Transcript was not available yet.</p>';
+    const lines = raw.split('\n').filter(l => l.trim());
+    return lines.map(line => {
+      const match = line.match(/^(Agent|User|AI|Caller|Aspen|Customer):\s*(.*)/i);
+      if (match) {
+        const isAgent = /^(agent|ai|aspen)/i.test(match[1]);
+        const align = isAgent ? 'left' : 'right';
+        const bgColor = isAgent ? '#f0fdf4' : '#eff6ff';
+        const borderColor = isAgent ? '#22c55e' : '#3b82f6';
+        const label = isAgent ? '🤖 Aspen' : '👤 Caller';
+        return `<div style="text-align:${align};margin:6px 0;">
+          <span style="font-size:10px;color:#64748b;display:block;margin-bottom:2px;">${label}</span>
+          <div style="display:inline-block;max-width:85%;padding:10px 14px;border-radius:12px;background:${bgColor};border-left:3px solid ${borderColor};font-size:13px;line-height:1.5;color:#1e293b;text-align:left;">${escapeHtml(match[2])}</div>
+        </div>`;
+      }
+      return `<div style="text-align:center;margin:4px 0;"><span style="font-size:12px;color:#94a3b8;">${escapeHtml(line)}</span></div>`;
+    }).join('');
+  };
+
+  const demoLink = websiteUrl ? `${websiteUrl.startsWith('http') ? '' : 'https://'}${websiteUrl}` : '';
+  const salesPageUrl = 'https://aihiddenleads.lovable.app';
+
   const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 760px; margin: 0 auto; color: #0f172a;">
-      <h1 style="font-size: 24px; margin-bottom: 8px;">Aspen demo call recap</h1>
-      <p style="margin-top: 0; color: #475569;">${escapeHtml(businessName)} · ${escapeHtml(websiteUrl)}</p>
-
-      <div style="border: 1px solid #cbd5e1; border-radius: 12px; padding: 16px; margin: 20px 0; background: #f8fafc;">
-        <h2 style="font-size: 18px; margin: 0 0 8px;">Caller details</h2>
-        <p style="margin: 4px 0;"><strong>Name:</strong> ${escapeHtml(callerName || 'Not captured')}</p>
-        <p style="margin: 4px 0;"><strong>Email:</strong> ${escapeHtml(callerEmail || 'Not captured')}</p>
-        <p style="margin: 4px 0;"><strong>Phone:</strong> ${escapeHtml(callerPhone || 'Not captured')}</p>
-        <p style="margin: 4px 0;"><strong>Business owner on file:</strong> ${escapeHtml(ownerName)}</p>
-        <p style="margin: 4px 0;"><strong>Owner email on file:</strong> ${escapeHtml(ownerEmail)}</p>
-        <p style="margin: 4px 0;"><strong>Owner phone on file:</strong> ${escapeHtml(ownerPhone || 'Not provided')}</p>
-        <p style="margin: 4px 0;"><strong>Call length:</strong> ${callDurationSeconds ? `${callDurationSeconds}s` : 'Unavailable'}</p>
+    <div style="font-family: 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif; max-width: 680px; margin: 0 auto; background: #ffffff; border-radius: 16px; overflow: hidden; border: 1px solid #e2e8f0;">
+      <!-- Header -->
+      <div style="background: linear-gradient(135deg, #0a0f1a 0%, #111827 100%); padding: 32px 28px; text-align: center;">
+        <div style="margin-bottom: 16px;">
+          <span style="font-size: 32px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;">AI </span>
+          <span style="font-size: 32px; font-weight: 800; color: #22c55e; letter-spacing: -0.5px;">Hidden</span>
+          <span style="font-size: 32px; font-weight: 800; color: #ffffff; letter-spacing: -0.5px;"> Leads</span>
+        </div>
+        <p style="color: #94a3b8; font-size: 14px; margin: 0;">Voice AI Demo Recap</p>
       </div>
 
-      <div style="border: 1px solid #cbd5e1; border-radius: 12px; padding: 16px; margin: 20px 0;">
-        <h2 style="font-size: 18px; margin: 0 0 8px;">AI summary</h2>
-        <p style="margin: 0 0 12px;">${escapeHtml(summary)}</p>
-        <p style="margin: 0 0 12px;"><strong>Next step:</strong> ${escapeHtml(nextStep)}</p>
-        <p style="margin: 0 0 8px;"><strong>Callback requested:</strong> ${callbackRequested ? 'Yes' : 'No'}</p>
-        <p style="margin: 0 0 8px;"><strong>Appointment requested:</strong> ${appointmentRequested ? 'Yes' : 'No'}</p>
-        <p style="margin: 0 0 8px;"><strong>Immediate callback requested:</strong> ${transferRequested ? 'Yes' : 'No'}</p>
-        ${appointmentHtml}
-        <div><strong>Key points:</strong>${pointsHtml}</div>
+      <!-- Business info bar -->
+      <div style="background: #f8fafc; padding: 16px 28px; border-bottom: 1px solid #e2e8f0; display: flex; align-items: center;">
+        <div>
+          <p style="margin: 0; font-size: 18px; font-weight: 700; color: #0f172a;">📞 ${escapeHtml(businessName)}</p>
+          ${websiteUrl ? `<p style="margin: 4px 0 0; font-size: 13px; color: #64748b;">🌐 <a href="${escapeHtml(demoLink)}" style="color:#3b82f6;text-decoration:none;">${escapeHtml(websiteUrl)}</a></p>` : ''}
+        </div>
       </div>
 
-      <div style="border: 1px solid #cbd5e1; border-radius: 12px; padding: 16px; margin: 20px 0;">
-        <h2 style="font-size: 18px; margin: 0 0 8px;">Transcript</h2>
-        <pre style="white-space: pre-wrap; word-break: break-word; font-family: Arial, sans-serif; line-height: 1.6; margin: 0;">${escapeHtml(transcript || 'Transcript was not available yet.')}</pre>
+      <div style="padding: 28px;">
+        <!-- Caller Details Card -->
+        <div style="background: linear-gradient(135deg, #f0fdf4, #ecfdf5); border: 1px solid #bbf7d0; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+          <p style="margin: 0 0 12px; font-size: 15px; font-weight: 700; color: #166534;">👤 Caller Details</p>
+          <table style="width: 100%; font-size: 13px; color: #1e293b;">
+            <tr><td style="padding: 4px 0; font-weight: 600; width: 130px;">Name:</td><td style="padding: 4px 0;">${escapeHtml(callerName || 'Not captured')}</td></tr>
+            <tr><td style="padding: 4px 0; font-weight: 600;">Email:</td><td style="padding: 4px 0;">${escapeHtml(callerEmail || 'Not captured')}</td></tr>
+            <tr><td style="padding: 4px 0; font-weight: 600;">Phone:</td><td style="padding: 4px 0;">${escapeHtml(callerPhone || 'Not captured')}</td></tr>
+            <tr><td style="padding: 4px 0; font-weight: 600;">Call Duration:</td><td style="padding: 4px 0;">${callDurationSeconds ? `${Math.floor(callDurationSeconds / 60)}m ${callDurationSeconds % 60}s` : 'Unavailable'}</td></tr>
+          </table>
+        </div>
+
+        <!-- AI Summary Card -->
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+          <p style="margin: 0 0 12px; font-size: 15px; font-weight: 700; color: #0f172a;">🧠 AI Summary</p>
+          <p style="margin: 0 0 14px; font-size: 14px; line-height: 1.6; color: #334155;">${escapeHtml(summary)}</p>
+          <p style="margin: 0 0 10px; font-size: 13px; color: #475569;"><strong>Next step:</strong> ${escapeHtml(nextStep)}</p>
+          
+          <div style="display: flex; gap: 8px; flex-wrap: wrap; margin-top: 12px;">
+            <span style="display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; background: ${callbackRequested ? '#dcfce7' : '#f1f5f9'}; color: ${callbackRequested ? '#166534' : '#94a3b8'};">
+              ${callbackRequested ? '✅' : '⬜'} Callback
+            </span>
+            <span style="display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; background: ${appointmentRequested ? '#dbeafe' : '#f1f5f9'}; color: ${appointmentRequested ? '#1e40af' : '#94a3b8'};">
+              ${appointmentRequested ? '✅' : '⬜'} Appointment
+            </span>
+            <span style="display: inline-block; padding: 4px 12px; border-radius: 20px; font-size: 11px; font-weight: 600; background: ${transferRequested ? '#fef3c7' : '#f1f5f9'}; color: ${transferRequested ? '#92400e' : '#94a3b8'};">
+              ${transferRequested ? '✅' : '⬜'} Transfer
+            </span>
+          </div>
+          ${appointmentHtml ? `<div style="margin-top: 10px;">${appointmentHtml}</div>` : ''}
+        </div>
+
+        <!-- Key Points -->
+        ${keyPoints.length ? `
+        <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 12px; padding: 20px; margin-bottom: 20px;">
+          <p style="margin: 0 0 10px; font-size: 15px; font-weight: 700; color: #92400e;">⭐ Key Points</p>
+          <ul style="margin: 0; padding-left: 18px; font-size: 13px; color: #78350f; line-height: 1.8;">
+            ${keyPoints.map(p => `<li>${escapeHtml(p)}</li>`).join('')}
+          </ul>
+        </div>` : ''}
+
+        <!-- Transcript (Chat Style) -->
+        <div style="border: 1px solid #e2e8f0; border-radius: 12px; padding: 20px; margin-bottom: 24px;">
+          <p style="margin: 0 0 14px; font-size: 15px; font-weight: 700; color: #0f172a;">💬 Conversation Transcript</p>
+          <div style="max-height: 400px; overflow-y: auto; padding: 4px;">
+            ${formatTranscriptChat(transcript)}
+          </div>
+        </div>
+
+        <!-- CTA: Try Demo Again -->
+        <div style="text-align: center; margin-bottom: 24px;">
+          <a href="${escapeHtml(salesPageUrl)}/#demo-form" style="display: inline-block; padding: 14px 32px; background: linear-gradient(135deg, #22c55e, #16a34a); color: #ffffff; font-size: 15px; font-weight: 700; text-decoration: none; border-radius: 12px; box-shadow: 0 4px 14px rgba(34,197,94,0.4);">🎙️ Try the Demo Again</a>
+        </div>
+
+        <!-- Sales Section -->
+        <div style="background: linear-gradient(135deg, #0a0f1a, #1e293b); border-radius: 12px; padding: 24px; color: #ffffff;">
+          <p style="margin: 0 0 4px; font-size: 18px; font-weight: 800;">Ready to never miss a lead again?</p>
+          <p style="margin: 0 0 16px; font-size: 13px; color: #94a3b8;">AI Hidden Leads gives your business superpowers:</p>
+          <table style="width: 100%; font-size: 13px; color: #e2e8f0; line-height: 1.8;">
+            <tr><td style="padding: 3px 0;">🤖 AI Voice Agent answers calls 24/7 — never miss a lead</td></tr>
+            <tr><td style="padding: 3px 0;">💬 AI Chat Widget engages every website visitor instantly</td></tr>
+            <tr><td style="padding: 3px 0;">🔍 Smart Lead Generation finds ideal customers daily</td></tr>
+            <tr><td style="padding: 3px 0;">📧 Automated Outreach via email & SMS at scale</td></tr>
+            <tr><td style="padding: 3px 0;">⚡ Speed-to-Lead calls prospects within 60 seconds</td></tr>
+            <tr><td style="padding: 3px 0;">📊 Full CRM dashboard to track every interaction</td></tr>
+          </table>
+          <div style="text-align: center; margin-top: 20px;">
+            <a href="${escapeHtml(salesPageUrl)}/#pricing" style="display: inline-block; padding: 12px 28px; background: #22c55e; color: #0a0f1a; font-size: 14px; font-weight: 700; text-decoration: none; border-radius: 10px;">See Plans & Pricing →</a>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="text-align: center; margin-top: 24px; padding-top: 16px; border-top: 1px solid #e2e8f0;">
+          <p style="margin: 0; font-size: 11px; color: #94a3b8;">© ${new Date().getFullYear()} AI Hidden Leads · <a href="${escapeHtml(salesPageUrl)}" style="color: #22c55e; text-decoration: none;">aihiddenleads.com</a></p>
+        </div>
       </div>
     </div>
   `;
