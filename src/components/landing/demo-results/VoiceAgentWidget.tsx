@@ -520,6 +520,12 @@ const VoiceAgentWidget = ({
         throw new Error(error?.message || data?.error || "Couldn't finish the call recap.");
       }
 
+      // Store call history ID for on-demand recap
+      if (data.callHistoryId) {
+        setLastCallHistoryId(data.callHistoryId);
+        setRecapSent(false);
+      }
+
       const transferWasAttempted = Boolean(data.transferRequested && (transferTriggeredRef.current || data.liveTransferStarted));
 
       const appointmentBooked = Boolean(data.calendarEventId);
@@ -532,7 +538,7 @@ const VoiceAgentWidget = ({
           ? "Live transfer initiated"
           : data.callbackRequested
             ? "Callback request captured"
-            : "Call summary sent";
+            : "Call processed";
 
       const detailLine = data.appointmentRequested
         ? appointmentBooked && data.appointmentScheduledFor
@@ -550,15 +556,9 @@ const VoiceAgentWidget = ({
           ? "Calendar booking could not be completed automatically."
           : null;
 
-      const deliveryLine = data.emailWarning
-        ? data.emailWarning
-        : Array.isArray(data.emailDeliveredTo) && data.emailDeliveredTo.length > 0
-          ? `Recap sent to ${data.emailDeliveredTo.join(", ")}.`
-          : `Recap prepared for ${ownerEmail}.`;
-
       toast({
         title: headline,
-        description: [detailLine, calendarLine, deliveryLine].filter(Boolean).join(" "),
+        description: [detailLine, calendarLine, "Tap 📧 to send the email recap."].filter(Boolean).join(" "),
       });
     } catch (err) {
       console.error("Failed to email call summary:", err);
