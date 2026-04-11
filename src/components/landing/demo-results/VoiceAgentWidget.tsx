@@ -919,13 +919,28 @@ const VoiceAgentWidget = ({
           </p>
 
           {callStatus === "idle" && (
-            <button
-              onClick={startCall}
-              className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
-            >
-              <Phone className="h-4 w-4" />
-              Start Voice Call
-            </button>
+            <div className="space-y-2">
+              <button
+                onClick={startCall}
+                className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
+              >
+                <Phone className="h-4 w-4" />
+                Start Voice Call
+              </button>
+              {lastCallHistoryId && !recapSent && (
+                <button
+                  onClick={sendRecapEmail}
+                  disabled={isSendingRecap}
+                  className="flex w-full items-center justify-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-4 py-2.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
+                >
+                  {isSendingRecap ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
+                  {isSendingRecap ? "Sending recap…" : "📧 Send me the email recap"}
+                </button>
+              )}
+              {recapSent && (
+                <p className="text-center text-[11px] text-muted-foreground">✅ Recap email sent!</p>
+              )}
+            </div>
           )}
 
           {callStatus === "connecting" && (
