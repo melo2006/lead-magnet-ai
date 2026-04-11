@@ -1551,11 +1551,13 @@ Deno.serve(async (req) => {
 
       return jsonResponse({
         success: true,
+        callHistoryId,
         callbackRequested: aiSummary.callbackRequested,
         appointmentRequested: aiSummary.appointmentRequested,
         transferRequested: aiSummary.transferRequested,
         emailId: emailResult?.id ?? null,
         emailDeliveredTo: emailResult?.deliveredTo ?? [],
+        emailSkipped: skipEmail,
         emailWarning,
         calendarEventId,
         appointmentScheduledFor,
@@ -1568,6 +1570,58 @@ Deno.serve(async (req) => {
         contactPersisted,
         contactPersistWarning,
       });
+    }
+
+    // ── send-recap-email: on-demand email for an existing call_history record ──
+    if (action === 'send-recap-email') {
+      const resendApiKey = Deno.env.get('RESEND_API_KEY');
+      if (!resendApiKey) return jsonResponse({ error: 'RESEND_API_KEY not configured' }, 500);
+
+      const supabaseUrl = Deno.env.get('SUPABASE_URL');
+      const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+      if (!supabaseUrl || !supabaseServiceRoleKey) return jsonResponse({ error: 'Missing Supabase config' }, 500);
+
+      const callHistoryId = typeof body.callHistoryId === 'string' ? body.callHistoryId.trim() : '';
+      if (!callHistoryId) return jsonResponse({ error: 'callHistoryId is required' }, 400);
+
+      const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey);
+      const { data: record, error: fetchErr } = await adminClient
+        .from('call_history')
+        .select('*')
+        .eq('id', callHistoryId)
+        .single();
+
+      if (fetchErr || !record) return jsonResponse({ error: 'Call record not found' }, 404);
+
+      const keyPoints = Array.isArray(record.key_points) ? record.key_points.map(String) : [];
+      const metadata = (record.metadata && typeof record.metadata === 'object' && !Array.isArray(record.metadata)) ? record.metadata as Record<string, unknown> : {};
+
+      try {
+        const emailResult = await sendSummaryEmail({
+          resendApiKey,
+          callerName: record.caller_name || '',
+          callerEmail: record.caller_email || '',
+          callerPhone: record.caller_phone || '',
+          ownerName: record.owner_name || DEFAULT_OWNER_NAME,
+          ownerEmail: record.owner_email || TESTING_INBOX_EMAIL,
+          ownerPhone: record.owner_phone || '',
+          businessName: record.business_name,
+          websiteUrl: record.website_url || '',
+          transcript: record.transcript || '',
+          summary: record.summary || 'No summary available.',
+          nextStep: record.next_step || 'Follow up with the lead.',
+          callbackRequested: Boolean(metadata.callbackRequested),
+          appointmentRequested: Boolean(metadata.appointmentRequested),
+          transferRequested: record.transfer_requested,
+          appointmentScheduledFor: typeof metadata.appointmentTimeText === 'string' ? metadata.appointmentTimeText : null,
+          keyPoints,
+          callDurationSeconds: record.duration_seconds ?? undefined,
+        });
+
+        return jsonResponse({ success: true, emailId: emailResult.id, emailDeliveredTo: emailResult.deliveredTo, emailWarning: emailResult.warning });
+      } catch (emailErr) {
+        return jsonResponse({ success: false, error: emailErr instanceof Error ? emailErr.message : 'Failed to send email' }, 500);
+      }
     }
 
     if (action === 'warm-transfer') {
