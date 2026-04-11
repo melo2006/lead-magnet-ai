@@ -9,7 +9,6 @@ type CallStatus = "idle" | "connecting" | "active" | "ending";
 const AVATAR_MODEL_URL = "/aspen-brunette.glb";
 const AUTO_MINIMIZE_DELAY = 25000; // 25 seconds
 
-const BLONDE_COLOR = { r: 226, g: 196, b: 137 };
 const BLUE_EYE_COLOR = { r: 88, g: 153, b: 232 };
 
 const clampByte = (value: number) => Math.max(0, Math.min(255, Math.round(value)));
