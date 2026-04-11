@@ -11,6 +11,7 @@ import PricingSection from "@/components/landing/PricingSection";
 import TestimonialSection from "@/components/landing/TestimonialSection";
 import LeadCaptureSection from "@/components/landing/LeadCaptureSection";
 import Footer from "@/components/landing/Footer";
+import TalkingAvatarWidget from "@/components/landing/TalkingAvatarWidget";
 
 const Index = () => {
   const [selectedNiche, setSelectedNiche] = useState(niches[0]);
@@ -32,6 +33,7 @@ const Index = () => {
       <TestimonialSection />
       <LeadCaptureSection selectedNiche={selectedNiche} />
       <Footer />
+      <TalkingAvatarWidget />
     </div>
   );
 };
