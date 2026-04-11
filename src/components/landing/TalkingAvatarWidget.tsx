@@ -1,10 +1,50 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { X, Mic, MicOff, Phone, PhoneOff, ExternalLink } from "lucide-react";
+import { X, Mic, MicOff, Phone, PhoneOff, ExternalLink, Loader2 } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
-import cartoonAvatar from "@/assets/sample_cartoon_avatar.jpg";
+import realisticAvatar from "@/assets/sample_realistic_avatar.jpg";
 
 type WidgetState = "collapsed" | "expanded";
 type CallStatus = "idle" | "connecting" | "active" | "ending";
+
+const AVATAR_MODEL_URL = "/aspen-brunette.glb";
+const LIPSYNC_KEYS = [
+  "viseme_aa",
+  "viseme_E",
+  "viseme_I",
+  "viseme_O",
+  "viseme_U",
+  "viseme_PP",
+  "mouthOpen",
+  "jawOpen",
+  "headRotateX",
+  "headRotateY",
+  "bodyRotateX",
+  "bodyRotateY",
+] as const;
+
+const clamp = (value: number, min = 0, max = 1) => Math.min(max, Math.max(min, value));
+
+const averageRange = (values: Uint8Array, start: number, end: number) => {
+  const safeEnd = Math.min(values.length, end);
+  const safeStart = Math.min(start, safeEnd);
+  const sliceLength = safeEnd - safeStart;
+
+  if (sliceLength <= 0) return 0;
+
+  let total = 0;
+  for (let index = safeStart; index < safeEnd; index += 1) {
+    total += values[index];
+  }
+
+  return total / sliceLength;
+};
+
+const setMorphRealtime = (head: any, morphName: string, value: number | null) => {
+  const morph = head?.mtAvatar?.[morphName];
+  if (!morph) return;
+  morph.realtime = value;
+  morph.needsUpdate = true;
+};
 
 const TalkingAvatarWidget = () => {
   const [widgetState, setWidgetState] = useState<WidgetState>("collapsed");
@@ -12,101 +52,228 @@ const TalkingAvatarWidget = () => {
   const [isMuted, setIsMuted] = useState(false);
   const [isAgentSpeaking, setIsAgentSpeaking] = useState(false);
   const [duration, setDuration] = useState(0);
-  const [mouthOpen, setMouthOpen] = useState(0);
-  const [headTilt, setHeadTilt] = useState({ x: 0, y: 0 });
-  const [eyeBlink, setEyeBlink] = useState(false);
-  const [headNod, setHeadNod] = useState(0);
+  const [avatarState, setAvatarState] = useState<"idle" | "loading" | "ready" | "error">("idle");
 
   const retellClientRef = useRef<any>(null);
+  const talkingHeadRef = useRef<any>(null);
+  const avatarContainerRef = useRef<HTMLDivElement | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const mouthIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const headIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
-  const blinkIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const avatarAnimationFrameRef = useRef<number | null>(null);
+  const motionTickRef = useRef(0);
 
-  // Smooth mouth animation driven by speaking state
-  useEffect(() => {
-    if (isAgentSpeaking) {
-      let frame = 0;
-      mouthIntervalRef.current = setInterval(() => {
-        // More natural mouth shapes — sinusoidal with random variation
-        const base = Math.sin(frame * 0.3) * 0.4 + 0.4;
-        const variation = (Math.random() - 0.5) * 0.3;
-        setMouthOpen(Math.max(0.1, Math.min(1, base + variation)));
-        frame++;
-      }, 80);
-    } else {
-      if (mouthIntervalRef.current) clearInterval(mouthIntervalRef.current);
-      mouthIntervalRef.current = null;
-      setMouthOpen(0);
+  const resetAvatarMotion = useCallback(() => {
+    const head = talkingHeadRef.current;
+    if (!head) return;
+
+    LIPSYNC_KEYS.forEach((morphName) => setMorphRealtime(head, morphName, null));
+  }, []);
+
+  const cleanupAvatar = useCallback(() => {
+    resetAvatarMotion();
+
+    if (avatarAnimationFrameRef.current !== null) {
+      window.cancelAnimationFrame(avatarAnimationFrameRef.current);
+      avatarAnimationFrameRef.current = null;
     }
-    return () => {
-      if (mouthIntervalRef.current) clearInterval(mouthIntervalRef.current);
-    };
-  }, [isAgentSpeaking]);
 
-  // Head movement — subtle tilts and nods when speaking
+    try {
+      talkingHeadRef.current?.stop?.();
+    } catch {
+      // noop
+    }
+
+    talkingHeadRef.current = null;
+
+    if (avatarContainerRef.current) {
+      avatarContainerRef.current.replaceChildren();
+    }
+
+    setAvatarState("idle");
+  }, [resetAvatarMotion]);
+
   useEffect(() => {
-    if (callStatus === "active") {
-      headIntervalRef.current = setInterval(() => {
-        if (isAgentSpeaking) {
-          // More animated head movement while speaking
-          setHeadTilt({
-            x: (Math.random() - 0.5) * 6,
-            y: (Math.random() - 0.5) * 4,
-          });
-          setHeadNod(Math.sin(Date.now() * 0.003) * 2);
-        } else {
-          // Gentle idle movement while listening
-          setHeadTilt({
-            x: Math.sin(Date.now() * 0.001) * 2,
-            y: Math.cos(Date.now() * 0.0008) * 1.5,
-          });
-          setHeadNod(0);
+    if (widgetState !== "expanded" || !avatarContainerRef.current || talkingHeadRef.current) {
+      return;
+    }
+
+    let cancelled = false;
+
+    const initializeAvatar = async () => {
+      try {
+        setAvatarState("loading");
+        const { TalkingHead } = await import("@met4citizen/talkinghead");
+
+        if (cancelled || !avatarContainerRef.current) return;
+
+        avatarContainerRef.current.replaceChildren();
+
+        const head = new TalkingHead(avatarContainerRef.current, {
+          cameraView: "head",
+          cameraRotateEnable: false,
+          cameraPanEnable: false,
+          cameraZoomEnable: false,
+          modelPixelRatio: Math.min(window.devicePixelRatio || 1, 1.5),
+          modelFPS: 48,
+          lightAmbientIntensity: 2.6,
+          lightDirectIntensity: 10,
+          lightDirectPhi: 0.85,
+          lightDirectTheta: 2.2,
+          lipsyncModules: ["en"],
+          avatarIdleEyeContact: 0.8,
+          avatarIdleHeadMove: 0.18,
+          avatarSpeakingEyeContact: 1,
+          avatarSpeakingHeadMove: 0.95,
+        });
+
+        await head.showAvatar({
+          url: AVATAR_MODEL_URL,
+          body: "F",
+          lipsyncLang: "en",
+          avatarMood: "neutral",
+          avatarIdleEyeContact: 0.8,
+          avatarIdleHeadMove: 0.18,
+          avatarSpeakingEyeContact: 1,
+          avatarSpeakingHeadMove: 0.95,
+        });
+
+        head.setView?.("head", {
+          cameraDistance: 0.2,
+          cameraY: 0.02,
+          cameraRotateX: 0.02,
+        });
+        head.lookAtCamera?.(300000);
+        head.makeEyeContact?.(300000);
+        head.start?.();
+
+        if (cancelled) {
+          head.stop?.();
+          return;
         }
-      }, 150);
-    } else {
-      if (headIntervalRef.current) clearInterval(headIntervalRef.current);
-      setHeadTilt({ x: 0, y: 0 });
-      setHeadNod(0);
-    }
-    return () => {
-      if (headIntervalRef.current) clearInterval(headIntervalRef.current);
-    };
-  }, [callStatus, isAgentSpeaking]);
 
-  // Natural eye blinking
-  useEffect(() => {
-    if (callStatus === "active") {
-      const scheduleNextBlink = () => {
-        const delay = 2000 + Math.random() * 4000; // Blink every 2-6 seconds
-        blinkIntervalRef.current = setTimeout(() => {
-          setEyeBlink(true);
-          setTimeout(() => setEyeBlink(false), 150);
-          scheduleNextBlink();
-        }, delay) as unknown as ReturnType<typeof setInterval>;
-      };
-      scheduleNextBlink();
-    } else {
-      if (blinkIntervalRef.current) clearTimeout(blinkIntervalRef.current as unknown as number);
-      setEyeBlink(false);
-    }
-    return () => {
-      if (blinkIntervalRef.current) clearTimeout(blinkIntervalRef.current as unknown as number);
+        talkingHeadRef.current = head;
+        setAvatarState("ready");
+      } catch (error) {
+        console.error("Failed to initialize TalkingHead avatar:", error);
+        if (!cancelled) {
+          setAvatarState("error");
+        }
+      }
     };
-  }, [callStatus]);
+
+    void initializeAvatar();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [widgetState]);
+
+  useEffect(() => {
+    if (callStatus !== "active") {
+      resetAvatarMotion();
+      if (avatarAnimationFrameRef.current !== null) {
+        window.cancelAnimationFrame(avatarAnimationFrameRef.current);
+        avatarAnimationFrameRef.current = null;
+      }
+      return;
+    }
+
+    const animateAvatar = () => {
+      const head = talkingHeadRef.current;
+      const analyser = retellClientRef.current?.analyzerComponent?.analyser as AnalyserNode | undefined;
+
+      if (head?.lookAtCamera) {
+        head.lookAtCamera(250);
+      }
+
+      if (head?.makeEyeContact) {
+        head.makeEyeContact(250);
+      }
+
+      if (head?.mtAvatar && analyser) {
+        const timeData = new Float32Array(analyser.fftSize);
+        const frequencyData = new Uint8Array(analyser.frequencyBinCount);
+
+        analyser.getFloatTimeDomainData(timeData);
+        analyser.getByteFrequencyData(frequencyData);
+
+        let sumSquares = 0;
+        let zeroCrossings = 0;
+
+        for (let index = 0; index < timeData.length; index += 1) {
+          const sample = timeData[index];
+          sumSquares += sample * sample;
+
+          if (index > 0) {
+            const previous = timeData[index - 1];
+            if ((previous >= 0 && sample < 0) || (previous < 0 && sample >= 0)) {
+              zeroCrossings += 1;
+            }
+          }
+        }
+
+        const rms = Math.sqrt(sumSquares / timeData.length);
+        const low = averageRange(frequencyData, 0, 12) / 255;
+        const mid = averageRange(frequencyData, 12, 36) / 255;
+        const high = averageRange(frequencyData, 36, 84) / 255;
+        const energy = clamp(rms * 5.5 + (low + mid + high) / 3);
+        const active = isAgentSpeaking || energy > 0.05;
+
+        if (active) {
+          motionTickRef.current += 1;
+
+          const brightness = clamp((high + mid * 0.6) / Math.max(low + mid + high, 0.001));
+          const roundness = clamp(low / Math.max(mid + high + 0.15, 0.001));
+          const plosive = clamp(0.22 - energy + (zeroCrossings / timeData.length) * 1.4);
+
+          const aa = energy * clamp(1 - Math.abs(brightness - 0.32) * 2.4);
+          const eh = energy * clamp(1 - Math.abs(brightness - 0.52) * 2.8);
+          const ih = energy * clamp((brightness - 0.46) * 2.2);
+          const oh = energy * clamp(roundness * 1.2);
+          const uh = energy * clamp((roundness - 0.22) * 1.8);
+          const phase = motionTickRef.current / 7;
+          const motionScale = energy * (isAgentSpeaking ? 1 : 0.55);
+
+          setMorphRealtime(head, "mouthOpen", energy * 0.75);
+          setMorphRealtime(head, "jawOpen", energy * 0.55);
+          setMorphRealtime(head, "viseme_aa", aa);
+          setMorphRealtime(head, "viseme_E", eh * 0.85);
+          setMorphRealtime(head, "viseme_I", ih * 0.78);
+          setMorphRealtime(head, "viseme_O", oh * 0.9);
+          setMorphRealtime(head, "viseme_U", uh * 0.85);
+          setMorphRealtime(head, "viseme_PP", plosive * 0.35);
+          setMorphRealtime(head, "headRotateY", Math.sin(phase) * 0.12 * motionScale);
+          setMorphRealtime(head, "headRotateX", (Math.cos(phase * 0.7) * 0.07 - 0.015) * motionScale);
+          setMorphRealtime(head, "bodyRotateY", Math.sin(phase * 0.58) * 0.06 * motionScale);
+          setMorphRealtime(head, "bodyRotateX", Math.cos(phase * 0.5) * 0.04 * motionScale);
+        } else {
+          resetAvatarMotion();
+        }
+      }
+
+      avatarAnimationFrameRef.current = window.requestAnimationFrame(animateAvatar);
+    };
+
+    avatarAnimationFrameRef.current = window.requestAnimationFrame(animateAvatar);
+
+    return () => {
+      if (avatarAnimationFrameRef.current !== null) {
+        window.cancelAnimationFrame(avatarAnimationFrameRef.current);
+        avatarAnimationFrameRef.current = null;
+      }
+      resetAvatarMotion();
+    };
+  }, [callStatus, isAgentSpeaking, resetAvatarMotion]);
 
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
-      if (mouthIntervalRef.current) clearInterval(mouthIntervalRef.current);
-      if (headIntervalRef.current) clearInterval(headIntervalRef.current);
-      if (blinkIntervalRef.current) clearTimeout(blinkIntervalRef.current as unknown as number);
+      cleanupAvatar();
       try {
         retellClientRef.current?.stopCall();
       } catch { /* noop */ }
     };
-  }, []);
+  }, [cleanupAvatar]);
 
   const startCall = useCallback(async () => {
     setCallStatus("connecting");
@@ -133,10 +300,15 @@ const TalkingAvatarWidget = () => {
         setCallStatus("idle");
         setIsAgentSpeaking(false);
         setIsMuted(false);
+        resetAvatarMotion();
         if (timerRef.current) {
           clearInterval(timerRef.current);
           timerRef.current = null;
         }
+      });
+
+      retellClient.on("call_ready", () => {
+        talkingHeadRef.current?.lookAtCamera?.(300000);
       });
 
       retellClient.on("agent_start_talking", () => {
@@ -151,18 +323,20 @@ const TalkingAvatarWidget = () => {
         console.error("Retell error:", error);
         setCallStatus("idle");
         setIsAgentSpeaking(false);
+        resetAvatarMotion();
       });
 
       await retellClient.startCall({
         accessToken: data.access_token,
         sampleRate: 24000,
-        emitRawAudioSamples: false,
+        emitRawAudioSamples: true,
       });
+      await retellClient.startAudioPlayback?.().catch(() => {});
     } catch (err) {
       console.error("Failed to start spokesperson call:", err);
       setCallStatus("idle");
     }
-  }, []);
+  }, [resetAvatarMotion]);
 
   const endCall = useCallback(() => {
     try {
@@ -171,11 +345,12 @@ const TalkingAvatarWidget = () => {
     setCallStatus("idle");
     setIsAgentSpeaking(false);
     setIsMuted(false);
+    resetAvatarMotion();
     if (timerRef.current) {
       clearInterval(timerRef.current);
       timerRef.current = null;
     }
-  }, []);
+  }, [resetAvatarMotion]);
 
   const toggleMute = useCallback(() => {
     try {
@@ -196,6 +371,7 @@ const TalkingAvatarWidget = () => {
 
   const handleClose = () => {
     endCall();
+    cleanupAvatar();
     setWidgetState("collapsed");
   };
 
@@ -214,11 +390,11 @@ const TalkingAvatarWidget = () => {
         aria-label="Talk to Aspen - AI Assistant"
       >
         <div className="relative">
-          <div className="w-16 h-16 rounded-full overflow-hidden border-2 border-primary shadow-lg group-hover:shadow-xl transition-all duration-300 group-hover:scale-110">
+          <div className="h-16 w-16 overflow-hidden rounded-full border-2 border-primary shadow-lg transition-all duration-300 group-hover:scale-110 group-hover:shadow-xl">
             <img
-              src={cartoonAvatar}
+              src={realisticAvatar}
               alt="Aspen AI Assistant"
-              className="w-full h-full object-cover animate-[float_3s_ease-in-out_infinite]"
+              className="h-full w-full object-cover"
             />
           </div>
           <div className="absolute inset-0 rounded-full border-2 border-primary/50 animate-ping" />
@@ -231,12 +407,12 @@ const TalkingAvatarWidget = () => {
   }
 
   return (
-    <div className="fixed bottom-4 left-4 z-50 w-[340px] bg-card border border-border rounded-2xl shadow-2xl flex flex-col overflow-hidden animate-scale-in">
+    <div className="fixed bottom-4 left-4 right-4 z-50 flex w-[calc(100vw-2rem)] max-w-[22rem] flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl animate-scale-in">
       {/* Header */}
       <div className="bg-gradient-to-r from-primary to-primary/80 p-3 flex items-center justify-between">
         <div className="flex items-center gap-2">
           <div className="w-8 h-8 rounded-full overflow-hidden border border-white/30">
-            <img src={cartoonAvatar} alt="Aspen" className="w-full h-full object-cover" />
+            <img src={realisticAvatar} alt="Aspen" className="w-full h-full object-cover" />
           </div>
           <div>
             <h3 className="text-primary-foreground text-sm font-bold">Aspen</h3>
@@ -254,79 +430,35 @@ const TalkingAvatarWidget = () => {
         </button>
       </div>
 
-      {/* Avatar Display with head movement */}
-      <div className="relative bg-gradient-to-b from-muted/50 to-muted flex items-center justify-center py-6 overflow-hidden">
-        <div
-          className="relative w-32 h-32 transition-transform duration-150 ease-out"
-          style={{
-            transform: `rotate(${headTilt.x}deg) translateY(${headNod}px) translateX(${headTilt.y}px)`,
-          }}
-        >
-          {/* Speaking glow ring */}
-          {isAgentSpeaking && (
-            <div className="absolute -inset-2 rounded-full bg-primary/20 animate-pulse" />
-          )}
+      {/* Avatar Display with real 3D head */}
+      <div className="relative overflow-hidden bg-gradient-to-b from-muted/40 via-background to-muted/20">
+        <div className="pointer-events-none absolute inset-x-10 top-4 h-24 rounded-full bg-primary/10 blur-3xl" />
 
-          {/* Avatar */}
-          <div
-            className={`w-full h-full rounded-full overflow-hidden border-3 transition-all duration-200 ${
-              isAgentSpeaking
-                ? "border-primary shadow-[0_0_30px_rgba(var(--primary),0.4)] scale-105"
-                : callStatus === "active"
-                  ? "border-green-400/60 shadow-[0_0_15px_rgba(74,222,128,0.2)]"
-                  : "border-border"
-            }`}
-          >
-            <img
-              src={cartoonAvatar}
-              alt="Aspen AI"
-              className="w-full h-full object-cover"
-            />
+        <div ref={avatarContainerRef} className="relative h-[250px] w-full [&>canvas]:!h-full [&>canvas]:!w-full" />
+
+        {avatarState !== "ready" && (
+          <div className="absolute inset-0 flex items-center justify-center bg-background/70 backdrop-blur-sm">
+            <div className="relative h-40 w-40 overflow-hidden rounded-[2rem] border border-border bg-card shadow-xl">
+              <img src={realisticAvatar} alt="Aspen preview" className="h-full w-full object-cover" />
+              <div className="absolute inset-0 flex flex-col items-center justify-center gap-2 bg-background/70 text-center">
+                {avatarState === "loading" ? <Loader2 className="h-5 w-5 animate-spin text-primary" /> : null}
+                <p className="max-w-[10rem] text-xs font-medium text-foreground">
+                  {avatarState === "error" ? "3D avatar failed to load." : "Loading Aspen’s live 3D head…"}
+                </p>
+              </div>
+            </div>
           </div>
+        )}
 
-          {/* Eye blink overlay */}
-          {eyeBlink && (
-            <div className="absolute top-[30%] left-[25%] right-[25%] flex justify-between pointer-events-none">
-              <div className="w-[18px] h-[3px] bg-[#8B6D5C] rounded-full" />
-              <div className="w-[18px] h-[3px] bg-[#8B6D5C] rounded-full" />
-            </div>
-          )}
+        {avatarState === "ready" && isAgentSpeaking && (
+          <div className="pointer-events-none absolute inset-x-16 bottom-6 h-16 rounded-full bg-primary/15 blur-2xl animate-pulse" />
+        )}
 
-          {/* Mouth animation overlay — more natural shape */}
-          {isAgentSpeaking && (
-            <div
-              className="absolute bottom-[22%] left-1/2 -translate-x-1/2 rounded-[50%] transition-all duration-75 pointer-events-none"
-              style={{
-                width: `${16 + mouthOpen * 16}px`,
-                height: `${3 + mouthOpen * 14}px`,
-                backgroundColor: mouthOpen > 0.5 ? '#b85c57' : '#c4736e',
-                opacity: 0.9,
-                boxShadow: mouthOpen > 0.6 ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'none',
-              }}
-            />
-          )}
-
-          {/* Audio waveform indicator */}
-          {isAgentSpeaking && (
-            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 flex gap-[2px]">
-              {[0, 1, 2, 3, 4, 5, 6].map((i) => (
-                <div
-                  key={i}
-                  className="w-[2.5px] bg-primary rounded-full"
-                  style={{
-                    height: `${3 + Math.random() * 14}px`,
-                    animation: `pulse 0.3s ease-in-out ${i * 60}ms infinite alternate`,
-                  }}
-                />
-              ))}
-            </div>
-          )}
-
-          {/* Mic listening indicator */}
-          {callStatus === "active" && !isMuted && !isAgentSpeaking && (
-            <div className="absolute inset-0 rounded-full border-2 border-green-400/40 animate-pulse" />
-          )}
-        </div>
+        {callStatus === "active" && (
+          <div className="pointer-events-none absolute right-3 top-3 rounded-full border border-border bg-card/80 px-2.5 py-1 text-[10px] font-semibold text-foreground shadow-sm backdrop-blur-sm">
+            {isAgentSpeaking ? "Aspen is talking" : isMuted ? "Mic muted" : "Listening live"}
+          </div>
+        )}
       </div>
 
       {/* Content area */}
@@ -334,7 +466,7 @@ const TalkingAvatarWidget = () => {
         {callStatus === "idle" && (
           <div className="text-center space-y-3">
             <p className="text-sm text-muted-foreground">
-              Hey! I'm <span className="font-bold text-foreground">Aspen</span> from <span className="font-bold text-primary">AI Hidden Leads</span>. Tap below and I'll show you how we help businesses like yours make more money! 🚀
+              Hey! I’m <span className="font-bold text-foreground">Aspen</span> from <span className="font-bold text-primary">A-I Hidden Leads</span>. Tap below and I’ll show you how we stop missed calls, revive stale leads, and turn traffic into revenue.
             </p>
             <button
               onClick={startCall}
@@ -364,10 +496,10 @@ const TalkingAvatarWidget = () => {
             <div className="flex items-center justify-center gap-3">
               <button
                 onClick={toggleMute}
-                className={`p-2.5 rounded-full transition-all ${
+                className={`rounded-full p-2.5 transition-all ${
                   isMuted
-                    ? "bg-red-500/20 text-red-500 hover:bg-red-500/30"
-                    : "bg-muted hover:bg-muted-foreground/10 text-foreground"
+                    ? "bg-destructive/15 text-destructive hover:bg-destructive/20"
+                    : "bg-muted text-foreground hover:bg-muted/80"
                 }`}
                 title={isMuted ? "Unmute" : "Mute"}
               >
@@ -376,7 +508,7 @@ const TalkingAvatarWidget = () => {
 
               <button
                 onClick={endCall}
-                className="p-3 rounded-full bg-red-500 hover:bg-red-600 text-white transition-all hover:scale-110 active:scale-95"
+                className="rounded-full bg-destructive p-3 text-destructive-foreground transition-all hover:scale-110 hover:bg-destructive/90 active:scale-95"
                 title="End call"
               >
                 <PhoneOff className="h-4 w-4" />
