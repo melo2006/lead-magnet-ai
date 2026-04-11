@@ -1,4 +1,7 @@
-import { corsHeaders } from "@supabase/supabase-js/cors";
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+};
 
 const RETELL_BASE = "https://api.retellai.com";
 const RETELL_AGENT_ID = "agent_0dd08673d770e8adf08f920490";
