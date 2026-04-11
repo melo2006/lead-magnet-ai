@@ -748,7 +748,7 @@ const TalkingAvatarWidget = () => {
       </div>
 
       {/* CTA Footer */}
-      <div className="px-2 py-1.5 border-t border-border bg-gradient-to-r from-emerald-500/10 to-primary/10">
+      <div className="px-2 py-1.5 border-t border-border bg-gradient-to-r from-primary/10 to-primary/5">
         <a
           href="#lead-capture"
           className="flex items-center justify-center gap-1.5 text-[10px] font-semibold text-primary hover:text-primary/80 transition-colors"
