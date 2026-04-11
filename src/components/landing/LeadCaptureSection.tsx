@@ -133,7 +133,7 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
   useEffect(() => {
     if (viewState !== "scanning" || !scanAnimationDone || !scanData) return;
 
-    navigate("/demo", { state: { leadData: scanData } });
+    navigate("/demo-site", { state: { leadData: scanData } });
     setViewState("form");
     setScanAnimationDone(false);
   }, [navigate, scanAnimationDone, scanData, viewState]);
@@ -302,11 +302,9 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
 
   if (viewState === "scanning") {
     return (
-      <section id="demo-form" className="py-12 sm:py-16 relative">
-        <div className="container mx-auto px-4 sm:px-6 relative z-10">
-          <ScanningAnimation websiteUrl={formData.website} onComplete={handleScanComplete} />
-        </div>
-      </section>
+      <div className="fixed inset-0 z-50 bg-background flex items-center justify-center px-4">
+        <ScanningAnimation websiteUrl={formData.website} onComplete={handleScanComplete} />
+      </div>
     );
   }
 
