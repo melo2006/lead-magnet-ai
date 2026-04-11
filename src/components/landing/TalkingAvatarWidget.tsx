@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { MessageCircle, X, Send, Play, Pause, Volume2, VolumeX, ExternalLink } from "lucide-react";
+import { X, Send, Play, Pause, Volume2, VolumeX, ExternalLink } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { salesPitchSegments } from "./avatarSalesPitch";
 import cartoonAvatar from "@/assets/sample_cartoon_avatar.jpg";
@@ -28,7 +28,7 @@ const TalkingAvatarWidget = () => {
   const containerRef = useRef<HTMLDivElement>(null);
   const chatEndRef = useRef<HTMLDivElement>(null);
   const speechRef = useRef<SpeechSynthesisUtterance | null>(null);
-  const animFrameRef = useRef<number>(0);
+  
   const mouthIntervalRef = useRef<NodeJS.Timeout | null>(null);
   const pitchAbortRef = useRef(false);
 
@@ -161,7 +161,7 @@ const TalkingAvatarWidget = () => {
     setIsLoading(true);
 
     try {
-      const { data, error } = await supabase.functions.invoke("avatar-qa", {
+      const { data } = await supabase.functions.invoke("avatar-qa", {
         body: {
           message: question,
           conversationHistory: chatMessages.map((m) => ({
