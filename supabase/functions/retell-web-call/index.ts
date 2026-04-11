@@ -1286,6 +1286,7 @@ Deno.serve(async (req) => {
       const fallbackCallerEmail = typeof body.callerEmail === 'string' ? normalizeEmailCandidate(body.callerEmail) : '';
       const fallbackCallerPhone = typeof body.callerPhone === 'string' ? sanitizeCallerPhone(body.callerPhone) : '';
       const transferAlreadyStarted = body.transferAlreadyStarted === true;
+      const skipEmail = body.skipEmail === true;
       const businessName = typeof body.businessName === 'string' ? body.businessName.trim() : 'Demo Business';
       const websiteUrl = typeof body.websiteUrl === 'string' ? body.websiteUrl.trim() : '';
       const resolvedOwnerName = ownerNameInput || DEFAULT_OWNER_NAME;
