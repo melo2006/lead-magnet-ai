@@ -13,17 +13,27 @@ const TalkingAvatarWidget = () => {
   const [isAgentSpeaking, setIsAgentSpeaking] = useState(false);
   const [duration, setDuration] = useState(0);
   const [mouthOpen, setMouthOpen] = useState(0);
+  const [headTilt, setHeadTilt] = useState({ x: 0, y: 0 });
+  const [eyeBlink, setEyeBlink] = useState(false);
+  const [headNod, setHeadNod] = useState(0);
 
   const retellClientRef = useRef<any>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const mouthIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const headIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+  const blinkIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
 
-  // Mouth animation driven by speaking state
+  // Smooth mouth animation driven by speaking state
   useEffect(() => {
     if (isAgentSpeaking) {
+      let frame = 0;
       mouthIntervalRef.current = setInterval(() => {
-        setMouthOpen(Math.random() * 0.8 + 0.2);
-      }, 100);
+        // More natural mouth shapes — sinusoidal with random variation
+        const base = Math.sin(frame * 0.3) * 0.4 + 0.4;
+        const variation = (Math.random() - 0.5) * 0.3;
+        setMouthOpen(Math.max(0.1, Math.min(1, base + variation)));
+        frame++;
+      }, 80);
     } else {
       if (mouthIntervalRef.current) clearInterval(mouthIntervalRef.current);
       mouthIntervalRef.current = null;
@@ -34,11 +44,64 @@ const TalkingAvatarWidget = () => {
     };
   }, [isAgentSpeaking]);
 
+  // Head movement — subtle tilts and nods when speaking
+  useEffect(() => {
+    if (callStatus === "active") {
+      headIntervalRef.current = setInterval(() => {
+        if (isAgentSpeaking) {
+          // More animated head movement while speaking
+          setHeadTilt({
+            x: (Math.random() - 0.5) * 6,
+            y: (Math.random() - 0.5) * 4,
+          });
+          setHeadNod(Math.sin(Date.now() * 0.003) * 2);
+        } else {
+          // Gentle idle movement while listening
+          setHeadTilt({
+            x: Math.sin(Date.now() * 0.001) * 2,
+            y: Math.cos(Date.now() * 0.0008) * 1.5,
+          });
+          setHeadNod(0);
+        }
+      }, 150);
+    } else {
+      if (headIntervalRef.current) clearInterval(headIntervalRef.current);
+      setHeadTilt({ x: 0, y: 0 });
+      setHeadNod(0);
+    }
+    return () => {
+      if (headIntervalRef.current) clearInterval(headIntervalRef.current);
+    };
+  }, [callStatus, isAgentSpeaking]);
+
+  // Natural eye blinking
+  useEffect(() => {
+    if (callStatus === "active") {
+      const scheduleNextBlink = () => {
+        const delay = 2000 + Math.random() * 4000; // Blink every 2-6 seconds
+        blinkIntervalRef.current = setTimeout(() => {
+          setEyeBlink(true);
+          setTimeout(() => setEyeBlink(false), 150);
+          scheduleNextBlink();
+        }, delay) as unknown as ReturnType<typeof setInterval>;
+      };
+      scheduleNextBlink();
+    } else {
+      if (blinkIntervalRef.current) clearTimeout(blinkIntervalRef.current as unknown as number);
+      setEyeBlink(false);
+    }
+    return () => {
+      if (blinkIntervalRef.current) clearTimeout(blinkIntervalRef.current as unknown as number);
+    };
+  }, [callStatus]);
+
   // Cleanup on unmount
   useEffect(() => {
     return () => {
       if (timerRef.current) clearInterval(timerRef.current);
       if (mouthIntervalRef.current) clearInterval(mouthIntervalRef.current);
+      if (headIntervalRef.current) clearInterval(headIntervalRef.current);
+      if (blinkIntervalRef.current) clearTimeout(blinkIntervalRef.current as unknown as number);
       try {
         retellClientRef.current?.stopCall();
       } catch { /* noop */ }
@@ -142,7 +205,7 @@ const TalkingAvatarWidget = () => {
     return `${m}:${s.toString().padStart(2, "0")}`;
   };
 
-  // Collapsed state — floating avatar button
+  // Collapsed state — floating avatar button with idle animation
   if (widgetState === "collapsed") {
     return (
       <button
@@ -155,7 +218,7 @@ const TalkingAvatarWidget = () => {
             <img
               src={cartoonAvatar}
               alt="Aspen AI Assistant"
-              className="w-full h-full object-cover"
+              className="w-full h-full object-cover animate-[float_3s_ease-in-out_infinite]"
             />
           </div>
           <div className="absolute inset-0 rounded-full border-2 border-primary/50 animate-ping" />
@@ -182,7 +245,7 @@ const TalkingAvatarWidget = () => {
                 ? `Live • ${formatDuration(duration)}`
                 : callStatus === "connecting"
                   ? "Connecting..."
-                  : "AI Spokesperson"}
+                  : "AI Spokesperson • AI Hidden Leads"}
             </p>
           </div>
         </div>
@@ -191,15 +254,27 @@ const TalkingAvatarWidget = () => {
         </button>
       </div>
 
-      {/* Avatar Display */}
-      <div className="relative bg-gradient-to-b from-muted/50 to-muted flex items-center justify-center py-6">
-        <div className="relative w-32 h-32">
-          {/* Avatar with speaking glow */}
+      {/* Avatar Display with head movement */}
+      <div className="relative bg-gradient-to-b from-muted/50 to-muted flex items-center justify-center py-6 overflow-hidden">
+        <div
+          className="relative w-32 h-32 transition-transform duration-150 ease-out"
+          style={{
+            transform: `rotate(${headTilt.x}deg) translateY(${headNod}px) translateX(${headTilt.y}px)`,
+          }}
+        >
+          {/* Speaking glow ring */}
+          {isAgentSpeaking && (
+            <div className="absolute -inset-2 rounded-full bg-primary/20 animate-pulse" />
+          )}
+
+          {/* Avatar */}
           <div
             className={`w-full h-full rounded-full overflow-hidden border-3 transition-all duration-200 ${
               isAgentSpeaking
-                ? "border-primary shadow-[0_0_25px_rgba(var(--primary),0.5)] scale-105"
-                : "border-border"
+                ? "border-primary shadow-[0_0_30px_rgba(var(--primary),0.4)] scale-105"
+                : callStatus === "active"
+                  ? "border-green-400/60 shadow-[0_0_15px_rgba(74,222,128,0.2)]"
+                  : "border-border"
             }`}
           >
             <img
@@ -209,36 +284,46 @@ const TalkingAvatarWidget = () => {
             />
           </div>
 
-          {/* Mouth animation overlay */}
+          {/* Eye blink overlay */}
+          {eyeBlink && (
+            <div className="absolute top-[30%] left-[25%] right-[25%] flex justify-between pointer-events-none">
+              <div className="w-[18px] h-[3px] bg-[#8B6D5C] rounded-full" />
+              <div className="w-[18px] h-[3px] bg-[#8B6D5C] rounded-full" />
+            </div>
+          )}
+
+          {/* Mouth animation overlay — more natural shape */}
           {isAgentSpeaking && (
             <div
-              className="absolute bottom-[22%] left-1/2 -translate-x-1/2 bg-[#c4736e] rounded-full transition-all duration-75"
+              className="absolute bottom-[22%] left-1/2 -translate-x-1/2 rounded-[50%] transition-all duration-75 pointer-events-none"
               style={{
-                width: `${18 + mouthOpen * 14}px`,
-                height: `${4 + mouthOpen * 12}px`,
-                opacity: 0.85,
+                width: `${16 + mouthOpen * 16}px`,
+                height: `${3 + mouthOpen * 14}px`,
+                backgroundColor: mouthOpen > 0.5 ? '#b85c57' : '#c4736e',
+                opacity: 0.9,
+                boxShadow: mouthOpen > 0.6 ? 'inset 0 2px 4px rgba(0,0,0,0.3)' : 'none',
               }}
             />
           )}
 
           {/* Audio waveform indicator */}
           {isAgentSpeaking && (
-            <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 flex gap-[2px]">
-              {[0, 1, 2, 3, 4].map((i) => (
+            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 flex gap-[2px]">
+              {[0, 1, 2, 3, 4, 5, 6].map((i) => (
                 <div
                   key={i}
-                  className="w-[3px] bg-primary rounded-full"
+                  className="w-[2.5px] bg-primary rounded-full"
                   style={{
-                    height: `${4 + Math.random() * 12}px`,
-                    animation: `pulse 0.4s ease-in-out ${i * 80}ms infinite alternate`,
+                    height: `${3 + Math.random() * 14}px`,
+                    animation: `pulse 0.3s ease-in-out ${i * 60}ms infinite alternate`,
                   }}
                 />
               ))}
             </div>
           )}
 
-          {/* Mic active ring */}
-          {callStatus === "active" && !isMuted && (
+          {/* Mic listening indicator */}
+          {callStatus === "active" && !isMuted && !isAgentSpeaking && (
             <div className="absolute inset-0 rounded-full border-2 border-green-400/40 animate-pulse" />
           )}
         </div>
@@ -249,13 +334,13 @@ const TalkingAvatarWidget = () => {
         {callStatus === "idle" && (
           <div className="text-center space-y-3">
             <p className="text-sm text-muted-foreground">
-              Hi! I'm <span className="font-bold text-foreground">Aspen</span>. Tap below to hear how AI Hidden Leads can transform your business — and feel free to jump in anytime!
+              Hey! I'm <span className="font-bold text-foreground">Aspen</span> from <span className="font-bold text-primary">AI Hidden Leads</span>. Tap below and I'll show you how we help businesses like yours make more money! 🚀
             </p>
             <button
               onClick={startCall}
-              className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-2.5 rounded-full text-sm font-semibold flex items-center gap-2 mx-auto transition-colors"
+              className="bg-primary hover:bg-primary/90 text-primary-foreground px-6 py-2.5 rounded-full text-sm font-semibold flex items-center gap-2 mx-auto transition-all hover:scale-105 active:scale-95"
             >
-              <Phone className="h-4 w-4" /> Start Conversation
+              <Phone className="h-4 w-4" /> Talk to Aspen
             </button>
           </div>
         )}
@@ -272,14 +357,14 @@ const TalkingAvatarWidget = () => {
         {callStatus === "active" && (
           <div className="space-y-3">
             <p className="text-xs text-center text-muted-foreground">
-              {isAgentSpeaking ? "🗣️ Aspen is speaking — interrupt anytime!" : "🎙️ Listening... ask anything!"}
+              {isAgentSpeaking ? "🗣️ Aspen is speaking — jump in anytime!" : "🎙️ Listening... ask me anything!"}
             </p>
 
             {/* Call controls */}
             <div className="flex items-center justify-center gap-3">
               <button
                 onClick={toggleMute}
-                className={`p-2.5 rounded-full transition-colors ${
+                className={`p-2.5 rounded-full transition-all ${
                   isMuted
                     ? "bg-red-500/20 text-red-500 hover:bg-red-500/30"
                     : "bg-muted hover:bg-muted-foreground/10 text-foreground"
@@ -291,7 +376,7 @@ const TalkingAvatarWidget = () => {
 
               <button
                 onClick={endCall}
-                className="p-3 rounded-full bg-red-500 hover:bg-red-600 text-white transition-colors"
+                className="p-3 rounded-full bg-red-500 hover:bg-red-600 text-white transition-all hover:scale-110 active:scale-95"
                 title="End call"
               >
                 <PhoneOff className="h-4 w-4" />
@@ -304,13 +389,11 @@ const TalkingAvatarWidget = () => {
       {/* CTA Footer */}
       <div className="p-2 border-t border-border bg-gradient-to-r from-emerald-500/10 to-primary/10">
         <a
-          href="https://aihiddenleads.com"
-          target="_blank"
-          rel="noopener noreferrer"
+          href="#lead-capture"
           className="flex items-center justify-center gap-2 text-xs font-semibold text-primary hover:text-primary/80 transition-colors py-1"
         >
           <ExternalLink className="h-3 w-3" />
-          🚀 See Our Promo — Visit aihiddenleads.com
+          🚀 Try Our Free Demo — Scroll Down!
         </a>
       </div>
     </div>
