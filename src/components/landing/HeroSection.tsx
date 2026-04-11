@@ -10,7 +10,7 @@ interface HeroSectionProps {
 
 const HeroSection = ({ niche, onGetDemo }: HeroSectionProps) => {
   return (
-    <section className="relative min-h-[50vh] sm:min-h-[70vh] lg:min-h-[80vh] flex items-center overflow-hidden">
+    <section className="relative min-h-[40vh] sm:min-h-[55vh] lg:min-h-[65vh] flex items-center overflow-hidden pt-16 sm:pt-20">
       {/* Background effects */}
       <div className="absolute inset-0">
         <div className="absolute top-1/4 left-1/4 w-[500px] h-[500px] rounded-full bg-primary/5 blur-[120px]" />
@@ -65,27 +65,34 @@ const HeroSection = ({ niche, onGetDemo }: HeroSectionProps) => {
             initial={{ opacity: 0, scale: 0.9 }}
             animate={{ opacity: 1, scale: 1 }}
             transition={{ duration: 0.5, delay: 0.3 }}
-            className="flex flex-col sm:flex-row items-center justify-center gap-4 sm:gap-8 mb-10"
+            className="grid grid-cols-2 gap-3 sm:gap-4 max-w-xl mx-auto mb-8"
           >
-            <div className="flex items-center gap-3 px-5 py-3 rounded-xl border border-destructive/30 bg-destructive/5">
-              <PhoneOff className="w-5 h-5 text-destructive" />
+            <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl border border-destructive/30 bg-destructive/5">
+              <PhoneOff className="w-4 h-4 text-destructive shrink-0" />
               <div className="text-left">
-                <p className="text-2xl font-bold text-destructive">78%</p>
-                <p className="text-xs text-muted-foreground">Leads Go to First Responder</p>
+                <p className="text-xl font-bold text-destructive">78%</p>
+                <p className="text-[10px] text-muted-foreground leading-tight">Leads Go to First Responder</p>
               </div>
             </div>
-            <div className="flex items-center gap-3 px-5 py-3 rounded-xl border border-primary/30 bg-primary/5">
-              <Phone className="w-5 h-5 text-primary" />
+            <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl border border-primary/30 bg-primary/5">
+              <Phone className="w-4 h-4 text-primary shrink-0" />
               <div className="text-left">
-                <p className="text-2xl font-bold text-primary">27%</p>
-                <p className="text-xs text-muted-foreground">Of Leads Ever Get Contacted</p>
+                <p className="text-xl font-bold text-primary">27%</p>
+                <p className="text-[10px] text-muted-foreground leading-tight">Of Leads Ever Get Contacted</p>
               </div>
             </div>
-            <div className="flex items-center gap-3 px-5 py-3 rounded-xl border border-accent/30 bg-accent/5">
-              <TrendingUp className="w-5 h-5 text-accent" />
+            <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl border border-accent/30 bg-accent/5">
+              <TrendingUp className="w-4 h-4 text-accent shrink-0" />
               <div className="text-left">
-                <p className="text-2xl font-bold text-accent">$1,200</p>
-                <p className="text-xs text-muted-foreground">Lost Per Missed Opportunity</p>
+                <p className="text-xl font-bold text-accent">$1,200</p>
+                <p className="text-[10px] text-muted-foreground leading-tight">Lost Per Missed Opportunity</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-2.5 px-4 py-2.5 rounded-xl border border-primary/30 bg-primary/5">
+              <Zap className="w-4 h-4 text-primary shrink-0" />
+              <div className="text-left">
+                <p className="text-xl font-bold text-primary">24/7</p>
+                <p className="text-[10px] text-muted-foreground leading-tight">AI Never Misses a Lead</p>
               </div>
             </div>
           </motion.div>
