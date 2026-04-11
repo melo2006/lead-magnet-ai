@@ -33,6 +33,7 @@ const Index = () => {
       <TestimonialSection />
       <LeadCaptureSection selectedNiche={selectedNiche} />
       <Footer />
+      <TalkingAvatarWidget />
     </div>
   );
 };
