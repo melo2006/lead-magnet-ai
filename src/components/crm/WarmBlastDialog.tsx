@@ -1,9 +1,9 @@
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   X, Flame, Mail, Phone, Eye, MousePointerClick,
-  Loader2, CheckCircle2, AlertCircle, Zap, Send
+  Loader2, CheckCircle2, Zap, Send
 } from "lucide-react";
 
 type WarmProspect = {
@@ -35,7 +35,7 @@ export default function WarmBlastDialog({ onClose }: Props) {
   const [prospects, setProspects] = useState<WarmProspect[]>([]);
   const [emailableCount, setEmailableCount] = useState(0);
   const [loading, setLoading] = useState(true);
-  const [sending, setSending] = useState(false);
+  const [_sending, setSending] = useState(false);
   const [sentCount, setSentCount] = useState(0);
   const [failedCount, setFailedCount] = useState(0);
 

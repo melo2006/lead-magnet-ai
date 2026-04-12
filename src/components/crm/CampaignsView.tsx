@@ -5,8 +5,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   Plus, Megaphone, Play, Pause, Trash2,
-  Users, Mail, Eye, MousePointerClick, Sparkles, X
+  Users, Mail, Eye, MousePointerClick, Sparkles, X, Flame
 } from "lucide-react";
+import WarmBlastDialog from "./WarmBlastDialog";
 
 const CampaignsView = () => {
   const [showCreate, setShowCreate] = useState(false);
