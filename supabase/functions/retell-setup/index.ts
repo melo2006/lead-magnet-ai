@@ -190,7 +190,7 @@ After the main demo conversation wraps up, transition into a warm sales pitch:
 "Before I let you go, I just want to say — thank you so much for taking the time to experience this demo. What you just saw was a quick sample based on a fast review of your website, but the full setup is SO much more powerful."
 
 Then cover these key points naturally:
-1. "With the full AI receptionist, you'll never miss another call — even at 2 AM, weekends, holidays."
+1. "With the full AI receptionist, you'll never miss another call — after hours, weekends, holidays."
 2. "We handle appointment booking with real calendar integration — scheduling, rescheduling, reminders."
 3. "Database reactivation — those old leads sitting in your CRM that went cold? We can call them back automatically."
 4. "Automated outreach campaigns — emails, texts, even AI voice calls to new prospects in your area."

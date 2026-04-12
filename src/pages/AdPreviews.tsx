@@ -25,11 +25,11 @@ const facebookAds = [
   },
   {
     id: "fb-v2",
-    name: "Emotional Story — 2AM Call",
+    name: "Emotional Story — After-Hours Call",
     image: fbAdV2,
     format: "Feed (1080×1080)",
-    headline: "A Pet Owner Called at 2AM. Nobody Answered.",
-    primaryText: "With AI Hidden Leads, every call gets answered. Emergencies get triaged. Appointments get booked. 24/7.",
+    headline: "A Pet Owner Called at 8PM. Nobody Answered.",
+    primaryText: "After hours, weekends, holidays — AI Hidden Leads answers every call. Emergencies get triaged. Appointments get booked. 24/7.",
     cta: "Try It Free — See Your Demo",
     style: "Emotional / Story-driven",
   },
@@ -259,7 +259,7 @@ const AdPreviews = () => {
                 </div>
                 <div className="bg-muted rounded-lg p-4 space-y-2">
                   <p className="text-sm font-semibold">Ad Variation 2 — Emotional Story</p>
-                  <p className="text-sm text-muted-foreground"><strong>Primary Text:</strong> A pet owner called your clinic at 2AM. Their dog was limping. Nobody answered. They called the next vet.</p>
+                  <p className="text-sm text-muted-foreground"><strong>Primary Text:</strong> A pet owner called your clinic at 8PM on a Saturday. Their dog was limping. Nobody answered. They called the next vet.</p>
                   <p className="text-sm text-muted-foreground">You lost a $450 client because your phone went to voicemail.</p>
                   <p className="text-sm text-muted-foreground">Our AI receptionist would have answered, triaged the emergency, and booked a morning appointment — all while you slept.</p>
                   <p className="text-sm text-muted-foreground">👉 See exactly how it works for YOUR clinic. Free 30-second demo.</p>

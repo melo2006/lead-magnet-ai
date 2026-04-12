@@ -57,7 +57,7 @@ function buildEmailHtml(
   <!-- Greeting -->
   <tr><td style="padding:36px 36px 0;">
     <p style="margin:0;font-size:16px;color:#1f2937;line-height:1.6;">Hi ${name},</p>
-    <p style="margin:14px 0 0;font-size:15px;color:#374151;line-height:1.7;">I came across <strong>${prospect.business_name}</strong> and was genuinely impressed. I had a thought — what if every visitor to your website could instantly get answers, book appointments, or speak to your team… even at 2 AM on a Sunday?</p>
+    <p style="margin:14px 0 0;font-size:15px;color:#374151;line-height:1.7;">I came across <strong>${prospect.business_name}</strong> and was genuinely impressed. I had a thought — what if every visitor to your website could instantly get answers, book appointments, or speak to your team… even after hours, on weekends, or during holidays?</p>
     <p style="margin:14px 0 0;font-size:15px;color:#374151;line-height:1.7;">We built a quick mockup using <strong>your actual website</strong>. Take a look — the two AI buttons at the bottom are fully functional:</p>
   </td></tr>
 

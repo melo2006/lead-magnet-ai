@@ -10,7 +10,7 @@ import carlosImg from "@/assets/testimonial-carlos.png";
 const testimonials = [
   {
     quote:
-      "We never miss a call anymore. The AI voice agent picks up every single inquiry — even at 2 AM. Our bookings are up 40% since we started using AI Hidden Leads.",
+      "We never miss a call anymore. The AI voice agent picks up every single inquiry — evenings, weekends, holidays. Our bookings are up 40% since we started using AI Hidden Leads.",
     name: "Sarah Mitchell",
     title: "Real Estate Broker · RE/MAX South Florida",
     image: sarahImg,
