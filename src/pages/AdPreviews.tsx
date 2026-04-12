@@ -475,6 +475,42 @@ const AdPreviews = () => {
           </TabsContent>
         </Tabs>
 
+        {/* ─── VIDEO ADS ─────────────────────────────────────── */}
+        <section>
+          <h2 className="text-2xl font-bold text-foreground mb-4 flex items-center gap-2">
+            🎬 Animated Video Ads
+          </h2>
+          <p className="text-sm text-muted-foreground mb-4">Eye-catching video creatives for Facebook, Instagram Reels & TikTok. Download and use directly in your ad campaigns.</p>
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              { label: "🐾 Veterinary", video: videoAdVet.url, desc: "Missed calls → AI answers. Shows the transformation from frustrated owner to automated receptionist." },
+              { label: "🏢 Property Management", video: videoAdPm.url, desc: "Overwhelmed PM → calm AI handling all tenant calls 24/7, even on weekends." },
+              { label: "✨ Med Spa", video: videoAdMedspa.url, desc: "Unanswered phone → elegant AI receptionist booking consultations automatically." },
+            ].map(v => (
+              <Card key={v.label} className="overflow-hidden">
+                <div className="aspect-square bg-muted">
+                  <video
+                    src={v.video}
+                    className="w-full h-full object-cover"
+                    controls
+                    loop
+                    muted
+                    playsInline
+                    preload="metadata"
+                  />
+                </div>
+                <CardContent className="pt-4">
+                  <h3 className="font-bold text-foreground">{v.label}</h3>
+                  <p className="text-xs text-muted-foreground mt-1">{v.desc}</p>
+                  <a href={v.video} download className="inline-block mt-2">
+                    <Button variant="outline" size="sm">⬇ Download Video</Button>
+                  </a>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
+
         {/* ─── TARGETING GUIDE ────────────────────────────────── */}
         <Card>
           <CardHeader>
