@@ -156,7 +156,7 @@ const budgetTiers: Record<string, { facebook: BudgetTier; google: BudgetTier }> 
 };
 
 // ─── ROI CALCULATOR LOGIC ───────────────────────────────────────────
-function calcROI(niche: NicheConfig, dailyBudget: number) {
+function calcROI(niche: NicheConfig, dailyBudget: number, essentialPrice: number, growthPrice: number) {
   const monthlySpend = dailyBudget * 30;
   const avgCPC = dailyBudget <= 15 ? 0.85 : 0.75;
   const totalClicks = Math.round(monthlySpend / avgCPC);
@@ -164,8 +164,8 @@ function calcROI(niche: NicheConfig, dailyBudget: number) {
   const leads = Math.round(totalClicks * convRate);
   const closeRate = 0.18; // 18% close rate
   const clients = Math.round(leads * closeRate);
-  const essentialRev = clients * 99;
-  const growthRev = clients * 149;
+  const essentialRev = clients * essentialPrice;
+  const growthRev = clients * growthPrice;
   const avgClientLifetime = niche.avgClientValue;
   const lifetimeRev = clients * avgClientLifetime;
   return { monthlySpend, totalClicks, leads, clients, essentialRev, growthRev, lifetimeRev };
@@ -177,11 +177,13 @@ const AdPreviews = () => {
   const [nicheKey, setNicheKey] = useState("vet");
   const [selectedBudget, setSelectedBudget] = useState("$15");
   const [roiBudget, setRoiBudget] = useState(15);
+  const [essentialPrice, setEssentialPrice] = useState(99);
+  const [growthPrice, setGrowthPrice] = useState(199);
   const [selectedAd, setSelectedAd] = useState<string | null>(null);
 
   const niche = niches.find(n => n.key === nicheKey)!;
   const budget = budgetTiers[selectedBudget];
-  const roi = calcROI(niche, roiBudget);
+  const roi = calcROI(niche, roiBudget, essentialPrice, growthPrice);
 
   return (
     <div className="min-h-screen bg-background">
@@ -235,15 +237,35 @@ const AdPreviews = () => {
           </h2>
           <Card>
             <CardContent className="pt-6">
-              <div className="mb-4">
-                <label className="text-sm font-medium text-foreground mb-2 block">Daily Ad Budget: ${roiBudget}/day (${roiBudget * 30}/mo)</label>
-                <input
-                  type="range" min={5} max={50} step={5} value={roiBudget}
-                  onChange={e => setRoiBudget(Number(e.target.value))}
-                  className="w-full accent-primary"
-                />
-                <div className="flex justify-between text-xs text-muted-foreground mt-1">
-                  <span>$5/day</span><span>$25/day</span><span>$50/day</span>
+              <div className="mb-6 space-y-4">
+                <div>
+                  <label className="text-sm font-medium text-foreground mb-2 block">Daily Ad Budget: ${roiBudget}/day (${roiBudget * 30}/mo)</label>
+                  <input
+                    type="range" min={5} max={50} step={5} value={roiBudget}
+                    onChange={e => setRoiBudget(Number(e.target.value))}
+                    className="w-full accent-primary"
+                  />
+                  <div className="flex justify-between text-xs text-muted-foreground mt-1">
+                    <span>$5/day</span><span>$25/day</span><span>$50/day</span>
+                  </div>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Essentials Plan Price ($/mo)</label>
+                    <input
+                      type="number" min={49} max={499} step={10} value={essentialPrice}
+                      onChange={e => setEssentialPrice(Number(e.target.value))}
+                      className="w-full bg-muted border border-border rounded-lg px-3 py-2 text-sm font-semibold text-foreground"
+                    />
+                  </div>
+                  <div>
+                    <label className="text-xs font-medium text-muted-foreground mb-1 block">Growth Plan Price ($/mo)</label>
+                    <input
+                      type="number" min={99} max={999} step={10} value={growthPrice}
+                      onChange={e => setGrowthPrice(Number(e.target.value))}
+                      className="w-full bg-muted border border-border rounded-lg px-3 py-2 text-sm font-semibold text-foreground"
+                    />
+                  </div>
                 </div>
               </div>
 
@@ -253,8 +275,8 @@ const AdPreviews = () => {
                   { label: "Est. Clicks", value: roi.totalClicks.toLocaleString(), color: "text-foreground" },
                   { label: "Leads Generated", value: roi.leads.toString(), color: "text-primary" },
                   { label: "New Clients", value: roi.clients.toString(), color: "text-primary" },
-                  { label: "Rev @ $99/mo plan", value: `$${roi.essentialRev}/mo`, color: "text-green-500" },
-                  { label: "Rev @ $149/mo plan", value: `$${roi.growthRev}/mo`, color: "text-green-500" },
+                  { label: `Rev @ $${essentialPrice}/mo plan`, value: `$${roi.essentialRev}/mo`, color: "text-green-500" },
+                  { label: `Rev @ $${growthPrice}/mo plan`, value: `$${roi.growthRev}/mo`, color: "text-green-500" },
                   { label: "Client Lifetime Value", value: `$${roi.lifetimeRev}`, color: "text-green-500" },
                 ].map(item => (
                   <div key={item.label} className="bg-muted/50 rounded-lg p-3 text-center">
@@ -266,7 +288,7 @@ const AdPreviews = () => {
 
               <div className="mt-4 grid md:grid-cols-3 gap-3">
                 {niches.map(n => {
-                  const r = calcROI(n, roiBudget);
+                  const r = calcROI(n, roiBudget, essentialPrice, growthPrice);
                   const roiMultiple = r.essentialRev > 0 ? (r.essentialRev / r.monthlySpend).toFixed(1) : "0";
                   return (
                     <Card key={n.key} className={`border ${n.key === nicheKey ? "border-primary bg-primary/5" : "border-border"}`}>
