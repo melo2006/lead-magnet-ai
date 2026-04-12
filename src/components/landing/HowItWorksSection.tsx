@@ -1,29 +1,29 @@
 import { motion } from "framer-motion";
-import { Search, Sparkles, MessageSquare, PhoneCall } from "lucide-react";
+import { Zap, Bot, PhoneCall, TrendingUp } from "lucide-react";
 
 const steps = [
   {
-    icon: Search,
-    title: "We Find Your Leads",
-    description: "AI scans for businesses in your niche that need your services — across Google Maps, directories, and intent signals.",
+    icon: Zap,
+    title: "We Set Up Your AI",
+    description: "In under 48 hours, we install a custom AI voice agent and chat widget on your website — trained on YOUR business, services, and FAQs.",
     accent: "primary",
   },
   {
-    icon: Sparkles,
-    title: "We Send Personalized Demos",
-    description: "Each prospect gets a custom demo showing AI on THEIR website. Voice agent, chat widget — built in 90 seconds.",
+    icon: Bot,
+    title: "AI Answers Every Call & Chat",
+    description: "24/7 — no missed calls, no hold times. Your AI books appointments, answers questions, and captures every lead automatically.",
     accent: "accent",
   },
   {
-    icon: MessageSquare,
-    title: "AI Handles Every Response",
-    description: "Voice, chat, email, SMS — all answered instantly, 24/7. Your AI qualifies leads and books appointments automatically.",
+    icon: PhoneCall,
+    title: "Hot Leads Get Warm-Transferred",
+    description: "When a caller is ready to buy, AI warm-transfers them directly to your phone. You pick up a qualified, ready-to-close lead.",
     accent: "primary",
   },
   {
-    icon: PhoneCall,
-    title: "You Close the Deal",
-    description: "Qualified leads are warm-transferred to your phone or booked on your calendar. You just show up and close.",
+    icon: TrendingUp,
+    title: "You Grow — We Handle the Rest",
+    description: "Automated follow-ups, review requests, and lead nurturing run on autopilot. You focus on your business while we drive growth.",
     accent: "accent",
   },
 ];
@@ -39,11 +39,11 @@ const HowItWorksSection = () => {
           className="text-center mb-14"
         >
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-            From Zero to Leads in{" "}
+            From Sign-Up to Results in{" "}
             <span className="text-gradient-primary">4 Simple Steps</span>
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            No setup. No code. No contracts. We handle everything — from finding prospects to closing deals.
+            No tech skills needed. No long contracts. We handle the setup — you get the leads.
           </p>
         </motion.div>
 
