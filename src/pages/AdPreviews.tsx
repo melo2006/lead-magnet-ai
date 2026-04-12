@@ -3,7 +3,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { Button } from "@/components/ui/button";
-import { ArrowLeft, DollarSign, Eye, MousePointerClick, Phone, TrendingUp, Users, Search, BarChart3, Target, Zap, Award, Calculator, ChevronRight } from "lucide-react";
+import { ArrowLeft, DollarSign, Eye, MousePointerClick, Phone, TrendingUp, Users, Search, Award, Calculator, ChevronRight } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 import fbAdVetV1 from "@/assets/ads/fb-ad-vet-v1-new.jpg";
