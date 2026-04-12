@@ -78,6 +78,30 @@ export function CRMSidebar() {
 
         <SidebarGroup>
           <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">
+            {!collapsed && "Marketing"}
+          </SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {marketingItems.map((item) => (
+                <SidebarMenuItem key={item.title}>
+                  <SidebarMenuButton asChild>
+                    <NavLink
+                      to={item.url}
+                      className="hover:bg-muted/50"
+                      activeClassName="bg-primary/10 text-primary font-medium"
+                      onClick={handleNavClick}
+                    >
+                      <item.icon className="mr-2 h-4 w-4" />
+                      {!collapsed && <span>{item.title}</span>}
+                    </NavLink>
+                  </SidebarMenuButton>
+                </SidebarMenuItem>
+              ))}
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
+
+          <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">
             {!collapsed && "Pages"}
           </SidebarGroupLabel>
           <SidebarGroupContent>
