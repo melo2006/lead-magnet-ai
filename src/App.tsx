@@ -39,6 +39,7 @@ const App = () => (
           <Route path="/demo" element={<TryDemo />} />
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
+          <Route path="/ad-previews" element={<AdPreviews />} />
           <Route path="/dashboard/*" element={<CRM />} />
           {legacyCrmRedirects.map(({ path, to }) => (
             <Route key={path} path={path} element={<Navigate to={to} replace />} />
