@@ -7,9 +7,9 @@ const tiers = [
   {
     name: "AI Essentials",
     tagline: "Voice + Chat — Never Miss a Lead Again",
-    price: 49,
-    originalPrice: 99,
-    setupFee: 49,
+    price: 99,
+    originalPrice: 199,
+    setupFee: 99,
     originalSetup: 299,
     icon: Zap,
     popular: false,
@@ -22,7 +22,7 @@ const tiers = [
       "Email & SMS lead notifications",
       "Basic analytics dashboard",
     ],
-    cta: "Start for $49/mo",
+    cta: "Start for $99/mo",
   },
   {
     name: "Growth Engine",
@@ -198,7 +198,7 @@ const PricingSection = () => {
             <p className="text-sm text-center text-muted-foreground leading-relaxed">
               <span className="font-semibold text-foreground">How we compare:</span>{" "}
               Basic AI voice agents start at $25–$50/mo elsewhere — but they ONLY answer calls. We bundle voice + chat + lead capture + booking + warm transfers starting at{" "}
-              <span className="text-primary font-medium">$49/mo</span>. No per-seat fees, no hidden API charges.
+              <span className="text-primary font-medium">$99/mo</span>. No per-seat fees, no hidden API charges.
             </p>
           </div>
         </motion.div>
