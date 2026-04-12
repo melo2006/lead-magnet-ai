@@ -12,6 +12,7 @@ import TermsOfService from "./pages/TermsOfService.tsx";
 import AdPreviews from "./pages/AdPreviews.tsx";
 import Checkout from "./pages/Checkout.tsx";
 import CheckoutReturn from "./pages/CheckoutReturn.tsx";
+import MarketingHub from "./pages/MarketingHub.tsx";
 
 
 const queryClient = new QueryClient();
@@ -42,6 +43,7 @@ const App = () => (
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/ad-previews" element={<AdPreviews />} />
+          <Route path="/marketing" element={<MarketingHub />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/checkout/return" element={<CheckoutReturn />} />
           <Route path="/dashboard/*" element={<CRM />} />
