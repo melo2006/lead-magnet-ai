@@ -27,9 +27,9 @@ const tiers = [
   {
     name: "Growth Engine",
     tagline: "Leads + Outreach + Reputation + Reactivation",
-    price: 149,
-    originalPrice: 299,
-    setupFee: 99,
+    price: 199,
+    originalPrice: 399,
+    setupFee: 199,
     originalSetup: 499,
     icon: Sparkles,
     popular: true,
@@ -183,12 +183,13 @@ const PricingSection = () => {
                   Full Transparency: AI Usage Costs
                 </p>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  All plans include a base number of AI interactions. Voice and chat usage beyond that is billed at cost based on actual minutes and messages — typically{" "}
-                  <span className="text-foreground font-medium">$20–$60/mo</span> for most small businesses. 
-                  We pass through the AI provider cost with no markup. You'll always see your usage in your dashboard before you're billed. 
-                  <span className="block mt-1 text-xs italic">
-                    A busy restaurant may use more; a consulting firm may use less. We'll estimate your cost before you sign up.
-                  </span>
+                   All plans include a base number of AI interactions. Voice and chat usage beyond included minutes is billed at cost depending on your call volume — typically{" "}
+                   <span className="text-foreground font-medium">$30–$90/mo</span> for most small businesses. 
+                   We pass through the AI provider cost with no markup. You'll always see your usage in your dashboard before you're billed.{" "}
+                   <span className="text-foreground font-semibold">Usage varies by volume — we are not responsible for overage charges beyond included minutes.</span>
+                   <span className="block mt-1 text-xs italic">
+                     A busy vet clinic may use more; a consulting firm may use less. We'll estimate your cost before you sign up.
+                   </span>
                 </p>
               </div>
             </div>
