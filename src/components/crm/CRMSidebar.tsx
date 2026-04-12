@@ -21,7 +21,8 @@ const crmItems = [
 ];
 
 const marketingItems = [
-  { title: "Ad Creatives & ROI", url: "/ad-previews", icon: Image },
+  { title: "Marketing Hub", url: "/marketing", icon: Image },
+  { title: "Ad Creatives", url: "/ad-previews", icon: Play },
 ];
 
 const pageItems = [

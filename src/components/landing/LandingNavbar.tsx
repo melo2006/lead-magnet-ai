@@ -39,6 +39,9 @@ const LandingNavbar = () => {
         <Button size="sm" onClick={() => scrollTo("demo-form")}>
             Get Your Free Demo
           </Button>
+          <Link to="/marketing" className="text-xs text-muted-foreground/40 hover:text-muted-foreground transition-colors ml-2" title="Marketing Hub">
+            📣
+          </Link>
           <Link to="/dashboard" className="text-xs text-muted-foreground/40 hover:text-muted-foreground transition-colors ml-2" title="Admin">
             ⚙
           </Link>
