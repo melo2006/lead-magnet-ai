@@ -15,6 +15,9 @@ import fbAdPmV1 from "@/assets/ads/fb-ad-pm-v1.jpg";
 import fbAdPmV2 from "@/assets/ads/fb-ad-pm-v2.jpg";
 import fbAdMedspaV1 from "@/assets/ads/fb-ad-medspa-v1.jpg";
 import fbAdMedspaV2 from "@/assets/ads/fb-ad-medspa-v2.jpg";
+import videoAdVet from "@/assets/ads/video-ad-vet.mp4.asset.json";
+import videoAdPm from "@/assets/ads/video-ad-pm.mp4.asset.json";
+import videoAdMedspa from "@/assets/ads/video-ad-medspa.mp4.asset.json";
 
 // ─── NICHE DATA ─────────────────────────────────────────────────────
 interface NicheConfig {
