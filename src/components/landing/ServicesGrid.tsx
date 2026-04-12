@@ -3,47 +3,62 @@ import {
   Phone,
   MessageSquare,
   Search,
-  RefreshCcw,
+  Star,
   Send,
+  Share2,
   Zap,
+  Globe,
 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 
 const services = [
   {
     icon: Phone,
     title: "AI Voice Agent",
     description:
-      "24/7 receptionist that answers every call, qualifies leads, books appointments, and warm-transfers hot prospects directly to your phone — live.",
+      "Your 24/7 receptionist. Answers every call in a natural voice, qualifies leads, books appointments, and warm-transfers hot prospects to your phone — live. Never miss a call again.",
+    badge: "Core Service",
+    highlighted: true,
   },
   {
     icon: MessageSquare,
     title: "AI Chat Widget",
     description:
-      "Instant website chat trained on your business. Captures leads, answers FAQs, books appointments, and never sleeps.",
+      "Instant website chat trained on YOUR business. Captures leads, answers FAQs, books appointments, and converts visitors into customers while you sleep.",
+    badge: "Core Service",
+    highlighted: true,
   },
   {
     icon: Search,
-    title: "Lead Generation Engine",
+    title: "Lead Generation",
     description:
-      "Intent-based prospecting that finds businesses actively searching for your services across Google Maps, directories, and social media.",
+      "We find businesses and customers actively looking for your services. Intent-based prospecting across Google, directories, and social media — delivered to your CRM daily.",
+    badge: null,
+    highlighted: false,
   },
   {
-    icon: RefreshCcw,
-    title: "Database Reactivation",
+    icon: Star,
+    title: "Reputation & Reviews",
     description:
-      "AI calls your old, dead lead lists — re-engages cold contacts, books appointments, and resurfaces revenue you thought was gone.",
+      "Get more 5-star Google reviews automatically. We help you respond to reviews, manage your online reputation, and climb Google Maps rankings.",
+    badge: null,
+    highlighted: false,
   },
   {
     icon: Send,
-    title: "Automated Outreach",
+    title: "Outreach & Nurturing",
     description:
-      "Multi-step email + SMS + voice campaigns with personalized AI demos attached. Each prospect sees their OWN website with AI built in.",
+      "Automated email + SMS sequences that follow up with leads for days or weeks. Personalized messages, scheduled drips, and AI-powered callbacks when they engage.",
+    badge: null,
+    highlighted: false,
   },
   {
-    icon: Zap,
-    title: "Speed-to-Lead",
+    icon: Share2,
+    title: "Social Media Management",
     description:
-      "When a prospect opens your email or views your demo, AI calls them within 60 seconds. First to respond wins — and that's always you.",
+      "Consistent social media posts across your platforms. We create and schedule content so you stay visible without lifting a finger.",
+    badge: null,
+    highlighted: false,
   },
 ];
 
@@ -59,15 +74,18 @@ const ServicesGrid = () => {
           className="text-center mb-14"
         >
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-            Everything You Need to{" "}
-            <span className="text-gradient-primary">Dominate Your Market</span>
+            We Know What You Need —{" "}
+            <span className="text-gradient-primary">We've Heard It All</span>
           </h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            One platform. Lead generation, AI voice, chat, outreach, and reactivation — all working 24/7 so you can focus on closing.
+          <p className="text-muted-foreground text-lg max-w-3xl mx-auto">
+            "I want more leads." "I want better reviews." "I want to be on the first page of Google." "I need better customer support."
+            <span className="block mt-2 text-foreground font-medium">
+              We do all of it — but here's what we recommend you start with.
+            </span>
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto">
           {services.map((service, i) => (
             <motion.div
               key={service.title}
@@ -75,10 +93,25 @@ const ServicesGrid = () => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.08 }}
-              className="group rounded-2xl border border-border bg-card p-6 hover:border-primary/30 transition-all duration-300 card-glow"
+              className={`group rounded-2xl border p-6 transition-all duration-300 card-glow ${
+                service.highlighted
+                  ? "border-primary/40 bg-primary/5 hover:border-primary/60"
+                  : "border-border bg-card hover:border-primary/30"
+              }`}
             >
-              <div className="w-12 h-12 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-4 group-hover:bg-primary/20 transition-colors">
-                <service.icon className="w-6 h-6 text-primary" />
+              <div className="flex items-start justify-between mb-4">
+                <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${
+                  service.highlighted
+                    ? "bg-primary/20 border border-primary/30"
+                    : "bg-primary/10 border border-primary/20 group-hover:bg-primary/20"
+                }`}>
+                  <service.icon className="w-6 h-6 text-primary" />
+                </div>
+                {service.badge && (
+                  <Badge variant="outline" className="border-primary/30 text-primary text-[10px] px-2 py-0.5">
+                    {service.badge}
+                  </Badge>
+                )}
               </div>
               <h3 className="text-lg font-semibold mb-2">{service.title}</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
@@ -87,6 +120,21 @@ const ServicesGrid = () => {
             </motion.div>
           ))}
         </div>
+
+        {/* Additional services note */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          whileInView={{ opacity: 1 }}
+          viewport={{ once: true }}
+          className="mt-8 max-w-3xl mx-auto"
+        >
+          <div className="rounded-xl border border-border bg-card/50 p-5 text-center">
+            <p className="text-sm text-muted-foreground leading-relaxed">
+              <span className="font-semibold text-foreground">Also available:</span>{" "}
+              Website redesign & modernization · SEO & Google Maps ranking · Database reactivation (revive dead leads) · Speed-to-lead instant callbacks · Custom AI agent training
+            </p>
+          </div>
+        </motion.div>
       </div>
     </section>
   );
