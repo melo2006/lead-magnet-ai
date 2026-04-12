@@ -5,11 +5,13 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import {
   Plus, Megaphone, Play, Pause, Trash2,
-  Users, Mail, Eye, MousePointerClick, Sparkles, X
+  Users, Mail, Eye, MousePointerClick, Sparkles, X, Flame
 } from "lucide-react";
+import WarmBlastDialog from "./WarmBlastDialog";
 
 const CampaignsView = () => {
   const [showCreate, setShowCreate] = useState(false);
+  const [showWarmBlast, setShowWarmBlast] = useState(false);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
@@ -61,12 +63,20 @@ const CampaignsView = () => {
           <h1 className="text-xl font-bold text-foreground">Campaigns</h1>
           <p className="text-sm text-muted-foreground">Create and manage outreach campaigns</p>
         </div>
-        <button
-          onClick={() => setShowCreate(true)}
-          className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
-        >
-          <Plus className="w-4 h-4" /> New Campaign
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => setShowWarmBlast(true)}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-orange-500 text-white text-sm font-medium hover:bg-orange-600 transition-colors"
+          >
+            <Flame className="w-4 h-4" /> Warm Blast
+          </button>
+          <button
+            onClick={() => setShowCreate(true)}
+            className="flex items-center gap-1.5 px-4 py-2 rounded-lg bg-primary text-primary-foreground text-sm font-medium hover:bg-primary/90 transition-colors"
+          >
+            <Plus className="w-4 h-4" /> New Campaign
+          </button>
+        </div>
       </div>
 
       {/* Campaign Cards */}
@@ -170,6 +180,7 @@ const CampaignsView = () => {
 
       {/* Create Campaign Wizard */}
       {showCreate && <CreateCampaignWizard onClose={() => setShowCreate(false)} />}
+      {showWarmBlast && <WarmBlastDialog onClose={() => setShowWarmBlast(false)} />}
     </div>
   );
 };
