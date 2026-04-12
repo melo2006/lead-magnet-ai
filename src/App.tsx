@@ -9,6 +9,7 @@ import CRM from "./pages/CRM.tsx";
 import TryDemo from "./pages/TryDemo.tsx";
 import PrivacyPolicy from "./pages/PrivacyPolicy.tsx";
 import TermsOfService from "./pages/TermsOfService.tsx";
+import AdPreviews from "./pages/AdPreviews.tsx";
 
 
 const queryClient = new QueryClient();
