@@ -15,6 +15,9 @@ import fbAdPmV1 from "@/assets/ads/fb-ad-pm-v1.jpg";
 import fbAdPmV2 from "@/assets/ads/fb-ad-pm-v2.jpg";
 import fbAdMedspaV1 from "@/assets/ads/fb-ad-medspa-v1.jpg";
 import fbAdMedspaV2 from "@/assets/ads/fb-ad-medspa-v2.jpg";
+import videoAdVet from "@/assets/ads/video-ad-vet.mp4.asset.json";
+import videoAdPm from "@/assets/ads/video-ad-pm.mp4.asset.json";
+import videoAdMedspa from "@/assets/ads/video-ad-medspa.mp4.asset.json";
 
 // ─── NICHE DATA ─────────────────────────────────────────────────────
 interface NicheConfig {
@@ -50,9 +53,9 @@ const niches: NicheConfig[] = [
     avgClientValue: 450, missedCallPct: "38%",
     painStat: "38% of vet clinic calls go unanswered — each worth ~$450",
     facebookAds: [
-      { id: "fb-vet-1", name: "Pain Point — Missed Calls", image: fbAdVetV1, format: "Feed (1080×1080)", headline: "Your Vet Clinic Missed 38% of Calls Last Month", primaryText: "That's $450 per missed call. Your AI Receptionist answers every call 24/7, books appointments, and triages emergencies.", cta: "Get Your Free AI Demo", style: "Data-driven / Urgency" },
-      { id: "fb-vet-2", name: "After-Hours Story", image: fbAdVetV2, format: "Feed (1080×1080)", headline: "They Called After Hours. Nobody Answered.", primaryText: "After hours, weekends, holidays — AI answers every call. Emergencies get triaged. Appointments get booked. 24/7.", cta: "Try It Free", style: "Emotional / Story" },
-      { id: "fb-vet-3", name: "Before/After — Reel", image: fbAdVetV3, format: "Story/Reel (1080×1920)", headline: "Stop Losing Clients to Voicemail", primaryText: "BEFORE: Missed calls, lost clients. AFTER: AI answers 24/7, books appointments, triages emergencies.", cta: "Free Demo for Your Clinic", style: "Visual / Mobile-first" },
+      { id: "fb-vet-1", name: "Pain Point — Missed Calls", image: fbAdVetV1, format: "Feed (1080×1080)", headline: "Your Vet Clinic Missed 38% of Calls Last Month", primaryText: "That's $450 per missed call. Your AI Receptionist answers every call 24/7, books appointments, and triages emergencies.\n\n🎧 Hear YOUR clinic's AI in action — free 90-second demo. No credit card needed.\n👉 Click below to make your website come alive.", cta: "Try It Free — Hear Your AI Now", style: "Data-driven / Urgency" },
+      { id: "fb-vet-2", name: "After-Hours Story", image: fbAdVetV2, format: "Feed (1080×1080)", headline: "They Called After Hours. Nobody Answered.", primaryText: "After hours, weekends, holidays — AI answers every call. Emergencies get triaged. Appointments get booked. 24/7.\n\n🔊 Want to hear how it sounds on YOUR website? Try our free 90-second simulation — your site, your business, our AI voice. Zero risk.", cta: "Hear Your Website Come Alive", style: "Emotional / Story" },
+      { id: "fb-vet-3", name: "Before/After — Reel", image: fbAdVetV3, format: "Story/Reel (1080×1920)", headline: "Stop Losing Clients to Voicemail", primaryText: "BEFORE: Missed calls, lost clients. AFTER: AI answers 24/7, books appointments, triages emergencies.\n\n⚡ See & hear it on YOUR website in 90 seconds. Totally free. No credit card. No catch.\n👉 Tap to try the live demo now.", cta: "Free Demo — 90 Seconds", style: "Visual / Mobile-first" },
     ],
     googleAds: [
       { id: "g-vet-1", name: "Leaderboard Banner", image: googleAdVetV1, format: "Display (728×90)", headline: "Never Miss Another Pet Emergency Call", primaryText: "AI Receptionist for Vet Clinics — Starting $99/mo", cta: "Free Demo", style: "Professional" },
@@ -79,8 +82,8 @@ const niches: NicheConfig[] = [
     avgClientValue: 320, missedCallPct: "42%",
     painStat: "42% of tenant calls go to voicemail — maintenance emergencies escalate and tenants leave",
     facebookAds: [
-      { id: "fb-pm-1", name: "Tenant Call Stats", image: fbAdPmV1, format: "Feed (1080×1080)", headline: "42% of Tenant Calls Go Unanswered", primaryText: "That leaking pipe at 9PM? The broken AC on a Saturday? AI answers every tenant call instantly, logs maintenance requests, and dispatches emergencies.", cta: "Get Your Free AI Demo", style: "Data-driven / Urgency" },
-      { id: "fb-pm-2", name: "Weekend Emergency", image: fbAdPmV2, format: "Feed (1080×1080)", headline: "Weekend Emergency? AI Answers in 0.4 Seconds", primaryText: "Tired of after-hours tenant calls? Your AI handles maintenance requests, emergencies, and rent inquiries 24/7. No more missed calls, no more angry tenants.", cta: "See It Work on YOUR Properties", style: "Solution / Professional" },
+      { id: "fb-pm-1", name: "Tenant Call Stats", image: fbAdPmV1, format: "Feed (1080×1080)", headline: "42% of Tenant Calls Go Unanswered", primaryText: "That leaking pipe at 9PM? The broken AC on a Saturday? AI answers every tenant call instantly, logs maintenance requests, and dispatches emergencies.\n\n🎧 Hear how AI handles YOUR properties — free 90-second demo. No credit card.\n👉 Make your website answer like a pro.", cta: "Try It Free — Hear Your AI", style: "Data-driven / Urgency" },
+      { id: "fb-pm-2", name: "Weekend Emergency", image: fbAdPmV2, format: "Feed (1080×1080)", headline: "Weekend Emergency? AI Answers in 0.4 Seconds", primaryText: "Tired of after-hours tenant calls? Your AI handles maintenance requests, emergencies, and rent inquiries 24/7. No more missed calls, no more angry tenants.\n\n⚡ Try our free simulation — hear YOUR company's AI voice in 90 seconds. Zero risk, no credit card.", cta: "Hear Your Website Come Alive", style: "Solution / Professional" },
     ],
     googleAds: [
       { id: "g-pm-1", name: "Leaderboard", image: fbAdPmV1, format: "Display (728×90)", headline: "AI Answering for Property Managers", primaryText: "24/7 tenant communication — Starting $99/mo", cta: "Free Demo", style: "Professional" },
@@ -106,8 +109,8 @@ const niches: NicheConfig[] = [
     avgClientValue: 850, missedCallPct: "35%",
     painStat: "67% of aesthetic treatment inquiries come after business hours — and those clients book whoever answers first",
     facebookAds: [
-      { id: "fb-ms-1", name: "After-Hours Inquiries", image: fbAdMedspaV1, format: "Feed (1080×1080)", headline: "67% of Inquiries Come After Hours", primaryText: "A potential client just searched for lip filler at 8PM. They called 3 med spas — yours went to voicemail. They booked with the one that answered. Your AI receptionist answers every call, books consultations, and never sleeps.", cta: "Get Your Free AI Demo", style: "Data-driven / Luxury" },
-      { id: "fb-ms-2", name: "Stop Losing Bookings", image: fbAdMedspaV2, format: "Feed (1080×1080)", headline: "Stop Losing Bookings to Voicemail", primaryText: "Your front desk is busy during peak hours. After hours, nobody answers. Your AI receptionist handles both — books consultations, answers treatment questions, sends confirmations.", cta: "See It Work for YOUR Med Spa", style: "Solution / Elegant" },
+      { id: "fb-ms-1", name: "After-Hours Inquiries", image: fbAdMedspaV1, format: "Feed (1080×1080)", headline: "67% of Inquiries Come After Hours", primaryText: "A potential client just searched for lip filler at 8PM. They called 3 med spas — yours went to voicemail. They booked with the one that answered.\n\n🎧 Hear YOUR med spa's AI receptionist — free 90-second demo. No credit card needed.\n👉 Your website + our AI voice = bookings on autopilot.", cta: "Try It Free — Hear Your AI", style: "Data-driven / Luxury" },
+      { id: "fb-ms-2", name: "Stop Losing Bookings", image: fbAdMedspaV2, format: "Feed (1080×1080)", headline: "Stop Losing Bookings to Voicemail", primaryText: "Your front desk is busy during peak hours. After hours, nobody answers. Your AI receptionist handles both — books consultations, answers treatment questions, sends confirmations.\n\n⚡ Try it on YOUR website in 90 seconds. Totally free. No catch.\n👉 Hear your website come alive with AI.", cta: "Hear Your Website Come Alive", style: "Solution / Elegant" },
     ],
     googleAds: [
       { id: "g-ms-1", name: "Display Ad", image: fbAdMedspaV1, format: "Display (300×250)", headline: "AI Receptionist for Med Spas", primaryText: "Never lose another consultation booking — Starting $99/mo", cta: "Free Demo", style: "Premium" },
@@ -471,6 +474,42 @@ const AdPreviews = () => {
             </div>
           </TabsContent>
         </Tabs>
+
+        {/* ─── VIDEO ADS ─────────────────────────────────────── */}
+        <section>
+          <h2 className="text-2xl font-bold text-foreground mb-4 flex items-center gap-2">
+            🎬 Animated Video Ads
+          </h2>
+          <p className="text-sm text-muted-foreground mb-4">Eye-catching video creatives for Facebook, Instagram Reels & TikTok. Download and use directly in your ad campaigns.</p>
+          <div className="grid md:grid-cols-3 gap-6">
+            {[
+              { label: "🐾 Veterinary", video: videoAdVet.url, desc: "Missed calls → AI answers. Shows the transformation from frustrated owner to automated receptionist." },
+              { label: "🏢 Property Management", video: videoAdPm.url, desc: "Overwhelmed PM → calm AI handling all tenant calls 24/7, even on weekends." },
+              { label: "✨ Med Spa", video: videoAdMedspa.url, desc: "Unanswered phone → elegant AI receptionist booking consultations automatically." },
+            ].map(v => (
+              <Card key={v.label} className="overflow-hidden">
+                <div className="aspect-square bg-muted">
+                  <video
+                    src={v.video}
+                    className="w-full h-full object-cover"
+                    controls
+                    loop
+                    muted
+                    playsInline
+                    preload="metadata"
+                  />
+                </div>
+                <CardContent className="pt-4">
+                  <h3 className="font-bold text-foreground">{v.label}</h3>
+                  <p className="text-xs text-muted-foreground mt-1">{v.desc}</p>
+                  <a href={v.video} download className="inline-block mt-2">
+                    <Button variant="outline" size="sm">⬇ Download Video</Button>
+                  </a>
+                </CardContent>
+              </Card>
+            ))}
+          </div>
+        </section>
 
         {/* ─── TARGETING GUIDE ────────────────────────────────── */}
         <Card>

@@ -10,6 +10,8 @@ import TryDemo from "./pages/TryDemo.tsx";
 import PrivacyPolicy from "./pages/PrivacyPolicy.tsx";
 import TermsOfService from "./pages/TermsOfService.tsx";
 import AdPreviews from "./pages/AdPreviews.tsx";
+import Checkout from "./pages/Checkout.tsx";
+import CheckoutReturn from "./pages/CheckoutReturn.tsx";
 
 
 const queryClient = new QueryClient();
@@ -40,6 +42,8 @@ const App = () => (
           <Route path="/privacy" element={<PrivacyPolicy />} />
           <Route path="/terms" element={<TermsOfService />} />
           <Route path="/ad-previews" element={<AdPreviews />} />
+          <Route path="/checkout" element={<Checkout />} />
+          <Route path="/checkout/return" element={<CheckoutReturn />} />
           <Route path="/dashboard/*" element={<CRM />} />
           {legacyCrmRedirects.map(({ path, to }) => (
             <Route key={path} path={path} element={<Navigate to={to} replace />} />
