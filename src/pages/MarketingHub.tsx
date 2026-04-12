@@ -1,9 +1,9 @@
 import { useState } from "react";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion";
-import { ArrowLeft, DollarSign, Eye, MousePointerClick, Phone, TrendingUp, Users, Search, Award, Calculator, Download, Megaphone, Target, BookOpen, Video, Image, BarChart3, Lightbulb, ExternalLink, Copy, CheckCircle } from "lucide-react";
+import { ArrowLeft, Search, Award, Calculator, Download, Megaphone, Target, BookOpen, Video, Image, BarChart3, Lightbulb, Copy, CheckCircle } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 // ─── FACEBOOK ADS ───────────────────────────────────────────────────
