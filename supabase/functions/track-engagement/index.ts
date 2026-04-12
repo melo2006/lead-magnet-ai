@@ -42,8 +42,10 @@ Deno.serve(async (req) => {
 
     console.log(`Engagement tracked: ${event} for prospect ${prospectId}`);
 
-    // For click and demo_view events, trigger speed-to-lead auto-call
-    if (event === 'click' || event === 'demo_view') {
+    // WARM-FIRST WORKFLOW: Trigger speed-to-lead for ALL engagement events
+    // (open, click, and demo_view) — not just click/demo_view
+    // The speed-to-lead function has its own 1-hour cooldown to prevent spam
+    if (event === 'open' || event === 'click' || event === 'demo_view') {
       console.log(`Triggering speed-to-lead for prospect ${prospectId} (${event})`);
       
       // Fire and forget - call the speed-to-lead function
