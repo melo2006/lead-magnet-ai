@@ -1,70 +1,73 @@
 import { motion } from "framer-motion";
-import { Check, Sparkles, Zap, Crown, MessageSquare, Phone, Search, Send, RefreshCcw, BarChart3 } from "lucide-react";
+import { Check, Sparkles, Zap, Crown } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
 const tiers = [
   {
-    name: "Starter",
-    tagline: "AI Chat & Voice — Never Miss a Lead",
+    name: "AI Essentials",
+    tagline: "Voice + Chat — Never Miss a Lead Again",
+    price: 49,
+    originalPrice: 99,
+    setupFee: 49,
+    originalSetup: 299,
+    icon: Zap,
+    popular: false,
+    features: [
+      "AI Voice Agent (24/7 receptionist)",
+      "AI Chat Widget on your website",
+      "Lead capture & appointment booking",
+      "Warm transfer hot leads to your phone",
+      "Up to 100 AI interactions/mo",
+      "Email & SMS lead notifications",
+      "Basic analytics dashboard",
+    ],
+    cta: "Start for $49/mo",
+    note: "Voice & chat usage billed by volume (~$20–$60/mo)",
+  },
+  {
+    name: "Growth Engine",
+    tagline: "Lead Gen + Outreach + Reputation",
     price: 149,
     originalPrice: 299,
     setupFee: 99,
     originalSetup: 499,
-    icon: Zap,
-    popular: false,
-    features: [
-      "AI Chat Widget on your website",
-      "AI Voice Agent (24/7 receptionist)",
-      "Lead capture & appointment booking",
-      "Warm transfer to your phone",
-      "Up to 100 AI-handled interactions/mo",
-      "Email & SMS notifications",
-      "Basic analytics dashboard",
-    ],
-    cta: "Start Capturing Leads",
-  },
-  {
-    name: "Growth",
-    tagline: "Full Lead Gen & Outreach Engine",
-    price: 249,
-    originalPrice: 499,
-    setupFee: 199,
-    originalSetup: 499,
     icon: Sparkles,
     popular: true,
     features: [
-      "Everything in Starter",
-      "Lead Generation Engine (50 leads/day)",
-      "Multi-step Email & SMS campaigns",
-      "Personalized AI demo links per prospect",
-      "Database Reactivation (revive dead leads)",
-      "Campaign sequence automation",
+      "Everything in AI Essentials",
+      "Lead Generation (50 new leads/month)",
+      "Automated Email & SMS campaigns",
+      "Drip sequences (days/weeks of follow-up)",
+      "Google Review management",
+      "Reputation monitoring & alerts",
       "Speed-to-Lead (60-sec AI callback)",
-      "CRM pipeline management",
+      "CRM pipeline & tracking",
     ],
-    cta: "Scale My Pipeline",
+    cta: "Grow My Business",
+    note: "Most popular — everything you need to grow",
   },
   {
-    name: "Dominator",
-    tagline: "Full-Service AI Sales Machine",
-    price: 449,
-    originalPrice: 899,
+    name: "Full Service",
+    tagline: "We Run Your Entire Marketing Machine",
+    price: 349,
+    originalPrice: 699,
     setupFee: null,
     originalSetup: 499,
     icon: Crown,
     popular: false,
     features: [
-      "Everything in Growth",
+      "Everything in Growth Engine",
       "Unlimited lead generation",
       "Unlimited outreach campaigns",
+      "Social media content & posting",
+      "Website refresh / modernization",
       "Priority AI voice minutes",
-      "LinkedIn & social media outreach",
       "Dedicated account manager",
-      "Custom AI agent training",
       "White-label reporting",
     ],
-    cta: "Dominate My Market",
+    cta: "Go Full Service",
+    note: "Hands-off — we handle everything for you",
   },
 ];
 
@@ -84,14 +87,16 @@ const PricingSection = () => {
           className="text-center mb-14"
         >
           <Badge variant="outline" className="mb-4 border-primary/30 text-primary">
-            Launch Special — 50% Off for 3 Months
+            Launch Special — 50% Off First 3 Months
           </Badge>
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-            Simple, Transparent{" "}
-            <span className="text-gradient-primary">Pricing</span>
+            Honest, <span className="text-gradient-primary">Transparent Pricing</span>
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            No hidden fees. No long-term contracts. Cancel anytime. AI voice & chat usage billed separately based on volume (typically $30–$100/mo).
+            No hidden fees. No 12-month contracts. No surprise charges. Cancel anytime.
+            <span className="block mt-1 text-sm">
+              We show you exactly what you pay — unlike others who hide usage costs in the fine print.
+            </span>
           </p>
         </motion.div>
 
@@ -149,7 +154,7 @@ const PricingSection = () => {
                 </p>
               </div>
 
-              <ul className="space-y-3 mb-8 flex-1">
+              <ul className="space-y-3 mb-6 flex-1">
                 {tier.features.map((feature) => (
                   <li key={feature} className="flex items-start gap-2.5 text-sm">
                     <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
@@ -157,6 +162,12 @@ const PricingSection = () => {
                   </li>
                 ))}
               </ul>
+
+              {tier.note && (
+                <p className="text-xs text-muted-foreground mb-4 text-center italic">
+                  {tier.note}
+                </p>
+              )}
 
               <Button
                 onClick={scrollToDemo}
@@ -169,17 +180,18 @@ const PricingSection = () => {
           ))}
         </div>
 
-        {/* Usage note */}
+        {/* Competitor comparison */}
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
           className="mt-10 max-w-3xl mx-auto"
         >
-          <div className="rounded-xl border border-border bg-card/50 p-5 text-center">
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              <span className="font-semibold text-foreground">AI Usage Note:</span> Voice AI and Chat AI usage is billed separately based on your call volume and interactions. Most businesses pay between{" "}
-              <span className="text-primary font-medium">$30–$100/mo</span> depending on traffic. You only pay for what you use — no minimums, no surprises.
+          <div className="rounded-xl border border-border bg-card/50 p-5">
+            <p className="text-sm text-center text-muted-foreground leading-relaxed">
+              <span className="font-semibold text-foreground">How we compare:</span>{" "}
+              Basic AI voice agents start at $25–$50/mo elsewhere — but they ONLY answer calls. We bundle voice + chat + lead capture + booking + warm transfers starting at{" "}
+              <span className="text-primary font-medium">$49/mo</span>. No per-seat fees, no hidden API charges.
             </p>
           </div>
         </motion.div>
