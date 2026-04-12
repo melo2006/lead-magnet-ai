@@ -31,6 +31,7 @@ const Index = () => {
       <BeforeAfterSection niche={selectedNiche} />
       <DemoDifferentiator />
       <PricingSection />
+      <AddOnPackages />
       <TestimonialSection />
       <LeadCaptureSection selectedNiche={selectedNiche} />
       <Footer />
