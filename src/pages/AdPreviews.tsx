@@ -299,13 +299,13 @@ const AdPreviews = () => {
                     <div className="max-w-xl">
                       <p className="text-xs text-muted-foreground mb-1">Sponsored</p>
                       <p className="text-sm text-primary font-medium">{ad.displayUrl}</p>
-                      <h3 className="text-lg text-blue-600 font-medium hover:underline cursor-pointer">
+                      <h3 className="text-lg text-primary font-medium hover:underline cursor-pointer">
                         {ad.headline1} | {ad.headline2} | {ad.headline3}
                       </h3>
                       <p className="text-sm text-muted-foreground mt-1">{ad.description1}</p>
                       <div className="flex gap-4 mt-2">
                         {ad.sitelinks.map((link) => (
-                          <span key={link} className="text-xs text-blue-600 hover:underline cursor-pointer">{link}</span>
+                          <span key={link} className="text-xs text-primary hover:underline cursor-pointer">{link}</span>
                         ))}
                       </div>
                     </div>
