@@ -11,6 +11,7 @@ import WarmBlastDialog from "./WarmBlastDialog";
 
 const CampaignsView = () => {
   const [showCreate, setShowCreate] = useState(false);
+  const [showWarmBlast, setShowWarmBlast] = useState(false);
   const navigate = useNavigate();
   const queryClient = useQueryClient();
 
