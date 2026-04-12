@@ -6,8 +6,7 @@ import {
   Star,
   Send,
   Share2,
-  Zap,
-  Globe,
+  DatabaseZap,
 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 
@@ -26,6 +25,14 @@ const services = [
     description:
       "Instant website chat trained on YOUR business. Captures leads, answers FAQs, books appointments, and converts visitors into customers while you sleep.",
     badge: "Core Service",
+    highlighted: true,
+  },
+  {
+    icon: DatabaseZap,
+    title: "Database Reactivation",
+    description:
+      "Your old CRM is a goldmine. We reactivate stale leads sitting untouched for months — AI outbound calls, emails & texts that turn forgotten contacts into paying customers again.",
+    badge: "Quick Wins",
     highlighted: true,
   },
   {
@@ -85,26 +92,19 @@ const ServicesGrid = () => {
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 max-w-5xl mx-auto">
-          {services.map((service, i) => (
+        {/* Top row — 3 highlighted core services */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 max-w-5xl mx-auto mb-4">
+          {services.filter(s => s.highlighted).map((service, i) => (
             <motion.div
               key={service.title}
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.08 }}
-              className={`group rounded-2xl border p-6 transition-all duration-300 card-glow ${
-                service.highlighted
-                  ? "border-primary/40 bg-primary/5 hover:border-primary/60"
-                  : "border-border bg-card hover:border-primary/30"
-              }`}
+              className="group rounded-2xl border p-6 transition-all duration-300 card-glow border-primary/40 bg-primary/5 hover:border-primary/60"
             >
               <div className="flex items-start justify-between mb-4">
-                <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-colors ${
-                  service.highlighted
-                    ? "bg-primary/20 border border-primary/30"
-                    : "bg-primary/10 border border-primary/20 group-hover:bg-primary/20"
-                }`}>
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center transition-colors bg-primary/20 border border-primary/30">
                   <service.icon className="w-6 h-6 text-primary" />
                 </div>
                 {service.badge && (
@@ -112,6 +112,30 @@ const ServicesGrid = () => {
                     {service.badge}
                   </Badge>
                 )}
+              </div>
+              <h3 className="text-lg font-semibold mb-2">{service.title}</h3>
+              <p className="text-sm text-muted-foreground leading-relaxed">
+                {service.description}
+              </p>
+            </motion.div>
+          ))}
+        </div>
+
+        {/* Bottom row — other services */}
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-5xl mx-auto">
+          {services.filter(s => !s.highlighted).map((service, i) => (
+            <motion.div
+              key={service.title}
+              initial={{ opacity: 0, y: 30 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ delay: i * 0.08 }}
+              className="group rounded-2xl border p-6 transition-all duration-300 card-glow border-border bg-card hover:border-primary/30"
+            >
+              <div className="flex items-start justify-between mb-4">
+                <div className="w-12 h-12 rounded-xl flex items-center justify-center transition-colors bg-primary/10 border border-primary/20 group-hover:bg-primary/20">
+                  <service.icon className="w-6 h-6 text-primary" />
+                </div>
               </div>
               <h3 className="text-lg font-semibold mb-2">{service.title}</h3>
               <p className="text-sm text-muted-foreground leading-relaxed">
@@ -131,7 +155,7 @@ const ServicesGrid = () => {
           <div className="rounded-xl border border-border bg-card/50 p-5 text-center">
             <p className="text-sm text-muted-foreground leading-relaxed">
               <span className="font-semibold text-foreground">Also available:</span>{" "}
-              Website redesign & modernization · SEO & Google Maps ranking · Database reactivation (revive dead leads) · Speed-to-lead instant callbacks · Custom AI agent training
+              Website redesign & modernization · SEO & Google Maps ranking · AI Search Optimization (GEO) · Speed-to-lead instant callbacks · Custom AI agent training
             </p>
           </div>
         </motion.div>
