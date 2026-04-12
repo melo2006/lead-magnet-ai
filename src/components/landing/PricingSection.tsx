@@ -2,6 +2,7 @@ import { motion } from "framer-motion";
 import { Check, Sparkles, Zap, Crown, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
+import { useNavigate } from "react-router-dom";
 
 const tiers = [
   {
@@ -13,6 +14,7 @@ const tiers = [
     originalSetup: 299,
     icon: Zap,
     popular: false,
+    checkoutPlan: "essentials",
     features: [
       "AI Voice Agent (24/7 receptionist)",
       "AI Chat Widget on your website",
@@ -33,6 +35,7 @@ const tiers = [
     originalSetup: 499,
     icon: Sparkles,
     popular: true,
+    checkoutPlan: "growth",
     features: [
       "Everything in AI Essentials",
       "Database Reactivation (revive old leads)",
@@ -54,6 +57,7 @@ const tiers = [
     originalSetup: 499,
     icon: Crown,
     popular: false,
+    checkoutPlan: "fullservice",
     features: [
       "Everything in Growth Engine",
       "Unlimited lead generation",
@@ -69,8 +73,12 @@ const tiers = [
 ];
 
 const PricingSection = () => {
+  const navigate = useNavigate();
   const scrollToDemo = () => {
     document.getElementById("demo-form")?.scrollIntoView({ behavior: "smooth" });
+  };
+  const handleCheckout = (plan: string) => {
+    navigate(`/checkout?plan=${plan}`);
   };
 
   return (
@@ -158,7 +166,7 @@ const PricingSection = () => {
               </ul>
 
               <Button
-                onClick={scrollToDemo}
+                onClick={() => handleCheckout(tier.checkoutPlan)}
                 variant={tier.popular ? "default" : "outline"}
                 className="w-full"
               >
