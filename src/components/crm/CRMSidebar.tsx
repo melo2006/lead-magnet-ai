@@ -101,6 +101,7 @@ export function CRMSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
+        <SidebarGroup>
           <SidebarGroupLabel className="text-[10px] uppercase tracking-widest text-muted-foreground">
             {!collapsed && "Pages"}
           </SidebarGroupLabel>
