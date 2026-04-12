@@ -180,6 +180,7 @@ const CampaignsView = () => {
 
       {/* Create Campaign Wizard */}
       {showCreate && <CreateCampaignWizard onClose={() => setShowCreate(false)} />}
+      {showWarmBlast && <WarmBlastDialog onClose={() => setShowWarmBlast(false)} />}
     </div>
   );
 };
