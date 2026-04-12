@@ -1,5 +1,5 @@
 import { motion } from "framer-motion";
-import { Check, Sparkles, Zap, Crown } from "lucide-react";
+import { Check, Sparkles, Zap, Crown, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 
@@ -23,11 +23,10 @@ const tiers = [
       "Basic analytics dashboard",
     ],
     cta: "Start for $49/mo",
-    note: "Voice & chat usage billed by volume (~$20–$60/mo)",
   },
   {
     name: "Growth Engine",
-    tagline: "Lead Gen + Outreach + Reputation",
+    tagline: "Leads + Outreach + Reputation + Reactivation",
     price: 149,
     originalPrice: 299,
     setupFee: 99,
@@ -36,16 +35,15 @@ const tiers = [
     popular: true,
     features: [
       "Everything in AI Essentials",
-      "Lead Generation (50 new leads/month)",
+      "Database Reactivation (revive old leads)",
+      "50 new leads/month from prospecting",
       "Automated Email & SMS campaigns",
       "Drip sequences (days/weeks of follow-up)",
       "Google Review management",
-      "Reputation monitoring & alerts",
       "Speed-to-Lead (60-sec AI callback)",
       "CRM pipeline & tracking",
     ],
     cta: "Grow My Business",
-    note: "Most popular — everything you need to grow",
   },
   {
     name: "Full Service",
@@ -61,13 +59,12 @@ const tiers = [
       "Unlimited lead generation",
       "Unlimited outreach campaigns",
       "Social media content & posting",
-      "Website refresh / modernization",
+      "Website refresh included",
       "Priority AI voice minutes",
       "Dedicated account manager",
       "White-label reporting",
     ],
     cta: "Go Full Service",
-    note: "Hands-off — we handle everything for you",
   },
 ];
 
@@ -93,10 +90,7 @@ const PricingSection = () => {
             Honest, <span className="text-gradient-primary">Transparent Pricing</span>
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            No hidden fees. No 12-month contracts. No surprise charges. Cancel anytime.
-            <span className="block mt-1 text-sm">
-              We show you exactly what you pay — unlike others who hide usage costs in the fine print.
-            </span>
+            No hidden fees. No 12-month contracts. Cancel anytime.
           </p>
         </motion.div>
 
@@ -163,12 +157,6 @@ const PricingSection = () => {
                 ))}
               </ul>
 
-              {tier.note && (
-                <p className="text-xs text-muted-foreground mb-4 text-center italic">
-                  {tier.note}
-                </p>
-              )}
-
               <Button
                 onClick={scrollToDemo}
                 variant={tier.popular ? "default" : "outline"}
@@ -180,13 +168,32 @@ const PricingSection = () => {
           ))}
         </div>
 
-        {/* Competitor comparison */}
+        {/* Usage cost transparency */}
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
           viewport={{ once: true }}
-          className="mt-10 max-w-3xl mx-auto"
+          className="mt-8 max-w-3xl mx-auto space-y-4"
         >
+          <div className="rounded-xl border border-primary/20 bg-primary/5 p-5">
+            <div className="flex items-start gap-3">
+              <Info className="w-5 h-5 text-primary shrink-0 mt-0.5" />
+              <div>
+                <p className="text-sm font-semibold text-foreground mb-1">
+                  Full Transparency: AI Usage Costs
+                </p>
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  All plans include a base number of AI interactions. Voice and chat usage beyond that is billed at cost based on actual minutes and messages — typically{" "}
+                  <span className="text-foreground font-medium">$20–$60/mo</span> for most small businesses. 
+                  We pass through the AI provider cost with no markup. You'll always see your usage in your dashboard before you're billed. 
+                  <span className="block mt-1 text-xs italic">
+                    A busy restaurant may use more; a consulting firm may use less. We'll estimate your cost before you sign up.
+                  </span>
+                </p>
+              </div>
+            </div>
+          </div>
+
           <div className="rounded-xl border border-border bg-card/50 p-5">
             <p className="text-sm text-center text-muted-foreground leading-relaxed">
               <span className="font-semibold text-foreground">How we compare:</span>{" "}
