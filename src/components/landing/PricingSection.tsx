@@ -22,7 +22,7 @@ const tiers = [
       "Email & SMS lead notifications",
       "Basic analytics dashboard",
     ],
-    cta: "Start for $49/mo",
+    cta: "Start for $99/mo",
   },
   {
     name: "Growth Engine",
@@ -198,7 +198,7 @@ const PricingSection = () => {
             <p className="text-sm text-center text-muted-foreground leading-relaxed">
               <span className="font-semibold text-foreground">How we compare:</span>{" "}
               Basic AI voice agents start at $25–$50/mo elsewhere — but they ONLY answer calls. We bundle voice + chat + lead capture + booking + warm transfers starting at{" "}
-              <span className="text-primary font-medium">$49/mo</span>. No per-seat fees, no hidden API charges.
+              <span className="text-primary font-medium">$99/mo</span>. No per-seat fees, no hidden API charges.
             </p>
           </div>
         </motion.div>
