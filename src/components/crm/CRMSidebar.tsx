@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Search, Megaphone, LayoutGrid, FileText, Radar, PhoneIncoming, FolderInput, Monitor, Play, Activity
+  LayoutDashboard, Search, Megaphone, LayoutGrid, FileText, Radar, PhoneIncoming, FolderInput, Monitor, Play, Activity, Image
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -21,7 +21,7 @@ const crmItems = [
 ];
 
 const marketingItems = [
-  { title: "Ad Creatives", url: "/ad-previews", icon: Megaphone },
+  { title: "Ad Creatives & ROI", url: "/ad-previews", icon: Image },
 ];
 
 const pageItems = [
