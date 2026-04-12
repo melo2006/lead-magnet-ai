@@ -36,9 +36,12 @@ const LandingNavbar = () => {
           <button onClick={() => scrollTo("testimonials")} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             Testimonials
           </button>
-          <Button size="sm" onClick={() => scrollTo("demo-form")}>
+        <Button size="sm" onClick={() => scrollTo("demo-form")}>
             Get Your Free Demo
           </Button>
+          <Link to="/dashboard" className="text-xs text-muted-foreground/40 hover:text-muted-foreground transition-colors ml-2" title="Admin">
+            ⚙
+          </Link>
         </div>
 
         {/* Mobile toggle */}

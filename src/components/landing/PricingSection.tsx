@@ -7,9 +7,9 @@ const tiers = [
   {
     name: "AI Essentials",
     tagline: "Voice + Chat — Never Miss a Lead Again",
-    price: 49,
-    originalPrice: 99,
-    setupFee: 49,
+    price: 99,
+    originalPrice: 199,
+    setupFee: 99,
     originalSetup: 299,
     icon: Zap,
     popular: false,

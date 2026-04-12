@@ -20,6 +20,10 @@ const crmItems = [
   { title: "Templates", url: "/dashboard/templates", icon: FileText },
 ];
 
+const marketingItems = [
+  { title: "Ad Creatives", url: "/ad-previews", icon: Megaphone },
+];
+
 const pageItems = [
   { title: "Homepage", url: "/", icon: Monitor },
   { title: "Demo Page", url: "/demo", icon: Play },
