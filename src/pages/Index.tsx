@@ -2,10 +2,10 @@ import { useState } from "react";
 import { niches } from "@/data/nicheData";
 import LandingNavbar from "@/components/landing/LandingNavbar";
 import HeroSection from "@/components/landing/HeroSection";
+import BeforeAfterSection from "@/components/landing/BeforeAfterSection";
 import StatsSection from "@/components/landing/StatsSection";
 import ServicesGrid from "@/components/landing/ServicesGrid";
 import HowItWorksSection from "@/components/landing/HowItWorksSection";
-import BeforeAfterSection from "@/components/landing/BeforeAfterSection";
 import DemoDifferentiator from "@/components/landing/DemoDifferentiator";
 import PricingSection from "@/components/landing/PricingSection";
 import AddOnPackages from "@/components/landing/AddOnPackages";
@@ -13,6 +13,7 @@ import TestimonialSection from "@/components/landing/TestimonialSection";
 import LeadCaptureSection from "@/components/landing/LeadCaptureSection";
 import Footer from "@/components/landing/Footer";
 import TalkingAvatarWidget from "@/components/landing/TalkingAvatarWidget";
+import TryWebsiteCTA from "@/components/landing/TryWebsiteCTA";
 
 const Index = () => {
   const [selectedNiche, setSelectedNiche] = useState(niches[0]);
@@ -25,14 +26,17 @@ const Index = () => {
     <div className="min-h-screen bg-background">
       <LandingNavbar />
       <HeroSection niche={selectedNiche} onGetDemo={scrollToDemo} />
+      <BeforeAfterSection niche={selectedNiche} />
+      <TryWebsiteCTA />
       <StatsSection niche={selectedNiche} />
       <ServicesGrid />
       <HowItWorksSection />
-      <BeforeAfterSection niche={selectedNiche} />
+      <TryWebsiteCTA />
       <DemoDifferentiator />
       <PricingSection />
       <AddOnPackages />
       <TestimonialSection />
+      <TryWebsiteCTA />
       <LeadCaptureSection selectedNiche={selectedNiche} />
       <Footer />
       <TalkingAvatarWidget />

@@ -14,8 +14,8 @@ const LandingNavbar = () => {
   return (
     <nav className="sticky top-0 z-[90] bg-background/80 backdrop-blur-xl border-b border-border">
       <div className="container mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
-        {/* Logo */}
-        <Link to="/" className="flex items-center gap-2.5">
+        {/* Logo — double-click to go to admin dashboard */}
+        <Link to="/" className="flex items-center gap-2.5" onDoubleClick={(e) => { e.preventDefault(); window.location.href = "/dashboard"; }}>
           <img src="/logo.png" alt="AI Hidden Leads" className="w-9 h-9" />
           <span className="text-lg font-extrabold tracking-tight text-foreground">
             AI <span className="text-primary">Hidden</span> Leads
