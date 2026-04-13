@@ -382,6 +382,69 @@ export type Database = {
         }
         Relationships: []
       }
+      demo_chat_interactions: {
+        Row: {
+          ai_interest_summary: string | null
+          business_name: string
+          caller_email: string | null
+          caller_name: string | null
+          caller_phone: string | null
+          content: string
+          created_at: string
+          id: string
+          lead_id: string | null
+          prospect_id: string | null
+          role: string
+          session_id: string
+          website_url: string | null
+        }
+        Insert: {
+          ai_interest_summary?: string | null
+          business_name: string
+          caller_email?: string | null
+          caller_name?: string | null
+          caller_phone?: string | null
+          content: string
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          prospect_id?: string | null
+          role?: string
+          session_id: string
+          website_url?: string | null
+        }
+        Update: {
+          ai_interest_summary?: string | null
+          business_name?: string
+          caller_email?: string | null
+          caller_name?: string | null
+          caller_phone?: string | null
+          content?: string
+          created_at?: string
+          id?: string
+          lead_id?: string | null
+          prospect_id?: string | null
+          role?: string
+          session_id?: string
+          website_url?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "demo_chat_interactions_lead_id_fkey"
+            columns: ["lead_id"]
+            isOneToOne: false
+            referencedRelation: "leads"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "demo_chat_interactions_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       imported_leads: {
         Row: {
           ai_chatbot_detected: boolean | null
