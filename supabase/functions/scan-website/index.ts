@@ -192,6 +192,77 @@ async function browserlessScreenshot(
   }
 }
 
+/** Use Browserless headless Chrome to read page content when Firecrawl is blocked */
+async function browserlessReadContent(url: string, apiKey: string): Promise<{ markdown: string; title: string; description: string } | null> {
+  try {
+    console.log('[Browserless] Reading content from:', url);
+    const response = await fetch(`https://production-sfo.browserless.io/content?token=${apiKey}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        url,
+        waitForTimeout: 5000,
+        gotoOptions: {
+          waitUntil: 'networkidle2',
+          timeout: 30000,
+        },
+      }),
+    });
+
+    if (!response.ok) {
+      const errText = await response.text();
+      console.error('[Browserless] Content read failed:', response.status, errText);
+      return null;
+    }
+
+    const html = await response.text();
+    if (!html || html.length < 100) {
+      console.warn('[Browserless] Content too short, likely blocked');
+      return null;
+    }
+
+    // Extract title
+    const titleMatch = html.match(/<title[^>]*>([\s\S]*?)<\/title>/i);
+    const title = titleMatch ? titleMatch[1].replace(/\s+/g, ' ').trim() : '';
+
+    // Extract meta description
+    const descMatch = html.match(/<meta[^>]*name=["']description["'][^>]*content=["']([\s\S]*?)["']/i);
+    const description = descMatch ? descMatch[1].replace(/\s+/g, ' ').trim() : '';
+
+    // Strip scripts, styles, nav, footer, header tags and extract text
+    const cleaned = html
+      .replace(/<script[\s\S]*?<\/script>/gi, '')
+      .replace(/<style[\s\S]*?<\/style>/gi, '')
+      .replace(/<nav[\s\S]*?<\/nav>/gi, '')
+      .replace(/<footer[\s\S]*?<\/footer>/gi, '')
+      .replace(/<header[\s\S]*?<\/header>/gi, '')
+      .replace(/<[^>]+>/g, ' ')
+      .replace(/&nbsp;/g, ' ')
+      .replace(/&amp;/g, '&')
+      .replace(/&lt;/g, '<')
+      .replace(/&gt;/g, '>')
+      .replace(/&quot;/g, '"')
+      .replace(/&#39;/g, "'")
+      .replace(/\s+/g, ' ')
+      .trim();
+
+    if (cleaned.length < 50) {
+      console.warn('[Browserless] Extracted text too short after cleanup');
+      return null;
+    }
+
+    console.log('[Browserless] Content extracted, length:', cleaned.length);
+    return {
+      markdown: truncate(cleaned, 30000),
+      title,
+      description,
+    };
+  } catch (err) {
+    console.error('[Browserless] Content read error:', err);
+    return null;
+  }
+}
+
 async function firecrawlRequest(path: string, apiKey: string, body: Record<string, unknown>, retries = 1): Promise<any> {
   let lastError: Error | null = null;
 
@@ -808,10 +879,33 @@ Deno.serve(async (req) => {
     }
 
     const homepage = unwrapFirecrawlPayload(homepageResponse);
-    const homepageMarkdown = cleanText(homepage.markdown);
-    const homepageSummary = cleanText(homepage.summary);
+    let homepageMarkdown = cleanText(homepage.markdown);
+    let homepageSummary = cleanText(homepage.summary);
     const branding = homepage.branding || {};
-    const metadata = homepage.metadata || {};
+    let metadata = homepage.metadata || {};
+
+    // === BROWSERLESS CONTENT FALLBACK ===
+    // If Firecrawl returned empty/blocked content, try reading via headless Chrome
+    const isContentBlocked = homepageMarkdown.length < 100;
+    if (isContentBlocked && browserlessKey) {
+      console.log('[Fallback] Firecrawl content appears blocked (length:', homepageMarkdown.length, '), trying Browserless...');
+      const browserlessContent = await browserlessReadContent(formattedUrl, browserlessKey);
+      if (browserlessContent && browserlessContent.markdown.length > homepageMarkdown.length) {
+        console.log('[Fallback] Browserless content succeeded, length:', browserlessContent.markdown.length);
+        homepageMarkdown = browserlessContent.markdown;
+        if (!homepageSummary && browserlessContent.description) {
+          homepageSummary = browserlessContent.description;
+        }
+        if (!metadata.title && browserlessContent.title) {
+          metadata = { ...metadata, title: browserlessContent.title };
+        }
+        if (!metadata.description && browserlessContent.description) {
+          metadata = { ...metadata, description: browserlessContent.description };
+        }
+      } else {
+        console.warn('[Fallback] Browserless content also failed or returned less content');
+      }
+    }
 
     // Await Browserless screenshot and recover with a dedicated Firecrawl screenshot if needed.
     const browserlessScreenshotResult = await browserlessPromise;
