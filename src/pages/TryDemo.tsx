@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -81,8 +81,6 @@ const TryDemo = () => {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
   const [scanData, setScanData] = useState<DemoLeadData | null>(null);
-  const [scanAnimationDone, setScanAnimationDone] = useState(false);
-
   // Pre-fill form fields from URL params (e.g. coming from CRM prospect table)
   useEffect(() => {
     const urlParam = searchParams.get("url");
@@ -99,14 +97,11 @@ const TryDemo = () => {
     if (emailParam && !email) setEmail(emailParam);
   }, []);
 
+  // Navigate to demo as soon as scan data is ready (animation stays in continuous mode)
   useEffect(() => {
-    if (!isScanning || !scanAnimationDone || !scanData) return;
+    if (!isScanning || !scanData) return;
     navigate("/demo-site", { state: { leadData: scanData } });
-  }, [isScanning, scanAnimationDone, scanData, navigate]);
-
-  const handleScanComplete = useCallback(() => {
-    setScanAnimationDone(true);
-  }, []);
+  }, [isScanning, scanData, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -122,7 +117,6 @@ const TryDemo = () => {
     const businessName = extractBusinessName(websiteUrl);
 
     setIsSubmitting(true);
-    setScanAnimationDone(false);
 
     try {
       const { data: lead, error } = await supabase
@@ -194,7 +188,7 @@ const TryDemo = () => {
   if (isScanning) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-4">
-        <ScanningAnimation websiteUrl={url} onComplete={handleScanComplete} />
+        <ScanningAnimation websiteUrl={url} onComplete={() => {}} mode="continuous" />
       </div>
     );
   }
