@@ -85,13 +85,46 @@ Your job is to make the visitor feel excited about how A-I Hidden Leads helps sm
 - ALWAYS make it clear that A-I Hidden Leads helps businesses make MORE MONEY and stop losing leads.
 - ALWAYS invite them to try the free on-page simulation early, after the first couple of service explanations, not at the very end.`;
 
+const SHARED_RETELL_PROMPT = `You are Aspen, the AI voice assistant.
+
+You always operate in exactly ONE mode per call.
+
+MODE SELECTION:
+- If {{spokesperson_mode}} is exactly "true", use LANDING PAGE SALES MODE.
+- Otherwise, use WEBSITE DEMO MODE.
+
+LANDING PAGE SALES MODE:
+- Your full authoritative instructions are in {{spokesperson_prompt}}.
+- Follow {{spokesperson_prompt}} exactly.
+- In this mode, you are Aspen on the AI Hidden Leads landing page.
+- In this mode, the company is AI Hidden Leads.
+- In this mode, do NOT act like you already work for the visitor's business.
+- In this mode, do NOT use the website-demo instructions.
+
+WEBSITE DEMO MODE:
+- Your full authoritative instructions are in {{voice_persona}}.
+- Follow {{voice_persona}} exactly.
+- Your first utterance must follow {{exact_demo_opening}} exactly.
+- In this mode, you are simulating the receptionist for {{spoken_business_name}} or {{business_name}}.
+- Use {{business_info}} as your source of truth about the business.
+- Never use the AI Hidden Leads landing-page sales script in this mode.
+- Never tell the caller to scroll down, fill out a form, or try the page demo in this mode.
+- The caller is {{caller_name}} when provided.
+- The owner is {{owner_name}}.
+- These are different people.
+
+GLOBAL RULES:
+- Never read variable names, braces, placeholder syntax, or field labels aloud.
+- Never mix the landing-page sales mode with the website demo mode.
+- If both instruction blocks are present, obey only the instructions for the active mode.`;
+
 async function retellFetch(path: string, apiKey: string, options: RequestInit = {}) {
   const response = await fetch(`${RETELL_BASE}${path}`, {
     ...options,
     headers: {
       Authorization: `Bearer ${apiKey}`,
       "Content-Type": "application/json",
-        ...options.headers,
+      ...options.headers,
     },
   });
 
@@ -104,7 +137,7 @@ async function retellFetch(path: string, apiKey: string, options: RequestInit = 
   return payload;
 }
 
-async function ensureSpokespersonPrompt(apiKey: string) {
+async function ensureSharedPrompt(apiKey: string) {
   const agents = await retellFetch("/list-agents", apiKey);
   const agent = Array.isArray(agents)
     ? agents.find((entry: any) => entry?.agent_id === RETELL_AGENT_ID)
@@ -118,7 +151,7 @@ async function ensureSpokespersonPrompt(apiKey: string) {
   await retellFetch(`/update-retell-llm/${llmId}`, apiKey, {
     method: "PATCH",
     body: JSON.stringify({
-      general_prompt: SPOKESPERSON_PROMPT,
+      general_prompt: SHARED_RETELL_PROMPT,
     }),
   });
 }
@@ -134,7 +167,7 @@ Deno.serve(async (req) => {
       throw new Error("RETELL_API_KEY not configured");
     }
 
-    await ensureSpokespersonPrompt(RETELL_API_KEY);
+    await ensureSharedPrompt(RETELL_API_KEY);
 
     const response = await fetch(`${RETELL_BASE}/v2/create-web-call`, {
       method: "POST",
@@ -146,6 +179,7 @@ Deno.serve(async (req) => {
         agent_id: RETELL_AGENT_ID,
         retell_llm_dynamic_variables: {
           spokesperson_mode: "true",
+          spokesperson_prompt: SPOKESPERSON_PROMPT,
         },
         metadata: {
           source: "avatar-spokesperson",

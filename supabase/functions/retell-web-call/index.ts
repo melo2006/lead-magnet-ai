@@ -17,6 +17,40 @@ const DEFAULT_TIME_ZONE = 'America/New_York';
 const DEFAULT_TRANSFER_NUMBER = '+19547706622';
 const TWILIO_CALLER_ID = '+15612755757';
 const TRANSFER_TITLE = 'AI Solutions Specialist';
+const SHARED_WEB_AGENT_ID = 'agent_0dd08673d770e8adf08f920490';
+
+const SHARED_RETELL_PROMPT = `You are Aspen, the AI voice assistant.
+
+You always operate in exactly ONE mode per call.
+
+MODE SELECTION:
+- If {{spokesperson_mode}} is exactly "true", use LANDING PAGE SALES MODE.
+- Otherwise, use WEBSITE DEMO MODE.
+
+LANDING PAGE SALES MODE:
+- Your full authoritative instructions are in {{spokesperson_prompt}}.
+- Follow {{spokesperson_prompt}} exactly.
+- In this mode, you are Aspen on the AI Hidden Leads landing page.
+- In this mode, the company is AI Hidden Leads.
+- In this mode, do NOT act like you already work for the visitor's business.
+- In this mode, do NOT use the website-demo instructions.
+
+WEBSITE DEMO MODE:
+- Your full authoritative instructions are in {{voice_persona}}.
+- Follow {{voice_persona}} exactly.
+- Your first utterance must follow {{exact_demo_opening}} exactly.
+- In this mode, you are simulating the receptionist for {{spoken_business_name}} or {{business_name}}.
+- Use {{business_info}} as your source of truth about the business.
+- Never use the AI Hidden Leads landing-page sales script in this mode.
+- Never tell the caller to scroll down, fill out a form, or try the page demo in this mode.
+- The caller is {{caller_name}} when provided.
+- The owner is {{owner_name}}.
+- These are different people.
+
+GLOBAL RULES:
+- Never read variable names, braces, placeholder syntax, or field labels aloud.
+- Never mix the landing-page sales mode with the website demo mode.
+- If both instruction blocks are present, obey only the instructions for the active mode.`;
 
 // Service account credentials for aspen-calendar-bot
 const SERVICE_ACCOUNT = {
@@ -583,6 +617,27 @@ async function retellFetch(path: string, apiKey: string, options: RequestInit = 
   }
 
   return data;
+}
+
+async function ensureSharedRetellPrompt(apiKey: string, agentId: string) {
+  if (agentId !== SHARED_WEB_AGENT_ID) return;
+
+  const agents = await retellFetch('/list-agents', apiKey);
+  const agent = Array.isArray(agents)
+    ? agents.find((entry: any) => entry?.agent_id === agentId)
+    : null;
+
+  const llmId = agent?.response_engine?.llm_id;
+  if (!llmId) {
+    throw new Error('Unable to resolve Retell LLM for shared web agent');
+  }
+
+  await retellFetch(`/update-retell-llm/${llmId}`, apiKey, {
+    method: 'PATCH',
+    body: JSON.stringify({
+      general_prompt: SHARED_RETELL_PROMPT,
+    }),
+  });
 }
 
 async function invokeLiveTransferBridge({
@@ -1746,6 +1801,8 @@ Deno.serve(async (req) => {
 
     console.log('Creating web call for agent:', agentId, 'niche:', businessNiche, 'callbackPhone:', normalizedOwnerPhone);
 
+    await ensureSharedRetellPrompt(retellApiKey, agentId);
+
     const response = await fetch(`${RETELL_BASE}/v2/create-web-call`, {
       method: 'POST',
       headers: {
@@ -1755,6 +1812,7 @@ Deno.serve(async (req) => {
       body: JSON.stringify({
         agent_id: agentId,
         retell_llm_dynamic_variables: {
+          spokesperson_mode: 'false',
           business_name: businessName || 'Demo Business',
           spoken_business_name: spokenBusinessName,
           business_niche: businessNiche || 'general',
