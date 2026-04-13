@@ -2,6 +2,7 @@ import { Routes, Route } from "react-router-dom";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { CRMSidebar } from "@/components/crm/CRMSidebar";
 import CRMDashboard from "@/components/crm/CRMDashboard";
+import FollowUpIntelligence from "@/components/crm/FollowUpIntelligence";
 import ProspectsView from "@/components/crm/ProspectsView";
 import IntentLeadsView from "@/components/crm/IntentLeadsView";
 import CampaignsView from "@/components/crm/CampaignsView";
@@ -36,6 +37,7 @@ const CRM = () => {
               <Route path="imported" element={<ImportedListsView />} />
               <Route path="imported/:id" element={<ImportedListDetailView />} />
               <Route path="engagement" element={<EngagementDashboard />} />
+              <Route path="follow-up" element={<FollowUpIntelligence />} />
               <Route path="templates" element={<TemplatesView />} />
               <Route path="*" element={<CRMDashboard />} />
             </Routes>
