@@ -834,6 +834,8 @@ const DemoSite = () => {
                       callerName={knownCallerName}
                       callerEmail={knownCallerEmail}
                       callerPhone={knownCallerPhone}
+                      leadId={leadData.leadId}
+                      prospectId={leadData.prospectId}
                       onClose={() => setChatOpen(false)}
                     />
                   </div>

@@ -11,6 +11,8 @@ interface ChatWidgetProps {
   callerName?: string;
   callerEmail?: string;
   callerPhone?: string;
+  leadId?: string;
+  prospectId?: string;
   onClose?: () => void;
 }
 
@@ -30,6 +32,8 @@ const ChatWidget = ({
   callerName,
   callerEmail,
   callerPhone,
+  leadId,
+  prospectId,
   onClose,
 }: ChatWidgetProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -40,9 +44,28 @@ const ChatWidget = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const initialized = useRef(false);
   const mounted = useRef(true);
+  const sessionId = useRef(`chat_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
 
   const ownerLabel = ownerName?.trim() || callerName?.trim() || "the business owner";
   const isBusy = isThinking || isStreaming;
+
+  const logChatMessage = useCallback((role: string, content: string) => {
+    if (!content.trim()) return;
+    supabase.from("demo_chat_interactions").insert({
+      session_id: sessionId.current,
+      lead_id: leadId || null,
+      prospect_id: prospectId || null,
+      business_name: businessName,
+      website_url: websiteUrl,
+      caller_name: callerName || null,
+      caller_email: callerEmail || null,
+      caller_phone: callerPhone || null,
+      role,
+      content: content.trim(),
+    }).then(({ error }) => {
+      if (error) console.error("Failed to log chat interaction:", error);
+    });
+  }, [leadId, prospectId, businessName, websiteUrl, callerName, callerEmail, callerPhone]);
 
   useEffect(() => {
     mounted.current = true;
@@ -197,8 +220,9 @@ CRITICAL RULES:
 
     if (mounted.current) {
       setIsStreaming(false);
+      logChatMessage("assistant", response);
     }
-  }, []);
+  }, [logChatMessage]);
 
   const handleSend = useCallback(async (prefill?: string) => {
     const userMsg = (prefill ?? input).trim();
@@ -211,6 +235,7 @@ CRITICAL RULES:
     const updated = [...messages, { role: "user" as const, content: userMsg }];
     setMessages(updated);
     setIsThinking(true);
+    logChatMessage("user", userMsg);
 
     try {
       const response = await sendToAI(updated);
