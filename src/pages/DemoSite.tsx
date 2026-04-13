@@ -609,6 +609,7 @@ const DemoSite = () => {
   );
   const isScanPreviewReady = !isScanning && !isPreviewAvailable && hasGeneratedPreviewData;
   const hasAnyPreview = isPreviewAvailable || isScanPreviewReady;
+  const isScanFailed = !isScanning && !hasGeneratedPreviewData && !isPreviewAvailable && !isPreviewLoading;
 
   return (
     <div className="relative min-h-[100dvh] bg-background">
