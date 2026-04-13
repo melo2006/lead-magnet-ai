@@ -561,17 +561,17 @@ const DemoSite = () => {
   const requiresBrowserFallback =
     !isWebsiteUnreachable && (iframeBlocked || isMixedContentPreview(livePreviewUrl, embedOrigin));
   const hasCrmContext = Boolean(leadData.prospectId || prospectIdParam);
-  const knownCallerName = callerNameParam || undefined;
-  const knownCallerEmail = callerEmailParam || undefined;
-  const knownCallerPhone = callerPhoneParam || undefined;
+  // When coming from TryDemo form (not CRM), the form submitter IS the caller, not the business owner.
+  // The owner should default to Ron Melo in that case.
+  const isFormSubmitter = !hasCrmContext && leadData.fullName && leadData.fullName !== "CRM Prospect";
+  const knownCallerName = callerNameParam || (isFormSubmitter ? leadData.fullName : undefined);
+  const knownCallerEmail = callerEmailParam || (isFormSubmitter ? leadData.email : undefined);
+  const knownCallerPhone = callerPhoneParam || (isFormSubmitter && isLikelyCallablePhoneNumber(leadData.phone) ? normalizePhoneNumber(leadData.phone) : undefined);
 
-  const fallbackOwnerName = !hasCrmContext && leadData.fullName !== "CRM Prospect"
-    ? leadData.fullName
-    : undefined;
-  const fallbackOwnerEmail = !hasCrmContext ? leadData.email : undefined;
-  const fallbackOwnerPhone = !hasCrmContext && isLikelyCallablePhoneNumber(leadData.phone)
-    ? normalizePhoneNumber(leadData.phone)
-    : undefined;
+  // Owner info comes from CRM prospect data, NOT the form submitter
+  const fallbackOwnerName = undefined; // Owner should always be DEFAULT_DEMO_OWNER_NAME unless CRM provides it
+  const fallbackOwnerEmail = !hasCrmContext ? undefined : undefined;
+  const fallbackOwnerPhone = undefined;
 
   const followUpName = prospectOwner?.name || fallbackOwnerName || DEFAULT_DEMO_OWNER_NAME;
   const followUpEmail = prospectOwner?.email || fallbackOwnerEmail || undefined;
