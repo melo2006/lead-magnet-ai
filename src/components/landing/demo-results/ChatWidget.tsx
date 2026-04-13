@@ -220,8 +220,9 @@ CRITICAL RULES:
 
     if (mounted.current) {
       setIsStreaming(false);
+      logChatMessage("assistant", response);
     }
-  }, []);
+  }, [logChatMessage]);
 
   const handleSend = useCallback(async (prefill?: string) => {
     const userMsg = (prefill ?? input).trim();
@@ -234,6 +235,7 @@ CRITICAL RULES:
     const updated = [...messages, { role: "user" as const, content: userMsg }];
     setMessages(updated);
     setIsThinking(true);
+    logChatMessage("user", userMsg);
 
     try {
       const response = await sendToAI(updated);
