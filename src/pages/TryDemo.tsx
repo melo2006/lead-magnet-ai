@@ -1,4 +1,4 @@
-import { useState, useCallback, useEffect } from "react";
+import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import {
@@ -188,7 +188,7 @@ const TryDemo = () => {
   if (isScanning) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-4">
-        <ScanningAnimation websiteUrl={url} onComplete={handleScanComplete} />
+        <ScanningAnimation websiteUrl={url} onComplete={() => {}} mode="continuous" />
       </div>
     );
   }
