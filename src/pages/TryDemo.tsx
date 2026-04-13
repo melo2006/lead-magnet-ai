@@ -119,6 +119,73 @@ const TryDemo = () => {
     setIsSubmitting(true);
 
     try {
+      // Check for a cached scan of this URL (scanned within last 7 days with content)
+      const CACHE_MAX_AGE_DAYS = 7;
+      const cacheThreshold = new Date(Date.now() - CACHE_MAX_AGE_DAYS * 86400000).toISOString();
+
+      const { data: cachedLead } = await supabase
+        .from("leads")
+        .select("*")
+        .eq("website_url", websiteUrl)
+        .eq("scan_status", "complete")
+        .not("website_content", "is", null)
+        .gte("updated_at", cacheThreshold)
+        .order("updated_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (cachedLead) {
+        console.log("Cache hit — reusing existing scan for", websiteUrl);
+
+        // Insert a new lead row referencing the visitor's info but skip re-scanning
+        const { data: newLead } = await supabase
+          .from("leads")
+          .insert([{
+            business_name: cachedLead.business_name || businessName,
+            full_name: name,
+            phone: ph,
+            email: em || null,
+            website_url: websiteUrl,
+            niche: cachedLead.niche || "general",
+            scan_status: "complete",
+            website_content: cachedLead.website_content,
+            website_title: cachedLead.website_title,
+            website_description: cachedLead.website_description,
+            website_screenshot: cachedLead.website_screenshot,
+            brand_colors: cachedLead.brand_colors,
+            brand_logo: cachedLead.brand_logo,
+            brand_fonts: cachedLead.brand_fonts,
+          }])
+          .select("id")
+          .single();
+
+        const leadId = newLead?.id || cachedLead.id;
+
+        const leadData: DemoLeadData = {
+          leadId,
+          fullName: name,
+          phone: ph,
+          email: em || undefined,
+          businessName: cachedLead.business_name || businessName,
+          websiteUrl,
+          niche: cachedLead.niche || "general",
+          screenshot: cachedLead.website_screenshot ?? undefined,
+          title: cachedLead.website_title ?? undefined,
+          description: cachedLead.website_description ?? undefined,
+          websiteContent: cachedLead.website_content ?? undefined,
+          colors: cachedLead.brand_colors && typeof cachedLead.brand_colors === "object" && !Array.isArray(cachedLead.brand_colors)
+            ? (cachedLead.brand_colors as Record<string, string | undefined>)
+            : undefined,
+          logo: cachedLead.brand_logo ?? undefined,
+        };
+
+        setScanData(leadData);
+        setIsScanning(true);
+        try { localStorage.setItem(LAST_DEMO_STORAGE_KEY, JSON.stringify(leadData)); } catch {}
+        return;
+      }
+
+      // No cache — full scan flow
       const { data: lead, error } = await supabase
         .from("leads")
         .insert([{
