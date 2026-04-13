@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Search, Megaphone, LayoutGrid, FileText, Radar, PhoneIncoming, FolderInput, Monitor, Play, Activity, Image
+  LayoutDashboard, Search, Megaphone, LayoutGrid, FileText, Radar, PhoneIncoming, FolderInput, Monitor, Play, Activity, Image, Brain
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -17,6 +17,7 @@ const crmItems = [
   { title: "Call History", url: "/dashboard/calls", icon: PhoneIncoming },
   { title: "Imported Lists", url: "/dashboard/imported", icon: FolderInput },
   { title: "Engagement", url: "/dashboard/engagement", icon: Activity },
+  { title: "AI Follow-Up", url: "/dashboard/follow-up", icon: Brain },
   { title: "Templates", url: "/dashboard/templates", icon: FileText },
 ];
 
