@@ -32,6 +32,8 @@ const ChatWidget = ({
   callerName,
   callerEmail,
   callerPhone,
+  leadId,
+  prospectId,
   onClose,
 }: ChatWidgetProps) => {
   const [messages, setMessages] = useState<Message[]>([]);
@@ -42,6 +44,7 @@ const ChatWidget = ({
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const initialized = useRef(false);
   const mounted = useRef(true);
+  const sessionId = useRef(`chat_${Date.now()}_${Math.random().toString(36).slice(2, 8)}`);
 
   const ownerLabel = ownerName?.trim() || callerName?.trim() || "the business owner";
   const isBusy = isThinking || isStreaming;
