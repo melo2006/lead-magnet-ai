@@ -49,6 +49,24 @@ const ChatWidget = ({
   const ownerLabel = ownerName?.trim() || callerName?.trim() || "the business owner";
   const isBusy = isThinking || isStreaming;
 
+  const logChatMessage = useCallback((role: string, content: string) => {
+    if (!content.trim()) return;
+    supabase.from("demo_chat_interactions").insert({
+      session_id: sessionId.current,
+      lead_id: leadId || null,
+      prospect_id: prospectId || null,
+      business_name: businessName,
+      website_url: websiteUrl,
+      caller_name: callerName || null,
+      caller_email: callerEmail || null,
+      caller_phone: callerPhone || null,
+      role,
+      content: content.trim(),
+    }).then(({ error }) => {
+      if (error) console.error("Failed to log chat interaction:", error);
+    });
+  }, [leadId, prospectId, businessName, websiteUrl, callerName, callerEmail, callerPhone]);
+
   useEffect(() => {
     mounted.current = true;
     return () => {
