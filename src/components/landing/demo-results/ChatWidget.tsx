@@ -11,6 +11,8 @@ interface ChatWidgetProps {
   callerName?: string;
   callerEmail?: string;
   callerPhone?: string;
+  leadId?: string;
+  prospectId?: string;
   onClose?: () => void;
 }
 
