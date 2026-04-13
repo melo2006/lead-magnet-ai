@@ -879,10 +879,33 @@ Deno.serve(async (req) => {
     }
 
     const homepage = unwrapFirecrawlPayload(homepageResponse);
-    const homepageMarkdown = cleanText(homepage.markdown);
-    const homepageSummary = cleanText(homepage.summary);
+    let homepageMarkdown = cleanText(homepage.markdown);
+    let homepageSummary = cleanText(homepage.summary);
     const branding = homepage.branding || {};
-    const metadata = homepage.metadata || {};
+    let metadata = homepage.metadata || {};
+
+    // === BROWSERLESS CONTENT FALLBACK ===
+    // If Firecrawl returned empty/blocked content, try reading via headless Chrome
+    const isContentBlocked = homepageMarkdown.length < 100;
+    if (isContentBlocked && browserlessKey) {
+      console.log('[Fallback] Firecrawl content appears blocked (length:', homepageMarkdown.length, '), trying Browserless...');
+      const browserlessContent = await browserlessReadContent(formattedUrl, browserlessKey);
+      if (browserlessContent && browserlessContent.markdown.length > homepageMarkdown.length) {
+        console.log('[Fallback] Browserless content succeeded, length:', browserlessContent.markdown.length);
+        homepageMarkdown = browserlessContent.markdown;
+        if (!homepageSummary && browserlessContent.description) {
+          homepageSummary = browserlessContent.description;
+        }
+        if (!metadata.title && browserlessContent.title) {
+          metadata = { ...metadata, title: browserlessContent.title };
+        }
+        if (!metadata.description && browserlessContent.description) {
+          metadata = { ...metadata, description: browserlessContent.description };
+        }
+      } else {
+        console.warn('[Fallback] Browserless content also failed or returned less content');
+      }
+    }
 
     // Await Browserless screenshot and recover with a dedicated Firecrawl screenshot if needed.
     const browserlessScreenshotResult = await browserlessPromise;
