@@ -1,4 +1,5 @@
 import { useState, useRef, useCallback, useEffect, type ReactNode } from "react";
+import { GripVertical } from "lucide-react";
 
 const VIEWPORT_PADDING = 12;
 
@@ -132,16 +133,21 @@ const DraggableFloating = ({
         touchAction: isDragging ? "none" : "auto",
       }}
     >
-      <button
-        type="button"
-        data-drag-handle
-        className="mx-auto mb-1.5 inline-flex cursor-grab touch-none select-none items-center gap-1.5 rounded-full border border-border bg-card/95 px-2 py-1 text-[10px] font-semibold uppercase tracking-wide text-muted-foreground shadow-sm active:cursor-grabbing"
-        aria-label="Drag widget"
-      >
-        <span className="text-xs leading-none">⋮⋮</span>
-        <span>{isDragging ? "Moving..." : dragLabel}</span>
-      </button>
+      <div className="flex items-start gap-1">
+        <button
+          type="button"
+          data-drag-handle
+          className="mt-2 flex cursor-grab touch-none select-none flex-col items-center justify-center rounded-lg border border-border bg-card/95 p-1.5 text-muted-foreground shadow-md backdrop-blur-sm transition-colors hover:bg-accent hover:text-foreground active:cursor-grabbing"
+          aria-label="Drag widget"
+        >
+          <GripVertical className="h-4 w-4" />
+          <span className="text-[7px] font-bold uppercase leading-tight tracking-wider">{isDragging ? "Moving" : "Drag"}</span>
+        </button>
+        <div className="flex-1">
+
       {children}
+        </div>
+      </div>
     </div>
   );
 };
