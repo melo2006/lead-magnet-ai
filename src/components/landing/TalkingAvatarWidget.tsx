@@ -552,7 +552,7 @@ const TalkingAvatarWidget = () => {
     return (
       <button
         onClick={handleExpand}
-        className="fixed bottom-24 right-4 z-50 group"
+        className="fixed bottom-24 right-8 z-50 group"
         aria-label="Talk to Aspen - AI Assistant"
       >
         <div className="relative">
@@ -571,7 +571,7 @@ const TalkingAvatarWidget = () => {
   // ── MINIMIZED: small floating face with controls ──
   if (widgetState === "minimized") {
     return (
-      <div className="fixed bottom-6 right-4 z-50 flex items-center gap-2 animate-scale-in">
+      <div className="fixed bottom-6 right-8 z-50 flex items-center gap-2 animate-scale-in">
         {/* Face bubble */}
         <button onClick={handleMaximize} className="relative group" aria-label="Expand Aspen">
           <div className="h-12 w-12 overflow-hidden rounded-full border-2 border-primary shadow-lg bg-card">
@@ -630,7 +630,7 @@ const TalkingAvatarWidget = () => {
 
   // ── EXPANDED: smaller widget with 3D avatar ──
   return (
-    <DraggableFloating initialX={window.innerWidth - 300} initialY={window.innerHeight - 500} dragLabel="Move Aspen">
+    <DraggableFloating initialX={window.innerWidth - 340} initialY={window.innerHeight - 500} dragLabel="Move Aspen">
     <div className="flex w-72 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl animate-scale-in">
       {/* Header */}
       <div className="bg-gradient-to-r from-primary to-primary/80 px-3 py-2 flex items-center justify-between">
