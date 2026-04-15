@@ -760,6 +760,7 @@ const TalkingAvatarWidget = () => {
         </a>
       </div>
     </div>
+    </DraggableFloating>
   );
 };
 
