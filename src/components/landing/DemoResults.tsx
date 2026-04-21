@@ -4,6 +4,7 @@ import { ArrowLeft, Eye, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AfterPreview from "./demo-results/AfterPreview";
 import WebsiteShowcase from "./demo-results/WebsiteShowcase";
+import DemoWatermark from "./demo-results/DemoWatermark";
 import type { DemoLeadData } from "./demo-results/demoResultsUtils";
 import { getImageSrc, getSiteName } from "./demo-results/demoResultsUtils";
 
