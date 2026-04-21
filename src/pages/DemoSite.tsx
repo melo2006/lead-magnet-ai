@@ -2,7 +2,7 @@ import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
 import { MessageSquare, Mic, ArrowLeft, Phone } from "lucide-react";
 import type { DemoLeadData } from "@/components/landing/demo-results/demoResultsUtils";
-import { getResponsiveScreenshotSrc, getSiteName } from "@/components/landing/demo-results/demoResultsUtils";
+import { getResponsiveScreenshotSrc, getSiteName, withCacheKey } from "@/components/landing/demo-results/demoResultsUtils";
 import VoiceAgentWidget from "@/components/landing/demo-results/VoiceAgentWidget";
 import ChatWidget from "@/components/landing/demo-results/ChatWidget";
 import WebsiteShowcase from "@/components/landing/demo-results/WebsiteShowcase";
@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const DEFAULT_DEMO_OWNER_NAME = "Ron Melo";
+const LAST_DEMO_STORAGE_KEY = "lastDemoLeadData";
 
 const getHomepageUrl = (websiteUrl: string) => {
   try {
@@ -198,6 +199,27 @@ const DemoSite = () => {
   const [viewportWidth, setViewportWidth] = useState(() => (typeof window !== "undefined" ? window.innerWidth : 1024));
 
   useEffect(() => {
+    if (latestLeadData || leadData) return;
+
+    try {
+      const stored = localStorage.getItem(LAST_DEMO_STORAGE_KEY);
+      if (!stored) return;
+
+      const parsed = JSON.parse(stored) as DemoLeadData;
+      if (!parsed?.websiteUrl) return;
+
+      const requestedUrl = searchParams.get("url");
+      const requestedHomepage = requestedUrl ? getHomepageUrl(requestedUrl) : null;
+      const parsedHomepage = getHomepageUrl(parsed.websiteUrl);
+
+      if (requestedHomepage && requestedHomepage !== parsedHomepage) return;
+      setLeadData(parsed);
+    } catch {
+      // ignore bad local cache
+    }
+  }, [latestLeadData, leadData, searchParams]);
+
+  useEffect(() => {
     try {
       if (testPhoneOverride) localStorage.setItem("demo_test_phone_override", testPhoneOverride);
       else localStorage.removeItem("demo_test_phone_override");
@@ -220,6 +242,10 @@ const DemoSite = () => {
       screenshotMobile: leadData?.screenshotMobile,
     },
     viewportWidth,
+  );
+  const screenshotSrc = withCacheKey(
+    responsiveScreenshotSrc,
+    leadData?.previewVersion || leadData?.leadId || undefined,
   );
 
   useEffect(() => {
@@ -578,7 +604,6 @@ const DemoSite = () => {
     return <DemoLoadingState websiteUrl={searchParams.get("url") || "website"} businessName={searchParams.get("name") || undefined} />;
   }
 
-  const screenshotSrc = responsiveScreenshotSrc;
   const homepageUrl = getHomepageUrl(leadData.websiteUrl);
   const livePreviewUrl = resolvedIframeUrl || homepageUrl;
   const embedOrigin = typeof window !== "undefined" ? window.location.origin : "";
