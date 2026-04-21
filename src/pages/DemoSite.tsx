@@ -2,7 +2,7 @@ import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
 import { MessageSquare, Mic, ArrowLeft, Phone } from "lucide-react";
 import type { DemoLeadData } from "@/components/landing/demo-results/demoResultsUtils";
-import { getImageSrc, getSiteName } from "@/components/landing/demo-results/demoResultsUtils";
+import { getResponsiveScreenshotSrc, getSiteName } from "@/components/landing/demo-results/demoResultsUtils";
 import VoiceAgentWidget from "@/components/landing/demo-results/VoiceAgentWidget";
 import ChatWidget from "@/components/landing/demo-results/ChatWidget";
 import WebsiteShowcase from "@/components/landing/demo-results/WebsiteShowcase";
@@ -194,6 +194,7 @@ const DemoSite = () => {
   const [testPhoneOverride, setTestPhoneOverride] = useState(() => {
     try { return localStorage.getItem("demo_test_phone_override") || ""; } catch { return ""; }
   });
+  const [viewportWidth, setViewportWidth] = useState(() => (typeof window !== "undefined" ? window.innerWidth : 1024));
 
   useEffect(() => {
     try {
@@ -201,6 +202,15 @@ const DemoSite = () => {
       else localStorage.removeItem("demo_test_phone_override");
     } catch {}
   }, [testPhoneOverride]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+
+    const handleResize = () => setViewportWidth(window.innerWidth);
+    handleResize();
+    window.addEventListener("resize", handleResize);
+    return () => window.removeEventListener("resize", handleResize);
+  }, []);
 
   const returnTo = searchParams.get("returnTo");
   const prospectIdParam = searchParams.get("prospectId");
@@ -555,7 +565,7 @@ const DemoSite = () => {
     return <DemoLoadingState websiteUrl={searchParams.get("url") || "website"} businessName={searchParams.get("name") || undefined} />;
   }
 
-  const screenshotSrc = getImageSrc(leadData.screenshot);
+  const screenshotSrc = getResponsiveScreenshotSrc(leadData, viewportWidth);
   const homepageUrl = getHomepageUrl(leadData.websiteUrl);
   const livePreviewUrl = resolvedIframeUrl || homepageUrl;
   const embedOrigin = typeof window !== "undefined" ? window.location.origin : "";
