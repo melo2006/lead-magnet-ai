@@ -910,7 +910,7 @@ const DemoSite = () => {
         {/* ===== AI Widget buttons — draggable floating ===== */}
         {hasAnyPreview && (
           <>
-            <DraggableFloating initialX={12} initialY={window.innerHeight - 260}>
+            <DraggableFloating initialX={12} initialY={window.innerHeight - 80}>
               {chatOpen ? (
                 <div className="w-[min(20rem,calc(100vw-3rem))] max-h-[60vh] overflow-y-auto animate-in slide-in-from-bottom-4 fade-in duration-300">
                   <ChatWidget
@@ -945,7 +945,7 @@ const DemoSite = () => {
               )}
             </DraggableFloating>
 
-            <DraggableFloating initialX={window.innerWidth - 200} initialY={window.innerHeight - 260}>
+            <DraggableFloating initialX={window.innerWidth - 200} initialY={window.innerHeight - 80}>
               {voiceOpen ? (
                 <div className="w-[min(20rem,calc(100vw-3rem))] max-h-[60vh] overflow-y-auto animate-in slide-in-from-bottom-4 fade-in duration-300">
                   <VoiceAgentWidget
