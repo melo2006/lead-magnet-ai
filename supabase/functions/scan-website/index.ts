@@ -1107,32 +1107,41 @@ Deno.serve(async (req) => {
       console.warn('Could not save preview data early:', previewUpdate.error);
     }
 
-    // === PHASE 2: Sub-pages (parallel, with short timeout) ===
-    const linkPool = new Set<string>();
-    if (Array.isArray(homepage.links)) {
-      homepage.links.forEach((link: string) => linkPool.add(cleanText(link)));
+    // === PHASE 2: Sub-pages (skip if running out of time) ===
+    let successfulPages: { url: string; title: string; summary: string; markdown: string }[] = [];
+    if (!isOverBudget()) {
+      const linkPool = new Set<string>();
+      if (Array.isArray(homepage.links)) {
+        homepage.links.forEach((link: string) => linkPool.add(cleanText(link)));
+      }
+
+      if (!isOverBudget()) {
+        try {
+          const mapResponse = await firecrawlRequest('/map', firecrawlKey, {
+            url: formattedUrl,
+            limit: 30,
+            includeSubdomains: false,
+          }, 0);
+          const links = Array.isArray(mapResponse.links) ? mapResponse.links : [];
+          links.forEach((link: string) => linkPool.add(cleanText(link)));
+        } catch (mapError) {
+          console.warn('Map failed, using homepage links:', mapError);
+        }
+      }
+
+      const candidateLinks = pickRelevantLinks(Array.from(linkPool), formattedUrl);
+      console.log('Relevant links selected:', candidateLinks.length);
+
+      if (!isOverBudget()) {
+        const pageResults = await Promise.allSettled(candidateLinks.map((link) => scrapeMarkdownPage(link, firecrawlKey)));
+        successfulPages = pageResults
+          .filter((r): r is PromiseFulfilledResult<Awaited<ReturnType<typeof scrapeMarkdownPage>>> => r.status === 'fulfilled')
+          .map((r) => r.value)
+          .filter((page) => page.markdown || page.summary);
+      }
+    } else {
+      console.warn('Time budget exceeded, skipping sub-page scraping');
     }
-
-    try {
-      const mapResponse = await firecrawlRequest('/map', firecrawlKey, {
-        url: formattedUrl,
-        limit: 50,
-        includeSubdomains: false,
-      });
-      const links = Array.isArray(mapResponse.links) ? mapResponse.links : [];
-      links.forEach((link: string) => linkPool.add(cleanText(link)));
-    } catch (mapError) {
-      console.warn('Map failed, using homepage links:', mapError);
-    }
-
-    const candidateLinks = pickRelevantLinks(Array.from(linkPool), formattedUrl);
-    console.log('Relevant links selected:', candidateLinks.length);
-
-    const pageResults = await Promise.allSettled(candidateLinks.map((link) => scrapeMarkdownPage(link, firecrawlKey)));
-    const successfulPages = pageResults
-      .filter((r): r is PromiseFulfilledResult<Awaited<ReturnType<typeof scrapeMarkdownPage>>> => r.status === 'fulfilled')
-      .map((r) => r.value)
-      .filter((page) => page.markdown || page.summary);
 
     // Secondary URL (quick)
     let secondaryContent = '';
