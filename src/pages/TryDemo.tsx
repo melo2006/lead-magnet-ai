@@ -166,6 +166,7 @@ const TryDemo = () => {
 
         const leadData: DemoLeadData = {
           leadId,
+          previewVersion: cachedLead.updated_at ?? new Date().toISOString(),
           fullName: name,
           phone: ph,
           email: em || undefined,
@@ -230,6 +231,7 @@ const TryDemo = () => {
 
       const leadData: DemoLeadData = {
         leadId: lead.id,
+        previewVersion: updatedLead?.updated_at ?? new Date().toISOString(),
         fullName: name,
         phone: ph,
         email: em || undefined,
