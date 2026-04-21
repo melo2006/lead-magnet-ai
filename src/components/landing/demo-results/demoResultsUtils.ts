@@ -10,6 +10,8 @@ export interface DemoLeadData {
   phone?: string;
   niche?: string;
   screenshot?: string;
+  screenshotTablet?: string;
+  screenshotMobile?: string;
   title?: string;
   description?: string;
   websiteContent?: string;
