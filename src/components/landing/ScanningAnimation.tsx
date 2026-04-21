@@ -41,6 +41,7 @@ interface ScanningAnimationProps {
   websiteUrl: string;
   businessName?: string;
   onComplete: () => void;
+  onCancel?: () => void;
   mode?: "timed" | "continuous";
 }
 
@@ -57,6 +58,7 @@ const ScanningAnimation = ({
   websiteUrl,
   businessName,
   onComplete,
+  onCancel,
   mode = "timed",
 }: ScanningAnimationProps) => {
   const [currentStep, setCurrentStep] = useState(0);
@@ -217,6 +219,16 @@ const ScanningAnimation = ({
               {isComplete ? "Complete" : `${Math.round(progress)}% — Scanning website + preparing widgets…`}
             </p>
           </div>
+
+          {/* Cancel button */}
+          {onCancel && !isComplete && (
+            <button
+              onClick={onCancel}
+              className="mt-4 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
+            >
+              Stop creating Live Demo
+            </button>
+          )}
         </div>
       </div>
     </motion.div>
