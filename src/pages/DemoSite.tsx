@@ -706,10 +706,13 @@ const DemoSite = () => {
           <div className="flex min-w-0 items-center gap-2.5">
             <button
               onClick={handleBack}
-              className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-background/80 px-3 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground sm:gap-2 sm:px-4 sm:text-sm"
+              className="group inline-flex h-auto items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-left transition-colors hover:bg-primary/20 sm:px-4 sm:py-2"
             >
-              <ArrowLeft className="h-4 w-4 shrink-0" />
-              <span className="truncate">Back to AI Hidden Leads</span>
+              <ArrowLeft className="h-4 w-4 shrink-0 text-primary transition-transform group-hover:-translate-x-0.5" />
+              <div className="min-w-0">
+                <p className="text-[10px] font-bold uppercase leading-tight tracking-wider text-primary sm:text-xs">Sign Up</p>
+                <p className="truncate text-[9px] font-medium leading-tight text-muted-foreground sm:text-[10px]">AI Hidden Leads</p>
+              </div>
             </button>
 
             <div className="min-w-0">
@@ -911,7 +914,7 @@ const DemoSite = () => {
         {/* ===== AI Widget buttons — draggable floating ===== */}
         {hasAnyPreview && (
           <>
-            <DraggableFloating initialX={24} initialY={window.innerHeight - 100}>
+            <DraggableFloating initialX={24} initialY={window.innerHeight - 100} anchorRight={false}>
               {chatOpen ? (
                 <div className="w-[min(20rem,calc(100vw-3rem))] max-h-[60vh] overflow-y-auto animate-in slide-in-from-bottom-4 fade-in duration-300">
                   <ChatWidget
@@ -946,7 +949,7 @@ const DemoSite = () => {
               )}
             </DraggableFloating>
 
-            <DraggableFloating initialX={window.innerWidth - 224} initialY={window.innerHeight - 100}>
+            <DraggableFloating initialX={24} initialY={window.innerHeight - 100} anchorRight={true}>
               {voiceOpen ? (
                 <div className="w-[min(20rem,calc(100vw-3rem))] max-h-[60vh] overflow-y-auto animate-in slide-in-from-bottom-4 fade-in duration-300">
                   <VoiceAgentWidget
