@@ -319,7 +319,11 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
   if (viewState === "scanning") {
     return (
       <div className="fixed inset-0 z-50 bg-background flex items-center justify-center px-4">
-        <ScanningAnimation websiteUrl={formData.website} onComplete={handleScanComplete} />
+        <ScanningAnimation
+          websiteUrl={formData.website}
+          onComplete={handleScanComplete}
+          onCancel={() => setViewState("form")}
+        />
       </div>
     );
   }
