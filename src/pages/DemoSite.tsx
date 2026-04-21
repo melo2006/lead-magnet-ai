@@ -612,9 +612,7 @@ const DemoSite = () => {
   const isLivePreviewReady = Boolean(liveViewUrl && hasLiveViewLoaded && !isGeneratedScreenshot);
   const hasScreenshotAsset = Boolean(screenshotSrc);
   const isStaticPreviewReady = hasScreenshotAsset && hasScreenshotLoaded;
-  const shouldShowScreenshotFallback =
-    hasScreenshotAsset &&
-    (isWebsiteUnreachable || (requiresBrowserFallback && (!liveViewUrl || !hasLiveViewLoaded || isGeneratedScreenshot)));
+  const shouldShowScreenshotFallback = hasScreenshotAsset && (isWebsiteUnreachable || requiresBrowserFallback);
   const isInlinePreviewLoading =
     !requiresBrowserFallback &&
     !isWebsiteUnreachable &&
@@ -755,7 +753,7 @@ const DemoSite = () => {
               </div>
             )}
 
-            {requiresBrowserFallback && liveViewUrl && !isGeneratedScreenshot && (
+            {requiresBrowserFallback && liveViewUrl && !isGeneratedScreenshot && !hasScreenshotAsset && (
               <iframe
                 src={liveViewUrl}
                 className={`absolute inset-0 h-full w-full border-0 transition-opacity duration-300 ${hasLiveViewLoaded ? "opacity-100" : "opacity-0"}`}
