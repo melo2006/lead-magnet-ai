@@ -72,16 +72,19 @@ const DraggableFloating = ({
 
   useEffect(() => {
     const handleResize = () => {
-      // Reset to recalculated initial positions on viewport change
-      const newX = typeof initialX === 'number' && initialX > window.innerWidth / 2
-        ? window.innerWidth - 200
-        : initialX;
-      const newY = window.innerHeight - 80;
-      clampPosition({ x: Math.min(newX, window.innerWidth - 80), y: Math.min(newY, window.innerHeight - 80) });
+      const el = containerRef.current;
+      if (!el) return;
+      if (anchorRight) {
+        const w = el.offsetWidth;
+        const rightX = window.innerWidth - w - initialX;
+        clampPosition({ x: rightX, y: window.innerHeight - 100 });
+      } else {
+        clampPosition({ x: initialX, y: window.innerHeight - 100 });
+      }
     };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, [clampPosition, initialX]);
+  }, [clampPosition, initialX, anchorRight]);
 
   const onPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
