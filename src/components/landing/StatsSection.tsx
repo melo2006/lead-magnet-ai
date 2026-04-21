@@ -47,19 +47,19 @@ const StatsSection = ({ niche }: StatsSectionProps) => {
   ];
 
   return (
-    <section className="py-12 sm:py-16 relative">
+    <section className="py-14 sm:py-20 relative">
       <div className="absolute inset-0 bg-gradient-to-b from-background via-secondary/30 to-background" />
-      <div className="container mx-auto px-4 sm:px-6 relative z-10">
+      <div className="container mx-auto px-5 sm:px-6 relative z-10">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-14"
+          className="text-center mb-10 sm:mb-14"
         >
-          <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
             The Cost of <span className="text-destructive">Silence</span>
           </h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+          <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto">
             Every ring that goes to voicemail is money walking out the door. Here's what the data says about your industry.
           </p>
         </motion.div>
@@ -72,14 +72,14 @@ const StatsSection = ({ niche }: StatsSectionProps) => {
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
               transition={{ delay: i * 0.1 }}
-              className={`relative rounded-2xl border ${stat.border} ${stat.bg} p-6 text-center card-glow transition-all duration-300`}
+              className={`relative rounded-2xl border ${stat.border} ${stat.bg} p-4 sm:p-6 text-center card-glow transition-all duration-300`}
             >
-              <div className={`inline-flex p-3 rounded-xl ${stat.bg} mb-4`}>
-                <stat.icon className={`w-6 h-6 ${stat.color}`} />
+              <div className={`inline-flex p-2.5 sm:p-3 rounded-xl ${stat.bg} mb-3 sm:mb-4`}>
+                <stat.icon className={`w-5 h-5 sm:w-6 sm:h-6 ${stat.color}`} />
               </div>
-              <p className={`text-4xl font-bold ${stat.color} mb-2`}>{stat.value}</p>
-              <p className="text-sm font-medium text-foreground">{stat.label}</p>
-              <p className="text-xs text-muted-foreground mt-1">{stat.sublabel}</p>
+              <p className={`text-2xl sm:text-3xl lg:text-4xl font-bold ${stat.color} mb-1 sm:mb-2`}>{stat.value}</p>
+              <p className="text-xs sm:text-sm font-medium text-foreground">{stat.label}</p>
+              <p className="text-[11px] sm:text-xs text-muted-foreground mt-1">{stat.sublabel}</p>
             </motion.div>
           ))}
         </div>

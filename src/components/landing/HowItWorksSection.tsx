@@ -30,24 +30,24 @@ const steps = [
 
 const HowItWorksSection = () => {
   return (
-    <section id="how-it-works" className="py-12 sm:py-16 relative">
-      <div className="container mx-auto px-4 sm:px-6">
+    <section id="how-it-works" className="py-14 sm:py-20 relative">
+      <div className="container mx-auto px-5 sm:px-6">
         <motion.div
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-14"
+          className="text-center mb-10 sm:mb-14"
         >
-          <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
             From Sign-Up to Results in{" "}
             <span className="text-gradient-primary">4 Simple Steps</span>
           </h2>
-          <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
+          <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto">
             No tech skills needed. No long contracts. We handle the setup — you get the leads.
           </p>
         </motion.div>
 
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-5 max-w-6xl mx-auto">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 sm:gap-5 max-w-6xl mx-auto">
           {steps.map((step, i) => (
             <motion.div
               key={step.title}
@@ -69,8 +69,8 @@ const HowItWorksSection = () => {
                     {i + 1}
                   </span>
                 </div>
-                <h3 className="text-lg font-semibold mb-2">{step.title}</h3>
-                <p className="text-sm text-muted-foreground leading-relaxed">{step.description}</p>
+                <h3 className="text-lg sm:text-xl font-semibold mb-2">{step.title}</h3>
+                <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">{step.description}</p>
               </div>
             </motion.div>
           ))}
