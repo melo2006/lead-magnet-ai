@@ -651,7 +651,7 @@ const DemoSite = () => {
     !isWebsiteUnreachable && (iframeBlocked || isMixedContentPreview(livePreviewUrl, embedOrigin));
   const hasCrmContext = Boolean(leadData.prospectId || prospectIdParam);
   // When coming from TryDemo form (not CRM), the form submitter IS the caller, not the business owner.
-  // The owner should default to Ron Melo in that case.
+  // The owner should default to a generic specialist title in that case.
   const isFormSubmitter = !hasCrmContext && leadData.fullName && leadData.fullName !== "CRM Prospect";
   const knownCallerName = callerNameParam || (isFormSubmitter ? leadData.fullName : undefined);
   const knownCallerEmail = callerEmailParam || (isFormSubmitter ? leadData.email : undefined);
