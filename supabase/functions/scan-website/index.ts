@@ -108,35 +108,49 @@ const pickRelevantLinks = (links: string[], rootUrl: string) => {
   return filtered.slice(0, 15);
 };
 
-/** Take a pixel-perfect screenshot via Browserless headless Chrome, upload to storage */
-async function browserlessScreenshot(
+type ViewportConfig = {
+  width: number;
+  height: number;
+  deviceScaleFactor: number;
+  suffix: string;
+};
+
+const VIEWPORT_CONFIGS: ViewportConfig[] = [
+  { width: 1920, height: 1080, deviceScaleFactor: 2, suffix: 'desktop' },
+  { width: 768, height: 1024, deviceScaleFactor: 2, suffix: 'tablet' },
+  { width: 390, height: 844, deviceScaleFactor: 3, suffix: 'mobile' },
+];
+
+async function browserlessScreenshotSingle(
   url: string,
   apiKey: string,
   leadId: string,
   supabaseUrl: string,
   supabaseServiceKey: string,
+  viewport: ViewportConfig,
 ): Promise<string | null> {
   try {
-    console.log('[Browserless] Taking screenshot of:', url);
+    console.log(`[Browserless] Taking ${viewport.suffix} screenshot of:`, url);
     const response = await fetch(`https://production-sfo.browserless.io/screenshot?token=${apiKey}`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
         url,
         options: {
-          fullPage: false,
+          fullPage: true,
           type: 'png',
         },
         viewport: {
-          width: 1920,
-          height: 1080,
-          deviceScaleFactor: 2,
+          width: viewport.width,
+          height: viewport.height,
+          deviceScaleFactor: viewport.deviceScaleFactor,
         },
-        waitForTimeout: 5000,
+        waitForTimeout: 8000,
         gotoOptions: {
           waitUntil: 'networkidle2',
-          timeout: 30000,
+          timeout: 35000,
         },
+        waitForSelector: { selector: 'img', timeout: 6000 },
         addScriptTag: [{
           content: `
             setTimeout(() => {
@@ -158,16 +172,15 @@ async function browserlessScreenshot(
 
     if (!response.ok) {
       const errText = await response.text();
-      console.error('[Browserless] Screenshot failed:', response.status, errText);
+      console.error(`[Browserless] ${viewport.suffix} screenshot failed:`, response.status, errText);
       return null;
     }
 
     const buffer = await response.arrayBuffer();
-    console.log('[Browserless] Screenshot captured, size:', buffer.byteLength);
+    console.log(`[Browserless] ${viewport.suffix} screenshot captured, size:`, buffer.byteLength);
 
-    // Upload to Supabase Storage
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
-    const filePath = `${leadId}.png`;
+    const filePath = viewport.suffix === 'desktop' ? `${leadId}.png` : `${leadId}-${viewport.suffix}.png`;
     const { error: uploadError } = await supabase.storage
       .from('website-screenshots')
       .upload(filePath, buffer, {
@@ -176,7 +189,7 @@ async function browserlessScreenshot(
       });
 
     if (uploadError) {
-      console.error('[Browserless] Storage upload failed:', uploadError);
+      console.error(`[Browserless] ${viewport.suffix} upload error:`, uploadError);
       return null;
     }
 
@@ -184,12 +197,33 @@ async function browserlessScreenshot(
       .from('website-screenshots')
       .getPublicUrl(filePath);
 
-    console.log('[Browserless] Screenshot uploaded to storage:', publicUrlData.publicUrl);
+    console.log(`[Browserless] ${viewport.suffix} screenshot uploaded:`, publicUrlData.publicUrl);
     return publicUrlData.publicUrl;
   } catch (err) {
-    console.error('[Browserless] Screenshot error:', err);
+    console.error(`[Browserless] ${viewport.suffix} screenshot error:`, err);
     return null;
   }
+}
+
+/** Capture screenshots for all viewports (desktop, tablet, mobile) in parallel */
+async function browserlessMultiScreenshot(
+  url: string,
+  apiKey: string,
+  leadId: string,
+  supabaseUrl: string,
+  supabaseServiceKey: string,
+): Promise<{ desktop: string | null; tablet: string | null; mobile: string | null }> {
+  const results = await Promise.allSettled(
+    VIEWPORT_CONFIGS.map((vp) =>
+      browserlessScreenshotSingle(url, apiKey, leadId, supabaseUrl, supabaseServiceKey, vp)
+    )
+  );
+
+  return {
+    desktop: results[0].status === 'fulfilled' ? results[0].value : null,
+    tablet: results[1].status === 'fulfilled' ? results[1].value : null,
+    mobile: results[2].status === 'fulfilled' ? results[2].value : null,
+  };
 }
 
 /** Use Browserless headless Chrome to read page content when Firecrawl is blocked */
@@ -850,10 +884,10 @@ Deno.serve(async (req) => {
 
     // === PHASE 1: Homepage scrape + Browserless screenshot (parallel) ===
     
-    // Start Browserless screenshot in parallel with Firecrawl scrape
+    // Start Browserless multi-viewport screenshots in parallel with Firecrawl scrape
     const browserlessPromise = browserlessKey
-      ? browserlessScreenshot(formattedUrl, browserlessKey, leadId, supabaseUrl, supabaseServiceKey)
-      : Promise.resolve(null);
+      ? browserlessMultiScreenshot(formattedUrl, browserlessKey, leadId, supabaseUrl, supabaseServiceKey)
+      : Promise.resolve({ desktop: null, tablet: null, mobile: null });
 
     // Firecrawl scrape — skip screenshot format since Browserless handles it
     let homepageResponse: any;
@@ -907,8 +941,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Await Browserless screenshot and recover with a dedicated Firecrawl screenshot if needed.
-    const browserlessScreenshotResult = await browserlessPromise;
+    // Await Browserless multi-viewport screenshots and recover with Firecrawl fallback if needed.
+    const browserlessResults = await browserlessPromise;
+    const browserlessScreenshotResult = browserlessResults.desktop;
     const firecrawlScreenshotResult =
       typeof homepage.screenshot === 'string' && homepage.screenshot
         ? homepage.screenshot
@@ -926,11 +961,13 @@ Deno.serve(async (req) => {
       niche: initialNiche,
     });
     const screenshotProvider = browserlessScreenshotResult ? 'browserless' : (firecrawlScreenshotResult ? 'firecrawl' : 'generated');
-    console.log('Screenshot provider used:', screenshotProvider);
+    console.log('Screenshot provider used:', screenshotProvider, '| tablet:', !!browserlessResults.tablet, '| mobile:', !!browserlessResults.mobile);
 
     const previewUpdate = await supabase.from('leads').update({
       website_url: formattedUrl,
       website_screenshot: previewScreenshot,
+      screenshot_tablet: browserlessResults.tablet || null,
+      screenshot_mobile: browserlessResults.mobile || null,
       brand_colors: branding.colors || null,
       brand_logo: branding.images?.logo || branding.logo || null,
       brand_fonts: branding.fonts || branding.typography || null,
@@ -1076,6 +1113,8 @@ Deno.serve(async (req) => {
       brand_logo: branding.images?.logo || branding.logo || null,
       brand_fonts: branding.fonts || branding.typography || null,
       website_screenshot: storedScreenshot,
+      screenshot_tablet: browserlessResults.tablet || null,
+      screenshot_mobile: browserlessResults.mobile || null,
       website_content: initialContent || null,
       website_title: title || null,
       website_description: description || null,

@@ -1,13 +1,39 @@
 import { ExternalLink, Globe } from "lucide-react";
+import { useEffect, useState } from "react";
 import { DemoLeadData, extractNavigationLabels, getImageSrc, getSiteName, normalizeWebsiteUrl } from "./demoResultsUtils";
 
 interface BeforePreviewProps {
   leadData: DemoLeadData;
 }
 
+/** Pick the best screenshot for the current viewport */
+function useResponsiveScreenshot(leadData: DemoLeadData): string | null {
+  const [src, setSrc] = useState<string | null>(() => {
+    const w = typeof window !== "undefined" ? window.innerWidth : 1024;
+    if (w <= 480 && leadData.screenshotMobile) return getImageSrc(leadData.screenshotMobile);
+    if (w <= 820 && leadData.screenshotTablet) return getImageSrc(leadData.screenshotTablet);
+    return getImageSrc(leadData.screenshot);
+  });
+
+  useEffect(() => {
+    const pick = () => {
+      const w = window.innerWidth;
+      if (w <= 480 && leadData.screenshotMobile) return getImageSrc(leadData.screenshotMobile);
+      if (w <= 820 && leadData.screenshotTablet) return getImageSrc(leadData.screenshotTablet);
+      return getImageSrc(leadData.screenshot);
+    };
+    const handler = () => setSrc(pick());
+    handler();
+    window.addEventListener("resize", handler);
+    return () => window.removeEventListener("resize", handler);
+  }, [leadData.screenshot, leadData.screenshotTablet, leadData.screenshotMobile]);
+
+  return src;
+}
+
 const BeforePreview = ({ leadData }: BeforePreviewProps) => {
   const siteName = getSiteName(leadData.websiteUrl, leadData.title);
-  const screenshotSrc = getImageSrc(leadData.screenshot);
+  const screenshotSrc = useResponsiveScreenshot(leadData);
   const navigationLabels = extractNavigationLabels(leadData.websiteContent);
   const normalizedUrl = normalizeWebsiteUrl(leadData.websiteUrl);
 
@@ -49,7 +75,7 @@ const BeforePreview = ({ leadData }: BeforePreviewProps) => {
         </div>
 
         {screenshotSrc ? (
-          <div className="max-h-[34rem] overflow-auto bg-background">
+          <div className="max-h-[50rem] overflow-auto bg-background">
             <img
               src={screenshotSrc}
               alt={`Scraped homepage for ${siteName}`}
