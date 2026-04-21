@@ -9,6 +9,8 @@ interface DraggableFloatingProps {
   children: ReactNode;
   initialX: number;
   initialY: number;
+  /** If set, initialX is treated as pixels from the RIGHT edge instead of left */
+  anchorRight?: boolean;
   dragLabel?: string;
 }
 
@@ -16,12 +18,14 @@ const DraggableFloating = ({
   children,
   initialX,
   initialY,
+  anchorRight = false,
   dragLabel = "Drag me",
 }: DraggableFloatingProps) => {
   const [pos, setPos] = useState(() => ({
-    x: Math.min(initialX, window.innerWidth - 80),
+    x: anchorRight ? Math.max(VIEWPORT_PADDING, window.innerWidth - 200 - initialX) : Math.min(initialX, window.innerWidth - 80),
     y: Math.min(initialY, window.innerHeight - 80),
   }));
+  const [hasInitialized, setHasInitialized] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const dragging = useRef(false);
   const activePointerId = useRef<number | null>(null);
