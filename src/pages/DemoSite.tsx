@@ -2,7 +2,7 @@ import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
 import { MessageSquare, Mic, ArrowLeft, Phone } from "lucide-react";
 import type { DemoLeadData } from "@/components/landing/demo-results/demoResultsUtils";
-import { getResponsiveScreenshotSrc, getSiteName } from "@/components/landing/demo-results/demoResultsUtils";
+import { getResponsiveScreenshotSrc, getSiteName, withCacheKey } from "@/components/landing/demo-results/demoResultsUtils";
 import VoiceAgentWidget from "@/components/landing/demo-results/VoiceAgentWidget";
 import ChatWidget from "@/components/landing/demo-results/ChatWidget";
 import WebsiteShowcase from "@/components/landing/demo-results/WebsiteShowcase";
@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
 const DEFAULT_DEMO_OWNER_NAME = "Ron Melo";
+const LAST_DEMO_STORAGE_KEY = "lastDemoLeadData";
 
 const getHomepageUrl = (websiteUrl: string) => {
   try {
@@ -153,6 +154,7 @@ const ScanFallbackPreview = ({ leadData, siteName, homepageUrl }: ScanFallbackPr
 const mergeLeadRecordIntoDemoData = (record: any, current: DemoLeadData): DemoLeadData => ({
   ...current,
   leadId: record.id || current.leadId,
+  previewVersion: record.updated_at || current.previewVersion,
   fullName: record.full_name || current.fullName,
   businessName: record.business_name || current.businessName,
   email: record.email || current.email,
@@ -198,6 +200,27 @@ const DemoSite = () => {
   const [viewportWidth, setViewportWidth] = useState(() => (typeof window !== "undefined" ? window.innerWidth : 1024));
 
   useEffect(() => {
+    if (latestLeadData || leadData) return;
+
+    try {
+      const stored = localStorage.getItem(LAST_DEMO_STORAGE_KEY);
+      if (!stored) return;
+
+      const parsed = JSON.parse(stored) as DemoLeadData;
+      if (!parsed?.websiteUrl) return;
+
+      const requestedUrl = searchParams.get("url");
+      const requestedHomepage = requestedUrl ? getHomepageUrl(requestedUrl) : null;
+      const parsedHomepage = getHomepageUrl(parsed.websiteUrl);
+
+      if (requestedHomepage && requestedHomepage !== parsedHomepage) return;
+      setLeadData(parsed);
+    } catch {
+      // ignore bad local cache
+    }
+  }, [latestLeadData, leadData, searchParams]);
+
+  useEffect(() => {
     try {
       if (testPhoneOverride) localStorage.setItem("demo_test_phone_override", testPhoneOverride);
       else localStorage.removeItem("demo_test_phone_override");
@@ -221,12 +244,17 @@ const DemoSite = () => {
     },
     viewportWidth,
   );
+  const screenshotSrc = withCacheKey(
+    responsiveScreenshotSrc,
+    leadData?.previewVersion || leadData?.leadId || undefined,
+  );
 
   useEffect(() => {
     setHasScreenshotLoaded(false);
   }, [responsiveScreenshotSrc]);
 
   const returnTo = searchParams.get("returnTo");
+  const leadIdParam = searchParams.get("leadId");
   const prospectIdParam = searchParams.get("prospectId");
   const callerNameParam = searchParams.get("callerName") || undefined;
   const callerEmailParam = searchParams.get("callerEmail") || undefined;
@@ -338,6 +366,40 @@ const DemoSite = () => {
       cancelled = true;
     };
   }, [callerPhoneParam, latestLeadData, prospectIdParam, searchParams.toString()]);
+
+  useEffect(() => {
+    if (latestLeadData || !leadIdParam) return;
+
+    let cancelled = false;
+
+    const loadExistingLead = async () => {
+      const { data, error } = await supabase
+        .from("leads")
+        .select("id, updated_at, full_name, business_name, email, phone, niche, website_url, website_screenshot, screenshot_tablet, screenshot_mobile, website_title, website_description, website_content, brand_colors, brand_logo, scan_status")
+        .eq("id", leadIdParam)
+        .maybeSingle();
+
+      if (error || !data || cancelled) return;
+
+      setLeadData((current) => mergeLeadRecordIntoDemoData(data, current || buildSeedLeadData({
+        websiteUrl: data.website_url,
+        businessName: data.business_name,
+        niche: data.niche,
+        prospectId: prospectIdParam || undefined,
+        callerPhone: callerPhoneParam,
+      })));
+
+      if (!["completed", "enriched", "failed"].includes(data.scan_status || "")) {
+        setIsScanning(true);
+      }
+    };
+
+    void loadExistingLead();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [callerPhoneParam, latestLeadData, leadIdParam, prospectIdParam]);
 
   useEffect(() => {
     if (!latestLeadData) return;
@@ -578,7 +640,6 @@ const DemoSite = () => {
     return <DemoLoadingState websiteUrl={searchParams.get("url") || "website"} businessName={searchParams.get("name") || undefined} />;
   }
 
-  const screenshotSrc = responsiveScreenshotSrc;
   const homepageUrl = getHomepageUrl(leadData.websiteUrl);
   const livePreviewUrl = resolvedIframeUrl || homepageUrl;
   const embedOrigin = typeof window !== "undefined" ? window.location.origin : "";

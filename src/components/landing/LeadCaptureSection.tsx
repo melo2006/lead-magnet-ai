@@ -133,7 +133,16 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
   useEffect(() => {
     if (viewState !== "scanning" || !scanAnimationDone || !scanData) return;
 
-    navigate("/demo-site", { state: { leadData: scanData } });
+    const params = new URLSearchParams({
+      url: scanData.websiteUrl,
+      leadId: scanData.leadId || "",
+      name: scanData.businessName || "",
+      callerName: scanData.fullName || "",
+    });
+    if (scanData.email) params.set("callerEmail", scanData.email);
+    if (scanData.phone) params.set("callerPhone", scanData.phone);
+
+    navigate(`/demo-site?${params.toString()}`, { state: { leadData: scanData } });
     setViewState("form");
     setScanAnimationDone(false);
   }, [navigate, scanAnimationDone, scanData, viewState]);
@@ -241,6 +250,7 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
 
       const fallbackScanData: DemoLeadData = {
         leadId: lead.id,
+        previewVersion: new Date().toISOString(),
         fullName: parsed.data.name,
         businessName: parsed.data.businessName,
         email: parsed.data.email || undefined,
@@ -248,6 +258,8 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
         phone: parsed.data.phone || undefined,
         niche: selectedNiche.id,
         screenshot: undefined,
+        screenshotTablet: undefined,
+        screenshotMobile: undefined,
         title: parsed.data.businessName,
         description: undefined,
         websiteContent: undefined,
@@ -271,6 +283,7 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
 
         storeDemoLeadData({
           leadId: updatedLead.id,
+          previewVersion: updatedLead.updated_at || new Date().toISOString(),
           fullName: updatedLead.full_name,
           businessName: updatedLead.business_name || parsed.data.businessName,
           email: parsed.data.email || undefined,
@@ -278,6 +291,8 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
           phone: parsed.data.phone || undefined,
           niche: updatedLead.niche || selectedNiche.id,
           screenshot: updatedLead.website_screenshot,
+          screenshotTablet: (updatedLead as any).screenshot_tablet || undefined,
+          screenshotMobile: (updatedLead as any).screenshot_mobile || undefined,
           title: updatedLead.website_title,
           description: updatedLead.website_description,
           websiteContent: updatedLead.website_content,

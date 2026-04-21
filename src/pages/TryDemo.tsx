@@ -100,7 +100,15 @@ const TryDemo = () => {
   // Navigate to demo as soon as scan data is ready (animation stays in continuous mode)
   useEffect(() => {
     if (!isScanning || !scanData) return;
-    navigate("/demo-site", { state: { leadData: scanData } });
+    const params = new URLSearchParams({
+      url: scanData.websiteUrl,
+      leadId: scanData.leadId || "",
+      name: scanData.businessName || "",
+      callerName: scanData.fullName || "",
+    });
+    if (scanData.email) params.set("callerEmail", scanData.email);
+    if (scanData.phone) params.set("callerPhone", scanData.phone);
+    navigate(`/demo-site?${params.toString()}`, { state: { leadData: scanData } });
   }, [isScanning, scanData, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -166,6 +174,7 @@ const TryDemo = () => {
 
         const leadData: DemoLeadData = {
           leadId,
+          previewVersion: cachedLead.updated_at ?? new Date().toISOString(),
           fullName: name,
           phone: ph,
           email: em || undefined,
@@ -230,6 +239,7 @@ const TryDemo = () => {
 
       const leadData: DemoLeadData = {
         leadId: lead.id,
+        previewVersion: updatedLead?.updated_at ?? new Date().toISOString(),
         fullName: name,
         phone: ph,
         email: em || undefined,

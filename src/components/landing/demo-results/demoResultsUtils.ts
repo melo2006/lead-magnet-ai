@@ -3,6 +3,7 @@ export type DemoBrandColors = Record<string, string | undefined>;
 export interface DemoLeadData {
   leadId?: string;
   prospectId?: string;
+  previewVersion?: string;
   fullName: string;
   businessName?: string;
   email?: string;
@@ -57,6 +58,13 @@ export const getImageSrc = (value?: string) => {
   if (!value || typeof value !== "string") return null;
   if (value.startsWith("http") || value.startsWith("data:")) return value;
   return `data:image/png;base64,${value}`;
+};
+
+export const withCacheKey = (value: string | null, cacheKey?: string) => {
+  if (!value || !cacheKey || value.startsWith("data:")) return value;
+
+  const separator = value.includes("?") ? "&" : "?";
+  return `${value}${separator}v=${encodeURIComponent(cacheKey)}`;
 };
 
 export const getResponsiveScreenshotSrc = (
