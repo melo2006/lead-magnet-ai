@@ -7,6 +7,7 @@ import VoiceAgentWidget from "@/components/landing/demo-results/VoiceAgentWidget
 import ChatWidget from "@/components/landing/demo-results/ChatWidget";
 import WebsiteShowcase from "@/components/landing/demo-results/WebsiteShowcase";
 import DemoWatermark from "@/components/landing/demo-results/DemoWatermark";
+import DraggableFloating from "@/components/landing/demo-results/DraggableFloating";
 import ScanningAnimation from "@/components/landing/ScanningAnimation";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
@@ -906,83 +907,81 @@ const DemoSite = () => {
 
         {isPreviewLoading && <DemoLoadingState websiteUrl={homepageUrl} businessName={siteName} overlay />}
 
-        {/* ===== AI Widget buttons — fixed to the bottom of the viewport ===== */}
+        {/* ===== AI Widget buttons — draggable floating ===== */}
         {hasAnyPreview && (
-          <div className="pointer-events-none fixed inset-x-0 bottom-4 z-20 px-3 sm:bottom-6 sm:px-6">
-            <div className="relative mx-auto h-0 w-full max-w-[1100px]">
-              <div className="pointer-events-auto absolute bottom-0 left-0">
-                {chatOpen ? (
-                  <div className="w-[min(20rem,calc(100vw-1.5rem))] max-h-[60vh] overflow-y-auto animate-in slide-in-from-bottom-4 fade-in duration-300">
-                    <ChatWidget
-                      key={`chat-${leadData.websiteUrl}`}
-                      businessName={siteName}
-                      businessNiche={leadData.niche || "general"}
-                      websiteUrl={homepageUrl}
-                      businessInfo={leadData.websiteContent || leadData.description || ""}
-                      ownerName={followUpName}
-                      callerName={knownCallerName}
-                      callerEmail={knownCallerEmail}
-                      callerPhone={knownCallerPhone}
-                      leadId={leadData.leadId}
-                      prospectId={leadData.prospectId}
-                      onClose={() => setChatOpen(false)}
-                    />
+          <>
+            <DraggableFloating initialX={12} initialY={window.innerHeight - 260}>
+              {chatOpen ? (
+                <div className="w-[min(20rem,calc(100vw-3rem))] max-h-[60vh] overflow-y-auto animate-in slide-in-from-bottom-4 fade-in duration-300">
+                  <ChatWidget
+                    key={`chat-${leadData.websiteUrl}`}
+                    businessName={siteName}
+                    businessNiche={leadData.niche || "general"}
+                    websiteUrl={homepageUrl}
+                    businessInfo={leadData.websiteContent || leadData.description || ""}
+                    ownerName={followUpName}
+                    callerName={knownCallerName}
+                    callerEmail={knownCallerEmail}
+                    callerPhone={knownCallerPhone}
+                    leadId={leadData.leadId}
+                    prospectId={leadData.prospectId}
+                    onClose={() => setChatOpen(false)}
+                  />
+                </div>
+              ) : (
+                <button
+                  onClick={() => { setChatOpen(true); setVoiceOpen(false); }}
+                  className="group flex items-center gap-2 rounded-xl bg-accent px-3 py-2 text-accent-foreground shadow-lg transition-all hover:scale-105 hover:shadow-xl sm:px-4 sm:py-2.5"
+                >
+                  <div className="relative">
+                    <MessageSquare className="h-4 w-4" />
+                    <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-primary ring-2 ring-accent" />
                   </div>
-                ) : (
-                  <button
-                    onClick={() => { setChatOpen(true); setVoiceOpen(false); }}
-                    className="group flex items-center gap-2 rounded-xl bg-accent px-3 py-2 text-accent-foreground shadow-lg transition-all hover:scale-105 hover:shadow-xl sm:px-4 sm:py-2.5"
-                  >
-                    <div className="relative">
-                      <MessageSquare className="h-4 w-4" />
-                      <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-primary ring-2 ring-accent" />
-                    </div>
-                    <div className="text-left">
-                      <p className="text-xs font-semibold leading-tight sm:text-sm">Chat with Aspen</p>
-                      <p className="hidden text-[9px] opacity-80 sm:block">AI Chat</p>
-                    </div>
-                  </button>
-                )}
-              </div>
+                  <div className="text-left">
+                    <p className="text-xs font-semibold leading-tight sm:text-sm">Chat with Aspen</p>
+                    <p className="hidden text-[9px] opacity-80 sm:block">AI Chat</p>
+                  </div>
+                </button>
+              )}
+            </DraggableFloating>
 
-              <div className="pointer-events-auto absolute bottom-0 right-0">
-                {voiceOpen ? (
-                  <div className="w-[min(20rem,calc(100vw-1.5rem))] max-h-[60vh] overflow-y-auto animate-in slide-in-from-bottom-4 fade-in duration-300">
-                    <VoiceAgentWidget
-                      key={`voice-${leadData.websiteUrl}`}
-                      leadId={leadData.leadId}
-                      prospectId={leadData.prospectId || prospectIdParam || undefined}
-                      businessName={siteName}
-                      businessNiche={leadData.niche || "general"}
-                      ownerName={followUpName}
-                      ownerEmail={followUpEmail}
-                      ownerPhone={followUpPhone}
-                      websiteUrl={homepageUrl}
-                      businessInfo={leadData.websiteContent || leadData.description || ""}
-                      callerName={knownCallerName}
-                      callerEmail={knownCallerEmail}
-                      callerPhone={knownCallerPhone}
-                      onClose={() => setVoiceOpen(false)}
-                    />
+            <DraggableFloating initialX={window.innerWidth - 200} initialY={window.innerHeight - 260}>
+              {voiceOpen ? (
+                <div className="w-[min(20rem,calc(100vw-3rem))] max-h-[60vh] overflow-y-auto animate-in slide-in-from-bottom-4 fade-in duration-300">
+                  <VoiceAgentWidget
+                    key={`voice-${leadData.websiteUrl}`}
+                    leadId={leadData.leadId}
+                    prospectId={leadData.prospectId || prospectIdParam || undefined}
+                    businessName={siteName}
+                    businessNiche={leadData.niche || "general"}
+                    ownerName={followUpName}
+                    ownerEmail={followUpEmail}
+                    ownerPhone={followUpPhone}
+                    websiteUrl={homepageUrl}
+                    businessInfo={leadData.websiteContent || leadData.description || ""}
+                    callerName={knownCallerName}
+                    callerEmail={knownCallerEmail}
+                    callerPhone={knownCallerPhone}
+                    onClose={() => setVoiceOpen(false)}
+                  />
+                </div>
+              ) : (
+                <button
+                  onClick={() => { setVoiceOpen(true); setChatOpen(false); }}
+                  className="group flex items-center gap-2 rounded-xl bg-primary px-3 py-2 text-primary-foreground shadow-lg transition-all hover:scale-105 hover:shadow-xl sm:px-4 sm:py-2.5"
+                >
+                  <div className="relative">
+                    <Mic className="h-4 w-4" />
+                    <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-accent ring-2 ring-primary" />
                   </div>
-                ) : (
-                  <button
-                    onClick={() => { setVoiceOpen(true); setChatOpen(false); }}
-                    className="group flex items-center gap-2 rounded-xl bg-primary px-3 py-2 text-primary-foreground shadow-lg transition-all hover:scale-105 hover:shadow-xl sm:px-4 sm:py-2.5"
-                  >
-                    <div className="relative">
-                      <Mic className="h-4 w-4" />
-                      <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-accent ring-2 ring-primary" />
-                    </div>
-                    <div className="text-left">
-                      <p className="text-xs font-semibold leading-tight sm:text-sm">Talk to Aspen</p>
-                      <p className="hidden text-[9px] opacity-80 sm:block">AI Voice</p>
-                    </div>
-                  </button>
-                )}
-              </div>
-            </div>
-          </div>
+                  <div className="text-left">
+                    <p className="text-xs font-semibold leading-tight sm:text-sm">Talk to Aspen</p>
+                    <p className="hidden text-[9px] opacity-80 sm:block">AI Voice</p>
+                  </div>
+                </button>
+              )}
+            </DraggableFloating>
+          </>
         )}
       </div>
 
