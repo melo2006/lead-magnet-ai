@@ -50,10 +50,25 @@ const DraggableFloating = ({
     });
   }, []);
 
+  // After first render, reposition right-anchored widgets using actual element width
   useEffect(() => {
-    const frame = window.requestAnimationFrame(() => clampPosition());
+    const el = containerRef.current;
+    if (!el) return;
+    const frame = window.requestAnimationFrame(() => {
+      if (anchorRight && !hasInitialized) {
+        const w = el.offsetWidth;
+        const rightX = window.innerWidth - w - initialX;
+        setPos((prev) => ({
+          x: clampValue(rightX, VIEWPORT_PADDING, window.innerWidth - w - VIEWPORT_PADDING),
+          y: clampValue(prev.y, VIEWPORT_PADDING, window.innerHeight - el.offsetHeight - VIEWPORT_PADDING),
+        }));
+        setHasInitialized(true);
+      } else {
+        clampPosition();
+      }
+    });
     return () => window.cancelAnimationFrame(frame);
-  }, [children, clampPosition]);
+  }, [children, clampPosition, anchorRight, initialX, hasInitialized]);
 
   useEffect(() => {
     const handleResize = () => {
