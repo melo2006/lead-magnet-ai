@@ -113,13 +113,16 @@ type ViewportConfig = {
   height: number;
   deviceScaleFactor: number;
   suffix: string;
+  startDelayMs?: number;
 };
 
 const VIEWPORT_CONFIGS: ViewportConfig[] = [
-  { width: 1920, height: 1080, deviceScaleFactor: 2, suffix: 'desktop' },
-  { width: 768, height: 1024, deviceScaleFactor: 2, suffix: 'tablet' },
-  { width: 390, height: 844, deviceScaleFactor: 3, suffix: 'mobile' },
+  { width: 1920, height: 1080, deviceScaleFactor: 2, suffix: 'desktop', startDelayMs: 0 },
+  { width: 768, height: 1024, deviceScaleFactor: 2, suffix: 'tablet', startDelayMs: 900 },
+  { width: 390, height: 844, deviceScaleFactor: 3, suffix: 'mobile', startDelayMs: 1800 },
 ];
+
+const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
 async function browserlessScreenshotSingle(
   url: string,
@@ -130,108 +133,129 @@ async function browserlessScreenshotSingle(
   viewport: ViewportConfig,
 ): Promise<string | null> {
   try {
+    if (viewport.startDelayMs) {
+      await sleep(viewport.startDelayMs);
+    }
+
     console.log(`[Browserless] Taking ${viewport.suffix} screenshot of:`, url);
-    const response = await fetch(`https://production-sfo.browserless.io/screenshot?token=${apiKey}`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        url,
-        options: {
-          fullPage: true,
-          type: 'png',
-        },
-        viewport: {
-          width: viewport.width,
-          height: viewport.height,
-          deviceScaleFactor: viewport.deviceScaleFactor,
-        },
-        waitForTimeout: 14000,
-        gotoOptions: {
-          waitUntil: 'networkidle2',
-          timeout: 45000,
-        },
-        waitForSelector: { selector: 'body', timeout: 8000 },
-        addScriptTag: [{
-          content: `
-            (async () => {
-              const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+    let buffer: ArrayBuffer | null = null;
 
-              const closeOverlays = () => {
-                const selectors = [
-                  '[class*="cookie"] button', '[id*="cookie"] button',
-                  '[class*="consent"] button', '[class*="popup"] [class*="close"]',
-                  '[class*="modal"] [class*="close"]', '[class*="banner"] [class*="close"]',
-                  'button[class*="accept"]', 'button[class*="agree"]', '[aria-label*="close" i]',
-                ];
-                for (const sel of selectors) {
-                  const el = document.querySelector(sel);
-                  if (el instanceof HTMLElement) {
-                    el.click();
-                    break;
+    for (let attempt = 0; attempt < 2; attempt++) {
+      const response = await fetch(`https://production-sfo.browserless.io/screenshot?token=${apiKey}`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          url,
+          options: {
+            fullPage: true,
+            type: 'png',
+          },
+          viewport: {
+            width: viewport.width,
+            height: viewport.height,
+            deviceScaleFactor: viewport.deviceScaleFactor,
+          },
+          waitForTimeout: 14000,
+          gotoOptions: {
+            waitUntil: 'networkidle2',
+            timeout: 45000,
+          },
+          waitForSelector: { selector: 'body', timeout: 8000 },
+          addScriptTag: [{
+            content: `
+              (async () => {
+                const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+                const closeOverlays = () => {
+                  const selectors = [
+                    '[class*="cookie"] button', '[id*="cookie"] button',
+                    '[class*="consent"] button', '[class*="popup"] [class*="close"]',
+                    '[class*="modal"] [class*="close"]', '[class*="banner"] [class*="close"]',
+                    'button[class*="accept"]', 'button[class*="agree"]', '[aria-label*="close" i]',
+                  ];
+                  for (const sel of selectors) {
+                    const el = document.querySelector(sel);
+                    if (el instanceof HTMLElement) {
+                      el.click();
+                      break;
+                    }
                   }
-                }
-              };
+                };
 
-              const makeMediaEager = () => {
-                document.querySelectorAll('img, iframe, video source').forEach((node) => {
-                  if (!(node instanceof HTMLElement)) return;
-                  node.setAttribute('loading', 'eager');
-                  node.setAttribute('fetchpriority', 'high');
-                });
-
-                document.querySelectorAll('img').forEach((img) => {
-                  const dataSrc = img.getAttribute('data-src') || img.getAttribute('data-lazy-src') || img.getAttribute('data-original');
-                  const dataSrcset = img.getAttribute('data-srcset') || img.getAttribute('data-lazy-srcset');
-                  if ((!img.getAttribute('src') || img.getAttribute('src') === '') && dataSrc) img.setAttribute('src', dataSrc);
-                  if ((!img.getAttribute('srcset') || img.getAttribute('srcset') === '') && dataSrcset) img.setAttribute('srcset', dataSrcset);
-                  img.removeAttribute('loading');
-                });
-              };
-
-              const decodeImages = async () => {
-                const images = Array.from(document.images || []);
-                await Promise.allSettled(images.map((img) => {
-                  if (img.complete) return Promise.resolve();
-                  if (typeof img.decode === 'function') {
-                    return img.decode().catch(() => undefined);
-                  }
-                  return new Promise((resolve) => {
-                    img.addEventListener('load', () => resolve(undefined), { once: true });
-                    img.addEventListener('error', () => resolve(undefined), { once: true });
+                const makeMediaEager = () => {
+                  document.querySelectorAll('img, iframe, video source').forEach((node) => {
+                    if (!(node instanceof HTMLElement)) return;
+                    node.setAttribute('loading', 'eager');
+                    node.setAttribute('fetchpriority', 'high');
                   });
-                }));
-              };
 
-              closeOverlays();
-              makeMediaEager();
-              await wait(1200);
+                  document.querySelectorAll('img').forEach((img) => {
+                    const dataSrc = img.getAttribute('data-src') || img.getAttribute('data-lazy-src') || img.getAttribute('data-original');
+                    const dataSrcset = img.getAttribute('data-srcset') || img.getAttribute('data-lazy-srcset');
+                    if ((!img.getAttribute('src') || img.getAttribute('src') === '') && dataSrc) img.setAttribute('src', dataSrc);
+                    if ((!img.getAttribute('srcset') || img.getAttribute('srcset') === '') && dataSrcset) img.setAttribute('srcset', dataSrcset);
+                    img.removeAttribute('loading');
+                  });
+                };
 
-              const maxScroll = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight, window.innerHeight);
-              const viewport = Math.max(window.innerHeight, 1);
-              for (let y = 0; y < maxScroll; y += Math.max(320, Math.round(viewport * 0.8))) {
-                window.scrollTo({ top: y, behavior: 'auto' });
-                makeMediaEager();
+                const decodeImages = async () => {
+                  const images = Array.from(document.images || []);
+                  await Promise.allSettled(images.map((img) => {
+                    if (img.complete) return Promise.resolve();
+                    if (typeof img.decode === 'function') {
+                      return img.decode().catch(() => undefined);
+                    }
+                    return new Promise((resolve) => {
+                      img.addEventListener('load', () => resolve(undefined), { once: true });
+                      img.addEventListener('error', () => resolve(undefined), { once: true });
+                    });
+                  }));
+                };
+
                 closeOverlays();
-                await wait(350);
-              }
+                makeMediaEager();
+                await wait(1200);
 
-              await decodeImages();
-              await wait(1200);
-              window.scrollTo({ top: 0, behavior: 'auto' });
-              closeOverlays();
-            })();
-          `
-        }],
-      }),
-    });
+                const maxScroll = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight, window.innerHeight);
+                const viewport = Math.max(window.innerHeight, 1);
+                for (let y = 0; y < maxScroll; y += Math.max(320, Math.round(viewport * 0.8))) {
+                  window.scrollTo({ top: y, behavior: 'auto' });
+                  makeMediaEager();
+                  closeOverlays();
+                  await wait(350);
+                }
 
-    if (!response.ok) {
+                await decodeImages();
+                await wait(1200);
+                window.scrollTo({ top: 0, behavior: 'auto' });
+                closeOverlays();
+              })();
+            `
+          }],
+        }),
+      });
+
+      if (response.ok) {
+        buffer = await response.arrayBuffer();
+        break;
+      }
+
       const errText = await response.text();
+      const isRetryableRateLimit = response.status === 429 && attempt < 1;
       console.error(`[Browserless] ${viewport.suffix} screenshot failed:`, response.status, errText);
+
+      if (!isRetryableRateLimit) {
+        return null;
+      }
+
+      console.log(`[Browserless] Retrying ${viewport.suffix} screenshot after rate limit...`);
+      await sleep(2000);
+    }
+
+    if (!buffer) {
       return null;
     }
 
-    const buffer = await response.arrayBuffer();
     console.log(`[Browserless] ${viewport.suffix} screenshot captured, size:`, buffer.byteLength);
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
