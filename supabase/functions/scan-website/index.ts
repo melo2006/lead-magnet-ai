@@ -884,10 +884,10 @@ Deno.serve(async (req) => {
 
     // === PHASE 1: Homepage scrape + Browserless screenshot (parallel) ===
     
-    // Start Browserless screenshot in parallel with Firecrawl scrape
+    // Start Browserless multi-viewport screenshots in parallel with Firecrawl scrape
     const browserlessPromise = browserlessKey
-      ? browserlessScreenshot(formattedUrl, browserlessKey, leadId, supabaseUrl, supabaseServiceKey)
-      : Promise.resolve(null);
+      ? browserlessMultiScreenshot(formattedUrl, browserlessKey, leadId, supabaseUrl, supabaseServiceKey)
+      : Promise.resolve({ desktop: null, tablet: null, mobile: null });
 
     // Firecrawl scrape — skip screenshot format since Browserless handles it
     let homepageResponse: any;
@@ -941,8 +941,9 @@ Deno.serve(async (req) => {
       }
     }
 
-    // Await Browserless screenshot and recover with a dedicated Firecrawl screenshot if needed.
-    const browserlessScreenshotResult = await browserlessPromise;
+    // Await Browserless multi-viewport screenshots and recover with Firecrawl fallback if needed.
+    const browserlessResults = await browserlessPromise;
+    const browserlessScreenshotResult = browserlessResults.desktop;
     const firecrawlScreenshotResult =
       typeof homepage.screenshot === 'string' && homepage.screenshot
         ? homepage.screenshot
@@ -960,11 +961,13 @@ Deno.serve(async (req) => {
       niche: initialNiche,
     });
     const screenshotProvider = browserlessScreenshotResult ? 'browserless' : (firecrawlScreenshotResult ? 'firecrawl' : 'generated');
-    console.log('Screenshot provider used:', screenshotProvider);
+    console.log('Screenshot provider used:', screenshotProvider, '| tablet:', !!browserlessResults.tablet, '| mobile:', !!browserlessResults.mobile);
 
     const previewUpdate = await supabase.from('leads').update({
       website_url: formattedUrl,
       website_screenshot: previewScreenshot,
+      screenshot_tablet: browserlessResults.tablet || null,
+      screenshot_mobile: browserlessResults.mobile || null,
       brand_colors: branding.colors || null,
       brand_logo: branding.images?.logo || branding.logo || null,
       brand_fonts: branding.fonts || branding.typography || null,
