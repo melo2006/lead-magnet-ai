@@ -145,26 +145,81 @@ async function browserlessScreenshotSingle(
           height: viewport.height,
           deviceScaleFactor: viewport.deviceScaleFactor,
         },
-        waitForTimeout: 8000,
+        waitForTimeout: 14000,
         gotoOptions: {
           waitUntil: 'networkidle2',
-          timeout: 35000,
+          timeout: 45000,
         },
-        waitForSelector: { selector: 'img', timeout: 6000 },
+        waitForSelector: { selector: 'body', timeout: 8000 },
         addScriptTag: [{
           content: `
-            setTimeout(() => {
-              const selectors = [
-                '[class*="cookie"] button', '[id*="cookie"] button',
-                '[class*="consent"] button', '[class*="popup"] [class*="close"]',
-                '[class*="modal"] [class*="close"]', '[class*="banner"] [class*="close"]',
-                'button[class*="accept"]', 'button[class*="agree"]',
-              ];
-              for (const sel of selectors) {
-                const el = document.querySelector(sel);
-                if (el) { el.click(); break; }
+            (async () => {
+              const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
+
+              const closeOverlays = () => {
+                const selectors = [
+                  '[class*="cookie"] button', '[id*="cookie"] button',
+                  '[class*="consent"] button', '[class*="popup"] [class*="close"]',
+                  '[class*="modal"] [class*="close"]', '[class*="banner"] [class*="close"]',
+                  'button[class*="accept"]', 'button[class*="agree"]', '[aria-label*="close" i]',
+                ];
+                for (const sel of selectors) {
+                  const el = document.querySelector(sel);
+                  if (el instanceof HTMLElement) {
+                    el.click();
+                    break;
+                  }
+                }
+              };
+
+              const makeMediaEager = () => {
+                document.querySelectorAll('img, iframe, video source').forEach((node) => {
+                  if (!(node instanceof HTMLElement)) return;
+                  node.setAttribute('loading', 'eager');
+                  node.setAttribute('fetchpriority', 'high');
+                });
+
+                document.querySelectorAll('img').forEach((img) => {
+                  const dataSrc = img.getAttribute('data-src') || img.getAttribute('data-lazy-src') || img.getAttribute('data-original');
+                  const dataSrcset = img.getAttribute('data-srcset') || img.getAttribute('data-lazy-srcset');
+                  if ((!img.getAttribute('src') || img.getAttribute('src') === '') && dataSrc) img.setAttribute('src', dataSrc);
+                  if ((!img.getAttribute('srcset') || img.getAttribute('srcset') === '') && dataSrcset) img.setAttribute('srcset', dataSrcset);
+                  img.removeAttribute('loading');
+                });
+              };
+
+              const decodeImages = async () => {
+                const images = Array.from(document.images || []);
+                await Promise.allSettled(images.map((img) => {
+                  if (img.complete) return Promise.resolve();
+                  if (typeof img.decode === 'function') {
+                    return img.decode().catch(() => undefined);
+                  }
+                  return new Promise((resolve) => {
+                    img.addEventListener('load', () => resolve(undefined), { once: true });
+                    img.addEventListener('error', () => resolve(undefined), { once: true });
+                  });
+                }));
+              };
+
+              closeOverlays();
+              makeMediaEager();
+              await wait(1200);
+
+              const maxScroll = Math.max(document.body.scrollHeight, document.documentElement.scrollHeight, window.innerHeight);
+              const viewport = Math.max(window.innerHeight, 1);
+              for (let y = 0; y < maxScroll; y += Math.max(320, Math.round(viewport * 0.8))) {
+                window.scrollTo({ top: y, behavior: 'auto' });
+                makeMediaEager();
+                closeOverlays();
+                await wait(350);
               }
-            }, 2000);
+
+              await decodeImages();
+              await wait(1200);
+              window.scrollTo({ top: 0, behavior: 'auto' });
+              closeOverlays();
+            })();
           `
         }],
       }),

@@ -188,6 +188,7 @@ const DemoSite = () => {
   const [liveViewFailed, setLiveViewFailed] = useState(false);
   const [hasLiveViewLoaded, setHasLiveViewLoaded] = useState(false);
   const [hasIframeLoaded, setHasIframeLoaded] = useState(false);
+  const [hasScreenshotLoaded, setHasScreenshotLoaded] = useState(false);
   const liveViewSessionRef = useRef<string | null>(null);
   const [prospectOwner, setProspectOwner] = useState<{name?: string; email?: string; phone?: string} | null>(null);
   const [showTestOverride, setShowTestOverride] = useState(false);
@@ -211,6 +212,19 @@ const DemoSite = () => {
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
   }, []);
+
+  const responsiveScreenshotSrc = getResponsiveScreenshotSrc(
+    {
+      screenshot: leadData?.screenshot,
+      screenshotTablet: leadData?.screenshotTablet,
+      screenshotMobile: leadData?.screenshotMobile,
+    },
+    viewportWidth,
+  );
+
+  useEffect(() => {
+    setHasScreenshotLoaded(false);
+  }, [responsiveScreenshotSrc]);
 
   const returnTo = searchParams.get("returnTo");
   const prospectIdParam = searchParams.get("prospectId");
@@ -302,7 +316,6 @@ const DemoSite = () => {
         }).then(async ({ error }) => {
           if (error) throw error;
           await syncLeadRecord();
-          if (!cancelled) setIsScanning(false);
         }).catch((err: any) => {
           console.error("Scan error:", err);
           if (!cancelled) {
@@ -565,7 +578,7 @@ const DemoSite = () => {
     return <DemoLoadingState websiteUrl={searchParams.get("url") || "website"} businessName={searchParams.get("name") || undefined} />;
   }
 
-  const screenshotSrc = getResponsiveScreenshotSrc(leadData, viewportWidth);
+  const screenshotSrc = responsiveScreenshotSrc;
   const homepageUrl = getHomepageUrl(leadData.websiteUrl);
   const livePreviewUrl = resolvedIframeUrl || homepageUrl;
   const embedOrigin = typeof window !== "undefined" ? window.location.origin : "";
@@ -597,9 +610,10 @@ const DemoSite = () => {
   );
   const isGeneratedScreenshot = typeof screenshotSrc === "string" && screenshotSrc.startsWith("data:image/svg+xml");
   const isLivePreviewReady = Boolean(liveViewUrl && hasLiveViewLoaded && !isGeneratedScreenshot);
-  const isStaticPreviewReady = Boolean(screenshotSrc);
+  const hasScreenshotAsset = Boolean(screenshotSrc);
+  const isStaticPreviewReady = hasScreenshotAsset && hasScreenshotLoaded;
   const shouldShowScreenshotFallback =
-    Boolean(screenshotSrc) &&
+    hasScreenshotAsset &&
     (isWebsiteUnreachable || (requiresBrowserFallback && (!liveViewUrl || !hasLiveViewLoaded || isGeneratedScreenshot)));
   const isInlinePreviewLoading =
     !requiresBrowserFallback &&
@@ -735,6 +749,8 @@ const DemoSite = () => {
                   loading="lazy"
                   decoding="async"
                   draggable={false}
+                  onLoad={() => setHasScreenshotLoaded(true)}
+                  onError={() => setHasScreenshotLoaded(false)}
                 />
               </div>
             )}
