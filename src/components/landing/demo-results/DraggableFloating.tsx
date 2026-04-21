@@ -18,7 +18,10 @@ const DraggableFloating = ({
   initialY,
   dragLabel = "Drag me",
 }: DraggableFloatingProps) => {
-  const [pos, setPos] = useState({ x: initialX, y: initialY });
+  const [pos, setPos] = useState(() => ({
+    x: Math.min(initialX, window.innerWidth - 80),
+    y: Math.min(initialY, window.innerHeight - 80),
+  }));
   const [isDragging, setIsDragging] = useState(false);
   const dragging = useRef(false);
   const activePointerId = useRef<number | null>(null);
@@ -49,10 +52,17 @@ const DraggableFloating = ({
   }, [children, clampPosition]);
 
   useEffect(() => {
-    const handleResize = () => clampPosition();
+    const handleResize = () => {
+      // Reset to recalculated initial positions on viewport change
+      const newX = typeof initialX === 'number' && initialX > window.innerWidth / 2
+        ? window.innerWidth - 200
+        : initialX;
+      const newY = window.innerHeight - 80;
+      clampPosition({ x: Math.min(newX, window.innerWidth - 80), y: Math.min(newY, window.innerHeight - 80) });
+    };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, [clampPosition]);
+  }, [clampPosition, initialX]);
 
   const onPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;

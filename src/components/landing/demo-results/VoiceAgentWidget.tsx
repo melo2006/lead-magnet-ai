@@ -433,6 +433,7 @@ const VoiceAgentWidget = ({
           businessName,
           ownerName: resolvedOwnerName,
           callId,
+          callSummary: lastAgentMessage ? `The caller was discussing: ${lastAgentMessage.slice(0, 400)}` : "",
         },
       });
 
@@ -468,7 +469,7 @@ const VoiceAgentWidget = ({
         variant: "destructive",
       });
     }
-  }, [businessName, ownerPhone, resolvedOwnerName, resolveTransferContact, setTransferState, toast]);
+  }, [businessName, lastAgentMessage, ownerPhone, resolvedOwnerName, resolveTransferContact, setTransferState, toast]);
 
   const maybeStartTransferFromLiveCall = useCallback((event: unknown) => {
     if (transferTriggeredRef.current || transferAttemptedRef.current) return;
