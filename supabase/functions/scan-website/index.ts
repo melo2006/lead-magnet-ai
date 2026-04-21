@@ -196,6 +196,47 @@ async function browserlessScreenshotSingle(
                     if ((!img.getAttribute('srcset') || img.getAttribute('srcset') === '') && dataSrcset) img.setAttribute('srcset', dataSrcset);
                     img.removeAttribute('loading');
                   });
+
+                  // Replace video elements with their poster or first frame
+                  document.querySelectorAll('video').forEach((video) => {
+                    try {
+                      // If poster exists, replace video with an img
+                      if (video.poster) {
+                        const img = document.createElement('img');
+                        img.src = video.poster;
+                        img.style.cssText = window.getComputedStyle(video).cssText;
+                        img.style.width = video.offsetWidth + 'px';
+                        img.style.height = video.offsetHeight + 'px';
+                        img.style.objectFit = 'cover';
+                        video.parentNode?.replaceChild(img, video);
+                        return;
+                      }
+                      // Try to capture the first frame via canvas
+                      if (video.readyState >= 2 && video.videoWidth > 0) {
+                        const canvas = document.createElement('canvas');
+                        canvas.width = video.videoWidth;
+                        canvas.height = video.videoHeight;
+                        const ctx = canvas.getContext('2d');
+                        if (ctx) {
+                          ctx.drawImage(video, 0, 0);
+                          const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
+                          if (dataUrl && dataUrl.length > 100) {
+                            const img = document.createElement('img');
+                            img.src = dataUrl;
+                            img.style.cssText = window.getComputedStyle(video).cssText;
+                            img.style.width = video.offsetWidth + 'px';
+                            img.style.height = video.offsetHeight + 'px';
+                            img.style.objectFit = 'cover';
+                            video.parentNode?.replaceChild(img, video);
+                            return;
+                          }
+                        }
+                      }
+                      // Fallback: pause and show first frame in place
+                      video.pause();
+                      video.currentTime = 0;
+                    } catch (e) { /* cross-origin or other error, skip */ }
+                  });
                 };
 
                 const decodeImages = async () => {
