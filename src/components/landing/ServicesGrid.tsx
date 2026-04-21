@@ -80,11 +80,11 @@ const ServicesGrid = () => {
           viewport={{ once: true }}
           className="text-center mb-10 sm:mb-14"
         >
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
+          <h2 className="text-2xl sm:text-4xl lg:text-5xl font-bold mb-4">
             We Know What You Need —{" "}
             <span className="text-gradient-primary">We've Heard It All</span>
           </h2>
-          <p className="text-muted-foreground text-base sm:text-lg max-w-3xl mx-auto">
+          <p className="text-muted-foreground text-sm sm:text-lg max-w-3xl mx-auto">
             "I want more leads." "I want better reviews." "I want to be on the first page of Google." "I need better customer support."
             <span className="block mt-2 text-foreground font-medium">
               We do all of it — but here's what we recommend you start with.
