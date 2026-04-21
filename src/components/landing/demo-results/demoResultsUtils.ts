@@ -59,6 +59,21 @@ export const getImageSrc = (value?: string) => {
   return `data:image/png;base64,${value}`;
 };
 
+export const getResponsiveScreenshotSrc = (
+  leadData: Pick<DemoLeadData, "screenshot" | "screenshotTablet" | "screenshotMobile">,
+  viewportWidth: number,
+) => {
+  if (viewportWidth <= 480 && leadData.screenshotMobile) {
+    return getImageSrc(leadData.screenshotMobile);
+  }
+
+  if (viewportWidth <= 820 && leadData.screenshotTablet) {
+    return getImageSrc(leadData.screenshotTablet);
+  }
+
+  return getImageSrc(leadData.screenshot);
+};
+
 export const normalizeWebsiteUrl = (websiteUrl: string) => {
   try {
     return websiteUrl.startsWith("http") ? websiteUrl : `https://${websiteUrl}`;
