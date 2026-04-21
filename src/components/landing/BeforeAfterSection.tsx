@@ -112,13 +112,13 @@ const BeforeAfterSection = ({ niche }: BeforeAfterSectionProps) => {
           viewport={{ once: true }}
           className="text-center mb-8 sm:mb-12"
         >
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-3">
+          <h2 className="text-2xl sm:text-4xl lg:text-5xl font-bold mb-3">
             <span className="text-foreground">From </span>
             <span className="text-destructive">Outdated</span>
             <span className="text-foreground"> to </span>
             <span className="text-gradient-primary">AI-Powered</span>
           </h2>
-          <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto">
+          <p className="text-muted-foreground text-sm sm:text-lg max-w-2xl mx-auto">
             {assets.subtitle}
           </p>
         </motion.div>

@@ -56,10 +56,10 @@ const StatsSection = ({ niche }: StatsSectionProps) => {
           viewport={{ once: true }}
           className="text-center mb-10 sm:mb-14"
         >
-          <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
+          <h2 className="text-2xl sm:text-4xl lg:text-5xl font-bold mb-4">
             The Cost of <span className="text-destructive">Silence</span>
           </h2>
-          <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto">
+          <p className="text-muted-foreground text-sm sm:text-lg max-w-2xl mx-auto">
             Every ring that goes to voicemail is money walking out the door. Here's what the data says about your industry.
           </p>
         </motion.div>
