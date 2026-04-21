@@ -701,64 +701,62 @@ const DemoSite = () => {
 
   return (
     <div className="relative min-h-[100dvh] bg-background">
-      <div className="pointer-events-none fixed inset-x-0 top-16 z-40 flex justify-center px-3 sm:px-4">
-        <div className="pointer-events-auto flex w-full max-w-4xl items-center justify-between gap-3 rounded-full border border-border/50 bg-card px-3 py-2 shadow-xl backdrop-blur-xl sm:px-4">
-          <div className="flex min-w-0 items-center gap-2.5">
-            <button
-              onClick={handleBack}
-              className="group inline-flex h-auto items-center gap-2 rounded-full border border-primary/30 bg-primary/10 px-3 py-1.5 text-left transition-colors hover:bg-primary/20 sm:px-4 sm:py-2"
-            >
-              <ArrowLeft className="h-4 w-4 shrink-0 text-primary transition-transform group-hover:-translate-x-0.5" />
-              <div className="min-w-0">
-                <p className="text-[10px] font-bold uppercase leading-tight tracking-wider text-primary sm:text-xs">Sign Up</p>
-                <p className="truncate text-[9px] font-medium leading-tight text-muted-foreground sm:text-[10px]">AI Hidden Leads</p>
-              </div>
-            </button>
+      <div className="pointer-events-none fixed inset-x-0 top-4 z-40 flex justify-center px-3 sm:px-4">
+        <div className="pointer-events-auto flex w-full max-w-4xl items-center justify-between gap-2 rounded-2xl border border-border/40 bg-card/80 px-3 py-2 shadow-2xl backdrop-blur-xl sm:gap-3 sm:px-4 sm:py-2.5">
+          {/* Left: Back to Homepage */}
+          <button
+            onClick={() => navigate("/")}
+            className="group inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-border/50 bg-background/60 px-2.5 py-1.5 text-left transition-all hover:border-primary/40 hover:bg-primary/10 sm:px-3 sm:py-2"
+          >
+            <ArrowLeft className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform group-hover:-translate-x-0.5 group-hover:text-primary" />
+            <span className="text-[10px] font-semibold leading-tight text-muted-foreground group-hover:text-foreground sm:text-xs">Homepage</span>
+          </button>
 
-            <div className="min-w-0">
-              <p className="text-[10px] font-semibold uppercase tracking-[0.24em] text-muted-foreground">
+          {/* Center: Demo info + admin controls */}
+          <div className="flex min-w-0 flex-1 items-center justify-center gap-2">
+            <div className="min-w-0 text-center">
+              <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-muted-foreground sm:text-[10px]">
                 Live demo
               </p>
-              <p className="truncate text-sm font-semibold text-foreground sm:text-base">{siteName}</p>
+              <p className="truncate text-xs font-semibold text-foreground sm:text-sm">{siteName}</p>
             </div>
-          </div>
 
-          <div className="flex shrink-0 items-center gap-2">
             {isScanning && (
-              <>
-                <span className="inline-flex h-2.5 w-2.5 rounded-full bg-primary sm:hidden" aria-hidden />
-                <span className="hidden items-center gap-2 rounded-full border border-primary/20 bg-primary/10 px-3 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-primary sm:inline-flex">
-                  <span className="h-2 w-2 animate-pulse rounded-full bg-primary" />
-                  Building
-                </span>
-              </>
+              <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-primary">
+                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
+                Building
+              </span>
             )}
 
             <button
               onClick={() => setShowTestOverride((v) => !v)}
-              className={`inline-flex h-8 w-8 items-center justify-center rounded-full border transition-colors ${showTestOverride ? "border-primary bg-primary/10 text-primary" : "border-border bg-background/80 text-muted-foreground hover:text-foreground"}`}
+              className={`inline-flex h-7 w-7 items-center justify-center rounded-full border transition-colors ${showTestOverride ? "border-primary bg-primary/10 text-primary" : "border-transparent text-muted-foreground/40 hover:text-muted-foreground hover:border-border"}`}
               title="Test phone override"
             >
-              <Phone className="h-3.5 w-3.5" />
+              <Phone className="h-3 w-3" />
             </button>
 
             <button
               onClick={() => navigate("/prospects")}
-              className="rounded-full border border-transparent bg-transparent px-1.5 py-1 text-[8px] text-muted-foreground/30 hover:text-muted-foreground hover:border-border transition-colors inline-flex"
+              className="rounded-full border border-transparent bg-transparent px-1 py-0.5 text-[8px] text-muted-foreground/20 hover:text-muted-foreground hover:border-border transition-colors inline-flex"
               title="Go to Prospects"
             >
               •
             </button>
-
-            <a
-              href={homepageUrl}
-              target="_blank"
-              rel="noopener noreferrer"
-              className="hidden rounded-full border border-border bg-background/80 px-3 py-1.5 text-[11px] font-semibold uppercase tracking-[0.18em] text-muted-foreground transition-colors hover:text-foreground sm:inline-flex"
-            >
-              Open site
-            </a>
           </div>
+
+          {/* Right: CTA Sign Up button */}
+          <button
+            onClick={() => navigate("/#pricing")}
+            className="group relative shrink-0 overflow-hidden rounded-xl border border-primary/50 bg-primary/15 px-3 py-1.5 text-left transition-all hover:border-primary hover:bg-primary/25 hover:shadow-lg hover:shadow-primary/20 sm:px-4 sm:py-2"
+          >
+            <p className="text-[10px] font-extrabold uppercase leading-tight tracking-wide text-primary sm:text-xs">
+              50% Off — Sign Up
+            </p>
+            <p className="text-[8px] font-medium leading-tight text-muted-foreground sm:text-[9px]">
+              Voice + Chat from $99/mo
+            </p>
+          </button>
         </div>
 
         {/* Test phone override panel */}
