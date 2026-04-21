@@ -18,7 +18,10 @@ const DraggableFloating = ({
   initialY,
   dragLabel = "Drag me",
 }: DraggableFloatingProps) => {
-  const [pos, setPos] = useState({ x: initialX, y: initialY });
+  const [pos, setPos] = useState(() => ({
+    x: Math.min(initialX, window.innerWidth - 80),
+    y: Math.min(initialY, window.innerHeight - 80),
+  }));
   const [isDragging, setIsDragging] = useState(false);
   const dragging = useRef(false);
   const activePointerId = useRef<number | null>(null);
