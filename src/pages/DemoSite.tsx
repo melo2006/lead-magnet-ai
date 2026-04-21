@@ -601,7 +601,8 @@ const DemoSite = () => {
       navigate(-1);
       return;
     }
-    navigate("/prospects");
+    // Default to homepage instead of prospects
+    navigate("/");
   };
 
   const requestedDemoUrl = searchParams.get("url");
