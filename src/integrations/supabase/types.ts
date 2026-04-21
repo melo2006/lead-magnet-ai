@@ -646,6 +646,8 @@ export type Database = {
           niche: string
           phone: string | null
           scan_status: string
+          screenshot_mobile: string | null
+          screenshot_tablet: string | null
           secondary_url: string | null
           status: string
           updated_at: string
@@ -668,6 +670,8 @@ export type Database = {
           niche?: string
           phone?: string | null
           scan_status?: string
+          screenshot_mobile?: string | null
+          screenshot_tablet?: string | null
           secondary_url?: string | null
           status?: string
           updated_at?: string
@@ -690,6 +694,8 @@ export type Database = {
           niche?: string
           phone?: string | null
           scan_status?: string
+          screenshot_mobile?: string | null
+          screenshot_tablet?: string | null
           secondary_url?: string | null
           status?: string
           updated_at?: string
