@@ -23,7 +23,7 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
+    <div className="min-h-screen bg-background overflow-x-hidden">
       <LandingNavbar />
       <HeroSection niche={selectedNiche} onGetDemo={scrollToDemo} />
       <BeforeAfterSection niche={selectedNiche} />
