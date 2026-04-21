@@ -32,13 +32,13 @@ const HeroSection = ({ niche, onGetDemo }: HeroSectionProps) => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.5 }}
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-primary/20 bg-primary/5 mb-5"
+              className="inline-flex items-center gap-2 px-3 py-2 sm:px-4 sm:py-2 rounded-full border border-primary/20 bg-primary/5 mb-4 sm:mb-5"
             >
               <span className="relative flex h-2 w-2">
                 <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-primary opacity-75" />
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
               </span>
-              <span className="text-sm sm:text-base font-medium text-primary">
+              <span className="text-xs sm:text-base font-medium text-primary">
                 Try Your Own Website With AI Voice — Free in 2 Minutes
               </span>
             </motion.div>
@@ -48,13 +48,13 @@ const HeroSection = ({ niche, onGetDemo }: HeroSectionProps) => {
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               transition={{ duration: 0.6, delay: 0.1 }}
-              className="text-4xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-5"
+              className="text-3xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-5"
             >
               <span className="text-foreground">Missing Calls =</span>
               <br />
               <span className="text-gradient-primary glow-text">Losing Money.</span>
               <br />
-              <span className="text-foreground text-2xl sm:text-3xl lg:text-4xl">We Fix That — Starting at $99/mo.</span>
+              <span className="text-foreground text-xl sm:text-3xl lg:text-4xl">We Fix That — Starting at $99/mo.</span>
             </motion.h1>
 
             {/* Subheadline */}

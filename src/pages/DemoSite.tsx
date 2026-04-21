@@ -601,7 +601,8 @@ const DemoSite = () => {
       navigate(-1);
       return;
     }
-    navigate("/prospects");
+    // Default to homepage instead of prospects
+    navigate("/");
   };
 
   const requestedDemoUrl = searchParams.get("url");
@@ -705,10 +706,18 @@ const DemoSite = () => {
           <div className="flex min-w-0 items-center gap-2.5">
             <button
               onClick={handleBack}
-              aria-label="Go back"
-              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-background/80 text-muted-foreground transition-colors hover:text-foreground"
+              aria-label="Back to AI Hidden Leads"
+              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-background/80 text-muted-foreground transition-colors hover:text-foreground sm:hidden"
             >
               <ArrowLeft className="h-4 w-4" />
+            </button>
+            
+            <button
+              onClick={handleBack}
+              className="hidden sm:inline-flex h-9 items-center gap-2 rounded-full border border-border bg-background/80 px-4 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
+            >
+              <ArrowLeft className="h-4 w-4" />
+              Back to AI Hidden Leads
             </button>
 
             <div className="min-w-0">
