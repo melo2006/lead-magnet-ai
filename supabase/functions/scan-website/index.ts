@@ -167,19 +167,74 @@ async function browserlessScreenshotSingle(
                 const wait = (ms) => new Promise((resolve) => setTimeout(resolve, ms));
 
                 const closeOverlays = () => {
-                  const selectors = [
+                  // Phase 1: Click all dismiss/close/accept buttons we can find
+                  const clickSelectors = [
+                    // Cookie consent
                     '[class*="cookie"] button', '[id*="cookie"] button',
-                    '[class*="consent"] button', '[class*="popup"] [class*="close"]',
-                    '[class*="modal"] [class*="close"]', '[class*="banner"] [class*="close"]',
-                    'button[class*="accept"]', 'button[class*="agree"]', '[aria-label*="close" i]',
+                    '[class*="consent"] button', '[class*="gdpr"] button',
+                    'button[class*="accept"]', 'button[class*="agree"]',
+                    'button[id*="accept"]', 'button[id*="agree"]',
+                    'a[class*="accept"]', 'a[id*="accept"]',
+                    // Generic close buttons
+                    '[class*="popup"] [class*="close"]', '[class*="popup"] button[class*="dismiss"]',
+                    '[class*="modal"] [class*="close"]', '[class*="modal"] button[class*="dismiss"]',
+                    '[class*="overlay"] [class*="close"]', '[class*="overlay"] button[class*="dismiss"]',
+                    '[class*="banner"] [class*="close"]', '[class*="banner"] button[class*="dismiss"]',
+                    '[class*="dialog"] [class*="close"]', '[class*="dialog"] button[class*="dismiss"]',
+                    '[class*="lightbox"] [class*="close"]',
+                    '[aria-label*="close" i]', '[aria-label*="dismiss" i]',
+                    '[title*="close" i]', '[title*="dismiss" i]',
+                    'button[class*="close"]', 'button[id*="close"]',
+                    // Newsletter / signup popups
+                    '[class*="newsletter"] [class*="close"]', '[class*="signup"] [class*="close"]',
+                    '[class*="subscribe"] [class*="close"]', '[class*="sign-up"] [class*="close"]',
+                    '[class*="email-capture"] [class*="close"]', '[class*="lead-capture"] [class*="close"]',
+                    '[class*="promo"] [class*="close"]', '[class*="offer"] [class*="close"]',
+                    // Common framework patterns
+                    '.modal .close', '.modal-close', '.popup-close',
+                    '[data-dismiss="modal"]', '[data-close]', '[data-action="close"]',
+                    'button.close-button', 'button.btn-close', '.btn-close',
+                    // X icon buttons (SVG close icons)
+                    'button:has(svg[class*="close"])', 'button:has(svg[class*="x"])',
                   ];
-                  for (const sel of selectors) {
-                    const el = document.querySelector(sel);
-                    if (el instanceof HTMLElement) {
-                      el.click();
-                      break;
-                    }
+                  const clicked = new Set();
+                  for (const sel of clickSelectors) {
+                    try {
+                      document.querySelectorAll(sel).forEach((el) => {
+                        if (el instanceof HTMLElement && !clicked.has(el)) {
+                          clicked.add(el);
+                          el.click();
+                        }
+                      });
+                    } catch {}
                   }
+
+                  // Phase 2: Force-hide any remaining fixed/absolute overlays that cover the viewport
+                  document.querySelectorAll('div, section, aside, [role="dialog"], [role="alertdialog"]').forEach((el) => {
+                    if (!(el instanceof HTMLElement)) return;
+                    const style = window.getComputedStyle(el);
+                    const pos = style.position;
+                    if (pos !== 'fixed' && pos !== 'absolute') return;
+                    const z = parseInt(style.zIndex || '0', 10);
+                    if (z < 100) return;
+                    const rect = el.getBoundingClientRect();
+                    const coversViewport = rect.width > window.innerWidth * 0.4 && rect.height > window.innerHeight * 0.3;
+                    const isBackdrop = style.backgroundColor?.includes('rgba') || parseFloat(style.opacity || '1') < 0.95;
+                    if (coversViewport || isBackdrop) {
+                      el.style.display = 'none';
+                    }
+                  });
+
+                  // Phase 3: Remove common overlay/backdrop classes entirely
+                  document.querySelectorAll('.modal-backdrop, .overlay-backdrop, [class*="backdrop"], [class*="overlay-bg"]').forEach((el) => {
+                    if (el instanceof HTMLElement) el.style.display = 'none';
+                  });
+
+                  // Phase 4: Restore body scroll (many popups add overflow:hidden)
+                  document.body.style.overflow = '';
+                  document.body.style.overflowY = '';
+                  document.documentElement.style.overflow = '';
+                  document.documentElement.style.overflowY = '';
                 };
 
                 const makeMediaEager = () => {
