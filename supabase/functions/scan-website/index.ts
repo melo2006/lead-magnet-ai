@@ -968,9 +968,9 @@ Deno.serve(async (req) => {
       ? browserlessMultiScreenshot(formattedUrl, browserlessKey, leadId, supabaseUrl, supabaseServiceKey)
       : Promise.resolve({ desktop: null, tablet: null, mobile: null });
 
-    // Firecrawl scrape — skip screenshot format since Browserless handles it
-    let homepageResponse: any;
-    const firecrawlFormats = ['markdown', 'screenshot', 'branding', 'links', 'summary'];
+    // Firecrawl scrape — Browserless handles screenshots, so avoid extra screenshot work here.
+    let homepageResponse: any = {};
+    const firecrawlFormats = ['markdown', 'branding', 'links', 'summary'];
 
     try {
       homepageResponse = await firecrawlRequest('/scrape', firecrawlKey, {
@@ -982,13 +982,18 @@ Deno.serve(async (req) => {
       }, 1);
     } catch (screenshotErr) {
       console.warn('Scrape failed, retrying simplified:', screenshotErr);
-      homepageResponse = await firecrawlRequest('/scrape', firecrawlKey, {
-        url: formattedUrl,
-        formats: ['markdown', 'branding', 'links', 'summary'],
-        onlyMainContent: true,
-        waitFor: 3000,
-        timeout: 20000,
-      }, 1);
+      try {
+        homepageResponse = await firecrawlRequest('/scrape', firecrawlKey, {
+          url: formattedUrl,
+          formats: ['markdown', 'branding', 'links', 'summary'],
+          onlyMainContent: true,
+          waitFor: 3000,
+          timeout: 20000,
+        }, 1);
+      } catch (finalScrapeErr) {
+        console.warn('Simplified scrape also failed, continuing with Browserless-first fallback:', finalScrapeErr);
+        homepageResponse = {};
+      }
     }
 
     const homepage = unwrapFirecrawlPayload(homepageResponse);
@@ -1023,10 +1028,9 @@ Deno.serve(async (req) => {
     // Await Browserless multi-viewport screenshots and recover with Firecrawl fallback if needed.
     const browserlessResults = await browserlessPromise;
     const browserlessScreenshotResult = browserlessResults.desktop;
-    const firecrawlScreenshotResult =
-      typeof homepage.screenshot === 'string' && homepage.screenshot
-        ? homepage.screenshot
-        : (!browserlessScreenshotResult ? await scrapeScreenshotFallback(formattedUrl, firecrawlKey) : null);
+    const firecrawlScreenshotResult = !browserlessScreenshotResult
+      ? await scrapeScreenshotFallback(formattedUrl, firecrawlKey)
+      : null;
 
     // Use Browserless screenshot (higher quality), fall back to Firecrawl, then a generated preview image.
     const finalScreenshot = browserlessScreenshotResult || firecrawlScreenshotResult || null;
