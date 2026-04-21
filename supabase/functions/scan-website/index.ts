@@ -1113,6 +1113,8 @@ Deno.serve(async (req) => {
       brand_logo: branding.images?.logo || branding.logo || null,
       brand_fonts: branding.fonts || branding.typography || null,
       website_screenshot: storedScreenshot,
+      screenshot_tablet: browserlessResults.tablet || null,
+      screenshot_mobile: browserlessResults.mobile || null,
       website_content: initialContent || null,
       website_title: title || null,
       website_description: description || null,
