@@ -13,17 +13,17 @@ const LandingNavbar = () => {
 
   return (
     <nav className="sticky top-0 z-[90] bg-background/80 backdrop-blur-xl border-b border-border">
-      <div className="container mx-auto px-4 sm:px-6 flex items-center justify-between h-16">
+      <div className="container mx-auto px-4 sm:px-6 flex items-center justify-between h-14 sm:h-16">
         {/* Logo — double-click to go to admin dashboard */}
-        <Link to="/" className="flex items-center gap-2.5" onDoubleClick={(e) => { e.preventDefault(); window.location.href = "/dashboard"; }}>
-          <img src="/logo.png" alt="AI Hidden Leads" className="w-9 h-9" />
-          <span className="text-lg font-extrabold tracking-tight text-foreground">
+        <Link to="/" className="flex items-center gap-2" onDoubleClick={(e) => { e.preventDefault(); window.location.href = "/dashboard"; }}>
+          <img src="/logo.png" alt="AI Hidden Leads" className="w-8 h-8 sm:w-9 sm:h-9" />
+          <span className="text-base sm:text-lg font-extrabold tracking-tight text-foreground">
             AI <span className="text-primary">Hidden</span> Leads
           </span>
         </Link>
 
-        {/* Desktop links */}
-        <div className="hidden md:flex items-center gap-6">
+        {/* Desktop links — use lg breakpoint so tablet doesn't cram */}
+        <div className="hidden lg:flex items-center gap-6">
           <button onClick={() => scrollTo("services")} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             Services
           </button>
@@ -36,7 +36,7 @@ const LandingNavbar = () => {
           <button onClick={() => scrollTo("testimonials")} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             Testimonials
           </button>
-        <Button size="sm" onClick={() => scrollTo("demo-form")}>
+          <Button size="sm" onClick={() => scrollTo("demo-form")}>
             Get Your Free Demo
           </Button>
           <Link to="/marketing" className="text-xs text-muted-foreground/40 hover:text-muted-foreground transition-colors ml-2" title="Marketing Hub">
@@ -48,14 +48,14 @@ const LandingNavbar = () => {
         </div>
 
         {/* Mobile toggle */}
-        <button onClick={() => setOpen(!open)} className="md:hidden p-2 text-muted-foreground hover:text-foreground">
-          {open ? <X className="w-5 h-5" /> : <Menu className="w-5 h-5" />}
+        <button onClick={() => setOpen(!open)} className="lg:hidden p-2 text-muted-foreground hover:text-foreground">
+          {open ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
         </button>
       </div>
 
       {/* Mobile menu */}
       {open && (
-        <div className="md:hidden border-t border-border bg-background/95 backdrop-blur-xl px-4 py-3 space-y-2">
+        <div className="lg:hidden border-t border-border bg-background/95 backdrop-blur-xl px-4 py-3 space-y-1">
           {[
             { id: "services", label: "Services" },
             { id: "how-it-works", label: "How It Works" },
@@ -65,12 +65,12 @@ const LandingNavbar = () => {
             <button
               key={item.id}
               onClick={() => scrollTo(item.id)}
-              className="block w-full text-left px-3 py-2.5 rounded-lg text-sm font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
+              className="block w-full text-left px-3 py-3 rounded-lg text-base font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
             >
               {item.label}
             </button>
           ))}
-          <Button size="sm" className="w-full mt-2" onClick={() => scrollTo("demo-form")}>
+          <Button size="lg" className="w-full mt-2 text-base" onClick={() => scrollTo("demo-form")}>
             Get Your Free Demo
           </Button>
         </div>

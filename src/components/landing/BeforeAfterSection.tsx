@@ -103,14 +103,14 @@ const BeforeAfterSection = ({ niche }: BeforeAfterSectionProps) => {
   };
 
   return (
-    <section className="py-12 sm:py-16 overflow-hidden">
-      <div className="container mx-auto px-4 sm:px-6">
+    <section className="py-14 sm:py-20 overflow-hidden">
+      <div className="container mx-auto px-5 sm:px-6">
         <motion.div
           key={niche.id + "-header"}
           initial={{ opacity: 0, y: 20 }}
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
-          className="text-center mb-8 sm:mb-10"
+          className="text-center mb-8 sm:mb-12"
         >
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-3">
             <span className="text-foreground">From </span>
@@ -131,12 +131,12 @@ const BeforeAfterSection = ({ niche }: BeforeAfterSectionProps) => {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6 }}
-            className="relative flex-1 max-w-[180px] sm:max-w-[260px]"
+            className="relative flex-1 max-w-[200px] sm:max-w-[260px]"
           >
             <div className="absolute -inset-2 rounded-3xl bg-destructive/10 blur-xl" />
             <div className="relative">
               <img src={assets.oldPhone} alt={`Outdated ${niche.label} website on a phone`} className="w-full h-auto rounded-2xl" />
-              <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-destructive/20 border border-destructive/30 text-destructive text-[10px] sm:text-sm font-semibold whitespace-nowrap">
+              <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full bg-destructive/20 border border-destructive/30 text-destructive text-xs sm:text-sm font-semibold whitespace-nowrap">
                 {assets.beforeLabel}
               </div>
             </div>
@@ -160,32 +160,32 @@ const BeforeAfterSection = ({ niche }: BeforeAfterSectionProps) => {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.2 }}
-            className="relative flex-1 max-w-[200px] sm:max-w-[290px]"
+            className="relative flex-1 max-w-[220px] sm:max-w-[290px]"
           >
             <div className="absolute -inset-2 rounded-3xl bg-primary/10 blur-xl" />
             <div className="relative overflow-hidden rounded-2xl">
               <img src={assets.newPhone} alt={`Modern AI-powered ${niche.label} website`} className="w-full h-auto" />
             </div>
-            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-primary text-[10px] sm:text-sm font-semibold whitespace-nowrap">
+            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full bg-primary/20 border border-primary/30 text-primary text-xs sm:text-sm font-semibold whitespace-nowrap">
               {assets.afterLabel}
             </div>
           </motion.div>
         </div>
 
         {/* Laptop mockups */}
-        <div className="flex flex-row items-center justify-center gap-4 sm:gap-8 lg:gap-12 max-w-5xl mx-auto mt-10 sm:mt-14">
+        <div className="flex flex-row items-center justify-center gap-4 sm:gap-8 lg:gap-12 max-w-5xl mx-auto mt-12 sm:mt-16">
           <motion.div
             key={niche.id + "-old-laptop"}
             initial={{ opacity: 0, x: -40 }}
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.1 }}
-            className="relative flex-1 max-w-[260px] sm:max-w-[380px]"
+            className="relative flex-1 max-w-[280px] sm:max-w-[380px]"
           >
             <div className="absolute -inset-2 rounded-3xl bg-destructive/10 blur-xl" />
             <div className="relative">
               <img src={assets.oldLaptop} alt={`Outdated ${niche.label} website on a laptop`} className="w-full h-auto rounded-xl" />
-              <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-destructive/20 border border-destructive/30 text-destructive text-[10px] sm:text-sm font-semibold whitespace-nowrap">
+              <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full bg-destructive/20 border border-destructive/30 text-destructive text-xs sm:text-sm font-semibold whitespace-nowrap">
                 Desktop — Before
               </div>
             </div>
@@ -209,13 +209,13 @@ const BeforeAfterSection = ({ niche }: BeforeAfterSectionProps) => {
             whileInView={{ opacity: 1, x: 0 }}
             viewport={{ once: true }}
             transition={{ duration: 0.6, delay: 0.3 }}
-            className="relative flex-1 max-w-[260px] sm:max-w-[380px]"
+            className="relative flex-1 max-w-[280px] sm:max-w-[380px]"
           >
             <div className="absolute -inset-2 rounded-3xl bg-primary/10 blur-xl" />
             <div className="relative overflow-hidden rounded-xl">
               <img src={assets.newLaptop} alt={`Modern AI-powered ${niche.label} website on a laptop`} className="w-full h-auto" />
             </div>
-            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-3 py-1 rounded-full bg-primary/20 border border-primary/30 text-primary text-[10px] sm:text-sm font-semibold whitespace-nowrap">
+            <div className="absolute -bottom-3 left-1/2 -translate-x-1/2 px-3 py-1.5 rounded-full bg-primary/20 border border-primary/30 text-primary text-xs sm:text-sm font-semibold whitespace-nowrap">
               Desktop — With AI Hidden Leads ✨
             </div>
           </motion.div>
@@ -227,7 +227,7 @@ const BeforeAfterSection = ({ niche }: BeforeAfterSectionProps) => {
           whileInView={{ opacity: 1, y: 0 }}
           viewport={{ once: true }}
           transition={{ delay: 0.4 }}
-          className="text-center mt-10"
+          className="text-center mt-12"
         >
           <Button
             onClick={scrollToDemo}
