@@ -105,7 +105,7 @@ const pickRelevantLinks = (links: string[], rootUrl: string) => {
     return Number(preferred.test(b)) - Number(preferred.test(a));
   });
 
-  return filtered.slice(0, 15);
+  return filtered.slice(0, 6);
 };
 
 type ViewportConfig = {
@@ -461,9 +461,9 @@ async function scrapeMarkdownPage(url: string, apiKey: string) {
     url,
     formats: ['markdown', 'summary'],
     onlyMainContent: true,
-    waitFor: 2000,
-    timeout: 20000,
-  });
+    waitFor: 1500,
+    timeout: 12000,
+  }, 0);
 
   const data = unwrapFirecrawlPayload(response);
   return {
@@ -956,6 +956,8 @@ async function backgroundEnrich(
   }
 }
 
+const HARD_DEADLINE_MS = 130_000; // Return before the 150s idle timeout
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -963,11 +965,12 @@ Deno.serve(async (req) => {
 
   let leadId = '';
   let supabase: ReturnType<typeof createClient> | null = null;
+  const startTime = Date.now();
+  const isOverBudget = () => Date.now() - startTime > HARD_DEADLINE_MS;
 
   try {
     const { leadId: incomingLeadId, websiteUrl, businessName, secondaryUrl, uploadedFiles, initialNiche } = await req.json();
     leadId = incomingLeadId;
-
     if (!leadId || !websiteUrl) {
       return new Response(
         JSON.stringify({ success: false, error: 'leadId and websiteUrl are required' }),
@@ -1018,19 +1021,19 @@ Deno.serve(async (req) => {
         url: formattedUrl,
         formats: firecrawlFormats,
         onlyMainContent: true,
-        waitFor: 4500,
-        timeout: 30000,
-      }, 1);
+        waitFor: 3000,
+        timeout: 15000,
+      }, 0);
     } catch (screenshotErr) {
       console.warn('Scrape failed, retrying simplified:', screenshotErr);
       try {
         homepageResponse = await firecrawlRequest('/scrape', firecrawlKey, {
           url: formattedUrl,
-          formats: ['markdown', 'branding', 'links', 'summary'],
+          formats: ['markdown', 'links', 'summary'],
           onlyMainContent: true,
-          waitFor: 3000,
-          timeout: 20000,
-        }, 1);
+          waitFor: 2000,
+          timeout: 12000,
+        }, 0);
       } catch (finalScrapeErr) {
         console.warn('Simplified scrape also failed, continuing with Browserless-first fallback:', finalScrapeErr);
         homepageResponse = {};
@@ -1104,36 +1107,45 @@ Deno.serve(async (req) => {
       console.warn('Could not save preview data early:', previewUpdate.error);
     }
 
-    // === PHASE 2: Sub-pages (parallel, with short timeout) ===
-    const linkPool = new Set<string>();
-    if (Array.isArray(homepage.links)) {
-      homepage.links.forEach((link: string) => linkPool.add(cleanText(link)));
+    // === PHASE 2: Sub-pages (skip if running out of time) ===
+    let successfulPages: { url: string; title: string; summary: string; markdown: string }[] = [];
+    if (!isOverBudget()) {
+      const linkPool = new Set<string>();
+      if (Array.isArray(homepage.links)) {
+        homepage.links.forEach((link: string) => linkPool.add(cleanText(link)));
+      }
+
+      if (!isOverBudget()) {
+        try {
+          const mapResponse = await firecrawlRequest('/map', firecrawlKey, {
+            url: formattedUrl,
+            limit: 30,
+            includeSubdomains: false,
+          }, 0);
+          const links = Array.isArray(mapResponse.links) ? mapResponse.links : [];
+          links.forEach((link: string) => linkPool.add(cleanText(link)));
+        } catch (mapError) {
+          console.warn('Map failed, using homepage links:', mapError);
+        }
+      }
+
+      const candidateLinks = pickRelevantLinks(Array.from(linkPool), formattedUrl);
+      console.log('Relevant links selected:', candidateLinks.length);
+
+      if (!isOverBudget()) {
+        const pageResults = await Promise.allSettled(candidateLinks.map((link) => scrapeMarkdownPage(link, firecrawlKey)));
+        successfulPages = pageResults
+          .filter((r): r is PromiseFulfilledResult<Awaited<ReturnType<typeof scrapeMarkdownPage>>> => r.status === 'fulfilled')
+          .map((r) => r.value)
+          .filter((page) => page.markdown || page.summary);
+      }
+    } else {
+      console.warn('Time budget exceeded, skipping sub-page scraping');
     }
 
-    try {
-      const mapResponse = await firecrawlRequest('/map', firecrawlKey, {
-        url: formattedUrl,
-        limit: 50,
-        includeSubdomains: false,
-      });
-      const links = Array.isArray(mapResponse.links) ? mapResponse.links : [];
-      links.forEach((link: string) => linkPool.add(cleanText(link)));
-    } catch (mapError) {
-      console.warn('Map failed, using homepage links:', mapError);
-    }
-
-    const candidateLinks = pickRelevantLinks(Array.from(linkPool), formattedUrl);
-    console.log('Relevant links selected:', candidateLinks.length);
-
-    const pageResults = await Promise.allSettled(candidateLinks.map((link) => scrapeMarkdownPage(link, firecrawlKey)));
-    const successfulPages = pageResults
-      .filter((r): r is PromiseFulfilledResult<Awaited<ReturnType<typeof scrapeMarkdownPage>>> => r.status === 'fulfilled')
-      .map((r) => r.value)
-      .filter((page) => page.markdown || page.summary);
-
-    // Secondary URL (quick)
+    // Secondary URL (skip if over budget)
     let secondaryContent = '';
-    if (secondaryUrl && typeof secondaryUrl === 'string' && secondaryUrl.trim()) {
+    if (!isOverBudget() && secondaryUrl && typeof secondaryUrl === 'string' && secondaryUrl.trim()) {
       try {
         const secondary = await scrapeMarkdownPage(normalizeUrl(secondaryUrl), firecrawlKey);
         secondaryContent = secondary.markdown;
