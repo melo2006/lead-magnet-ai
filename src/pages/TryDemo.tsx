@@ -20,6 +20,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
+import { formatPhoneNumber, sanitizeUrlInput } from "@/lib/formatters";
 import ScanningAnimation from "@/components/landing/ScanningAnimation";
 import type { DemoLeadData } from "@/components/landing/demo-results/demoResultsUtils";
 
@@ -367,10 +368,10 @@ const TryDemo = () => {
             <div className="relative">
               <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Phone Number *"
+                placeholder="(954) 555-1234 *"
                 type="tel"
                 value={phone}
-                onChange={(e) => setPhone(e.target.value)}
+                onChange={(e) => setPhone(formatPhoneNumber(e.target.value))}
                 className="pl-9 h-12 text-sm bg-card border-border rounded-xl focus-visible:ring-primary"
                 disabled={isSubmitting}
               />
@@ -384,7 +385,7 @@ const TryDemo = () => {
               <Input
                 placeholder="mybusiness.com *"
                 value={url}
-                onChange={(e) => setUrl(e.target.value)}
+                onChange={(e) => setUrl(sanitizeUrlInput(e.target.value))}
                 onBlur={() => {
                   if (url.trim()) {
                     const normalized = normalizeUrl(url);

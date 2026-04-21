@@ -23,6 +23,7 @@ import { useToast } from "@/hooks/use-toast";
 import type { NicheData } from "@/data/nicheData";
 import ScanningAnimation from "./ScanningAnimation";
 import type { DemoLeadData } from "./demo-results/demoResultsUtils";
+import { formatPhoneNumber, sanitizeUrlInput } from "@/lib/formatters";
 
 type ViewState = "form" | "scanning" | "results";
 
@@ -391,7 +392,7 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
                 <Input
                   placeholder="bankunited.com"
                   value={formData.website}
-                  onChange={(e) => updateFormData({ website: e.target.value })}
+                  onChange={(e) => updateFormData({ website: sanitizeUrlInput(e.target.value) })}
                   onBlur={() => {
                     const normalized = normalizeUrl(formData.website);
                     if (normalized !== formData.website) updateFormData({ website: normalized });
@@ -423,7 +424,7 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
                   type="tel"
                   placeholder="(954) 555-1234"
                   value={formData.phone}
-                  onChange={(e) => updateFormData({ phone: e.target.value })}
+                  onChange={(e) => updateFormData({ phone: formatPhoneNumber(e.target.value) })}
                   className="bg-secondary border-border"
                 />
               </div>
