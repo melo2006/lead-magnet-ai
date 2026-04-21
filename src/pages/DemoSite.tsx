@@ -781,6 +781,7 @@ const DemoSite = () => {
       </div>
 
       {/* Website — iframe first, screenshot fallback */}
+      {hasAnyPreview && <DemoWatermark />}
       <div className="relative min-h-[100dvh]">
         {canRenderInlineIframe && (
           <iframe
