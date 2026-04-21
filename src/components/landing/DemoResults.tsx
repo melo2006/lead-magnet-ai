@@ -4,6 +4,7 @@ import { ArrowLeft, Eye, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import AfterPreview from "./demo-results/AfterPreview";
 import WebsiteShowcase from "./demo-results/WebsiteShowcase";
+import DemoWatermark from "./demo-results/DemoWatermark";
 import type { DemoLeadData } from "./demo-results/demoResultsUtils";
 import { getImageSrc, getSiteName } from "./demo-results/demoResultsUtils";
 
@@ -19,9 +20,9 @@ const DemoResults = ({ leadData, onBack }: DemoResultsProps) => {
 
   if (step === "experience") {
     return (
-      <div className="mx-auto max-w-6xl space-y-6">
+      <div className="relative mx-auto max-w-6xl space-y-6">
+        <DemoWatermark />
         <motion.div
-          initial={{ opacity: 0, y: 20 }}
           animate={{ opacity: 1, y: 0 }}
           className="space-y-3 text-center"
         >
@@ -64,7 +65,8 @@ const DemoResults = ({ leadData, onBack }: DemoResultsProps) => {
   }
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 sm:space-y-8">
+    <div className="relative mx-auto max-w-7xl space-y-6 sm:space-y-8">
+      <DemoWatermark />
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
