@@ -1,6 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
-import { CheckCircle, Globe, MessageSquare, Mic, PhoneCall, Sparkles, Search } from "lucide-react";
+import {
+  CheckCircle,
+  Globe,
+  MessageSquare,
+  Mic,
+  PhoneCall,
+  Sparkles,
+  Search,
+  CalendarCheck,
+  TrendingUp,
+  Clock,
+  ShieldCheck,
+  Headphones,
+} from "lucide-react";
 
 const scanSteps = [
   {
@@ -35,11 +48,47 @@ const scanSteps = [
   },
 ] as const;
 
+/** Rotating benefit/sales messages shown while waiting */
+const benefitMessages = [
+  {
+    icon: Clock,
+    headline: "Never Miss Another Call",
+    body: "Your AI receptionist answers 24/7 — nights, weekends, and holidays — so every caller becomes a potential customer.",
+  },
+  {
+    icon: CalendarCheck,
+    headline: "Instant Appointments",
+    body: "AI books, reschedules, and follows up automatically. No more phone tag — your calendar fills itself.",
+  },
+  {
+    icon: TrendingUp,
+    headline: "Capture 2–5x More Leads",
+    body: "Most businesses miss 40% of calls. With AI answering every one, just 1–2 extra leads per month pays for itself.",
+  },
+  {
+    icon: ShieldCheck,
+    headline: "Live in 1–2 Days",
+    body: "Setup is fast and painless. Your custom AI agent is trained on your business and ready to take calls within 48 hours.",
+  },
+  {
+    icon: Headphones,
+    headline: "Warm Transfer to You",
+    body: "When a hot lead is on the line, AI transfers them live to you or your team with a full summary — no context lost.",
+  },
+  {
+    icon: MessageSquare,
+    headline: "Chat AI on Your Website",
+    body: "Visitors get instant answers about services, pricing, and availability — converting browsers into booked appointments.",
+  },
+];
+
 const STEP_DURATION = 2200;
+const BENEFIT_DURATION = 4500;
 
 interface ScanningAnimationProps {
   websiteUrl: string;
   businessName?: string;
+  callerName?: string;
   onComplete: () => void;
   onCancel?: () => void;
   mode?: "timed" | "continuous";
@@ -54,21 +103,29 @@ const getWebsiteLabel = (websiteUrl: string) => {
   }
 };
 
+const getFirstName = (fullName?: string) => {
+  if (!fullName?.trim()) return "";
+  return fullName.trim().split(/\s+/)[0];
+};
+
 const ScanningAnimation = ({
   websiteUrl,
   businessName,
+  callerName,
   onComplete,
   onCancel,
   mode = "timed",
 }: ScanningAnimationProps) => {
   const [currentStep, setCurrentStep] = useState(0);
   const [progress, setProgress] = useState(0);
+  const [currentBenefit, setCurrentBenefit] = useState(0);
   const onCompleteRef = useRef(onComplete);
 
   useEffect(() => {
     onCompleteRef.current = onComplete;
   }, [onComplete]);
 
+  // Scan step progression
   useEffect(() => {
     setCurrentStep(0);
     setProgress(0);
@@ -121,18 +178,53 @@ const ScanningAnimation = ({
     };
   }, [businessName, mode, websiteUrl]);
 
+  // Benefit message rotation
+  useEffect(() => {
+    setCurrentBenefit(0);
+    const id = window.setInterval(() => {
+      setCurrentBenefit((prev) => (prev + 1) % benefitMessages.length);
+    }, BENEFIT_DURATION);
+    return () => window.clearInterval(id);
+  }, []);
+
   const activeStep = scanSteps[currentStep] ?? scanSteps[0];
   const websiteLabel = getWebsiteLabel(websiteUrl);
   const displayName = businessName?.trim() || websiteLabel;
+  const firstName = getFirstName(callerName);
   const isComplete = mode === "timed" && progress >= 100;
   const StepIcon = isComplete ? CheckCircle : activeStep.icon;
+  const activeBenefit = benefitMessages[currentBenefit];
+  const BenefitIcon = activeBenefit.icon;
 
   return (
     <motion.div
       initial={{ opacity: 0, scale: 0.97 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="mx-auto flex w-full max-w-md items-center justify-center px-4"
+      className="mx-auto flex w-full max-w-lg flex-col items-center justify-center gap-5 px-4"
     >
+      {/* Personalized greeting */}
+      <div className="w-full text-center">
+        <motion.p
+          initial={{ opacity: 0, y: -8 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ delay: 0.2 }}
+          className="text-lg font-bold text-foreground sm:text-xl"
+        >
+          {firstName ? `Hi ${firstName}, thanks for trying our AI!` : "Thanks for trying our AI!"}
+        </motion.p>
+        <motion.p
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.4 }}
+          className="mt-1 text-xs leading-relaxed text-muted-foreground sm:text-sm"
+        >
+          We're building a live demo of{" "}
+          <span className="font-semibold text-foreground">{displayName}</span> with AI Voice &amp; Chat
+          — personalized for your business. Hang tight!
+        </motion.p>
+      </div>
+
+      {/* Main scanner card */}
       <div className="relative w-full overflow-hidden rounded-2xl border border-border bg-card/95 px-4 py-5 shadow-xl sm:rounded-3xl sm:px-6 sm:py-6">
         {/* Glow */}
         <div className="absolute left-1/2 top-0 h-20 w-20 -translate-x-1/2 rounded-full bg-primary/10 blur-2xl" />
@@ -231,6 +323,42 @@ const ScanningAnimation = ({
           )}
         </div>
       </div>
+
+      {/* Rotating benefit messages */}
+      <div className="w-full">
+        <AnimatePresence mode="wait">
+          <motion.div
+            key={currentBenefit}
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -10 }}
+            transition={{ duration: 0.35 }}
+            className="flex items-start gap-3 rounded-xl border border-border/60 bg-card/70 px-4 py-3 backdrop-blur-sm"
+          >
+            <div className="mt-0.5 flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-primary/10">
+              <BenefitIcon className="h-4 w-4 text-primary" />
+            </div>
+            <div className="text-left">
+              <p className="text-sm font-semibold text-foreground">{activeBenefit.headline}</p>
+              <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
+                {activeBenefit.body}
+              </p>
+            </div>
+          </motion.div>
+        </AnimatePresence>
+      </div>
+
+      {/* CTA to talk to sales */}
+      <motion.p
+        initial={{ opacity: 0 }}
+        animate={{ opacity: 1 }}
+        transition={{ delay: 1 }}
+        className="text-center text-[10px] text-muted-foreground/70 sm:text-xs"
+      >
+        Have questions? Ask our Voice AI to{" "}
+        <span className="font-semibold text-primary">transfer you to a sales specialist</span>{" "}
+        anytime during the demo.
+      </motion.p>
     </motion.div>
   );
 };

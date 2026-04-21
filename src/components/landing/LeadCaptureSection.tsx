@@ -321,6 +321,8 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
       <div className="fixed inset-0 z-50 bg-background flex items-center justify-center px-4">
         <ScanningAnimation
           websiteUrl={formData.website}
+          businessName={formData.businessName}
+          callerName={formData.name}
           onComplete={handleScanComplete}
           onCancel={() => setViewState("form")}
         />

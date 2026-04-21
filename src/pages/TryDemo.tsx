@@ -273,7 +273,7 @@ const TryDemo = () => {
   if (isScanning) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center px-4">
-        <ScanningAnimation websiteUrl={url} onComplete={() => {}} mode="continuous" onCancel={() => setIsScanning(false)} />
+        <ScanningAnimation websiteUrl={url} businessName={extractBusinessName(url)} callerName={fullName} onComplete={() => {}} mode="continuous" onCancel={() => setIsScanning(false)} />
       </div>
     );
   }
