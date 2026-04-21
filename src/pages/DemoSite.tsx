@@ -160,6 +160,8 @@ const mergeLeadRecordIntoDemoData = (record: any, current: DemoLeadData): DemoLe
   phone: record.phone || current.phone,
   niche: record.niche || current.niche,
   screenshot: record.website_screenshot || current.screenshot || null,
+  screenshotTablet: (record as any).screenshot_tablet || current.screenshotTablet || null,
+  screenshotMobile: (record as any).screenshot_mobile || current.screenshotMobile || null,
   title: record.website_title || current.title || "",
   description: record.website_description || current.description || "",
   websiteContent: record.website_content || current.websiteContent || "",
@@ -267,7 +269,7 @@ const DemoSite = () => {
         const syncLeadRecord = async () => {
           const { data: fullLead, error: fetchError } = await supabase
             .from("leads")
-            .select("id, full_name, business_name, email, phone, niche, website_url, website_screenshot, website_title, website_description, website_content, brand_colors, brand_logo, scan_status")
+            .select("id, full_name, business_name, email, phone, niche, website_url, website_screenshot, screenshot_tablet, screenshot_mobile, website_title, website_description, website_content, brand_colors, brand_logo, scan_status")
             .eq("id", insertedLead.id)
             .maybeSingle();
 
@@ -341,7 +343,7 @@ const DemoSite = () => {
     const syncLeadRecord = async () => {
       const { data, error } = await supabase
         .from("leads")
-        .select("id, full_name, business_name, email, phone, niche, website_url, website_screenshot, website_title, website_description, website_content, brand_colors, brand_logo, scan_status")
+        .select("id, full_name, business_name, email, phone, niche, website_url, website_screenshot, screenshot_tablet, screenshot_mobile, website_title, website_description, website_content, brand_colors, brand_logo, scan_status")
         .eq("id", leadId)
         .maybeSingle();
 
