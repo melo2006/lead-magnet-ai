@@ -9,6 +9,8 @@ interface DraggableFloatingProps {
   children: ReactNode;
   initialX: number;
   initialY: number;
+  /** If set, initialX is treated as pixels from the RIGHT edge instead of left */
+  anchorRight?: boolean;
   dragLabel?: string;
 }
 
@@ -16,12 +18,14 @@ const DraggableFloating = ({
   children,
   initialX,
   initialY,
+  anchorRight = false,
   dragLabel = "Drag me",
 }: DraggableFloatingProps) => {
   const [pos, setPos] = useState(() => ({
-    x: Math.min(initialX, window.innerWidth - 80),
+    x: anchorRight ? Math.max(VIEWPORT_PADDING, window.innerWidth - 200 - initialX) : Math.min(initialX, window.innerWidth - 80),
     y: Math.min(initialY, window.innerHeight - 80),
   }));
+  const [hasInitialized, setHasInitialized] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const dragging = useRef(false);
   const activePointerId = useRef<number | null>(null);
@@ -46,23 +50,41 @@ const DraggableFloating = ({
     });
   }, []);
 
+  // After first render, reposition right-anchored widgets using actual element width
   useEffect(() => {
-    const frame = window.requestAnimationFrame(() => clampPosition());
+    const el = containerRef.current;
+    if (!el) return;
+    const frame = window.requestAnimationFrame(() => {
+      if (anchorRight && !hasInitialized) {
+        const w = el.offsetWidth;
+        const rightX = window.innerWidth - w - initialX;
+        setPos((prev) => ({
+          x: clampValue(rightX, VIEWPORT_PADDING, window.innerWidth - w - VIEWPORT_PADDING),
+          y: clampValue(prev.y, VIEWPORT_PADDING, window.innerHeight - el.offsetHeight - VIEWPORT_PADDING),
+        }));
+        setHasInitialized(true);
+      } else {
+        clampPosition();
+      }
+    });
     return () => window.cancelAnimationFrame(frame);
-  }, [children, clampPosition]);
+  }, [children, clampPosition, anchorRight, initialX, hasInitialized]);
 
   useEffect(() => {
     const handleResize = () => {
-      // Reset to recalculated initial positions on viewport change
-      const newX = typeof initialX === 'number' && initialX > window.innerWidth / 2
-        ? window.innerWidth - 200
-        : initialX;
-      const newY = window.innerHeight - 80;
-      clampPosition({ x: Math.min(newX, window.innerWidth - 80), y: Math.min(newY, window.innerHeight - 80) });
+      const el = containerRef.current;
+      if (!el) return;
+      if (anchorRight) {
+        const w = el.offsetWidth;
+        const rightX = window.innerWidth - w - initialX;
+        clampPosition({ x: rightX, y: window.innerHeight - 100 });
+      } else {
+        clampPosition({ x: initialX, y: window.innerHeight - 100 });
+      }
     };
     window.addEventListener("resize", handleResize);
     return () => window.removeEventListener("resize", handleResize);
-  }, [clampPosition, initialX]);
+  }, [clampPosition, initialX, anchorRight]);
 
   const onPointerDown = useCallback((e: React.PointerEvent<HTMLDivElement>) => {
     const target = e.target as HTMLElement;
