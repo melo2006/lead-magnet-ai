@@ -133,20 +133,17 @@ const DraggableFloating = ({
         touchAction: isDragging ? "none" : "auto",
       }}
     >
-      <div className="flex items-start gap-1">
+      <div className="flex flex-col items-center">
         <button
           type="button"
           data-drag-handle
-          className="mt-2 flex cursor-grab touch-none select-none flex-col items-center justify-center rounded-lg border border-border bg-card/95 p-1.5 text-muted-foreground shadow-md backdrop-blur-sm transition-colors hover:bg-accent hover:text-foreground active:cursor-grabbing"
+          className="mb-1 flex cursor-grab touch-none select-none items-center gap-1 rounded-full border border-border bg-card/95 px-2 py-0.5 text-muted-foreground shadow-md backdrop-blur-sm transition-colors hover:bg-accent hover:text-foreground active:cursor-grabbing"
           aria-label="Drag widget"
         >
-          <GripVertical className="h-4 w-4" />
-          <span className="text-[7px] font-bold uppercase leading-tight tracking-wider">{isDragging ? "Moving" : "Drag"}</span>
+          <GripVertical className="h-3 w-3" />
+          <span className="text-[8px] font-bold uppercase tracking-wider">{isDragging ? "Moving" : "Drag"}</span>
         </button>
-        <div className="flex-1">
-
-      {children}
-        </div>
+        {children}
       </div>
     </div>
   );
