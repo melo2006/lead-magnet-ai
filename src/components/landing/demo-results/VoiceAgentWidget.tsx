@@ -433,6 +433,7 @@ const VoiceAgentWidget = ({
           businessName,
           ownerName: resolvedOwnerName,
           callId,
+          callSummary: lastAgentMessage ? `The caller was discussing: ${lastAgentMessage.slice(0, 400)}` : "",
         },
       });
 
