@@ -65,7 +65,8 @@ const DemoResults = ({ leadData, onBack }: DemoResultsProps) => {
   }
 
   return (
-    <div className="mx-auto max-w-7xl space-y-6 sm:space-y-8">
+    <div className="relative mx-auto max-w-7xl space-y-6 sm:space-y-8">
+      <DemoWatermark />
       <motion.div
         initial={{ opacity: 0, y: 20 }}
         animate={{ opacity: 1, y: 0 }}
