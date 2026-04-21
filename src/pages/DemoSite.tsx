@@ -154,6 +154,7 @@ const ScanFallbackPreview = ({ leadData, siteName, homepageUrl }: ScanFallbackPr
 const mergeLeadRecordIntoDemoData = (record: any, current: DemoLeadData): DemoLeadData => ({
   ...current,
   leadId: record.id || current.leadId,
+  previewVersion: record.updated_at || current.previewVersion,
   fullName: record.full_name || current.fullName,
   businessName: record.business_name || current.businessName,
   email: record.email || current.email,
@@ -253,6 +254,7 @@ const DemoSite = () => {
   }, [responsiveScreenshotSrc]);
 
   const returnTo = searchParams.get("returnTo");
+  const leadIdParam = searchParams.get("leadId");
   const prospectIdParam = searchParams.get("prospectId");
   const callerNameParam = searchParams.get("callerName") || undefined;
   const callerEmailParam = searchParams.get("callerEmail") || undefined;
@@ -364,6 +366,40 @@ const DemoSite = () => {
       cancelled = true;
     };
   }, [callerPhoneParam, latestLeadData, prospectIdParam, searchParams.toString()]);
+
+  useEffect(() => {
+    if (latestLeadData || !leadIdParam) return;
+
+    let cancelled = false;
+
+    const loadExistingLead = async () => {
+      const { data, error } = await supabase
+        .from("leads")
+        .select("id, updated_at, full_name, business_name, email, phone, niche, website_url, website_screenshot, screenshot_tablet, screenshot_mobile, website_title, website_description, website_content, brand_colors, brand_logo, scan_status")
+        .eq("id", leadIdParam)
+        .maybeSingle();
+
+      if (error || !data || cancelled) return;
+
+      setLeadData((current) => mergeLeadRecordIntoDemoData(data, current || buildSeedLeadData({
+        websiteUrl: data.website_url,
+        businessName: data.business_name,
+        niche: data.niche,
+        prospectId: prospectIdParam || undefined,
+        callerPhone: callerPhoneParam,
+      })));
+
+      if (!["completed", "enriched", "failed"].includes(data.scan_status || "")) {
+        setIsScanning(true);
+      }
+    };
+
+    void loadExistingLead();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [callerPhoneParam, latestLeadData, leadIdParam, prospectIdParam]);
 
   useEffect(() => {
     if (!latestLeadData) return;
