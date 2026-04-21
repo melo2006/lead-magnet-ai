@@ -956,6 +956,8 @@ async function backgroundEnrich(
   }
 }
 
+const HARD_DEADLINE_MS = 130_000; // Return before the 150s idle timeout
+
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders });
@@ -963,11 +965,12 @@ Deno.serve(async (req) => {
 
   let leadId = '';
   let supabase: ReturnType<typeof createClient> | null = null;
+  const startTime = Date.now();
+  const isOverBudget = () => Date.now() - startTime > HARD_DEADLINE_MS;
 
   try {
     const { leadId: incomingLeadId, websiteUrl, businessName, secondaryUrl, uploadedFiles, initialNiche } = await req.json();
     leadId = incomingLeadId;
-
     if (!leadId || !websiteUrl) {
       return new Response(
         JSON.stringify({ success: false, error: 'leadId and websiteUrl are required' }),
