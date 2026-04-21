@@ -1143,9 +1143,9 @@ Deno.serve(async (req) => {
       console.warn('Time budget exceeded, skipping sub-page scraping');
     }
 
-    // Secondary URL (quick)
+    // Secondary URL (skip if over budget)
     let secondaryContent = '';
-    if (secondaryUrl && typeof secondaryUrl === 'string' && secondaryUrl.trim()) {
+    if (!isOverBudget() && secondaryUrl && typeof secondaryUrl === 'string' && secondaryUrl.trim()) {
       try {
         const secondary = await scrapeMarkdownPage(normalizeUrl(secondaryUrl), firecrawlKey);
         secondaryContent = secondary.markdown;
