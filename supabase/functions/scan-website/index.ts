@@ -461,9 +461,9 @@ async function scrapeMarkdownPage(url: string, apiKey: string) {
     url,
     formats: ['markdown', 'summary'],
     onlyMainContent: true,
-    waitFor: 2000,
-    timeout: 20000,
-  });
+    waitFor: 1500,
+    timeout: 12000,
+  }, 0);
 
   const data = unwrapFirecrawlPayload(response);
   return {
@@ -1021,19 +1021,19 @@ Deno.serve(async (req) => {
         url: formattedUrl,
         formats: firecrawlFormats,
         onlyMainContent: true,
-        waitFor: 4500,
-        timeout: 30000,
-      }, 1);
+        waitFor: 3000,
+        timeout: 15000,
+      }, 0);
     } catch (screenshotErr) {
       console.warn('Scrape failed, retrying simplified:', screenshotErr);
       try {
         homepageResponse = await firecrawlRequest('/scrape', firecrawlKey, {
           url: formattedUrl,
-          formats: ['markdown', 'branding', 'links', 'summary'],
+          formats: ['markdown', 'links', 'summary'],
           onlyMainContent: true,
-          waitFor: 3000,
-          timeout: 20000,
-        }, 1);
+          waitFor: 2000,
+          timeout: 12000,
+        }, 0);
       } catch (finalScrapeErr) {
         console.warn('Simplified scrape also failed, continuing with Browserless-first fallback:', finalScrapeErr);
         homepageResponse = {};
