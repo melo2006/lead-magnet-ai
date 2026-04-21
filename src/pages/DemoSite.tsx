@@ -7,6 +7,7 @@ import VoiceAgentWidget from "@/components/landing/demo-results/VoiceAgentWidget
 import ChatWidget from "@/components/landing/demo-results/ChatWidget";
 import WebsiteShowcase from "@/components/landing/demo-results/WebsiteShowcase";
 import DemoWatermark from "@/components/landing/demo-results/DemoWatermark";
+import DraggableFloating from "@/components/landing/demo-results/DraggableFloating";
 import ScanningAnimation from "@/components/landing/ScanningAnimation";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
