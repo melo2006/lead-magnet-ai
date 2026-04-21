@@ -177,8 +177,10 @@ Deno.serve(async (req) => {
 
   if (action === 'caller-twiml') {
     const conferenceName = requestUrl.searchParams.get('conference') || buildConferenceName();
+    const ownerName = requestUrl.searchParams.get('owner_name') || 'the business owner';
     const waitUrl = `${baseFunctionUrl}?action=wait-twiml${anonParam}`;
-    const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="Polly.Joanna-Neural" language="en-US">Please stay on the line while I connect you now.</Say><Dial><Conference waitUrl="${escapeXml(waitUrl)}" waitMethod="POST" startConferenceOnEnter="false" endConferenceOnExit="true" beep="false">${escapeXml(conferenceName)}</Conference></Dial></Response>`;
+    const sayText = `Please stay on the line while I connect you with ${ownerName} now.`;
+    const twiml = `<?xml version="1.0" encoding="UTF-8"?><Response><Say voice="Polly.Joanna-Neural" language="en-US">${escapeXml(sayText)}</Say><Dial><Conference waitUrl="${escapeXml(waitUrl)}" waitMethod="POST" startConferenceOnEnter="false" endConferenceOnExit="true" beep="false">${escapeXml(conferenceName)}</Conference></Dial></Response>`;
     return twimlResponse(twiml);
   }
 
@@ -192,11 +194,14 @@ Deno.serve(async (req) => {
     const callerCallSid = requestUrl.searchParams.get('caller_call_sid') || '';
     const joinUrl = `${baseFunctionUrl}?action=join-conference&conference=${encodeURIComponent(conferenceName)}&caller_call_sid=${encodeURIComponent(callerCallSid)}${anonParam}`;
 
+    const callSummary = requestUrl.searchParams.get('call_summary') || '';
+
     const whisperText = [
       `Hello ${ownerName}. This is Aspen with a live transfer from the ${businessName} demo.`,
       `${callerName} is waiting for you now.`,
       callerPhone ? `Their phone number is ${formatPhoneForSpeech(callerPhone)}.` : 'I do not have a confirmed callback phone number on file.',
       callerEmail ? `Their email is ${formatEmailForSpeech(callerEmail)}.` : '',
+      callSummary ? `Here is a quick summary of the conversation: ${callSummary}` : '',
       'Press any key now to join the live transfer.',
     ].filter(Boolean).join(' ');
 
