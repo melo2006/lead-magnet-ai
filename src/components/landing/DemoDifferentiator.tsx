@@ -3,7 +3,7 @@ import { Sparkles, ShieldCheck, Clock, DollarSign } from "lucide-react";
 
 const DemoDifferentiator = () => {
   return (
-    <section className="py-16 sm:py-20 relative overflow-hidden">
+    <section className="py-14 sm:py-20 relative overflow-hidden">
       <div className="absolute inset-0">
         <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[600px] rounded-full bg-primary/5 blur-[150px]" />
       </div>
@@ -20,7 +20,7 @@ const DemoDifferentiator = () => {
               <Sparkles className="w-4 h-4 text-accent" />
               <span className="text-sm font-medium text-accent">Why Businesses Choose Us</span>
             </div>
-            <h2 className="text-3xl sm:text-4xl font-bold mb-4">
+            <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
               Stop Losing Leads.{" "}
               <span className="text-gradient-primary">Start Converting 24/7.</span>
             </h2>
@@ -29,7 +29,7 @@ const DemoDifferentiator = () => {
             </p>
           </motion.div>
 
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-5 sm:gap-6">
             <motion.div
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
