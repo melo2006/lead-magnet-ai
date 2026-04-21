@@ -105,7 +105,7 @@ const pickRelevantLinks = (links: string[], rootUrl: string) => {
     return Number(preferred.test(b)) - Number(preferred.test(a));
   });
 
-  return filtered.slice(0, 15);
+  return filtered.slice(0, 6);
 };
 
 type ViewportConfig = {
