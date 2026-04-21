@@ -12,7 +12,7 @@ import ScanningAnimation from "@/components/landing/ScanningAnimation";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
-const DEFAULT_DEMO_OWNER_NAME = "Ron Melo";
+const DEFAULT_DEMO_OWNER_NAME = "your dedicated specialist";
 const LAST_DEMO_STORAGE_KEY = "lastDemoLeadData";
 
 const getHomepageUrl = (websiteUrl: string) => {
@@ -651,7 +651,7 @@ const DemoSite = () => {
     !isWebsiteUnreachable && (iframeBlocked || isMixedContentPreview(livePreviewUrl, embedOrigin));
   const hasCrmContext = Boolean(leadData.prospectId || prospectIdParam);
   // When coming from TryDemo form (not CRM), the form submitter IS the caller, not the business owner.
-  // The owner should default to Ron Melo in that case.
+  // The owner should default to a generic specialist title in that case.
   const isFormSubmitter = !hasCrmContext && leadData.fullName && leadData.fullName !== "CRM Prospect";
   const knownCallerName = callerNameParam || (isFormSubmitter ? leadData.fullName : undefined);
   const knownCallerEmail = callerEmailParam || (isFormSubmitter ? leadData.email : undefined);
@@ -706,18 +706,10 @@ const DemoSite = () => {
           <div className="flex min-w-0 items-center gap-2.5">
             <button
               onClick={handleBack}
-              aria-label="Back to AI Hidden Leads"
-              className="inline-flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-border bg-background/80 text-muted-foreground transition-colors hover:text-foreground sm:hidden"
+              className="inline-flex h-9 items-center gap-1.5 rounded-full border border-border bg-background/80 px-3 text-xs font-medium text-muted-foreground transition-colors hover:text-foreground sm:gap-2 sm:px-4 sm:text-sm"
             >
-              <ArrowLeft className="h-4 w-4" />
-            </button>
-            
-            <button
-              onClick={handleBack}
-              className="hidden sm:inline-flex h-9 items-center gap-2 rounded-full border border-border bg-background/80 px-4 text-sm font-medium text-muted-foreground transition-colors hover:text-foreground"
-            >
-              <ArrowLeft className="h-4 w-4" />
-              Back to AI Hidden Leads
+              <ArrowLeft className="h-4 w-4 shrink-0" />
+              <span className="truncate">Back to AI Hidden Leads</span>
             </button>
 
             <div className="min-w-0">
@@ -919,7 +911,7 @@ const DemoSite = () => {
         {/* ===== AI Widget buttons — draggable floating ===== */}
         {hasAnyPreview && (
           <>
-            <DraggableFloating initialX={12} initialY={window.innerHeight - 80}>
+            <DraggableFloating initialX={24} initialY={window.innerHeight - 100}>
               {chatOpen ? (
                 <div className="w-[min(20rem,calc(100vw-3rem))] max-h-[60vh] overflow-y-auto animate-in slide-in-from-bottom-4 fade-in duration-300">
                   <ChatWidget
@@ -954,7 +946,7 @@ const DemoSite = () => {
               )}
             </DraggableFloating>
 
-            <DraggableFloating initialX={window.innerWidth - 200} initialY={window.innerHeight - 80}>
+            <DraggableFloating initialX={window.innerWidth - 224} initialY={window.innerHeight - 100}>
               {voiceOpen ? (
                 <div className="w-[min(20rem,calc(100vw-3rem))] max-h-[60vh] overflow-y-auto animate-in slide-in-from-bottom-4 fade-in duration-300">
                   <VoiceAgentWidget

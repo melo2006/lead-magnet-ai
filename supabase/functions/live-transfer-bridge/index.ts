@@ -15,7 +15,7 @@ const corsHeaders = {
 
 const TWILIO_GATEWAY_URL = 'https://connector-gateway.lovable.dev/twilio';
 const TWILIO_CALLER_ID = '+15612755757';
-const DEFAULT_OWNER_NAME = 'Ron Melo';
+const DEFAULT_OWNER_NAME = 'your dedicated specialist';
 const DEFAULT_TRANSFER_NUMBER = '+19547706622';
 const HOLD_MUSIC_URL = 'https://com.twilio.music.classical.s3.amazonaws.com/BusyStrings.mp3';
 

@@ -6,7 +6,7 @@ import { Slider } from "@/components/ui/slider";
 import aspenAvatar from "@/assets/aspen-avatar.jpg";
 
 const RETELL_AGENT_ID = "agent_0dd08673d770e8adf08f920490";
-const DEFAULT_OWNER_NAME = "Ron Melo";
+const DEFAULT_OWNER_NAME = "your dedicated specialist";
 const LIVE_TRANSFER_READY_PHRASE = "i'm starting the live transfer now. please stay on the line while i connect you.";
 
 interface VoiceAgentWidgetProps {
