@@ -655,6 +655,7 @@ async function scrapeTikTokViaApify(
 
 function getStoredLandingUrl(ad: ScrapedAd): string {
   if (ad.platform !== "tiktok" || !ad.ad_id) return ad.landing_url;
+  if (!/library\.tiktok\.com|ads\.tiktok\.com/i.test(ad.landing_url)) return ad.landing_url;
   if (ad.landing_url.includes("src_ad_id=")) return ad.landing_url;
   return `${ad.landing_url}${ad.landing_url.includes("?") ? "&" : "?"}src_ad_id=${encodeURIComponent(ad.ad_id)}`;
 }
