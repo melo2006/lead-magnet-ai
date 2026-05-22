@@ -122,6 +122,16 @@ function isLikelyContactUrl(url: string): boolean {
   return /\/(contact|contact-us|book|booking|appointment|appointments|consultation|request|quote|schedule)(\/|\?|#|$)/i.test(url);
 }
 
+function canDiscoverContactPage(landingUrl: string | undefined): boolean {
+  if (!landingUrl) return false;
+  try {
+    const host = new URL(landingUrl).hostname.toLowerCase();
+    return !/(^|\.)(facebook|fb|instagram|tiktok)\.com$/.test(host);
+  } catch {
+    return false;
+  }
+}
+
 async function discoverContactPage(landingUrl: string, timeoutMs = 6500): Promise<string | undefined> {
   const origin = getOrigin(landingUrl);
   if (!origin) return undefined;
@@ -629,7 +639,7 @@ serve(async (req) => {
     }
 
     if (engagementTarget === "all_with_contact") {
-      const darkAds = allAds.filter((ad) => ad.metadata?.is_commentable !== true && ad.landing_url);
+      const darkAds = allAds.filter((ad) => ad.metadata?.is_commentable !== true && canDiscoverContactPage(ad.landing_url));
       let checked = 0;
       for (const ad of darkAds.slice(0, Math.min(darkAds.length, 20))) {
         const contactPageUrl = await discoverContactPage(ad.landing_url);
