@@ -327,18 +327,22 @@ serve(async (req) => {
     // Save only new ads for rescans so the count reflects fresh finds, not old duplicates.
     let upsertedCount = 0;
     let duplicateCount = 0;
-    if (allAds.length > 0) {
-      const keys = allAds.map((a) => `${a.platform}::${a.landing_url}`);
+    const uniqueAds = Array.from(
+      new Map(allAds.map((ad) => [`${ad.platform}::${ad.landing_url}`, ad])).values(),
+    );
+    duplicateCount += allAds.length - uniqueAds.length;
+
+    if (uniqueAds.length > 0) {
       const { data: existingRows, error: existingErr } = await supabase
         .from("scraped_ads")
         .select("platform,landing_url")
-        .in("landing_url", allAds.map((a) => a.landing_url));
+        .in("landing_url", uniqueAds.map((a) => a.landing_url));
       if (existingErr) throw existingErr;
       const existingKeys = new Set((existingRows ?? []).map((r: any) => `${r.platform}::${r.landing_url}`));
-      const rows = allAds
+      const rows = uniqueAds
         .filter((a) => !existingKeys.has(`${a.platform}::${a.landing_url}`))
         .map((a) => ({ ...a, scan_job_id: jobId }));
-      duplicateCount = keys.length - rows.length;
+      duplicateCount += uniqueAds.length - rows.length;
       if (rows.length > 0) {
         const { data: inserted, error: insertErr } = await supabase.from("scraped_ads").insert(rows).select("id");
         if (insertErr) throw insertErr;
