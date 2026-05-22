@@ -617,13 +617,18 @@ export default function AdHijack() {
                 </div>
                 <div className="flex items-center gap-3 text-muted-foreground flex-wrap">
                   <span>{j.ads_found} new ads</span>
+                  {typeof j.platform_results?._engagement_target === "string" && (
+                    <Badge variant="outline" className="text-[9px]">
+                      {String(j.platform_results._engagement_target).replaceAll("_", " ")}
+                    </Badge>
+                  )}
                   <span>${Number(j.total_cost_usd).toFixed(2)}</span>
                   <span>{new Date(j.created_at).toLocaleString()}</span>
                   <Button
                     size="sm"
                     variant="outline"
                     disabled={scanning}
-                    onClick={() => runScan({ niche: j.niche, location: j.location, platforms: j.platforms, mode: "rescan", jobId: j.id })}
+                    onClick={() => runScan({ niche: j.niche, location: j.location, platforms: j.platforms, mode: "rescan", jobId: j.id, engagementTarget })}
                     className="h-7 text-[10px]"
                   >
                     {scanningJobId === j.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
