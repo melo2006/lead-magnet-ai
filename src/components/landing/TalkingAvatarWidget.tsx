@@ -200,6 +200,7 @@ const TalkingAvatarWidget = () => {
   const audioSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const remoteTrackRef = useRef<any>(null);
   const silentSinkAudioRef = useRef<HTMLAudioElement | null>(null);
+  const speakerAudioRef = useRef<HTMLAudioElement | null>(null);
   const earpieceAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const retellClientRef = useRef<any>(null);
@@ -229,6 +230,30 @@ const TalkingAvatarWidget = () => {
       return false;
     }
   }, []);
+
+  const pickOutputSinkId = useCallback(async (route: "speaker" | "bluetooth") => {
+    if (!navigator.mediaDevices?.enumerateDevices) return null;
+    const outputs = (await navigator.mediaDevices.enumerateDevices()).filter((device) => device.kind === "audiooutput");
+    const isBluetooth = (label = "") => /bluetooth|airpods|buds|headset/i.test(label);
+    const isSpeaker = (label = "") => /speaker|loudspeaker|built.?in|phone/i.test(label) && !/earpiece|bluetooth|airpods|buds|headset|headphone/i.test(label);
+    const bluetooth = outputs.find((device) => isBluetooth(device.label));
+    setHasBluetoothOutput(Boolean(bluetooth));
+
+    if (route === "bluetooth") return bluetooth?.deviceId ?? null;
+    return outputs.find((device) => isSpeaker(device.label))?.deviceId ?? "default";
+  }, []);
+
+  const setSinkIfSupported = useCallback(async (element: HTMLAudioElement, route: "speaker" | "bluetooth") => {
+    if (typeof (element as any).setSinkId !== "function") return false;
+    const sinkId = await pickOutputSinkId(route);
+    if (!sinkId) return false;
+    try {
+      await (element as any).setSinkId(sinkId);
+      return true;
+    } catch {
+      return false;
+    }
+  }, [pickOutputSinkId]);
 
   const focusAvatarOnViewer = useCallback((duration = 300000) => {
     const head = talkingHeadRef.current;
