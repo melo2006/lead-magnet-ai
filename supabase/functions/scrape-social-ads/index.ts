@@ -692,6 +692,11 @@ serve(async (req) => {
       requestedTarget === "commentable_only" || requestedTarget === "all" || requestedTarget === "all_with_contact"
         ? requestedTarget
         : "all_with_contact";
+    const quality: ScanQualityFilters = {
+      minTikTokActiveDays: Math.min(Math.max(Number(body?.min_tiktok_active_days ?? 30), 0), 365),
+      minTikTokAudience: Math.min(Math.max(Number(body?.min_tiktok_audience ?? 1000), 0), 10000000),
+      requireBusinessWebsite: body?.require_business_website !== false,
+    };
 
     const APIFY_TOKEN = Deno.env.get("APIFY_API_TOKEN");
 
@@ -763,7 +768,7 @@ serve(async (req) => {
           batch = r.ads;
           totalCost += (batch.length / 1000) * 3.4;
         } else if (platform === "tiktok") {
-          batch = await scrapeTikTokViaApify(APIFY_TOKEN, niche, location, limitPerPlatform);
+          batch = await scrapeTikTokViaApify(APIFY_TOKEN, niche, location, limitPerPlatform, countries, quality);
           totalCost += (batch.length / 1000) * 3.5;
         }
         platformResults[platform] = { count: batch.length };
@@ -822,8 +827,8 @@ serve(async (req) => {
             approval_status: "pending",
             engagement_status,
             detected_language: typeof meta.detected_language === "string" ? meta.detected_language : null,
-            ad_country: countries[0] ?? null,
-            metadata: { ...meta, search_niche: niche, search_location: location, search_countries: countries, engagement_target: engagementTarget },
+            ad_country: typeof meta.region === "string" && countries.includes(meta.region.toUpperCase()) ? meta.region.toUpperCase() : countries[0] ?? null,
+            metadata: { ...meta, search_niche: niche, search_location: location, search_countries: countries, engagement_target: engagementTarget, quality_filters: quality },
           };
         });
       duplicateCount += uniqueAds.length - rows.length;
@@ -853,7 +858,7 @@ serve(async (req) => {
         status: "completed",
         ads_found: upsertedCount,
         total_cost_usd: Number(totalCost.toFixed(3)),
-        platform_results: { ...platformResults, _duplicates_skipped: duplicateCount, _mode: mode, _engagement_target: engagementTarget },
+        platform_results: { ...platformResults, _duplicates_skipped: duplicateCount, _mode: mode, _engagement_target: engagementTarget, _quality_filters: quality },
         completed_at: new Date().toISOString(),
       })
       .eq("id", jobId);
@@ -863,7 +868,7 @@ serve(async (req) => {
         success: true,
         job_id: jobId,
         ads_found: upsertedCount,
-        platform_results: { ...platformResults, _duplicates_skipped: duplicateCount, _mode: mode, _engagement_target: engagementTarget },
+        platform_results: { ...platformResults, _duplicates_skipped: duplicateCount, _mode: mode, _engagement_target: engagementTarget, _quality_filters: quality },
         total_cost_usd: Number(totalCost.toFixed(3)),
         apify_user: tokenCheck.username,
       }),
