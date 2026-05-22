@@ -1,11 +1,12 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { X, Mic, MicOff, Phone, PhoneOff, ExternalLink, Loader2, Minimize2, Maximize2, Volume2, Bluetooth, Headphones } from "lucide-react";
+import { X, Mic, MicOff, Phone, PhoneOff, ExternalLink, Loader2, Minimize2, Maximize2, Volume2, Bluetooth } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import realisticAvatar from "@/assets/aspen_blonde_avatar.jpg";
 import DraggableFloating from "@/components/landing/demo-results/DraggableFloating";
 
 type WidgetState = "collapsed" | "expanded" | "minimized";
 type CallStatus = "idle" | "connecting" | "active" | "ending";
+type AudioRoute = "speaker" | "earpiece" | "bluetooth";
 
 const AVATAR_MODEL_URL = "/aspen-brunette.glb";
 const AUTO_MINIMIZE_DELAY = 25000; // 25 seconds
@@ -191,11 +192,17 @@ const TalkingAvatarWidget = () => {
   const [isAgentSpeaking, setIsAgentSpeaking] = useState(false);
   const [duration, setDuration] = useState(0);
   const [avatarState, setAvatarState] = useState<"idle" | "loading" | "ready" | "error">("idle");
-  const [audioRoute, setAudioRoute] = useState<"speaker" | "earpiece">("speaker");
+  const [audioRoute, setAudioRoute] = useState<AudioRoute>("speaker");
+  const [hasBluetoothOutput, setHasBluetoothOutput] = useState(false);
+  const [isRoutingAudio, setIsRoutingAudio] = useState(false);
+  const audioRouteRef = useRef<AudioRoute>("speaker");
+  const hasUserChangedAudioRouteRef = useRef(false);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const audioSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const remoteTrackRef = useRef<any>(null);
   const silentSinkAudioRef = useRef<HTMLAudioElement | null>(null);
+  const speakerAudioRef = useRef<HTMLAudioElement | null>(null);
+  const earpieceAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const retellClientRef = useRef<any>(null);
   const talkingHeadRef = useRef<any>(null);
@@ -205,6 +212,49 @@ const TalkingAvatarWidget = () => {
   const motionTickRef = useRef(0);
   const autoMinimizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const morphStateRef = useRef<Record<LipSyncMorphName, number>>({ ...NEUTRAL_MORPHS });
+
+  const setAudioRouteState = useCallback((route: AudioRoute) => {
+    audioRouteRef.current = route;
+    setAudioRoute(route);
+  }, []);
+
+  const refreshBluetoothOutput = useCallback(async () => {
+    try {
+      if (!navigator.mediaDevices?.enumerateDevices) return false;
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const hasBluetooth = devices.some((device) =>
+        device.kind === "audiooutput" && /bluetooth|airpods|buds|headset/i.test(device.label || ""),
+      );
+      setHasBluetoothOutput(hasBluetooth);
+      return hasBluetooth;
+    } catch {
+      return false;
+    }
+  }, []);
+
+  const pickOutputSinkId = useCallback(async (route: "speaker" | "bluetooth") => {
+    if (!navigator.mediaDevices?.enumerateDevices) return null;
+    const outputs = (await navigator.mediaDevices.enumerateDevices()).filter((device) => device.kind === "audiooutput");
+    const isBluetooth = (label = "") => /bluetooth|airpods|buds|headset/i.test(label);
+    const isSpeaker = (label = "") => /speaker|loudspeaker|built.?in|phone/i.test(label) && !/earpiece|bluetooth|airpods|buds|headset|headphone/i.test(label);
+    const bluetooth = outputs.find((device) => isBluetooth(device.label));
+    setHasBluetoothOutput(Boolean(bluetooth));
+
+    if (route === "bluetooth") return bluetooth?.deviceId ?? null;
+    return outputs.find((device) => isSpeaker(device.label))?.deviceId ?? "default";
+  }, []);
+
+  const setSinkIfSupported = useCallback(async (element: HTMLAudioElement, route: "speaker" | "bluetooth") => {
+    if (typeof (element as any).setSinkId !== "function") return false;
+    const sinkId = await pickOutputSinkId(route);
+    if (!sinkId) return false;
+    try {
+      await (element as any).setSinkId(sinkId);
+      return true;
+    } catch {
+      return false;
+    }
+  }, [pickOutputSinkId]);
 
   const focusAvatarOnViewer = useCallback((duration = 300000) => {
     const head = talkingHeadRef.current;
@@ -429,6 +479,13 @@ const TalkingAvatarWidget = () => {
     };
   }, [cleanupAvatar]);
 
+  useEffect(() => {
+    void refreshBluetoothOutput();
+    const handleDeviceChange = () => void refreshBluetoothOutput();
+    navigator.mediaDevices?.addEventListener?.("devicechange", handleDeviceChange);
+    return () => navigator.mediaDevices?.removeEventListener?.("devicechange", handleDeviceChange);
+  }, [refreshBluetoothOutput]);
+
   const startCall = useCallback(async () => {
     setCallStatus("connecting");
     try {
@@ -486,6 +543,11 @@ const TalkingAvatarWidget = () => {
         analyser.smoothingTimeConstant = 0.18;
       }
 
+      const bluetoothAvailable = await refreshBluetoothOutput();
+      if (bluetoothAvailable && audioRouteRef.current === "speaker") {
+        setAudioRouteState("bluetooth");
+      }
+
       // ── Android speakerphone fix ──
       // LiveKit (used by Retell) attaches the remote WebRTC track to a regular
       // <audio> element. Android Chrome routes that to the EARPIECE because it's
@@ -507,13 +569,33 @@ const TalkingAvatarWidget = () => {
 
       const routeToSpeaker = async () => {
         try {
+          setIsRoutingAudio(true);
           const track = remoteTrackRef.current ?? findRemoteTrack();
           if (!track) return;
           remoteTrackRef.current = track;
           // Detach the LiveKit-attached audio element (earpiece route).
           try { track.detach().forEach((el: HTMLAudioElement) => el.remove()); } catch { /* noop */ }
+          if (earpieceAudioRef.current) {
+            earpieceAudioRef.current.pause();
+            earpieceAudioRef.current.srcObject = null;
+            earpieceAudioRef.current.remove();
+            earpieceAudioRef.current = null;
+          }
 
           const stream = new MediaStream([track.mediaStreamTrack]);
+          if (!speakerAudioRef.current) {
+            const speakerAudio = document.createElement("audio");
+            speakerAudio.autoplay = true;
+            speakerAudio.muted = false;
+            (speakerAudio as any).playsInline = false;
+            speakerAudio.style.display = "none";
+            document.body.appendChild(speakerAudio);
+            speakerAudioRef.current = speakerAudio;
+          }
+          speakerAudioRef.current.srcObject = stream;
+          await setSinkIfSupported(speakerAudioRef.current, "speaker");
+          await speakerAudioRef.current.play().catch(() => {});
+
           const AC = (window.AudioContext || (window as any).webkitAudioContext) as typeof AudioContext;
           if (!audioCtxRef.current) audioCtxRef.current = new AC();
           const ctx = audioCtxRef.current;
@@ -535,13 +617,17 @@ const TalkingAvatarWidget = () => {
           }
           silentSinkAudioRef.current.srcObject = stream;
           silentSinkAudioRef.current.play().catch(() => {});
+          setAudioRouteState("speaker");
         } catch (e) {
           console.error("Failed to route audio to speaker:", e);
+        } finally {
+          setIsRoutingAudio(false);
         }
       };
 
-      const routeToEarpiece = () => {
+      const routeToEarpiece = async () => {
         try {
+          setIsRoutingAudio(true);
           // Tear down Web Audio (speaker) route
           try { audioSourceRef.current?.disconnect(); } catch { /* noop */ }
           audioSourceRef.current = null;
@@ -550,26 +636,72 @@ const TalkingAvatarWidget = () => {
             silentSinkAudioRef.current.pause();
             silentSinkAudioRef.current.srcObject = null;
           }
+          if (speakerAudioRef.current) {
+            speakerAudioRef.current.pause();
+            speakerAudioRef.current.srcObject = null;
+            speakerAudioRef.current.remove();
+            speakerAudioRef.current = null;
+          }
           const track = remoteTrackRef.current ?? findRemoteTrack();
           remoteTrackRef.current = track;
           if (!track) return;
           // LiveKit attach() returns an audio element; we MUST append it to DOM
           // and unmute it so Android routes via voice-communication (earpiece / BT-HSP).
+          if (earpieceAudioRef.current) {
+            earpieceAudioRef.current.pause();
+            earpieceAudioRef.current.srcObject = null;
+            earpieceAudioRef.current.remove();
+          }
           const el = track.attach() as HTMLAudioElement;
           el.muted = false;
           el.autoplay = true;
           (el as any).playsInline = true;
           el.style.display = "none";
           document.body.appendChild(el);
-          el.play().catch(() => {});
+          earpieceAudioRef.current = el;
+          await el.play().catch(() => {});
+          setAudioRouteState("earpiece");
         } catch (e) {
           console.error("Failed to route audio to earpiece:", e);
+        } finally {
+          setIsRoutingAudio(false);
         }
+      };
+
+      const routeToBluetooth = async () => {
+        try {
+          setIsRoutingAudio(true);
+          const track = remoteTrackRef.current ?? findRemoteTrack();
+          if (!track) return;
+          remoteTrackRef.current = track;
+          try { track.detach().forEach((el: HTMLAudioElement) => el.remove()); } catch { /* noop */ }
+          try { audioSourceRef.current?.disconnect(); } catch { /* noop */ }
+          audioSourceRef.current = null;
+          const stream = new MediaStream([track.mediaStreamTrack]);
+          if (!speakerAudioRef.current) {
+            const bluetoothAudio = document.createElement("audio");
+            bluetoothAudio.autoplay = true;
+            bluetoothAudio.muted = false;
+            (bluetoothAudio as any).playsInline = true;
+            bluetoothAudio.style.display = "none";
+            document.body.appendChild(bluetoothAudio);
+            speakerAudioRef.current = bluetoothAudio;
+          }
+          speakerAudioRef.current.srcObject = stream;
+          await setSinkIfSupported(speakerAudioRef.current, "bluetooth");
+          await speakerAudioRef.current.play().catch(() => {});
+        } catch (e) {
+          console.error("Failed to route audio to Bluetooth:", e);
+        } finally {
+          setIsRoutingAudio(false);
+        }
+        setAudioRouteState("bluetooth");
       };
 
       // Wait briefly for the remote track to arrive, then default to speaker.
       const speakerDefaultTimer = setTimeout(() => {
-        if (audioRoute === "speaker") routeToSpeaker();
+        if (audioRouteRef.current === "bluetooth") routeToBluetooth();
+        else if (audioRouteRef.current === "speaker") routeToSpeaker();
       }, 400);
 
       retellClient.on("call_ended", () => {
@@ -582,6 +714,16 @@ const TalkingAvatarWidget = () => {
           silentSinkAudioRef.current.remove();
           silentSinkAudioRef.current = null;
         }
+        if (speakerAudioRef.current) {
+          speakerAudioRef.current.srcObject = null;
+          speakerAudioRef.current.remove();
+          speakerAudioRef.current = null;
+        }
+        if (earpieceAudioRef.current) {
+          earpieceAudioRef.current.srcObject = null;
+          earpieceAudioRef.current.remove();
+          earpieceAudioRef.current = null;
+        }
         try { audioCtxRef.current?.close(); } catch { /* noop */ }
         audioCtxRef.current = null;
       });
@@ -589,11 +731,12 @@ const TalkingAvatarWidget = () => {
       // Expose helpers on the ref so the toggle button can call them.
       (retellClientRef.current as any)._routeSpeaker = routeToSpeaker;
       (retellClientRef.current as any)._routeEarpiece = routeToEarpiece;
+      (retellClientRef.current as any)._routeBluetooth = routeToBluetooth;
     } catch (err) {
       console.error("Failed to start spokesperson call:", err);
       setCallStatus("idle");
     }
-  }, [focusAvatarOnViewer, resetAvatarMotion, audioRoute]);
+  }, [focusAvatarOnViewer, resetAvatarMotion, refreshBluetoothOutput, setAudioRouteState, setSinkIfSupported]);
 
   const endCall = useCallback(() => {
     try { retellClientRef.current?.stopCall(); } catch { /* noop */ }
@@ -615,14 +758,36 @@ const TalkingAvatarWidget = () => {
   const toggleAudioRoute = useCallback(async () => {
     const client = retellClientRef.current as any;
     if (!client) return;
-    if (audioRoute === "speaker") {
-      client._routeEarpiece?.();
-      setAudioRoute("earpiece");
-    } else {
+    if (isRoutingAudio) return;
+    if (!hasUserChangedAudioRouteRef.current) {
+      hasUserChangedAudioRouteRef.current = true;
       await client._routeSpeaker?.();
-      setAudioRoute("speaker");
+      return;
     }
-  }, [audioRoute]);
+    const nextRoute: AudioRoute =
+      audioRoute === "bluetooth"
+        ? "speaker"
+        : audioRoute === "speaker"
+          ? "earpiece"
+          : hasBluetoothOutput
+            ? "bluetooth"
+            : "speaker";
+
+    if (nextRoute === "speaker") await client._routeSpeaker?.();
+    else if (nextRoute === "bluetooth") await client._routeBluetooth?.();
+    else await client._routeEarpiece?.();
+  }, [audioRoute, hasBluetoothOutput, isRoutingAudio]);
+
+  const audioRouteTitle =
+    audioRoute === "speaker"
+      ? "Speakerphone active (tap for earpiece)"
+      : audioRoute === "bluetooth"
+        ? "Bluetooth active (tap for speakerphone)"
+        : hasBluetoothOutput
+          ? "Earpiece active (tap for Bluetooth)"
+          : "Earpiece active (tap for speakerphone)";
+
+  const AudioRouteIcon = audioRoute === "bluetooth" ? Bluetooth : audioRoute === "speaker" ? Volume2 : Phone;
 
 
 
@@ -703,12 +868,13 @@ const TalkingAvatarWidget = () => {
               </button>
               <button
                 onClick={toggleAudioRoute}
+                disabled={isRoutingAudio}
                 className={`rounded-full p-1.5 transition-all ${
-                  audioRoute === "speaker" ? "bg-primary/15 text-primary" : "bg-muted text-foreground"
+                  audioRoute !== "earpiece" ? "bg-primary/15 text-primary" : "bg-muted text-foreground"
                 }`}
-                title={audioRoute === "speaker" ? "Speakerphone (tap for earpiece)" : "Earpiece (tap for speakerphone)"}
+                title={audioRouteTitle}
               >
-                {audioRoute === "speaker" ? <Volume2 className="h-3 w-3" /> : <Phone className="h-3 w-3" />}
+                <AudioRouteIcon className="h-3 w-3" />
               </button>
               <button
                 onClick={endCall}
@@ -847,12 +1013,13 @@ const TalkingAvatarWidget = () => {
               </button>
               <button
                 onClick={toggleAudioRoute}
+                disabled={isRoutingAudio}
                 className={`rounded-full p-2 transition-all flex items-center gap-1 ${
-                  audioRoute === "speaker" ? "bg-primary/15 text-primary" : "bg-muted text-foreground hover:bg-muted/80"
+                  audioRoute !== "earpiece" ? "bg-primary/15 text-primary" : "bg-muted text-foreground hover:bg-muted/80"
                 }`}
-                title={audioRoute === "speaker" ? "Speakerphone (tap for earpiece)" : "Earpiece (tap for speakerphone)"}
+                title={audioRouteTitle}
               >
-                {audioRoute === "speaker" ? <Volume2 className="h-3.5 w-3.5" /> : <Phone className="h-3.5 w-3.5" />}
+                <AudioRouteIcon className="h-3.5 w-3.5" />
               </button>
               <button
                 onClick={handleMinimize}
