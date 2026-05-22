@@ -419,7 +419,7 @@ function pickTikTokPostUrl(item: any): string | undefined {
   const candidates = [
     item.detailUrl, item.detail_url, item.previewUrl, item.preview_url,
     item.videoUrl, item.video_url, item.shareUrl, item.share_url,
-    item.adUrl, item.ad_url, item.url,
+    item.adUrl, item.ad_url, item.landing_page_url, item.landingPageUrl, item.url,
   ];
   for (const v of candidates) {
     const u = cleanUrl(v);
@@ -430,16 +430,16 @@ function pickTikTokPostUrl(item: any): string | undefined {
 
 function normalizeTikTokAd(item: any): ScrapedAd | null {
   const landingRaw =
-    item.landingPageUrl || item.landing_url || item.landingUrl ||
+    item.landingPageUrl || item.landing_page_url || item.landing_url || item.landingUrl ||
     item.adUrl || item.url || item.advertiserUrl || item.click_url ||
     item.brandUrl || item.brand_url;
   const tikTokPostUrl = pickTikTokPostUrl(item);
   const videoUrl =
     item.videoUrl || item.video_url || item.videoUrl1080p || item.videoUrl720p ||
-    item.video_url_1080p || item.video_url_720p;
-  const coverUrl = item.coverUrl || item.cover_url || item.imageUrl;
+    item.video_url_1080p || item.video_url_720p || item.video_url_hd;
+  const coverUrl = item.coverUrl || item.cover_url || item.cover_image_url || item.imageUrl;
   const advertiserName =
-    item.advertiserName || item.brandName || item.advertiser ||
+    item.advertiserName || item.advertiser_name || item.brandName || item.advertiser ||
     item.brand || item.author || item.nickname || "Unknown";
 
   // Permissive: keep if we have ANY usable signal.
@@ -464,12 +464,12 @@ function normalizeTikTokAd(item: any): ScrapedAd | null {
 
   return {
     platform: "tiktok",
-    ad_id: item.id || item.adId || item.materialId || item.adIdStr || tikTokPostUrl || crypto.randomUUID(),
+    ad_id: item.id || item.ad_id || item.adId || item.materialId || item.adIdStr || tikTokPostUrl || crypto.randomUUID(),
     advertiser_name: advertiserName,
-    advertiser_handle: item.advertiserId || item.brandId || item.uniqueId,
+    advertiser_handle: item.advertiserId || item.advertiser_id || item.brandId || item.uniqueId,
     landing_url: landingUrl,
-    cta_text: item.cta || item.ctaText || item.callToAction,
-    ad_creative_text: item.title || item.description || item.adText || item.text,
+    cta_text: item.cta || item.ctaText || item.cta_text || item.callToAction,
+    ad_creative_text: item.title || item.description || item.adText || item.ad_text || item.text,
     ad_media_url: videoUrl || coverUrl,
     posted_at: startRaw ? String(startRaw) : undefined,
     source_ad_url: tikTokPostUrl,
