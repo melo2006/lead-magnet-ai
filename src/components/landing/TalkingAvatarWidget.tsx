@@ -661,27 +661,32 @@ const TalkingAvatarWidget = () => {
         </div>
       </div>
 
-      {/* 3D Avatar — smaller */}
+      {/* Aspen photo with glow */}
       <div className="relative overflow-hidden bg-gradient-to-b from-muted/40 via-background to-muted/20">
-        <div ref={avatarContainerRef} className="relative h-[180px] w-full [&>canvas]:!h-full [&>canvas]:!w-full" />
-
-        {avatarState !== "ready" && (
-          <div className="absolute inset-0 flex items-center justify-center bg-background/70 backdrop-blur-sm">
-            <div className="relative h-28 w-28 overflow-hidden rounded-2xl border border-border bg-card shadow-xl">
-              <img src={realisticAvatar} alt="Aspen preview" className="h-full w-full object-cover" />
-              <div className="absolute inset-0 flex flex-col items-center justify-center gap-1.5 bg-background/70 text-center">
-                {avatarState === "loading" ? <Loader2 className="h-4 w-4 animate-spin text-primary" /> : null}
-                <p className="max-w-[8rem] text-[10px] font-medium text-foreground">
-                  {avatarState === "error" ? "3D avatar failed to load." : "Loading Aspen…"}
-                </p>
-              </div>
-            </div>
+        <div className="relative h-[180px] w-full flex items-center justify-center">
+          {/* Glow rings — intensify when speaking */}
+          <div
+            className={`pointer-events-none absolute h-36 w-36 rounded-full bg-primary/30 blur-3xl transition-opacity duration-300 ${
+              isAgentSpeaking ? "opacity-100 animate-pulse" : callStatus === "active" ? "opacity-60" : "opacity-40"
+            }`}
+          />
+          <div
+            className={`pointer-events-none absolute h-28 w-28 rounded-full bg-primary/40 blur-2xl transition-opacity duration-300 ${
+              isAgentSpeaking ? "opacity-100 animate-pulse" : "opacity-50"
+            }`}
+          />
+          <div
+            className={`relative h-32 w-32 overflow-hidden rounded-full border-2 shadow-2xl transition-all duration-300 ${
+              isAgentSpeaking
+                ? "border-primary shadow-[0_0_40px_hsl(var(--primary)/0.7)] scale-105"
+                : callStatus === "active"
+                  ? "border-primary/60 shadow-[0_0_24px_hsl(var(--primary)/0.4)]"
+                  : "border-border"
+            }`}
+          >
+            <img src={realisticAvatar} alt="Aspen" className="h-full w-full object-cover" />
           </div>
-        )}
-
-        {avatarState === "ready" && isAgentSpeaking && (
-          <div className="pointer-events-none absolute inset-x-12 bottom-4 h-10 rounded-full bg-primary/15 blur-2xl animate-pulse" />
-        )}
+        </div>
 
         {callStatus === "active" && (
           <div className="pointer-events-none absolute right-2 top-2 rounded-full border border-border bg-card/80 px-2 py-0.5 text-[9px] font-semibold text-foreground shadow-sm backdrop-blur-sm">
