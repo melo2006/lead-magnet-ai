@@ -745,16 +745,16 @@ const DemoSite = () => {
             </button>
           </div>
 
-          {/* Right: CTA Sign Up button */}
+          {/* Right: CTA info button */}
           <button
             onClick={() => navigate("/#pricing")}
-            className="group relative shrink-0 overflow-hidden rounded-xl border border-primary/50 bg-primary/15 px-3 py-1.5 text-left transition-all hover:border-primary hover:bg-primary/25 hover:shadow-lg hover:shadow-primary/20 sm:px-4 sm:py-2"
+            className="group relative shrink-0 overflow-hidden rounded-xl border border-primary/50 bg-primary px-3 py-1.5 text-left text-primary-foreground transition-all hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20 sm:px-4 sm:py-2"
           >
-            <p className="text-[10px] font-extrabold uppercase leading-tight tracking-wide text-primary sm:text-xs">
-              50% Off — Sign Up
+            <p className="text-[10px] font-extrabold uppercase leading-tight tracking-wide sm:text-xs">
+              Get More Info
             </p>
-            <p className="text-[8px] font-medium leading-tight text-muted-foreground sm:text-[9px]">
-              Voice + Chat from $99/mo
+            <p className="text-[8px] font-medium leading-tight text-primary-foreground/80 sm:text-[9px]">
+              AI Hidden Leads
             </p>
           </button>
         </div>
