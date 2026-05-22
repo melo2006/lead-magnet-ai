@@ -421,7 +421,9 @@ export default function AdHijack() {
     jobId?: string;
     engagementTarget?: EngagementTarget;
   }) => {
-    const scanNiche = (override?.niche ?? searchKeyword).trim();
+    const isAllSubniches =
+      !override?.niche && selectedNicheId !== "custom" && subNiche === "__all__";
+    const scanNiche = (override?.niche ?? (isAllSubniches ? selectedNiche.keywords[0] : searchKeyword)).trim();
     const scanLocationRaw = (override?.location ?? location) ?? "";
     const scanLocation = validateLocation(scanLocationRaw);
     const scanPlatforms = (override?.platforms ?? selectedPlatforms).filter(
@@ -448,32 +450,49 @@ export default function AdHijack() {
     setScanning(true);
     setScanningJobId(override?.jobId ?? null);
     try {
-      const { data, error } = await supabase.functions.invoke("scrape-social-ads", {
-        body: {
-          niche: scanNiche,
-          location: scanLocation.normalized,
-          countries: scanCountries,
-          languages: scanLanguages,
-          platforms: scanPlatforms,
-          limit: override?.mode === "rescan" ? Math.max(Number(limit), 50) : Number(limit),
-          mode: override?.mode ?? "fresh",
-          engagement_target: override?.engagementTarget ?? engagementTarget,
-        },
-      });
-      if (error) throw error;
+      const keywordsToScan = isAllSubniches ? selectedNiche.keywords : [scanNiche];
+      let totalFound = 0;
+      let totalDuplicates = 0;
+      const perPlatformTotals: Record<string, number> = {};
+      const perKeywordSummary: string[] = [];
 
-      const duplicates = data?.platform_results?._duplicates_skipped ?? 0;
-      const platformSummary = Object.entries(data?.platform_results ?? {})
-        .filter(([platform]) => !platform.startsWith("_"))
-        .map(([platform, result]) => {
-          const scanResult = result as PlatformScanResult;
-          return `${platform}: ${scanResult.count}${scanResult.error ? " ⚠" : ""}`;
-        })
+      for (const kw of keywordsToScan) {
+        const { data, error } = await supabase.functions.invoke("scrape-social-ads", {
+          body: {
+            niche: kw,
+            location: scanLocation.normalized,
+            countries: scanCountries,
+            languages: scanLanguages,
+            platforms: scanPlatforms,
+            limit: override?.mode === "rescan" ? Math.max(Number(limit), 50) : Number(limit),
+            mode: override?.mode ?? "fresh",
+            engagement_target: override?.engagementTarget ?? engagementTarget,
+          },
+        });
+        if (error) throw error;
+
+        totalFound += data?.ads_found ?? 0;
+        totalDuplicates += data?.platform_results?._duplicates_skipped ?? 0;
+        Object.entries(data?.platform_results ?? {})
+          .filter(([platform]) => !platform.startsWith("_"))
+          .forEach(([platform, result]) => {
+            const r = result as PlatformScanResult;
+            perPlatformTotals[platform] = (perPlatformTotals[platform] ?? 0) + (r.count ?? 0);
+          });
+        if (isAllSubniches) perKeywordSummary.push(`${kw}: ${data?.ads_found ?? 0}`);
+      }
+
+      const platformSummary = Object.entries(perPlatformTotals)
+        .map(([p, c]) => `${p}: ${c}`)
         .join(" · ");
 
       toast({
-        title: `${override?.mode === "rescan" ? "Rescan" : "Scan"} complete — ${data?.ads_found ?? 0} new ads`,
-        description: `${platformSummary}${duplicates ? ` · ${duplicates} duplicates skipped` : ""}`,
+        title: `${override?.mode === "rescan" ? "Rescan" : "Scan"} complete — ${totalFound} new ads${
+          isAllSubniches ? ` across ${keywordsToScan.length} keywords` : ""
+        }`,
+        description: `${platformSummary}${totalDuplicates ? ` · ${totalDuplicates} duplicates skipped` : ""}${
+          isAllSubniches ? ` · ${perKeywordSummary.join(", ")}` : ""
+        }`,
       });
       await loadData();
     } catch (e: unknown) {
@@ -487,6 +506,7 @@ export default function AdHijack() {
       setScanningJobId(null);
     }
   };
+
 
   const checkApify = async () => {
     setApiStatus("Checking…");
@@ -700,6 +720,7 @@ export default function AdHijack() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="__all__">⭐ All sub-niches ({selectedNiche.keywords.length})</SelectItem>
                   {selectedNiche.keywords.map((keyword) => (
                     <SelectItem key={keyword} value={keyword}>
                       {keyword}
