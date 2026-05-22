@@ -478,6 +478,12 @@ const TalkingAvatarWidget = () => {
     };
   }, [cleanupAvatar]);
 
+  useEffect(() => {
+    void refreshBluetoothOutput();
+    navigator.mediaDevices?.addEventListener?.("devicechange", refreshBluetoothOutput);
+    return () => navigator.mediaDevices?.removeEventListener?.("devicechange", refreshBluetoothOutput);
+  }, [refreshBluetoothOutput]);
+
   const startCall = useCallback(async () => {
     setCallStatus("connecting");
     try {
@@ -533,6 +539,11 @@ const TalkingAvatarWidget = () => {
       if (analyser) {
         analyser.fftSize = 1024;
         analyser.smoothingTimeConstant = 0.18;
+      }
+
+      const bluetoothAvailable = await refreshBluetoothOutput();
+      if (bluetoothAvailable && audioRouteRef.current === "speaker") {
+        setAudioRouteState("bluetooth");
       }
 
       // ── Android speakerphone fix ──
@@ -687,7 +698,8 @@ const TalkingAvatarWidget = () => {
 
       // Wait briefly for the remote track to arrive, then default to speaker.
       const speakerDefaultTimer = setTimeout(() => {
-        if (audioRouteRef.current === "speaker") routeToSpeaker();
+        if (audioRouteRef.current === "bluetooth") routeToBluetooth();
+        else if (audioRouteRef.current === "speaker") routeToSpeaker();
       }, 400);
 
       retellClient.on("call_ended", () => {
@@ -699,6 +711,11 @@ const TalkingAvatarWidget = () => {
           silentSinkAudioRef.current.srcObject = null;
           silentSinkAudioRef.current.remove();
           silentSinkAudioRef.current = null;
+        }
+        if (speakerAudioRef.current) {
+          speakerAudioRef.current.srcObject = null;
+          speakerAudioRef.current.remove();
+          speakerAudioRef.current = null;
         }
         if (earpieceAudioRef.current) {
           earpieceAudioRef.current.srcObject = null;
