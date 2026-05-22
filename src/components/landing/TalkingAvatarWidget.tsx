@@ -640,8 +640,10 @@ const TalkingAvatarWidget = () => {
           try { audioCtxRef.current?.suspend(); } catch { /* noop */ }
           if (silentSinkAudioRef.current) {
             silentSinkAudioRef.current.pause();
-            silentSinkAudioRef.current.srcObject = null;
+            silentSinkAudioRef.current.removeAttribute("src");
+            try { silentSinkAudioRef.current.load(); } catch { /* noop */ }
           }
+
           if (speakerAudioRef.current) {
             speakerAudioRef.current.pause();
             speakerAudioRef.current.srcObject = null;
