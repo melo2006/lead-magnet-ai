@@ -480,8 +480,9 @@ const TalkingAvatarWidget = () => {
 
   useEffect(() => {
     void refreshBluetoothOutput();
-    navigator.mediaDevices?.addEventListener?.("devicechange", refreshBluetoothOutput);
-    return () => navigator.mediaDevices?.removeEventListener?.("devicechange", refreshBluetoothOutput);
+    const handleDeviceChange = () => void refreshBluetoothOutput();
+    navigator.mediaDevices?.addEventListener?.("devicechange", handleDeviceChange);
+    return () => navigator.mediaDevices?.removeEventListener?.("devicechange", handleDeviceChange);
   }, [refreshBluetoothOutput]);
 
   const startCall = useCallback(async () => {
