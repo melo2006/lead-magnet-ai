@@ -327,6 +327,17 @@ const getDaysRunning = (ad: ScrapedAd): number | null => {
   const v = ad.metadata?.days_running;
   return typeof v === "number" ? v : null;
 };
+const getAudienceSize = (ad: ScrapedAd): number | null => {
+  const values = [ad.metadata?.estimated_audience, ad.metadata?.target_audience_size, ad.metadata?.likes, ad.metadata?.views];
+  for (const value of values) {
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string" && value.trim()) {
+      const parsed = Number(value.replace(/[^0-9.]/g, ""));
+      if (Number.isFinite(parsed)) return parsed;
+    }
+  }
+  return null;
+};
 const getVariantCount = (ad: ScrapedAd): number => {
   const v = ad.metadata?.variant_count;
   return typeof v === "number" && v > 0 ? v : 1;
@@ -366,9 +377,12 @@ export default function AdHijack() {
   const [subNiche, setSubNiche] = useState("ai agent");
   const [customNiche, setCustomNiche] = useState("");
   const [location, setLocation] = useState("");
-  const [selectedCountries, setSelectedCountries] = useState<Country[]>(["US", "CA", "GB", "AU"]);
+  const [selectedCountries, setSelectedCountries] = useState<Country[]>(["US"]);
   const [englishOnly, setEnglishOnly] = useState(true);
   const [limit, setLimit] = useState("25");
+  const [minTikTokActiveDays, setMinTikTokActiveDays] = useState("30");
+  const [minTikTokAudience, setMinTikTokAudience] = useState("1000");
+  const [requireBusinessWebsite, setRequireBusinessWebsite] = useState(true);
   const [selectedPlatforms, setSelectedPlatforms] = useState<SupportedPlatform[]>(["meta", "tiktok"]);
   const [scanning, setScanning] = useState(false);
   const [scanningJobId, setScanningJobId] = useState<string | null>(null);
@@ -467,6 +481,9 @@ export default function AdHijack() {
             limit: override?.mode === "rescan" ? Math.max(Number(limit), 50) : Number(limit),
             mode: override?.mode ?? "fresh",
             engagement_target: override?.engagementTarget ?? engagementTarget,
+            min_tiktok_active_days: Number(minTikTokActiveDays),
+            min_tiktok_audience: Number(minTikTokAudience),
+            require_business_website: requireBusinessWebsite,
           },
         });
         if (error) throw error;
