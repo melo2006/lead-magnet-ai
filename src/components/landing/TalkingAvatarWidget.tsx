@@ -861,12 +861,13 @@ const TalkingAvatarWidget = () => {
               </button>
               <button
                 onClick={toggleAudioRoute}
+                disabled={isRoutingAudio}
                 className={`rounded-full p-1.5 transition-all ${
-                  audioRoute === "speaker" ? "bg-primary/15 text-primary" : "bg-muted text-foreground"
+                  audioRoute !== "earpiece" ? "bg-primary/15 text-primary" : "bg-muted text-foreground"
                 }`}
-                title={audioRoute === "speaker" ? "Speakerphone (tap for earpiece)" : "Earpiece (tap for speakerphone)"}
+                title={audioRouteTitle}
               >
-                {audioRoute === "speaker" ? <Volume2 className="h-3 w-3" /> : <Phone className="h-3 w-3" />}
+                <AudioRouteIcon className="h-3 w-3" />
               </button>
               <button
                 onClick={endCall}
@@ -1005,12 +1006,13 @@ const TalkingAvatarWidget = () => {
               </button>
               <button
                 onClick={toggleAudioRoute}
+                disabled={isRoutingAudio}
                 className={`rounded-full p-2 transition-all flex items-center gap-1 ${
-                  audioRoute === "speaker" ? "bg-primary/15 text-primary" : "bg-muted text-foreground hover:bg-muted/80"
+                  audioRoute !== "earpiece" ? "bg-primary/15 text-primary" : "bg-muted text-foreground hover:bg-muted/80"
                 }`}
-                title={audioRoute === "speaker" ? "Speakerphone (tap for earpiece)" : "Earpiece (tap for speakerphone)"}
+                title={audioRouteTitle}
               >
-                {audioRoute === "speaker" ? <Volume2 className="h-3.5 w-3.5" /> : <Phone className="h-3.5 w-3.5" />}
+                <AudioRouteIcon className="h-3.5 w-3.5" />
               </button>
               <button
                 onClick={handleMinimize}
