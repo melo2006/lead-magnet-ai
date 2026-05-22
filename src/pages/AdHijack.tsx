@@ -21,7 +21,8 @@ import {
 type Platform = "meta" | "tiktok" | "linkedin" | "google";
 type SupportedPlatform = "meta" | "tiktok";
 type EngagementTarget = "all" | "commentable_only" | "all_with_contact";
-type AdsFilter = "all" | "commentable" | "contact_fallback" | "dark";
+type AdsFilter = "all" | "commentable" | "contact_fallback" | "dark" | "pending" | "approved" | "rejected";
+type Country = "US" | "CA" | "GB" | "AU";
 
 interface ScrapedAd {
   id: string;
@@ -35,6 +36,10 @@ interface ScrapedAd {
   posted_at: string | null;
   comment_template: string | null;
   status: string;
+  approval_status: string | null;
+  engagement_status: string | null;
+  detected_language: string | null;
+  ad_country: string | null;
   prospect_id: string | null;
   scan_job_id: string | null;
   created_at: string;
@@ -46,6 +51,8 @@ interface ScanJob {
   niche: string;
   location: string | null;
   platforms: string[];
+  countries?: string[] | null;
+  languages?: string[] | null;
   status: string;
   ads_found: number;
   total_cost_usd: number;
