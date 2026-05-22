@@ -266,6 +266,9 @@ const matchesAdsFilter = (ad: ScrapedAd, filter: AdsFilter): boolean => {
   if (filter === "commentable") return isCommentable(ad);
   if (filter === "contact_fallback") return hasContactFallback(ad);
   if (filter === "dark") return !isCommentable(ad);
+  if (filter === "pending") return (ad.approval_status ?? "pending") === "pending";
+  if (filter === "approved") return ad.approval_status === "approved";
+  if (filter === "rejected") return ad.approval_status === "rejected";
   return true;
 };
 
@@ -274,7 +277,9 @@ export default function AdHijack() {
   const [selectedNicheId, setSelectedNicheId] = useState("med-spa");
   const [subNiche, setSubNiche] = useState("med spa");
   const [customNiche, setCustomNiche] = useState("");
-  const [location, setLocation] = useState("Fort Lauderdale, FL");
+  const [location, setLocation] = useState("");
+  const [selectedCountries, setSelectedCountries] = useState<Country[]>(["US", "CA", "GB", "AU"]);
+  const [englishOnly, setEnglishOnly] = useState(true);
   const [limit, setLimit] = useState("25");
   const [selectedPlatforms, setSelectedPlatforms] = useState<SupportedPlatform[]>(["meta"]);
   const [scanning, setScanning] = useState(false);
@@ -284,7 +289,8 @@ export default function AdHijack() {
   const [jobs, setJobs] = useState<ScanJob[]>([]);
   const [generatingFor, setGeneratingFor] = useState<string | null>(null);
   const [engagementTarget, setEngagementTarget] = useState<EngagementTarget>("all_with_contact");
-  const [adsFilter, setAdsFilter] = useState<AdsFilter>("all");
+  const [adsFilter, setAdsFilter] = useState<AdsFilter>("pending");
+  const [editingComment, setEditingComment] = useState<Record<string, string>>({});
 
   const loadData = useCallback(async () => {
     const [adsRes, jobsRes] = await Promise.all([
