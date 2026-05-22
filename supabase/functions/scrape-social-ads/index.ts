@@ -11,6 +11,7 @@ const corsHeaders = {
 type Platform = "meta" | "tiktok";
 
 type ScanMode = "fresh" | "rescan";
+type EngagementTarget = "all" | "commentable_only" | "all_with_contact";
 
 interface ScrapedAd {
   platform: Platform;
@@ -78,6 +79,85 @@ function cleanUrl(value: unknown): string | undefined {
   if (!raw || raw === "null" || raw === "undefined") return undefined;
   if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
   if (raw.includes(".") && !raw.includes(" ")) return `https://${raw}`;
+  return undefined;
+}
+
+function getOrigin(value: string | undefined): string | undefined {
+  try {
+    if (!value) return undefined;
+    const url = new URL(value);
+    if (!/^https?:$/.test(url.protocol)) return undefined;
+    return url.origin;
+  } catch {
+    return undefined;
+  }
+}
+
+function absolutizeUrl(href: string, base: string): string | undefined {
+  try {
+    return new URL(href, base).toString();
+  } catch {
+    return undefined;
+  }
+}
+
+function isLikelyContactUrl(url: string): boolean {
+  return /\/(contact|contact-us|book|booking|appointment|appointments|consultation|request|quote|schedule)(\/|\?|#|$)/i.test(url);
+}
+
+async function discoverContactPage(landingUrl: string, timeoutMs = 6500): Promise<string | undefined> {
+  const origin = getOrigin(landingUrl);
+  if (!origin) return undefined;
+
+  const candidates = new Set<string>();
+  const commonPaths = ["/contact", "/contact-us", "/book", "/booking", "/appointments", "/schedule", "/request-quote"];
+
+  try {
+    const controller = new AbortController();
+    const timer = setTimeout(() => controller.abort(), timeoutMs);
+    const res = await fetch(landingUrl, {
+      headers: { "User-Agent": "Mozilla/5.0 AIHiddenLeadsBot/1.0" },
+      signal: controller.signal,
+    });
+    clearTimeout(timer);
+
+    if (res.ok) {
+      const html = (await res.text()).slice(0, 180_000);
+      const anchorRegex = /<a\s+[^>]*href=["']([^"']+)["'][^>]*>([\s\S]*?)<\/a>/gi;
+      let match: RegExpExecArray | null;
+      while ((match = anchorRegex.exec(html)) !== null) {
+        const href = match[1];
+        const label = match[2].replace(/<[^>]+>/g, " ");
+        const absolute = absolutizeUrl(href, landingUrl);
+        if (!absolute) continue;
+        if (new URL(absolute).origin !== origin) continue;
+        if (isLikelyContactUrl(absolute) || /contact|book|appointment|consultation|quote|schedule/i.test(label)) {
+          candidates.add(absolute.split("#")[0]);
+        }
+      }
+    }
+  } catch (e) {
+    console.log(`[contact-discovery] landing fetch skipped for ${landingUrl}: ${String((e as Error)?.message ?? e)}`);
+  }
+
+  commonPaths.forEach((path) => candidates.add(`${origin}${path}`));
+
+  for (const url of Array.from(candidates).slice(0, 8)) {
+    try {
+      const controller = new AbortController();
+      const timer = setTimeout(() => controller.abort(), 3500);
+      const res = await fetch(url, {
+        method: "GET",
+        headers: { "User-Agent": "Mozilla/5.0 AIHiddenLeadsBot/1.0" },
+        signal: controller.signal,
+      });
+      clearTimeout(timer);
+      if (res.ok && /html|text/i.test(res.headers.get("content-type") ?? "")) return url;
+    } catch {
+      // Try the next likely contact URL.
+    }
+  }
+
   return undefined;
 }
 
@@ -226,20 +306,23 @@ async function scrapeMetaViaApify(
   niche: string,
   location: string,
   limit: number,
+  engagementTarget: EngagementTarget,
 ): Promise<{ ads: ScrapedAd[]; rawSample: unknown }> {
   const countryCode = location.toLowerCase().includes("uk") ? "GB" : "US";
   const searchUrl = buildFbAdLibrarySearchUrl(niche, countryCode);
-  console.log(`[meta] searchUrl=${searchUrl} limit=${limit}`);
+  const actorLimit = engagementTarget === "commentable_only" ? Math.min(limit * 3, 100) : limit;
+  console.log(`[meta] searchUrl=${searchUrl} limit=${actorLimit} target=${engagementTarget}`);
   const items = await runApifyActor(token, "apify~facebook-ads-scraper", {
     startUrls: [{ url: searchUrl }],
-    resultsLimit: limit,
+    resultsLimit: actorLimit,
     activeStatus: "active",
   });
   console.log(`[meta] raw items: ${items.length}`);
   if (items.length > 0) {
     console.log(`[meta] sample keys: ${Object.keys(items[0] as any).slice(0, 30).join(",")}`);
   }
-  const ads = items.map(normalizeMetaAd).filter((x): x is ScrapedAd => !!x);
+  const normalized = items.map(normalizeMetaAd).filter((x): x is ScrapedAd => !!x);
+  const ads = (engagementTarget === "commentable_only" ? normalized.filter((ad) => ad.metadata?.is_commentable === true) : normalized).slice(0, limit);
   console.log(`[meta] normalized: ${ads.length} (dropped ${items.length - ads.length})`);
   return { ads, rawSample: items[0] ?? null };
 }
