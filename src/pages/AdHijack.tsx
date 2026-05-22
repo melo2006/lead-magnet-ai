@@ -346,6 +346,7 @@ export default function AdHijack() {
   const [engagementTarget, setEngagementTarget] = useState<EngagementTarget>("all_with_contact");
   const [adsFilter, setAdsFilter] = useState<AdsFilter>("pending");
   const [editingComment, setEditingComment] = useState<Record<string, string>>({});
+  const [selectedAdIds, setSelectedAdIds] = useState<Set<string>>(new Set());
 
   const loadData = useCallback(async () => {
     const [adsRes, jobsRes] = await Promise.all([
