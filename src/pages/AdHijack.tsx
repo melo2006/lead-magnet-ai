@@ -912,6 +912,11 @@ export default function AdHijack() {
                       {String(j.platform_results._engagement_target).replace(/_/g, " ")}
                     </Badge>
                   )}
+                  {typeof j.platform_results?._quality_filters === "object" && j.platform_results?._quality_filters !== null && (
+                    <Badge variant="outline" className="text-[9px]">
+                      qualified before save
+                    </Badge>
+                  )}
                   <span>${Number(j.total_cost_usd).toFixed(2)}</span>
                   <span>{new Date(j.created_at).toLocaleString()}</span>
                   <Button
@@ -1005,6 +1010,7 @@ export default function AdHijack() {
               const daysRun = getDaysRunning(ad);
               const variants = getVariantCount(ad);
               const mediaType = getMediaType(ad);
+              const audience = getAudienceSize(ad);
               const active = getIsActive(ad);
               const affiliate = getIsAffiliate(ad);
               const approval = ad.approval_status ?? "pending";
@@ -1030,6 +1036,7 @@ export default function AdHijack() {
                       <Badge
                         variant="outline"
                         className={`text-[9px] ${approval === "approved" ? "border-emerald-500/60 text-emerald-400" : approval === "rejected" ? "border-red-500/60 text-red-400" : "border-amber-500/60 text-amber-400"}`}
+                        title="Pending means scraped but not reviewed yet. Approve it before converting it into a prospect."
                       >
                         {approval === "approved" ? "✅ approved" : approval === "rejected" ? "❌ rejected" : "⏳ pending"}
                       </Badge>
@@ -1048,6 +1055,11 @@ export default function AdHijack() {
                       {mediaType !== "unknown" && (
                         <Badge variant="outline" className="text-[9px] border-purple-500/40 text-purple-400">
                           {mediaType}
+                        </Badge>
+                      )}
+                      {audience != null && audience > 0 && (
+                        <Badge variant="outline" className="text-[9px] border-primary/40 text-primary" title="TikTok audience, view, or like signal returned by the scraper">
+                          {audience >= 1000 ? `${Math.round(audience / 1000)}k` : audience} reach
                         </Badge>
                       )}
                       {affiliate && (
