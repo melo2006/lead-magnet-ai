@@ -582,41 +582,46 @@ const TalkingAvatarWidget = () => {
             earpieceAudioRef.current = null;
           }
 
-          const stream = new MediaStream([track.mediaStreamTrack]);
-          if (!speakerAudioRef.current) {
-            const speakerAudio = document.createElement("audio");
-            speakerAudio.autoplay = true;
-            speakerAudio.muted = false;
-            (speakerAudio as any).playsInline = false;
-            speakerAudio.style.display = "none";
-            document.body.appendChild(speakerAudio);
-            speakerAudioRef.current = speakerAudio;
-          }
-          speakerAudioRef.current.srcObject = stream;
-          await setSinkIfSupported(speakerAudioRef.current, "speaker");
-          await speakerAudioRef.current.play().catch(() => {});
+          const stream = new MediaStream([track.mediaStreamTrack.clone()]);
 
+          // ── Android Chrome speakerphone fix ──
+          // The key is creating the AudioContext with latencyHint: 'playback' which
+          // tells Android to use the MEDIA stream type (loudspeaker) instead of
+          // voice-communication (earpiece). Must also play a non-MediaStream <audio>
+          // (src= silent data URI) so Android keeps the page in MEDIA output mode.
           const AC = (window.AudioContext || (window as any).webkitAudioContext) as typeof AudioContext;
-          if (!audioCtxRef.current) audioCtxRef.current = new AC();
+          // Always recreate with 'playback' latency hint to force MEDIA stream type on Android.
+          try { await audioCtxRef.current?.close(); } catch { /* noop */ }
+          audioCtxRef.current = new AC({ latencyHint: "playback" } as AudioContextOptions);
+
           const ctx = audioCtxRef.current;
           await ctx.resume();
           try { audioSourceRef.current?.disconnect(); } catch { /* noop */ }
           const source = ctx.createMediaStreamSource(stream);
-          source.connect(ctx.destination);
+          const gain = ctx.createGain();
+          gain.gain.value = 1.0;
+          source.connect(gain).connect(ctx.destination);
           audioSourceRef.current = source;
 
-          // Chrome on Android requires the stream to also be attached to a
-          // (muted) <audio> element for the MediaStreamSource to actually pull frames.
+          // Silent looping <audio src=...> (NOT srcObject) keeps the output device
+          // classified as MEDIA on Android Chrome. Without this, even AudioContext
+          // can get pulled to the earpiece because of the active mic capture.
           if (!silentSinkAudioRef.current) {
             const sink = document.createElement("audio");
-            sink.muted = true;
+            sink.loop = true;
             sink.autoplay = true;
             (sink as any).playsInline = true;
+            sink.muted = false;
+            sink.volume = 0.001;
+            sink.style.display = "none";
+            // 1-second silent WAV
+            sink.src =
+              "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=";
             document.body.appendChild(sink);
             silentSinkAudioRef.current = sink;
           }
-          silentSinkAudioRef.current.srcObject = stream;
-          silentSinkAudioRef.current.play().catch(() => {});
+          await silentSinkAudioRef.current.play().catch(() => {});
+          await setSinkIfSupported(silentSinkAudioRef.current, "speaker");
           setAudioRouteState("speaker");
         } catch (e) {
           console.error("Failed to route audio to speaker:", e);
@@ -624,6 +629,7 @@ const TalkingAvatarWidget = () => {
           setIsRoutingAudio(false);
         }
       };
+
 
       const routeToEarpiece = async () => {
         try {
@@ -634,8 +640,10 @@ const TalkingAvatarWidget = () => {
           try { audioCtxRef.current?.suspend(); } catch { /* noop */ }
           if (silentSinkAudioRef.current) {
             silentSinkAudioRef.current.pause();
-            silentSinkAudioRef.current.srcObject = null;
+            silentSinkAudioRef.current.removeAttribute("src");
+            try { silentSinkAudioRef.current.load(); } catch { /* noop */ }
           }
+
           if (speakerAudioRef.current) {
             speakerAudioRef.current.pause();
             speakerAudioRef.current.srcObject = null;
