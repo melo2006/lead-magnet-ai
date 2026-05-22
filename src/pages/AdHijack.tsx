@@ -252,6 +252,7 @@ export default function AdHijack() {
   const [ads, setAds] = useState<ScrapedAd[]>([]);
   const [jobs, setJobs] = useState<ScanJob[]>([]);
   const [generatingFor, setGeneratingFor] = useState<string | null>(null);
+  const [commentableOnly, setCommentableOnly] = useState(false);
 
   const loadData = useCallback(async () => {
     const [adsRes, jobsRes] = await Promise.all([
