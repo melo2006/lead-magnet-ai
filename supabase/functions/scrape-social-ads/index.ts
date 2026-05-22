@@ -367,7 +367,11 @@ serve(async (req) => {
       const existingKeys = new Set((existingRows ?? []).map((r: any) => `${r.platform}::${r.landing_url}`));
       const rows = uniqueAds
         .filter((a) => !existingKeys.has(`${a.platform}::${a.landing_url}`))
-        .map((a) => ({ ...a, scan_job_id: jobId }));
+        .map((a) => ({
+          ...a,
+          scan_job_id: jobId,
+          metadata: { ...(a.metadata ?? {}), search_niche: niche, search_location: location },
+        }));
       duplicateCount += uniqueAds.length - rows.length;
       if (rows.length > 0) {
         const { data: inserted, error: insertErr } = await supabase.from("scraped_ads").insert(rows).select("id");
