@@ -483,7 +483,15 @@ serve(async (req) => {
     // Create job
     const { data: job, error: jobErr } = await supabase
       .from("ad_scan_jobs")
-      .insert({ niche, location, platforms, status: "running" })
+      .insert({
+        niche,
+        location: location || null,
+        platforms,
+        countries,
+        languages,
+        result_limit: limitPerPlatform,
+        status: "running",
+      })
       .select()
       .single();
     if (jobErr) throw jobErr;
@@ -497,7 +505,7 @@ serve(async (req) => {
       try {
         let batch: ScrapedAd[] = [];
         if (platform === "meta") {
-          const r = await scrapeMetaViaApify(APIFY_TOKEN, niche, location, limitPerPlatform, engagementTarget);
+          const r = await scrapeMetaViaApify(APIFY_TOKEN, niche, countries, limitPerPlatform, engagementTarget, englishOnly);
           batch = r.ads;
           totalCost += (batch.length / 1000) * 3.4;
         } else if (platform === "tiktok") {
