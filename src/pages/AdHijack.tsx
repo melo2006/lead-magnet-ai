@@ -441,6 +441,10 @@ export default function AdHijack() {
     setAds((prev) => prev.filter((a) => a.id !== id));
   };
 
+  const filteredAds = ads.filter((ad) => matchesAdsFilter(ad, adsFilter));
+  const commentableCount = ads.filter(isCommentable).length;
+  const contactFallbackCount = ads.filter(hasContactFallback).length;
+
   return (
     <div className="space-y-6">
       <div>
@@ -577,7 +581,7 @@ export default function AdHijack() {
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-1">
             <p className="text-[10px] text-muted-foreground">
-              Meta and TikTok are validated Apify actors. LinkedIn/Google are disabled until a reliable actor is connected.
+              Use Public/commentable only for direct FB/IG comment threads. Use All + contact fallback to find a website contact page for dark posts.
             </p>
             {apiStatus && <p className="text-[10px] text-primary">Apify status: {apiStatus}</p>}
           </div>
