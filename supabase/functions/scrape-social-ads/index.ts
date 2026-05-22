@@ -321,16 +321,19 @@ function normalizeMetaAd(item: any): ScrapedAd | null {
 async function scrapeMetaViaApify(
   token: string,
   niche: string,
-  location: string,
+  countries: string[],
   limit: number,
   engagementTarget: EngagementTarget,
+  englishOnly: boolean,
 ): Promise<{ ads: ScrapedAd[]; rawSample: unknown }> {
-  const countryCode = location.toLowerCase().includes("uk") ? "GB" : "US";
-  const searchUrl = buildFbAdLibrarySearchUrl(niche, countryCode);
-  const actorLimit = engagementTarget === "commentable_only" ? Math.min(limit * 3, 100) : limit;
-  console.log(`[meta] searchUrl=${searchUrl} limit=${actorLimit} target=${engagementTarget}`);
+  const safeCountries = countries.length ? countries : ["US"];
+  const startUrls = safeCountries.map((cc) => ({ url: buildFbAdLibrarySearchUrl(niche, cc) }));
+  // Over-scrape when we need to filter (commentable or non-English)
+  const overscrapeFactor = engagementTarget === "commentable_only" ? 3 : englishOnly ? 1.6 : 1;
+  const actorLimit = Math.min(Math.ceil(limit * overscrapeFactor), 200);
+  console.log(`[meta] countries=${safeCountries.join(",")} actorLimit=${actorLimit} target=${engagementTarget} englishOnly=${englishOnly}`);
   const items = await runApifyActor(token, "apify~facebook-ads-scraper", {
-    startUrls: [{ url: searchUrl }],
+    startUrls,
     resultsLimit: actorLimit,
     activeStatus: "active",
   });
@@ -339,8 +342,23 @@ async function scrapeMetaViaApify(
     console.log(`[meta] sample keys: ${Object.keys(items[0] as any).slice(0, 30).join(",")}`);
   }
   const normalized = items.map(normalizeMetaAd).filter((x): x is ScrapedAd => !!x);
-  const ads = (engagementTarget === "commentable_only" ? normalized.filter((ad) => ad.metadata?.is_commentable === true) : normalized).slice(0, limit);
-  console.log(`[meta] normalized: ${ads.length} (dropped ${items.length - ads.length})`);
+
+  // Annotate with detected language + country tag
+  for (const ad of normalized) {
+    const detection = detectLanguage(ad.ad_creative_text);
+    ad.metadata = {
+      ...(ad.metadata ?? {}),
+      detected_language: detection.language,
+      is_english: detection.isEnglish,
+    };
+  }
+
+  let filtered = normalized;
+  if (englishOnly) filtered = filtered.filter((ad) => ad.metadata?.is_english !== false);
+  if (engagementTarget === "commentable_only") filtered = filtered.filter((ad) => ad.metadata?.is_commentable === true);
+
+  const ads = filtered.slice(0, limit);
+  console.log(`[meta] normalized: ${normalized.length} after-filter: ${filtered.length} kept: ${ads.length}`);
   return { ads, rawSample: items[0] ?? null };
 }
 
