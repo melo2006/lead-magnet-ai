@@ -198,23 +198,30 @@ const formatLocation = (value: string) =>
     )
     .join(", ");
 
+const COUNTRY_OPTIONS: { code: Country; label: string; flag: string }[] = [
+  { code: "US", label: "United States", flag: "🇺🇸" },
+  { code: "CA", label: "Canada", flag: "🇨🇦" },
+  { code: "GB", label: "United Kingdom", flag: "🇬🇧" },
+  { code: "AU", label: "Australia", flag: "🇦🇺" },
+];
+
 const validateLocation = (value: string): { valid: boolean; message: string; normalized: string } => {
   const trimmed = value.trim();
-  if (!trimmed) return { valid: true, message: "Optional, but city + state improves local ad quality.", normalized: "" };
+  if (!trimmed) return { valid: true, message: "Leave blank for nationwide search across selected countries.", normalized: "" };
 
   const match = trimmed.match(/^([a-zA-Z .'-]{2,60}),\s*([a-zA-Z]{2})$/);
   if (!match) {
-    return { valid: false, message: "Use City, ST format, for example Fort Lauderdale, FL.", normalized: trimmed };
+    return { valid: false, message: "Use City, ST format (e.g. Fort Lauderdale, FL) or leave blank for nationwide.", normalized: trimmed };
   }
 
   const normalized = formatLocation(`${match[1]}, ${match[2]}`);
   const state = match[2].toUpperCase();
-  if (!US_STATES.has(state)) return { valid: false, message: "State must be a valid 2-letter US state code.", normalized };
+  if (!US_STATES.has(state)) return { valid: false, message: "Use a valid 2-letter US state, or leave blank for nationwide.", normalized };
 
   const verified = VERIFIED_CITIES.some((city) => city.toLowerCase() === normalized.toLowerCase());
   return {
     valid: true,
-    message: verified ? "Verified city format for Apify searches." : "Valid city/state format; not in quick-pick list, but safe to scan.",
+    message: verified ? "Verified city format." : "Valid city/state format.",
     normalized,
   };
 };
