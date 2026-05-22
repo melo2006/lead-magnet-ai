@@ -25,7 +25,10 @@ import { Textarea } from "@/components/ui/textarea";
 type Platform = "meta" | "tiktok" | "linkedin" | "google";
 type SupportedPlatform = "meta" | "tiktok";
 type EngagementTarget = "all" | "commentable_only" | "all_with_contact";
-type AdsFilter = "all" | "commentable" | "contact_fallback" | "dark" | "pending" | "approved" | "rejected";
+type AdsFilter =
+  | "all" | "commentable" | "contact_fallback" | "dark"
+  | "pending" | "approved" | "rejected"
+  | "winners" | "scaling" | "video" | "affiliate";
 type Country = "US" | "CA" | "GB" | "AU";
 
 interface ScrapedAd {
