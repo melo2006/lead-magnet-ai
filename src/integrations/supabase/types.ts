@@ -1257,6 +1257,42 @@ export type Database = {
         }
         Relationships: []
       }
+      short_links: {
+        Row: {
+          click_count: number
+          created_at: string
+          id: string
+          last_clicked_at: string | null
+          prospect_id: string | null
+          scraped_ad_id: string | null
+          slug: string
+          target_url: string
+          updated_at: string
+        }
+        Insert: {
+          click_count?: number
+          created_at?: string
+          id?: string
+          last_clicked_at?: string | null
+          prospect_id?: string | null
+          scraped_ad_id?: string | null
+          slug: string
+          target_url: string
+          updated_at?: string
+        }
+        Update: {
+          click_count?: number
+          created_at?: string
+          id?: string
+          last_clicked_at?: string | null
+          prospect_id?: string | null
+          scraped_ad_id?: string | null
+          slug?: string
+          target_url?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           cancel_at_period_end: boolean | null
