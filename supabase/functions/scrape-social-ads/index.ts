@@ -7,7 +7,7 @@ const corsHeaders = {
     "authorization, x-client-info, apikey, content-type, x-supabase-client-platform, x-supabase-client-platform-version, x-supabase-client-runtime, x-supabase-client-runtime-version",
 };
 
-type Platform = "meta" | "tiktok" | "linkedin" | "google";
+type Platform = "meta" | "tiktok";
 
 interface ScrapedAd {
   platform: Platform;
@@ -23,65 +23,28 @@ interface ScrapedAd {
   metadata?: Record<string, unknown>;
 }
 
-// --- META AD LIBRARY (official, free) ---
-async function scrapeMeta(token: string, niche: string, location: string, limit: number): Promise<ScrapedAd[]> {
-  // https://developers.facebook.com/docs/marketing-api/reference/ads_archive/
-  const country = location.toLowerCase().includes("uk") ? "GB" : "US";
-  const params = new URLSearchParams({
-    access_token: token,
-    search_terms: niche,
-    ad_reached_countries: `["${country}"]`,
-    ad_active_status: "ACTIVE",
-    ad_type: "ALL",
-    fields:
-      "id,page_name,page_id,ad_creative_link_captions,ad_creative_link_titles,ad_creative_link_descriptions,ad_creative_bodies,ad_snapshot_url,ad_delivery_start_time,publisher_platforms",
-    limit: String(Math.min(limit, 100)),
-  });
-
-  const url = `https://graph.facebook.com/v19.0/ads_archive?${params.toString()}`;
-  const res = await fetch(url);
-  if (!res.ok) {
-    const t = await res.text();
-    throw new Error(`Meta Ad Library: ${res.status} ${t.slice(0, 300)}`);
+// --- APIFY HELPERS ---
+async function verifyApifyToken(token: string): Promise<{ ok: boolean; username?: string; error?: string }> {
+  try {
+    const res = await fetch(`https://api.apify.com/v2/users/me?token=${token}`);
+    if (!res.ok) {
+      const t = await res.text();
+      return { ok: false, error: `HTTP ${res.status}: ${t.slice(0, 200)}` };
+    }
+    const json = await res.json();
+    return { ok: true, username: json?.data?.username };
+  } catch (e: any) {
+    return { ok: false, error: String(e?.message ?? e) };
   }
-  const json = await res.json();
-  const items = json.data ?? [];
-
-  const out: ScrapedAd[] = [];
-  for (const item of items) {
-    const captions: string[] = item.ad_creative_link_captions ?? [];
-    const titles: string[] = item.ad_creative_link_titles ?? [];
-    const bodies: string[] = item.ad_creative_bodies ?? [];
-    const landing = captions[0] || titles[0]?.match(/https?:\/\/\S+/)?.[0];
-    if (!landing) continue;
-
-    // Normalize bare domains into https URLs
-    const landingUrl = landing.startsWith("http") ? landing : `https://${landing.replace(/^\/+/, "")}`;
-
-    out.push({
-      platform: "meta",
-      ad_id: item.id,
-      advertiser_name: item.page_name ?? "Unknown",
-      advertiser_handle: item.page_id,
-      landing_url: landingUrl,
-      cta_text: titles[0],
-      ad_creative_text: bodies[0],
-      source_ad_url: item.ad_snapshot_url,
-      posted_at: item.ad_delivery_start_time,
-      metadata: { publisher_platforms: item.publisher_platforms ?? [] },
-    });
-  }
-  return out;
 }
 
-// --- APIFY (TikTok / LinkedIn / Google Ads transparency) ---
 async function runApifyActor(
   token: string,
   actorId: string,
   input: Record<string, unknown>,
+  timeoutSec = 180,
 ): Promise<unknown[]> {
-  // Sync run with dataset items returned inline
-  const url = `https://api.apify.com/v2/acts/${actorId}/run-sync-get-dataset-items?token=${token}&timeout=120`;
+  const url = `https://api.apify.com/v2/acts/${actorId}/run-sync-get-dataset-items?token=${token}&timeout=${timeoutSec}`;
   const res = await fetch(url, {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -89,65 +52,128 @@ async function runApifyActor(
   });
   if (!res.ok) {
     const t = await res.text();
-    throw new Error(`Apify ${actorId}: ${res.status} ${t.slice(0, 300)}`);
+    throw new Error(`Apify ${actorId}: ${res.status} ${t.slice(0, 400)}`);
   }
   return await res.json();
 }
 
-function normalizeApifyAd(platform: Platform, item: any): ScrapedAd | null {
-  // Apify actor schemas vary; we coalesce common fields defensively.
+// --- META (Facebook + Instagram) via apify/facebook-ads-scraper ---
+function buildFbAdLibrarySearchUrl(niche: string, countryCode: string): string {
+  const params = new URLSearchParams({
+    active_status: "active",
+    ad_type: "all",
+    country: countryCode,
+    q: niche,
+    search_type: "keyword_unordered",
+  });
+  return `https://www.facebook.com/ads/library/?${params.toString()}`;
+}
+
+function pickLandingUrl(item: any): string | undefined {
+  // The official Apify FB ads scraper output uses snapshot.link_url plus a few alternatives
+  const s = item?.snapshot ?? {};
+  return (
+    s.link_url ||
+    item.link_url ||
+    item.url ||
+    item.landingPageUrl ||
+    item.adLandingPage ||
+    item.destinationUrl ||
+    (Array.isArray(s.cards) && s.cards[0]?.link_url) ||
+    undefined
+  );
+}
+
+function normalizeMetaAd(item: any): ScrapedAd | null {
+  const landing = pickLandingUrl(item);
+  if (!landing) return null;
+  const landingUrl = String(landing).startsWith("http") ? String(landing) : `https://${landing}`;
+  const s = item?.snapshot ?? {};
+
+  return {
+    platform: "meta",
+    ad_id: item.ad_archive_id || item.adArchiveId || item.id,
+    advertiser_name: s.page_name || item.page_name || item.advertiserName || "Unknown",
+    advertiser_handle: String(s.page_id || item.page_id || ""),
+    landing_url: landingUrl,
+    cta_text: s.cta_text || s.title || item.cta,
+    ad_creative_text: s.body?.text || s.caption || item.text || s.title,
+    ad_media_url:
+      s.videos?.[0]?.video_preview_image_url ||
+      s.images?.[0]?.original_image_url ||
+      s.cards?.[0]?.original_image_url,
+    posted_at: item.start_date ? new Date(item.start_date * 1000).toISOString() : undefined,
+    source_ad_url: item.url || `https://www.facebook.com/ads/library/?id=${item.ad_archive_id ?? ""}`,
+    metadata: {
+      publisher_platforms: item.publisher_platform || s.publisher_platform || [],
+    },
+  };
+}
+
+async function scrapeMetaViaApify(
+  token: string,
+  niche: string,
+  location: string,
+  limit: number,
+): Promise<{ ads: ScrapedAd[]; rawSample: unknown }> {
+  const countryCode = location.toLowerCase().includes("uk") ? "GB" : "US";
+  const searchUrl = buildFbAdLibrarySearchUrl(niche, countryCode);
+  console.log(`[meta] searchUrl=${searchUrl} limit=${limit}`);
+  const items = await runApifyActor(token, "apify~facebook-ads-scraper", {
+    startUrls: [{ url: searchUrl }],
+    resultsLimit: limit,
+    activeStatus: "active",
+  });
+  console.log(`[meta] raw items: ${items.length}`);
+  if (items.length > 0) {
+    console.log(`[meta] sample keys: ${Object.keys(items[0] as any).slice(0, 30).join(",")}`);
+  }
+  const ads = items.map(normalizeMetaAd).filter((x): x is ScrapedAd => !!x);
+  console.log(`[meta] normalized: ${ads.length} (dropped ${items.length - ads.length})`);
+  return { ads, rawSample: items[0] ?? null };
+}
+
+// --- TIKTOK via aiscraperdev/tiktok-ads-library-scraper ---
+function normalizeTikTokAd(item: any): ScrapedAd | null {
   const landing =
     item.landingPageUrl ||
     item.landing_url ||
-    item.url ||
+    item.landingUrl ||
     item.adUrl ||
-    item.link ||
-    item.destinationUrl;
+    item.url ||
+    item.advertiserUrl ||
+    item.click_url;
   if (!landing) return null;
   const landingUrl = String(landing).startsWith("http") ? String(landing) : `https://${landing}`;
 
   return {
-    platform,
-    ad_id: item.id || item.adId || item.adArchiveId,
-    advertiser_name: item.advertiserName || item.pageName || item.author || item.brandName || "Unknown",
-    advertiser_handle: item.advertiserId || item.pageId || item.authorId,
+    platform: "tiktok",
+    ad_id: item.id || item.adId || item.materialId,
+    advertiser_name: item.advertiserName || item.brandName || item.advertiser || "Unknown",
+    advertiser_handle: item.advertiserId || item.brandId,
     landing_url: landingUrl,
     cta_text: item.cta || item.ctaText || item.callToAction,
-    ad_creative_text: item.text || item.description || item.body || item.caption,
-    ad_media_url: item.imageUrl || item.videoUrl || item.thumbnail,
-    posted_at: item.startDate || item.firstSeen || item.createdAt,
-    source_ad_url: item.adLibraryUrl || item.adUrl || item.permalink,
-    metadata: { raw_keys: Object.keys(item).slice(0, 20) },
+    ad_creative_text: item.title || item.description || item.adText,
+    ad_media_url: item.videoUrl || item.coverUrl || item.imageUrl,
+    posted_at: item.createdAt || item.startDate || item.firstSeen,
+    source_ad_url: item.detailUrl || item.previewUrl,
+    metadata: { region: item.region, source: item.source },
   };
 }
 
-async function scrapeApifyPlatform(
+async function scrapeTikTokViaApify(
   token: string,
-  platform: Platform,
   niche: string,
-  location: string,
+  _location: string,
   limit: number,
 ): Promise<ScrapedAd[]> {
-  const actorMap: Record<Platform, { id: string; input: Record<string, unknown> }> = {
-    tiktok: {
-      id: "apify~tiktok-ads-library-scraper",
-      input: { keyword: niche, country: "US", maxItems: limit },
-    },
-    linkedin: {
-      id: "apify~linkedin-ads-library-scraper",
-      input: { keyword: niche, country: "US", maxItems: limit },
-    },
-    google: {
-      id: "apify~google-ads-transparency-scraper",
-      input: { searchTerm: niche, region: "US", maxItems: limit },
-    },
-    meta: { id: "", input: {} }, // handled separately
-  };
-
-  const cfg = actorMap[platform];
-  if (!cfg.id) return [];
-  const items = await runApifyActor(token, cfg.id, cfg.input);
-  return items.map((i) => normalizeApifyAd(platform, i)).filter((x): x is ScrapedAd => !!x);
+  const items = await runApifyActor(token, "aiscraperdev~tiktok-ads-library-scraper", {
+    searchQuery: niche,
+    source: "both",
+    region: "US",
+    maxAds: limit,
+  });
+  return items.map(normalizeTikTokAd).filter((x): x is ScrapedAd => !!x);
 }
 
 serve(async (req) => {
@@ -163,14 +189,52 @@ serve(async (req) => {
     const body = await req.json();
     const niche: string = String(body?.niche ?? "").trim();
     const location: string = String(body?.location ?? "").trim();
-    const platforms: Platform[] = Array.isArray(body?.platforms) ? body.platforms : [];
+    const requestedPlatforms: string[] = Array.isArray(body?.platforms) ? body.platforms : [];
+    const platforms: Platform[] = requestedPlatforms.filter(
+      (p): p is Platform => p === "meta" || p === "tiktok",
+    );
     const limitPerPlatform: number = Math.min(Math.max(Number(body?.limit ?? 25), 1), 100);
+    const verifyOnly: boolean = body?.verify === true;
 
-    if (!niche || platforms.length === 0) {
-      return new Response(JSON.stringify({ error: "niche and platforms[] required" }), {
-        status: 400,
+    const APIFY_TOKEN = Deno.env.get("APIFY_API_TOKEN");
+
+    // Diagnostic: just verify the Apify token works
+    if (verifyOnly) {
+      if (!APIFY_TOKEN) {
+        return new Response(
+          JSON.stringify({ ok: false, error: "APIFY_API_TOKEN not configured" }),
+          { headers: { ...corsHeaders, "Content-Type": "application/json" } },
+        );
+      }
+      const v = await verifyApifyToken(APIFY_TOKEN);
+      return new Response(JSON.stringify(v), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
+    }
+
+    if (!niche || platforms.length === 0) {
+      return new Response(
+        JSON.stringify({
+          error: "niche and platforms[] required (supported: 'meta', 'tiktok')",
+        }),
+        { status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    if (!APIFY_TOKEN) {
+      return new Response(
+        JSON.stringify({ error: "APIFY_API_TOKEN not configured on the server" }),
+        { status: 500, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
+    }
+
+    // Verify token once up front — surface auth issues immediately
+    const tokenCheck = await verifyApifyToken(APIFY_TOKEN);
+    if (!tokenCheck.ok) {
+      return new Response(
+        JSON.stringify({ error: `Apify token invalid: ${tokenCheck.error}` }),
+        { status: 401, headers: { ...corsHeaders, "Content-Type": "application/json" } },
+      );
     }
 
     // Create job
@@ -182,9 +246,6 @@ serve(async (req) => {
     if (jobErr) throw jobErr;
     jobId = job.id;
 
-    const META_TOKEN = Deno.env.get("META_ADS_ACCESS_TOKEN");
-    const APIFY_TOKEN = Deno.env.get("APIFY_API_TOKEN");
-
     const allAds: ScrapedAd[] = [];
     const platformResults: Record<string, { count: number; error?: string }> = {};
     let totalCost = 0;
@@ -193,13 +254,12 @@ serve(async (req) => {
       try {
         let batch: ScrapedAd[] = [];
         if (platform === "meta") {
-          if (!META_TOKEN) throw new Error("META_ADS_ACCESS_TOKEN not configured");
-          batch = await scrapeMeta(META_TOKEN, niche, location, limitPerPlatform);
-          // Meta API is free
-        } else {
-          if (!APIFY_TOKEN) throw new Error("APIFY_API_TOKEN not configured");
-          batch = await scrapeApifyPlatform(APIFY_TOKEN, platform, niche, location, limitPerPlatform);
-          totalCost += (batch.length / 1000) * 0.5; // ~$0.50/1k ads estimate
+          const r = await scrapeMetaViaApify(APIFY_TOKEN, niche, location, limitPerPlatform);
+          batch = r.ads;
+          totalCost += (batch.length / 1000) * 3.4;
+        } else if (platform === "tiktok") {
+          batch = await scrapeTikTokViaApify(APIFY_TOKEN, niche, location, limitPerPlatform);
+          totalCost += (batch.length / 1000) * 3.5;
         }
         platformResults[platform] = { count: batch.length };
         allAds.push(...batch);
@@ -251,7 +311,8 @@ serve(async (req) => {
         job_id: jobId,
         ads_found: upsertedCount,
         platform_results: platformResults,
-        total_cost_usd: totalCost,
+        total_cost_usd: Number(totalCost.toFixed(3)),
+        apify_user: tokenCheck.username,
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } },
     );
