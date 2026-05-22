@@ -466,11 +466,35 @@ function pickTikTokPostUrl(item: any): string | undefined {
   return undefined;
 }
 
+const TIKTOK_QUERY_EXPANSIONS: Record<string, string[]> = {
+  skincare: ["skincare", "skin care", "retinol cream", "vitamin c serum", "anti-aging serum", "beauty subscription"],
+  "skin care": ["skin care", "skincare", "retinol cream", "vitamin c serum", "anti-aging serum", "beauty subscription"],
+  collagen: ["collagen", "collagen peptides", "collagen powder", "skin supplement"],
+  "weight loss supplement": ["weight loss supplement", "fat burner", "greens powder", "gut health", "metabolism supplement"],
+};
+
+function getTikTokSearchQueries(niche: string): string[] {
+  const normalized = niche.trim().toLowerCase();
+  const expanded = TIKTOK_QUERY_EXPANSIONS[normalized] ?? [niche];
+  return Array.from(new Set([niche, ...expanded].map((q) => q.trim()).filter(Boolean))).slice(0, 6);
+}
+
 function normalizeTikTokAd(item: any): ScrapedAd | null {
-  const landingRaw =
-    item.landingPageUrl || item.landing_page_url || item.landing_url || item.landingUrl ||
-    item.adUrl || item.url || item.advertiserUrl || item.click_url ||
-    item.brandUrl || item.brand_url;
+  const adId = firstValue(item.id, item.ad_id, item.adId, item.materialId, item.adIdStr);
+  const detailUrl = adId ? `https://library.tiktok.com/ads/detail/?ad_id=${adId}` : undefined;
+  const landingUrlCandidate = firstCleanUrl(
+    item.landingPageUrl,
+    item.landing_page_url,
+    item.landing_url,
+    item.landingUrl,
+    item.adUrl,
+    item.ad_url,
+    item.advertiserUrl,
+    item.click_url,
+    item.brandUrl,
+    item.brand_url,
+    typeof item.url === "string" ? item.url : undefined,
+  );
   const tikTokPostUrl = pickTikTokPostUrl(item);
   const videoUrl = firstCleanUrl(
     item.videoUrl || item.video_url || item.videoUrl1080p || item.videoUrl720p ||
@@ -482,10 +506,9 @@ function normalizeTikTokAd(item: any): ScrapedAd | null {
     item.brand || item.author || item.nickname || "Unknown";
 
   // Permissive: keep if we have ANY usable signal.
-  if (!landingRaw && !tikTokPostUrl && !videoUrl && advertiserName === "Unknown") return null;
+  if (!landingUrlCandidate && !tikTokPostUrl && !detailUrl && !videoUrl && advertiserName === "Unknown") return null;
 
-  const adId = item.id || item.ad_id || item.adId || item.materialId || item.adIdStr;
-  const landingUrl = firstCleanUrl(landingRaw) || tikTokPostUrl || videoUrl || (adId ? `https://library.tiktok.com/ads/detail/?ad_id=${adId}` : "");
+  const landingUrl = landingUrlCandidate || tikTokPostUrl || detailUrl || videoUrl || coverUrl || "";
 
   const startRaw =
     item.createdAt || item.startDate || item.first_seen || item.firstSeen ||
@@ -514,8 +537,10 @@ function normalizeTikTokAd(item: any): ScrapedAd | null {
     metadata: {
       publisher_platforms: ["tiktok"],
       tiktok_post_url: tikTokPostUrl,
+      tiktok_detail_url: detailUrl,
       post_url: tikTokPostUrl,
-      is_commentable: Boolean(tikTokPostUrl),
+      library_url: detailUrl,
+      is_commentable: Boolean(tikTokPostUrl && /tiktok\.com\/@[^/]+\/video\//i.test(tikTokPostUrl)),
       days_running: daysRunning,
       is_active: isActive !== false,
       media_type: videoUrl ? "video" : "image",
