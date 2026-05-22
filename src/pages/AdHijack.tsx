@@ -421,7 +421,9 @@ export default function AdHijack() {
     jobId?: string;
     engagementTarget?: EngagementTarget;
   }) => {
-    const scanNiche = (override?.niche ?? searchKeyword).trim();
+    const isAllSubniches =
+      !override?.niche && selectedNicheId !== "custom" && subNiche === "__all__";
+    const scanNiche = (override?.niche ?? (isAllSubniches ? selectedNiche.keywords[0] : searchKeyword)).trim();
     const scanLocationRaw = (override?.location ?? location) ?? "";
     const scanLocation = validateLocation(scanLocationRaw);
     const scanPlatforms = (override?.platforms ?? selectedPlatforms).filter(
