@@ -284,6 +284,7 @@ const getAdLinks = (ad: ScrapedAd) => ({
   igPost: metaStr(ad, "ig_post_url"),
   fbPage: metaStr(ad, "fb_page_url"),
   igPage: metaStr(ad, "ig_page_url"),
+  tiktokPost: metaStr(ad, "tiktok_post_url") || (ad.platform === "tiktok" ? ad.source_ad_url ?? undefined : undefined),
   contactPage: metaStr(ad, "contact_page_url"),
   library: metaStr(ad, "library_url") || ad.source_ad_url,
 });
