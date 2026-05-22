@@ -1,11 +1,12 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { X, Mic, MicOff, Phone, PhoneOff, ExternalLink, Loader2, Minimize2, Maximize2, Volume2, Bluetooth, Headphones } from "lucide-react";
+import { X, Mic, MicOff, Phone, PhoneOff, ExternalLink, Loader2, Minimize2, Maximize2, Volume2, Bluetooth } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import realisticAvatar from "@/assets/aspen_blonde_avatar.jpg";
 import DraggableFloating from "@/components/landing/demo-results/DraggableFloating";
 
 type WidgetState = "collapsed" | "expanded" | "minimized";
 type CallStatus = "idle" | "connecting" | "active" | "ending";
+type AudioRoute = "speaker" | "earpiece" | "bluetooth";
 
 const AVATAR_MODEL_URL = "/aspen-brunette.glb";
 const AUTO_MINIMIZE_DELAY = 25000; // 25 seconds
@@ -191,7 +192,10 @@ const TalkingAvatarWidget = () => {
   const [isAgentSpeaking, setIsAgentSpeaking] = useState(false);
   const [duration, setDuration] = useState(0);
   const [avatarState, setAvatarState] = useState<"idle" | "loading" | "ready" | "error">("idle");
-  const [audioRoute, setAudioRoute] = useState<"speaker" | "earpiece">("speaker");
+  const [audioRoute, setAudioRoute] = useState<AudioRoute>("speaker");
+  const [hasBluetoothOutput, setHasBluetoothOutput] = useState(false);
+  const [isRoutingAudio, setIsRoutingAudio] = useState(false);
+  const audioRouteRef = useRef<AudioRoute>("speaker");
   const audioCtxRef = useRef<AudioContext | null>(null);
   const audioSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const remoteTrackRef = useRef<any>(null);
@@ -205,6 +209,11 @@ const TalkingAvatarWidget = () => {
   const motionTickRef = useRef(0);
   const autoMinimizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const morphStateRef = useRef<Record<LipSyncMorphName, number>>({ ...NEUTRAL_MORPHS });
+
+  const setAudioRouteState = useCallback((route: AudioRoute) => {
+    audioRouteRef.current = route;
+    setAudioRoute(route);
+  }, []);
 
   const focusAvatarOnViewer = useCallback((duration = 300000) => {
     const head = talkingHeadRef.current;
