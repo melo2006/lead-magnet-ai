@@ -828,7 +828,7 @@ export default function AdHijack() {
             Scraped Ads ({filteredAds.length}{adsFilter !== "all" ? ` of ${ads.length}` : ""})
           </h2>
           <Select value={adsFilter} onValueChange={(value) => setAdsFilter(value as AdsFilter)}>
-            <SelectTrigger className="h-8 w-[240px] text-[11px]">
+            <SelectTrigger className="h-8 w-[260px] text-[11px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -836,12 +836,40 @@ export default function AdHijack() {
               <SelectItem value="pending">⏳ Pending review ({pendingCount})</SelectItem>
               <SelectItem value="approved">✅ Approved ({approvedCount})</SelectItem>
               <SelectItem value="rejected">❌ Rejected</SelectItem>
+              <SelectItem value="winners">🔥 Winners — 60d+ active ({winnersCount})</SelectItem>
+              <SelectItem value="scaling">📈 Scaling hard — 10+ variants ({scalingCount})</SelectItem>
+              <SelectItem value="video">🎬 Video ads ({videoCount})</SelectItem>
+              <SelectItem value="affiliate">💰 Has affiliate link ({affiliateCount})</SelectItem>
               <SelectItem value="commentable">Public/commentable ({commentableCount})</SelectItem>
               <SelectItem value="contact_fallback">Website contact fallback ({contactFallbackCount})</SelectItem>
               <SelectItem value="dark">Dark posts / no thread ({ads.length - commentableCount})</SelectItem>
             </SelectContent>
           </Select>
         </div>
+
+        {/* Bulk action toolbar */}
+        <div className="flex items-center gap-2 flex-wrap mb-3 p-2 bg-muted/20 rounded text-[10px]">
+          <span className="text-muted-foreground">
+            {selectedAdIds.size > 0 ? `${selectedAdIds.size} selected` : "Select ads to bulk-act:"}
+          </span>
+          <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={selectAllFiltered}>
+            Select all in view
+          </Button>
+          <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={clearSelection} disabled={selectedAdIds.size === 0}>
+            Clear
+          </Button>
+          <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={bulkApprovePending}>
+            <Check className="h-3 w-3" /> Bulk approve pending in view
+          </Button>
+          <div className="w-px h-4 bg-border" />
+          <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => bulkOpenSelected("post")} disabled={selectedAdIds.size === 0}>
+            <ExternalLink className="h-3 w-3" /> Copy + open all selected POSTS
+          </Button>
+          <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => bulkOpenSelected("contact")} disabled={selectedAdIds.size === 0}>
+            <ExternalLink className="h-3 w-3" /> Copy + open all selected CONTACT pages
+          </Button>
+        </div>
+
         {ads.length === 0 ? (
           <p className="text-xs text-muted-foreground text-center py-8">No ads scraped yet. Run your first scan above.</p>
         ) : (
