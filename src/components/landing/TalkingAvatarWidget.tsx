@@ -547,6 +547,26 @@ const TalkingAvatarWidget = () => {
     } catch { /* noop */ }
   }, [isMuted]);
 
+  const cycleAudioOutput = useCallback(() => {
+    if (audioOutputs.length === 0) return;
+    const idx = audioOutputs.findIndex((d) => d.deviceId === currentSinkId);
+    const next = audioOutputs[(idx + 1) % audioOutputs.length];
+    const nextId = next?.deviceId ?? "";
+    setCurrentSinkId(nextId);
+    document.querySelectorAll("audio").forEach((el: any) => {
+      if (typeof el.setSinkId === "function") el.setSinkId(nextId).catch(() => {});
+    });
+  }, [audioOutputs, currentSinkId]);
+
+  const currentOutputLabel = (() => {
+    const dev = audioOutputs.find((d) => d.deviceId === currentSinkId);
+    const label = (dev?.label || "Default").toLowerCase();
+    if (label.includes("bluetooth")) return { name: "Bluetooth", Icon: Bluetooth };
+    if (label.includes("headphone") || label.includes("headset")) return { name: "Headphones", Icon: Headphones };
+    if (label.includes("speaker")) return { name: "Speaker", Icon: Volume2 };
+    return { name: dev?.label?.split(" (")[0] || "Speaker", Icon: Volume2 };
+  })();
+
   const handleExpand = () => setWidgetState("expanded");
   const handleMinimize = () => setWidgetState("minimized");
   const handleMaximize = () => {
