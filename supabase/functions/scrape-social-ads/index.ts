@@ -13,6 +13,12 @@ type Platform = "meta" | "tiktok";
 type ScanMode = "fresh" | "rescan";
 type EngagementTarget = "all" | "commentable_only" | "all_with_contact";
 
+interface ScanQualityFilters {
+  minTikTokActiveDays: number;
+  minTikTokAudience: number;
+  requireBusinessWebsite: boolean;
+}
+
 interface ScrapedAd {
   platform: Platform;
   ad_id?: string;
@@ -216,6 +222,17 @@ function firstValue(...values: unknown[]): string | undefined {
   return undefined;
 }
 
+function numberValue(...values: unknown[]): number | null {
+  for (const value of values) {
+    if (value === null || value === undefined || value === "") continue;
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    const cleaned = String(value).replace(/[^0-9.]/g, "");
+    const parsed = Number(cleaned);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return null;
+}
+
 function firstCleanUrl(...values: unknown[]): string | undefined {
   for (const value of values) {
     const url = cleanUrl(value);
@@ -317,6 +334,44 @@ const AFFILIATE_REGEX =
 function detectAffiliate(landingUrl: string | undefined): boolean {
   if (!landingUrl) return false;
   return AFFILIATE_REGEX.test(landingUrl);
+}
+
+function isBusinessWebsiteUrl(url: string | undefined): boolean {
+  if (!url) return false;
+  try {
+    const host = new URL(url).hostname.toLowerCase().replace(/^www\./, "");
+    if (!host.includes(".")) return false;
+    return !/(^|\.)(facebook|fb|instagram|tiktok|youtube|youtu|google|doubleclick|linktr|bit\.ly|tinyurl|snapchat|pinterest)\./i.test(host)
+      && host !== "library.tiktok.com"
+      && host !== "ads.tiktok.com"
+      && !/tiktokcdn|byteoversea|ibyteimg|cloudfront|shopifycdn/i.test(host);
+  } catch {
+    return false;
+  }
+}
+
+function getAdAudience(ad: ScrapedAd): number | null {
+  const meta = ad.metadata ?? {};
+  return numberValue(meta.estimated_audience, meta.target_audience_size, meta.likes, meta.views);
+}
+
+function passesTikTokQuality(ad: ScrapedAd, countries: string[], quality: ScanQualityFilters): boolean {
+  const meta = ad.metadata ?? {};
+  const region = String(meta.region ?? "").toUpperCase();
+  const sourceChannel = String(meta.source_channel ?? "").toLowerCase();
+
+  if (quality.requireBusinessWebsite && !isBusinessWebsiteUrl(ad.landing_url)) return false;
+  if (quality.minTikTokActiveDays > 0 && ((typeof meta.days_running === "number" ? meta.days_running : null) ?? -1) < quality.minTikTokActiveDays) return false;
+
+  if (quality.minTikTokAudience > 0) {
+    const audience = getAdAudience(ad);
+    if (audience === null || audience < quality.minTikTokAudience) return false;
+  }
+
+  if (region && region !== "ALL" && countries.length > 0 && !countries.includes(region)) return false;
+  if (region === "ALL" && sourceChannel === "ad_library" && countries.includes("US")) return false;
+
+  return true;
 }
 
 function computeDaysRunning(startMs: number | null, endMs: number | null): number | null {
