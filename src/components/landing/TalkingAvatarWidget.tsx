@@ -826,12 +826,13 @@ const TalkingAvatarWidget = () => {
                 {isMuted ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
               </button>
               <button
-                onClick={cycleAudioOutput}
-                disabled={audioOutputs.length <= 1}
-                className="rounded-full bg-muted p-2 text-foreground hover:bg-muted/80 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-                title={`Audio: ${currentOutputLabel.name}${audioOutputs.length > 1 ? " — tap to switch" : ""}`}
+                onClick={toggleAudioRoute}
+                className={`rounded-full p-2 transition-all flex items-center gap-1 ${
+                  audioRoute === "speaker" ? "bg-primary/15 text-primary" : "bg-muted text-foreground hover:bg-muted/80"
+                }`}
+                title={audioRoute === "speaker" ? "Speakerphone (tap for earpiece)" : "Earpiece (tap for speakerphone)"}
               >
-                <currentOutputLabel.Icon className="h-3.5 w-3.5" />
+                {audioRoute === "speaker" ? <Volume2 className="h-3.5 w-3.5" /> : <Phone className="h-3.5 w-3.5" />}
               </button>
               <button
                 onClick={handleMinimize}
