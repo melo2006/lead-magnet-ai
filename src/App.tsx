@@ -14,6 +14,7 @@ import AdPreviews from "./pages/AdPreviews.tsx";
 import Checkout from "./pages/Checkout.tsx";
 import CheckoutReturn from "./pages/CheckoutReturn.tsx";
 import MarketingHub from "./pages/MarketingHub.tsx";
+import ShortLinkRedirect from "./pages/ShortLinkRedirect.tsx";
 
 
 const queryClient = new QueryClient();
@@ -48,6 +49,7 @@ const App = () => (
           <Route path="/marketing" element={<MarketingHub />} />
           <Route path="/checkout" element={<Checkout />} />
           <Route path="/checkout/return" element={<CheckoutReturn />} />
+          <Route path="/d/:slug" element={<ShortLinkRedirect />} />
           <Route path="/dashboard/*" element={<CRM />} />
           {legacyCrmRedirects.map(({ path, to }) => (
             <Route key={path} path={path} element={<Navigate to={to} replace />} />
