@@ -560,20 +560,26 @@ async function scrapeTikTokViaApify(
   _location: string,
   limit: number,
 ): Promise<ScrapedAd[]> {
+  const searchQueries = getTikTokSearchQueries(niche);
+  const actorLimit = Math.max(limit, Math.min(limit * 4, 200));
   const items = await runApifyActor(token, "aiscraperdev~tiktok-ads-library-scraper", {
-    searchQuery: niche,
+    searchQueries,
     source: "both",
     region: "US",
-    maxAds: limit,
+    adStatus: "active",
+    adFormat: "all",
+    dateRange: "last_90_days",
+    maxResults: actorLimit,
+    maxAds: actorLimit,
   });
-  console.log(`[tiktok] raw items: ${items.length}`);
+  console.log(`[tiktok] queries=${searchQueries.join("|")} actorLimit=${actorLimit} raw items: ${items.length}`);
   if (items[0]) {
     console.log(`[tiktok] sample keys: ${Object.keys(items[0]).join(",")}`);
     console.log(`[tiktok] sample item: ${JSON.stringify(items[0]).slice(0, 800)}`);
   }
   const normalized = items.map(normalizeTikTokAd).filter((x): x is ScrapedAd => !!x);
   console.log(`[tiktok] normalized: ${normalized.length}`);
-  return normalized;
+  return normalized.slice(0, limit);
 }
 
 serve(async (req) => {
