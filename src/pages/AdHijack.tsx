@@ -708,7 +708,7 @@ export default function AdHijack() {
                     size="sm"
                     variant="outline"
                     disabled={scanning}
-                    onClick={() => runScan({ niche: j.niche, location: j.location, platforms: j.platforms, mode: "rescan", jobId: j.id, engagementTarget })}
+                    onClick={() => runScan({ niche: j.niche, location: j.location, platforms: j.platforms, countries: (j.countries as string[] | undefined) ?? selectedCountries, languages: (j.languages as string[] | undefined) ?? (englishOnly ? ["en"] : ["en","other"]), mode: "rescan", jobId: j.id, engagementTarget })}
                     className="h-7 text-[10px]"
                   >
                     {scanningJobId === j.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
