@@ -604,52 +604,70 @@ export default function AdHijack() {
       )}
 
       <Card className="p-4">
-        <div className="flex items-center justify-between mb-3">
-          <h2 className="text-sm font-bold">Scraped Ads ({ads.length})</h2>
+        <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
+          <h2 className="text-sm font-bold">
+            Scraped Ads ({commentableOnly ? ads.filter(isCommentable).length : ads.length}
+            {commentableOnly ? ` of ${ads.length}` : ""})
+          </h2>
+          <label className="flex items-center gap-2 text-[11px] text-muted-foreground cursor-pointer">
+            <input
+              type="checkbox"
+              checked={commentableOnly}
+              onChange={(e) => setCommentableOnly(e.target.checked)}
+              className="accent-primary"
+            />
+            Show only commentable ads (with a real public post)
+          </label>
         </div>
         {ads.length === 0 ? (
           <p className="text-xs text-muted-foreground text-center py-8">No ads scraped yet. Run your first scan above.</p>
         ) : (
           <div className="space-y-3">
-            {ads.map((ad) => {
-              const adOpenUrl = getBestAdOpenUrl(ad);
+            {(commentableOnly ? ads.filter(isCommentable) : ads).map((ad) => {
+              const links = getAdLinks(ad);
+              const platforms = getPublisherPlatforms(ad);
+              const onFb = platforms.includes("facebook") || Boolean(links.fbPost || links.fbPage);
+              const onIg = platforms.includes("instagram") || Boolean(links.igPost || links.igPage);
+              const commentable = isCommentable(ad);
+
+              const openWithComment = (url: string, label: string) => {
+                if (ad.comment_template) navigator.clipboard.writeText(ad.comment_template);
+                window.open(url, "_blank", "noopener,noreferrer");
+                toast({
+                  title: ad.comment_template ? "Comment copied — paste with Cmd/Ctrl+V" : `Opening ${label}`,
+                  description: label,
+                });
+              };
 
               return (
               <div key={ad.id} className="border border-border rounded p-3 space-y-2">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant="outline" className="text-[9px]">
-                        {ad.platform}
-                      </Badge>
+                      <Badge variant="outline" className="text-[9px]">{ad.platform}</Badge>
+                      {onFb && <Badge variant="outline" className="text-[9px] border-blue-500/40 text-blue-400">FB</Badge>}
+                      {onIg && <Badge variant="outline" className="text-[9px] border-pink-500/40 text-pink-400">IG</Badge>}
                       <span className="text-xs font-bold truncate">{ad.advertiser_name}</span>
                       <Badge variant={ad.status === "converted" ? "default" : "secondary"} className="text-[9px]">
                         {ad.status}
                       </Badge>
+                      {commentable ? (
+                        <Badge className="text-[9px] bg-primary/20 text-primary border-primary/40">Commentable</Badge>
+                      ) : (
+                        <Badge variant="outline" className="text-[9px] border-amber-500/40 text-amber-400" title="Dark post — no public thread to comment on. Use Open Page to comment on their latest organic post or DM them.">
+                          Dark post · no public thread
+                        </Badge>
+                      )}
                     </div>
                     {ad.cta_text && <p className="text-[11px] mt-1 font-medium">{ad.cta_text}</p>}
                     {ad.ad_creative_text && (
                       <p className="text-[11px] text-muted-foreground mt-1 line-clamp-2">{ad.ad_creative_text}</p>
                     )}
-                    <div className="flex items-center gap-3 mt-1.5">
-                      <a
-                        href={ad.landing_url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="text-[10px] text-primary hover:underline flex items-center gap-1"
-                      >
+                    <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                      <a href={ad.landing_url} target="_blank" rel="noopener noreferrer"
+                        className="text-[10px] text-primary hover:underline flex items-center gap-1">
                         <ExternalLink className="h-2.5 w-2.5" /> {safeHost(ad.landing_url)}
                       </a>
-                      {adOpenUrl && (
-                        <a
-                          href={adOpenUrl}
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="text-[10px] text-muted-foreground hover:underline flex items-center gap-1"
-                        >
-                          <ExternalLink className="h-2.5 w-2.5" /> View ad / post
-                        </a>
-                      )}
                     </div>
                   </div>
                   <button onClick={() => deleteAd(ad.id)} className="text-muted-foreground hover:text-destructive">
@@ -665,13 +683,8 @@ export default function AdHijack() {
                   ) : (
                     <Badge className="text-[9px]">In CRM</Badge>
                   )}
-                  <Button
-                    size="sm"
-                    variant="outline"
-                    onClick={() => generateComment(ad)}
-                    disabled={generatingFor === ad.id}
-                    className="h-7 text-[10px]"
-                  >
+                  <Button size="sm" variant="outline" onClick={() => generateComment(ad)}
+                    disabled={generatingFor === ad.id} className="h-7 text-[10px]">
                     {generatingFor === ad.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
                     {ad.comment_template ? "Regenerate Comment" : "Generate Comment"}
                   </Button>
@@ -680,37 +693,46 @@ export default function AdHijack() {
                 {ad.comment_template && (
                   <div className="bg-muted/30 rounded p-2 mt-2">
                     <p className="text-[11px] whitespace-pre-wrap break-all">{ad.comment_template}</p>
-                    <div className="flex gap-1.5 mt-2">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => copyText(ad.comment_template!)}
-                        className="h-6 text-[10px]"
-                      >
+                    <div className="flex gap-1.5 mt-2 flex-wrap">
+                      <Button size="sm" variant="ghost" onClick={() => copyText(ad.comment_template!)} className="h-6 text-[10px]">
                         <Copy className="h-3 w-3" /> Copy comment
                       </Button>
-                      {adOpenUrl && (
-                        <Button
-                          size="sm"
-                          variant="ghost"
-                          className="h-6 text-[10px]"
-                          onClick={() => {
-                            // Copy first so it's ready to paste, then pop a real new tab
-                            // where the user is already logged into the platform.
-                            navigator.clipboard.writeText(ad.comment_template!);
-                            window.open(adOpenUrl, "_blank", "noopener,noreferrer");
-                            toast({
-                              title: "Comment copied — paste with Cmd/Ctrl+V",
-                              description: adOpenUrl.includes("/ads/library")
-                                ? "Opened the Meta ad library. Meta may not expose a public comment thread for every ad."
-                                : "Opened the original post in a new tab.",
-                            });
-                          }}
-                        >
-                          <ExternalLink className="h-3 w-3" /> Copy + Open ad
+                      {links.fbPost && (
+                        <Button size="sm" variant="ghost" className="h-6 text-[10px] text-blue-400"
+                          onClick={() => openWithComment(links.fbPost!, "Facebook post — paste & comment")}>
+                          <ExternalLink className="h-3 w-3" /> Copy + Open FB post
+                        </Button>
+                      )}
+                      {links.igPost && (
+                        <Button size="sm" variant="ghost" className="h-6 text-[10px] text-pink-400"
+                          onClick={() => openWithComment(links.igPost!, "Instagram post — paste & comment")}>
+                          <ExternalLink className="h-3 w-3" /> Copy + Open IG post
+                        </Button>
+                      )}
+                      {!commentable && links.fbPage && (
+                        <Button size="sm" variant="ghost" className="h-6 text-[10px] text-blue-400"
+                          onClick={() => openWithComment(links.fbPage!, "FB Page — comment on their latest organic post")}>
+                          <ExternalLink className="h-3 w-3" /> Open FB Page
+                        </Button>
+                      )}
+                      {!commentable && links.igPage && (
+                        <Button size="sm" variant="ghost" className="h-6 text-[10px] text-pink-400"
+                          onClick={() => openWithComment(links.igPage!, "IG profile — DM or comment on latest post")}>
+                          <ExternalLink className="h-3 w-3" /> Open IG Profile
+                        </Button>
+                      )}
+                      {links.library && (
+                        <Button size="sm" variant="ghost" className="h-6 text-[10px] text-muted-foreground"
+                          onClick={() => openWithComment(links.library!, "Meta Ad Library (reference only — no comments)")}>
+                          <ExternalLink className="h-3 w-3" /> Ad Library
                         </Button>
                       )}
                     </div>
+                    {!commentable && (
+                      <p className="text-[10px] text-amber-400/80 mt-2">
+                        This ad has no public post thread (a "dark post"). Open the FB Page or IG profile and comment on their most recent organic post, or send a DM.
+                      </p>
+                    )}
                   </div>
                 )}
               </div>
