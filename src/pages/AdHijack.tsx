@@ -278,7 +278,7 @@ const renderLinkedText = (text: string) => {
   const urlRegex = /(https?:\/\/[^\s<>'"]+)/g;
   const parts = text.split(urlRegex);
   return parts.map((part, index) =>
-    urlRegex.test(part) ? (
+    /^https?:\/\//.test(part) ? (
       <a
         key={`${part}-${index}`}
         href={part}
