@@ -531,11 +531,18 @@ const TalkingAvatarWidget = () => {
 
       const routeToSpeaker = async () => {
         try {
+          setIsRoutingAudio(true);
           const track = remoteTrackRef.current ?? findRemoteTrack();
           if (!track) return;
           remoteTrackRef.current = track;
           // Detach the LiveKit-attached audio element (earpiece route).
           try { track.detach().forEach((el: HTMLAudioElement) => el.remove()); } catch { /* noop */ }
+          if (earpieceAudioRef.current) {
+            earpieceAudioRef.current.pause();
+            earpieceAudioRef.current.srcObject = null;
+            earpieceAudioRef.current.remove();
+            earpieceAudioRef.current = null;
+          }
 
           const stream = new MediaStream([track.mediaStreamTrack]);
           const AC = (window.AudioContext || (window as any).webkitAudioContext) as typeof AudioContext;
@@ -559,13 +566,17 @@ const TalkingAvatarWidget = () => {
           }
           silentSinkAudioRef.current.srcObject = stream;
           silentSinkAudioRef.current.play().catch(() => {});
+          setAudioRouteState("speaker");
         } catch (e) {
           console.error("Failed to route audio to speaker:", e);
+        } finally {
+          setIsRoutingAudio(false);
         }
       };
 
-      const routeToEarpiece = () => {
+      const routeToEarpiece = async () => {
         try {
+          setIsRoutingAudio(true);
           // Tear down Web Audio (speaker) route
           try { audioSourceRef.current?.disconnect(); } catch { /* noop */ }
           audioSourceRef.current = null;
@@ -579,21 +590,35 @@ const TalkingAvatarWidget = () => {
           if (!track) return;
           // LiveKit attach() returns an audio element; we MUST append it to DOM
           // and unmute it so Android routes via voice-communication (earpiece / BT-HSP).
+          if (earpieceAudioRef.current) {
+            earpieceAudioRef.current.pause();
+            earpieceAudioRef.current.srcObject = null;
+            earpieceAudioRef.current.remove();
+          }
           const el = track.attach() as HTMLAudioElement;
           el.muted = false;
           el.autoplay = true;
           (el as any).playsInline = true;
           el.style.display = "none";
           document.body.appendChild(el);
-          el.play().catch(() => {});
+          earpieceAudioRef.current = el;
+          await el.play().catch(() => {});
+          setAudioRouteState("earpiece");
         } catch (e) {
           console.error("Failed to route audio to earpiece:", e);
+        } finally {
+          setIsRoutingAudio(false);
         }
+      };
+
+      const routeToBluetooth = async () => {
+        await routeToEarpiece();
+        setAudioRouteState("bluetooth");
       };
 
       // Wait briefly for the remote track to arrive, then default to speaker.
       const speakerDefaultTimer = setTimeout(() => {
-        if (audioRoute === "speaker") routeToSpeaker();
+        if (audioRouteRef.current === "speaker") routeToSpeaker();
       }, 400);
 
       retellClient.on("call_ended", () => {
@@ -606,6 +631,11 @@ const TalkingAvatarWidget = () => {
           silentSinkAudioRef.current.remove();
           silentSinkAudioRef.current = null;
         }
+        if (earpieceAudioRef.current) {
+          earpieceAudioRef.current.srcObject = null;
+          earpieceAudioRef.current.remove();
+          earpieceAudioRef.current = null;
+        }
         try { audioCtxRef.current?.close(); } catch { /* noop */ }
         audioCtxRef.current = null;
       });
@@ -613,11 +643,12 @@ const TalkingAvatarWidget = () => {
       // Expose helpers on the ref so the toggle button can call them.
       (retellClientRef.current as any)._routeSpeaker = routeToSpeaker;
       (retellClientRef.current as any)._routeEarpiece = routeToEarpiece;
+      (retellClientRef.current as any)._routeBluetooth = routeToBluetooth;
     } catch (err) {
       console.error("Failed to start spokesperson call:", err);
       setCallStatus("idle");
     }
-  }, [focusAvatarOnViewer, resetAvatarMotion, audioRoute]);
+  }, [focusAvatarOnViewer, resetAvatarMotion, refreshBluetoothOutput, setAudioRouteState]);
 
   const endCall = useCallback(() => {
     try { retellClientRef.current?.stopCall(); } catch { /* noop */ }
