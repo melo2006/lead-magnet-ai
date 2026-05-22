@@ -385,13 +385,23 @@ async function scrapeMetaViaApify(
   }
   const normalized = items.map(normalizeMetaAd).filter((x): x is ScrapedAd => !!x);
 
-  // Annotate with detected language + country tag
+  // Aggregate variant_count per page_id (signals "scaling hard" advertisers)
+  const variantCounts = new Map<string, number>();
+  for (const ad of normalized) {
+    const pid = String(ad.metadata?.page_id ?? "");
+    if (!pid) continue;
+    variantCounts.set(pid, (variantCounts.get(pid) ?? 0) + 1);
+  }
+
+  // Annotate with detected language + country tag + variant count
   for (const ad of normalized) {
     const detection = detectLanguage(ad.ad_creative_text);
+    const pid = String(ad.metadata?.page_id ?? "");
     ad.metadata = {
       ...(ad.metadata ?? {}),
       detected_language: detection.language,
       is_english: detection.isEnglish,
+      variant_count: pid ? variantCounts.get(pid) ?? 1 : 1,
     };
   }
 
