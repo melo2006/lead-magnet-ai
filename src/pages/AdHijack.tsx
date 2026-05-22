@@ -20,6 +20,8 @@ import {
 
 type Platform = "meta" | "tiktok" | "linkedin" | "google";
 type SupportedPlatform = "meta" | "tiktok";
+type EngagementTarget = "all" | "commentable_only" | "all_with_contact";
+type AdsFilter = "all" | "commentable" | "contact_fallback" | "dark";
 
 interface ScrapedAd {
   id: string;
@@ -49,6 +51,7 @@ interface ScanJob {
   total_cost_usd: number;
   last_error: string | null;
   created_at: string;
+  platform_results?: Record<string, unknown> | null;
 }
 
 interface PlatformScanResult {
@@ -223,6 +226,7 @@ const getAdLinks = (ad: ScrapedAd) => ({
   igPost: metaStr(ad, "ig_post_url"),
   fbPage: metaStr(ad, "fb_page_url"),
   igPage: metaStr(ad, "ig_page_url"),
+  contactPage: metaStr(ad, "contact_page_url"),
   library: metaStr(ad, "library_url") || ad.source_ad_url,
 });
 
@@ -236,6 +240,15 @@ const isCommentable = (ad: ScrapedAd): boolean => {
   if (ad.metadata?.is_commentable === true) return true;
   const l = getAdLinks(ad);
   return Boolean(l.fbPost || l.igPost);
+};
+
+const hasContactFallback = (ad: ScrapedAd): boolean => Boolean(getAdLinks(ad).contactPage);
+
+const matchesAdsFilter = (ad: ScrapedAd, filter: AdsFilter): boolean => {
+  if (filter === "commentable") return isCommentable(ad);
+  if (filter === "contact_fallback") return hasContactFallback(ad);
+  if (filter === "dark") return !isCommentable(ad);
+  return true;
 };
 
 export default function AdHijack() {
