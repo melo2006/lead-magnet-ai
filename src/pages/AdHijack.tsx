@@ -699,7 +699,7 @@ export default function AdHijack() {
           <Radar className="h-4 w-4 text-primary" />
           <h2 className="text-sm font-bold">New Scan</h2>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-3">
           <div>
             <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Niche</label>
             <Select
@@ -811,6 +811,34 @@ export default function AdHijack() {
             </Select>
           </div>
           <div>
+            <label className="text-[10px] uppercase tracking-widest text-muted-foreground">TikTok age</label>
+            <Select value={minTikTokActiveDays} onValueChange={setMinTikTokActiveDays}>
+              <SelectTrigger className="h-9 text-xs mt-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0">Any age</SelectItem>
+                <SelectItem value="14">14+ days active</SelectItem>
+                <SelectItem value="30">30+ days active</SelectItem>
+                <SelectItem value="60">60+ days active</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-[10px] uppercase tracking-widest text-muted-foreground">TikTok reach</label>
+            <Select value={minTikTokAudience} onValueChange={setMinTikTokAudience}>
+              <SelectTrigger className="h-9 text-xs mt-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0">Any reach</SelectItem>
+                <SelectItem value="1000">1k+ audience/views</SelectItem>
+                <SelectItem value="5000">5k+ audience/views</SelectItem>
+                <SelectItem value="10000">10k+ audience/views</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
             <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Platforms</label>
             <div className="flex flex-wrap gap-1.5 mt-1">
               {PLATFORMS.map((p) => (
@@ -832,6 +860,12 @@ export default function AdHijack() {
                 </button>
               ))}
             </div>
+          </div>
+          <div className="md:col-span-2 xl:col-span-3 flex items-end">
+            <label className="flex items-center gap-2 text-[10px] text-muted-foreground cursor-pointer pb-2">
+              <input type="checkbox" checked={requireBusinessWebsite} onChange={(e) => setRequireBusinessWebsite(e.target.checked)} className="h-3 w-3" />
+              Require a real business website before saving TikTok ads
+            </label>
           </div>
         </div>
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
