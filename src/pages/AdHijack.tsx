@@ -342,8 +342,8 @@ export default function AdHijack() {
       if (error) throw error;
       setAds((prev) => prev.map((a) => (a.id === ad.id ? { ...a, comment_template: data.comment } : a)));
       toast({ title: "Comment generated" });
-    } catch (e: any) {
-      toast({ title: "Generation failed", description: e?.message ?? String(e), variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Generation failed", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setGeneratingFor(null);
     }
@@ -383,8 +383,8 @@ export default function AdHijack() {
         prev.map((a) => (a.id === ad.id ? { ...a, prospect_id: prospectId!, status: "converted" } : a)),
       );
       toast({ title: "Converted to prospect", description: ad.advertiser_name });
-    } catch (e: any) {
-      toast({ title: "Convert failed", description: e?.message ?? String(e), variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Convert failed", description: getErrorMessage(e), variant: "destructive" });
     }
   };
 
