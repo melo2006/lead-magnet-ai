@@ -326,6 +326,8 @@ export default function AdHijack() {
     niche?: string;
     location?: string | null;
     platforms?: string[];
+    countries?: string[];
+    languages?: string[];
     mode?: "fresh" | "rescan";
     jobId?: string;
     engagementTarget?: EngagementTarget;
@@ -336,13 +338,21 @@ export default function AdHijack() {
     const scanPlatforms = (override?.platforms ?? selectedPlatforms).filter(
       (p): p is SupportedPlatform => p === "meta" || p === "tiktok",
     );
+    const scanCountries = (override?.countries ?? selectedCountries).filter((c): c is Country =>
+      ["US", "CA", "GB", "AU"].includes(c),
+    );
+    const scanLanguages = override?.languages ?? (englishOnly ? ["en"] : ["en", "other"]);
 
     if (!scanNiche || scanPlatforms.length === 0) {
       toast({ title: "Keyword and at least one supported platform required", variant: "destructive" });
       return;
     }
+    if (scanCountries.length === 0) {
+      toast({ title: "Pick at least one country", variant: "destructive" });
+      return;
+    }
     if (!scanLocation.valid) {
-      toast({ title: "Fix the location first", description: scanLocation.message, variant: "destructive" });
+      toast({ title: "Fix the city or leave blank", description: scanLocation.message, variant: "destructive" });
       return;
     }
 
@@ -353,6 +363,8 @@ export default function AdHijack() {
         body: {
           niche: scanNiche,
           location: scanLocation.normalized,
+          countries: scanCountries,
+          languages: scanLanguages,
           platforms: scanPlatforms,
           limit: override?.mode === "rescan" ? Math.max(Number(limit), 50) : Number(limit),
           mode: override?.mode ?? "fresh",
