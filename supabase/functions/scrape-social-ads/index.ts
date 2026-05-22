@@ -417,7 +417,15 @@ serve(async (req) => {
   try {
     const body = await req.json();
     const niche: string = String(body?.niche ?? "").trim();
-    const location: string = String(body?.location ?? "").trim();
+    const location: string = String(body?.location ?? "").trim(); // optional now
+    const requestedCountries: string[] = Array.isArray(body?.countries) && body.countries.length
+      ? body.countries.map((c: unknown) => String(c).toUpperCase()).filter((c: string) => (SUPPORTED_COUNTRIES as readonly string[]).includes(c))
+      : ["US"];
+    const countries = requestedCountries.length ? requestedCountries : ["US"];
+    const languages: string[] = Array.isArray(body?.languages) && body.languages.length
+      ? body.languages.map((l: unknown) => String(l).toLowerCase())
+      : ["en"];
+    const englishOnly = languages.includes("en") && languages.length === 1;
     const requestedPlatforms: string[] = Array.isArray(body?.platforms) ? body.platforms : [];
     const platforms: Platform[] = requestedPlatforms.filter(
       (p): p is Platform => p === "meta" || p === "tiktok",
