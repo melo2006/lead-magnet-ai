@@ -1,3 +1,4 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
 
@@ -8,6 +9,8 @@ const corsHeaders = {
 };
 
 type Platform = "meta" | "tiktok";
+
+type ScanMode = "fresh" | "rescan";
 
 interface ScrapedAd {
   platform: Platform;
@@ -69,43 +72,95 @@ function buildFbAdLibrarySearchUrl(niche: string, countryCode: string): string {
   return `https://www.facebook.com/ads/library/?${params.toString()}`;
 }
 
+function cleanUrl(value: unknown): string | undefined {
+  if (!value) return undefined;
+  const raw = String(value).trim();
+  if (!raw || raw === "null" || raw === "undefined") return undefined;
+  if (raw.startsWith("http://") || raw.startsWith("https://")) return raw;
+  if (raw.includes(".") && !raw.includes(" ")) return `https://${raw}`;
+  return undefined;
+}
+
+function firstValue(...values: unknown[]): string | undefined {
+  for (const value of values) {
+    if (typeof value === "string" && value.trim()) return value.trim();
+    if (typeof value === "number") return String(value);
+  }
+  return undefined;
+}
+
 function pickLandingUrl(item: any): string | undefined {
-  // The official Apify FB ads scraper output uses snapshot.link_url plus a few alternatives
   const s = item?.snapshot ?? {};
-  return (
-    s.link_url ||
-    item.link_url ||
-    item.url ||
-    item.landingPageUrl ||
-    item.adLandingPage ||
-    item.destinationUrl ||
-    (Array.isArray(s.cards) && s.cards[0]?.link_url) ||
-    undefined
+  const cards = Array.isArray(s.cards) ? s.cards : [];
+  const link = firstValue(
+    s.link_url,
+    s.linkUrl,
+    s.link,
+    s.website_url,
+    s.websiteUrl,
+    cards[0]?.link_url,
+    cards[0]?.linkUrl,
+    cards[0]?.link,
+    item.link_url,
+    item.linkUrl,
+    item.landingPageUrl,
+    item.landing_page_url,
+    item.adLandingPage,
+    item.destinationUrl,
+    item.url,
   );
+  return cleanUrl(link);
 }
 
 function normalizeMetaAd(item: any): ScrapedAd | null {
-  const landing = pickLandingUrl(item);
-  if (!landing) return null;
-  const landingUrl = String(landing).startsWith("http") ? String(landing) : `https://${landing}`;
   const s = item?.snapshot ?? {};
+  const cards = Array.isArray(s.cards) ? s.cards : [];
+  const adId = firstValue(item.ad_archive_id, item.adArchiveId, item.adArchiveID, item.id);
+  const sourceUrl = cleanUrl(item.url) || (adId ? `https://www.facebook.com/ads/library/?id=${adId}` : undefined);
+  const landingUrl = pickLandingUrl(item) || sourceUrl;
+  const advertiser = firstValue(s.page_name, s.pageName, item.page_name, item.pageName, item.advertiserName);
+  if (!landingUrl || !advertiser) return null;
+
+  const startedAt = item.start_date
+    ? new Date(Number(item.start_date) * 1000).toISOString()
+    : item.startDate
+      ? new Date(Number(item.startDate) * 1000).toISOString()
+      : firstValue(item.startDateFormatted, item.start_date_formatted);
 
   return {
     platform: "meta",
-    ad_id: item.ad_archive_id || item.adArchiveId || item.id,
-    advertiser_name: s.page_name || item.page_name || item.advertiserName || "Unknown",
-    advertiser_handle: String(s.page_id || item.page_id || ""),
+    ad_id: adId,
+    advertiser_name: advertiser,
+    advertiser_handle: firstValue(s.page_id, s.pageId, item.page_id, item.pageId, item.pageID),
     landing_url: landingUrl,
-    cta_text: s.cta_text || s.title || item.cta,
-    ad_creative_text: s.body?.text || s.caption || item.text || s.title,
-    ad_media_url:
-      s.videos?.[0]?.video_preview_image_url ||
-      s.images?.[0]?.original_image_url ||
-      s.cards?.[0]?.original_image_url,
-    posted_at: item.start_date ? new Date(item.start_date * 1000).toISOString() : undefined,
-    source_ad_url: item.url || `https://www.facebook.com/ads/library/?id=${item.ad_archive_id ?? ""}`,
+    cta_text: firstValue(s.cta_text, s.ctaText, s.title, cards[0]?.cta_text, cards[0]?.ctaText, item.cta),
+    ad_creative_text: firstValue(
+      s.body?.text,
+      s.bodyText,
+      s.caption,
+      s.title,
+      s.link_description,
+      s.linkDescription,
+      cards[0]?.body,
+      cards[0]?.bodyText,
+      cards[0]?.title,
+      item.text,
+    ),
+    ad_media_url: cleanUrl(
+      firstValue(
+        s.videos?.[0]?.video_preview_image_url,
+        s.videos?.[0]?.videoPreviewImageUrl,
+        s.images?.[0]?.original_image_url,
+        s.images?.[0]?.originalImageUrl,
+        cards[0]?.original_image_url,
+        cards[0]?.originalImageUrl,
+      ),
+    ),
+    posted_at: startedAt,
+    source_ad_url: sourceUrl,
     metadata: {
-      publisher_platforms: item.publisher_platform || s.publisher_platform || [],
+      publisher_platforms: item.publisher_platform || item.publisherPlatform || s.publisher_platform || s.publisherPlatform || [],
+      source: "apify/facebook-ads-scraper",
     },
   };
 }
@@ -195,6 +250,7 @@ serve(async (req) => {
     );
     const limitPerPlatform: number = Math.min(Math.max(Number(body?.limit ?? 25), 1), 100);
     const verifyOnly: boolean = body?.verify === true;
+    const mode: ScanMode = body?.mode === "rescan" ? "rescan" : "fresh";
 
     const APIFY_TOKEN = Deno.env.get("APIFY_API_TOKEN");
 
@@ -269,16 +325,30 @@ serve(async (req) => {
       }
     }
 
-    // Upsert dedup by (platform, landing_url)
+    // Save only new ads for rescans so the count reflects fresh finds, not old duplicates.
     let upsertedCount = 0;
-    if (allAds.length > 0) {
-      const rows = allAds.map((a) => ({ ...a, scan_job_id: jobId }));
-      const { data: upserted, error: upErr } = await supabase
+    let duplicateCount = 0;
+    const uniqueAds = Array.from(
+      new Map(allAds.map((ad) => [`${ad.platform}::${ad.landing_url}`, ad])).values(),
+    );
+    duplicateCount += allAds.length - uniqueAds.length;
+
+    if (uniqueAds.length > 0) {
+      const { data: existingRows, error: existingErr } = await supabase
         .from("scraped_ads")
-        .upsert(rows, { onConflict: "platform,landing_url", ignoreDuplicates: false })
-        .select("id");
-      if (upErr) throw upErr;
-      upsertedCount = upserted?.length ?? 0;
+        .select("platform,landing_url")
+        .in("landing_url", uniqueAds.map((a) => a.landing_url));
+      if (existingErr) throw existingErr;
+      const existingKeys = new Set((existingRows ?? []).map((r: any) => `${r.platform}::${r.landing_url}`));
+      const rows = uniqueAds
+        .filter((a) => !existingKeys.has(`${a.platform}::${a.landing_url}`))
+        .map((a) => ({ ...a, scan_job_id: jobId }));
+      duplicateCount += uniqueAds.length - rows.length;
+      if (rows.length > 0) {
+        const { data: inserted, error: insertErr } = await supabase.from("scraped_ads").insert(rows).select("id");
+        if (insertErr) throw insertErr;
+        upsertedCount = inserted?.length ?? 0;
+      }
     }
 
     // Log usage
@@ -300,7 +370,7 @@ serve(async (req) => {
         status: "completed",
         ads_found: upsertedCount,
         total_cost_usd: Number(totalCost.toFixed(3)),
-        platform_results: platformResults,
+        platform_results: { ...platformResults, _duplicates_skipped: duplicateCount, _mode: mode },
         completed_at: new Date().toISOString(),
       })
       .eq("id", jobId);
@@ -310,7 +380,7 @@ serve(async (req) => {
         success: true,
         job_id: jobId,
         ads_found: upsertedCount,
-        platform_results: platformResults,
+        platform_results: { ...platformResults, _duplicates_skipped: duplicateCount, _mode: mode },
         total_cost_usd: Number(totalCost.toFixed(3)),
         apify_user: tokenCheck.username,
       }),

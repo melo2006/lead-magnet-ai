@@ -4,10 +4,22 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { Loader2, Radar, Copy, ExternalLink, Sparkles, Trash2, ArrowRight } from "lucide-react";
+import {
+  Loader2,
+  Radar,
+  Copy,
+  ExternalLink,
+  Sparkles,
+  Trash2,
+  ArrowRight,
+  RefreshCw,
+  ShieldCheck,
+} from "lucide-react";
 
 type Platform = "meta" | "tiktok" | "linkedin" | "google";
+type SupportedPlatform = "meta" | "tiktok";
 
 interface ScrapedAd {
   id: string;
@@ -38,19 +50,179 @@ interface ScanJob {
   created_at: string;
 }
 
-const PLATFORMS: { id: Platform; label: string; free: boolean }[] = [
-  { id: "meta", label: "Meta (FB+IG)", free: true },
-  { id: "tiktok", label: "TikTok", free: false },
-  { id: "linkedin", label: "LinkedIn", free: false },
-  { id: "google", label: "Google", free: false },
+interface PlatformScanResult {
+  count: number;
+  error?: string;
+}
+
+const getErrorMessage = (error: unknown) => (error instanceof Error ? error.message : String(error));
+
+const NICHE_OPTIONS = [
+  {
+    id: "med-spa",
+    label: "Med Spa",
+    keywords: ["med spa", "botox", "laser hair removal", "weight loss clinic", "skin rejuvenation"],
+  },
+  {
+    id: "dental",
+    label: "Dental",
+    keywords: ["dentist", "cosmetic dentist", "dental implants", "orthodontist", "emergency dentist"],
+  },
+  {
+    id: "home-services",
+    label: "Home Services",
+    keywords: ["roofer", "plumber", "hvac", "water damage restoration", "pest control"],
+  },
+  {
+    id: "legal",
+    label: "Legal",
+    keywords: ["personal injury lawyer", "family lawyer", "estate planning attorney", "criminal defense lawyer"],
+  },
+  {
+    id: "wellness",
+    label: "Wellness",
+    keywords: ["chiropractor", "physical therapy", "mental health clinic", "iv therapy", "functional medicine"],
+  },
+  { id: "custom", label: "Custom", keywords: ["custom"] },
 ];
+
+const US_STATES = new Set([
+  "AL",
+  "AK",
+  "AZ",
+  "AR",
+  "CA",
+  "CO",
+  "CT",
+  "DE",
+  "FL",
+  "GA",
+  "HI",
+  "ID",
+  "IL",
+  "IN",
+  "IA",
+  "KS",
+  "KY",
+  "LA",
+  "ME",
+  "MD",
+  "MA",
+  "MI",
+  "MN",
+  "MS",
+  "MO",
+  "MT",
+  "NE",
+  "NV",
+  "NH",
+  "NJ",
+  "NM",
+  "NY",
+  "NC",
+  "ND",
+  "OH",
+  "OK",
+  "OR",
+  "PA",
+  "RI",
+  "SC",
+  "SD",
+  "TN",
+  "TX",
+  "UT",
+  "VT",
+  "VA",
+  "WA",
+  "WV",
+  "WI",
+  "WY",
+  "DC",
+]);
+
+const VERIFIED_CITIES = [
+  "Fort Lauderdale, FL",
+  "Miami, FL",
+  "West Palm Beach, FL",
+  "Boca Raton, FL",
+  "Orlando, FL",
+  "Tampa, FL",
+  "Jacksonville, FL",
+  "Atlanta, GA",
+  "Dallas, TX",
+  "Houston, TX",
+  "Austin, TX",
+  "Los Angeles, CA",
+  "San Diego, CA",
+  "New York, NY",
+  "Chicago, IL",
+  "Phoenix, AZ",
+  "Denver, CO",
+  "Charlotte, NC",
+  "Nashville, TN",
+  "Las Vegas, NV",
+];
+
+const PLATFORMS: { id: Platform; label: string; supported: boolean; note: string }[] = [
+  { id: "meta", label: "Meta (FB+IG)", supported: true, note: "Apify actor connected" },
+  { id: "tiktok", label: "TikTok", supported: true, note: "Apify actor connected" },
+  { id: "linkedin", label: "LinkedIn", supported: false, note: "No reliable actor connected yet" },
+  { id: "google", label: "Google", supported: false, note: "No reliable actor connected yet" },
+];
+
+const formatLocation = (value: string) =>
+  value
+    .split(",")
+    .map((part, index) =>
+      index === 1
+        ? part.trim().toUpperCase()
+        : part
+            .trim()
+            .toLowerCase()
+            .replace(/\b\w/g, (char) => char.toUpperCase()),
+    )
+    .join(", ");
+
+const validateLocation = (value: string): { valid: boolean; message: string; normalized: string } => {
+  const trimmed = value.trim();
+  if (!trimmed) return { valid: true, message: "Optional, but city + state improves local ad quality.", normalized: "" };
+
+  const match = trimmed.match(/^([a-zA-Z .'-]{2,60}),\s*([a-zA-Z]{2})$/);
+  if (!match) {
+    return { valid: false, message: "Use City, ST format, for example Fort Lauderdale, FL.", normalized: trimmed };
+  }
+
+  const normalized = formatLocation(`${match[1]}, ${match[2]}`);
+  const state = match[2].toUpperCase();
+  if (!US_STATES.has(state)) return { valid: false, message: "State must be a valid 2-letter US state code.", normalized };
+
+  const verified = VERIFIED_CITIES.some((city) => city.toLowerCase() === normalized.toLowerCase());
+  return {
+    valid: true,
+    message: verified ? "Verified city format for Apify searches." : "Valid city/state format; not in quick-pick list, but safe to scan.",
+    normalized,
+  };
+};
+
+const safeHost = (url: string) => {
+  try {
+    return new URL(url).hostname;
+  } catch {
+    return url;
+  }
+};
 
 export default function AdHijack() {
   const { toast } = useToast();
-  const [niche, setNiche] = useState("");
-  const [location, setLocation] = useState("");
-  const [selectedPlatforms, setSelectedPlatforms] = useState<Platform[]>(["meta"]);
+  const [selectedNicheId, setSelectedNicheId] = useState("med-spa");
+  const [subNiche, setSubNiche] = useState("med spa");
+  const [customNiche, setCustomNiche] = useState("");
+  const [location, setLocation] = useState("Fort Lauderdale, FL");
+  const [limit, setLimit] = useState("25");
+  const [selectedPlatforms, setSelectedPlatforms] = useState<SupportedPlatform[]>(["meta"]);
   const [scanning, setScanning] = useState(false);
+  const [scanningJobId, setScanningJobId] = useState<string | null>(null);
+  const [apiStatus, setApiStatus] = useState<string | null>(null);
   const [ads, setAds] = useState<ScrapedAd[]>([]);
   const [jobs, setJobs] = useState<ScanJob[]>([]);
   const [generatingFor, setGeneratingFor] = useState<string | null>(null);
@@ -68,36 +240,96 @@ export default function AdHijack() {
     loadData();
   }, [loadData]);
 
-  const togglePlatform = (p: Platform) => {
-    setSelectedPlatforms((prev) => (prev.includes(p) ? prev.filter((x) => x !== p) : [...prev, p]));
-  };
+  const selectedNiche = NICHE_OPTIONS.find((item) => item.id === selectedNicheId) ?? NICHE_OPTIONS[0];
+  const searchKeyword = selectedNicheId === "custom" ? customNiche.trim() : subNiche.trim();
+  const locationCheck = validateLocation(location);
 
-  const runScan = async () => {
-    if (!niche.trim() || selectedPlatforms.length === 0) {
-      toast({ title: "Niche and at least one platform required", variant: "destructive" });
+  const togglePlatform = (p: Platform) => {
+    const platform = PLATFORMS.find((item) => item.id === p);
+    if (!platform?.supported) {
+      toast({ title: `${platform?.label ?? p} is disabled`, description: platform?.note, variant: "destructive" });
       return;
     }
+
+    const supported = p as SupportedPlatform;
+    setSelectedPlatforms((prev) =>
+      prev.includes(supported) ? prev.filter((x) => x !== supported) : [...prev, supported],
+    );
+  };
+
+  const runScan = async (override?: {
+    niche?: string;
+    location?: string | null;
+    platforms?: string[];
+    mode?: "fresh" | "rescan";
+    jobId?: string;
+  }) => {
+    const scanNiche = (override?.niche ?? searchKeyword).trim();
+    const scanLocationRaw = (override?.location ?? location) ?? "";
+    const scanLocation = validateLocation(scanLocationRaw);
+    const scanPlatforms = (override?.platforms ?? selectedPlatforms).filter(
+      (p): p is SupportedPlatform => p === "meta" || p === "tiktok",
+    );
+
+    if (!scanNiche || scanPlatforms.length === 0) {
+      toast({ title: "Keyword and at least one supported platform required", variant: "destructive" });
+      return;
+    }
+    if (!scanLocation.valid) {
+      toast({ title: "Fix the location first", description: scanLocation.message, variant: "destructive" });
+      return;
+    }
+
     setScanning(true);
+    setScanningJobId(override?.jobId ?? null);
     try {
       const { data, error } = await supabase.functions.invoke("scrape-social-ads", {
-        body: { niche: niche.trim(), location: location.trim(), platforms: selectedPlatforms, limit: 25 },
+        body: {
+          niche: scanNiche,
+          location: scanLocation.normalized,
+          platforms: scanPlatforms,
+          limit: override?.mode === "rescan" ? Math.max(Number(limit), 50) : Number(limit),
+          mode: override?.mode ?? "fresh",
+        },
       });
       if (error) throw error;
+
+      const duplicates = data?.platform_results?._duplicates_skipped ?? 0;
+      const platformSummary = Object.entries(data?.platform_results ?? {})
+        .filter(([platform]) => !platform.startsWith("_"))
+        .map(([platform, result]) => {
+          const scanResult = result as PlatformScanResult;
+          return `${platform}: ${scanResult.count}${scanResult.error ? " ⚠" : ""}`;
+        })
+        .join(" · ");
+
       toast({
-        title: `Scan complete — ${data?.ads_found ?? 0} ads found`,
-        description: Object.entries(data?.platform_results ?? {})
-          .map(([p, r]: [string, any]) => `${p}: ${r.count}${r.error ? " ⚠" : ""}`)
-          .join(" · "),
+        title: `${override?.mode === "rescan" ? "Rescan" : "Scan"} complete — ${data?.ads_found ?? 0} new ads`,
+        description: `${platformSummary}${duplicates ? ` · ${duplicates} duplicates skipped` : ""}`,
       });
       await loadData();
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast({
         title: "Scan failed",
-        description: e?.message ?? String(e),
+        description: getErrorMessage(e),
         variant: "destructive",
       });
     } finally {
       setScanning(false);
+      setScanningJobId(null);
+    }
+  };
+
+  const checkApify = async () => {
+    setApiStatus("Checking…");
+    try {
+      const { data, error } = await supabase.functions.invoke("scrape-social-ads", { body: { verify: true } });
+      if (error) throw error;
+      setApiStatus(data?.ok ? `Connected as ${data.username}` : data?.error ?? "Not connected");
+      toast({ title: data?.ok ? "Apify API is working" : "Apify check failed", description: data?.username ?? data?.error });
+    } catch (e: unknown) {
+      setApiStatus(getErrorMessage(e));
+      toast({ title: "Apify check failed", description: getErrorMessage(e), variant: "destructive" });
     }
   };
 
@@ -110,8 +342,8 @@ export default function AdHijack() {
       if (error) throw error;
       setAds((prev) => prev.map((a) => (a.id === ad.id ? { ...a, comment_template: data.comment } : a)));
       toast({ title: "Comment generated" });
-    } catch (e: any) {
-      toast({ title: "Generation failed", description: e?.message ?? String(e), variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Generation failed", description: getErrorMessage(e), variant: "destructive" });
     } finally {
       setGeneratingFor(null);
     }
@@ -151,8 +383,8 @@ export default function AdHijack() {
         prev.map((a) => (a.id === ad.id ? { ...a, prospect_id: prospectId!, status: "converted" } : a)),
       );
       toast({ title: "Converted to prospect", description: ad.advertiser_name });
-    } catch (e: any) {
-      toast({ title: "Convert failed", description: e?.message ?? String(e), variant: "destructive" });
+    } catch (e: unknown) {
+      toast({ title: "Convert failed", description: getErrorMessage(e), variant: "destructive" });
     }
   };
 
@@ -177,30 +409,90 @@ export default function AdHijack() {
         </p>
       </div>
 
-      {/* Scan form */}
       <Card className="p-4">
         <div className="flex items-center gap-2 mb-3">
           <Radar className="h-4 w-4 text-primary" />
           <h2 className="text-sm font-bold">New Scan</h2>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
           <div>
             <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Niche</label>
-            <Input
-              placeholder="med spa, dentist, roofer…"
-              value={niche}
-              onChange={(e) => setNiche(e.target.value)}
-              className="h-9 text-xs mt-1"
-            />
+            <Select
+              value={selectedNicheId}
+              onValueChange={(value) => {
+                setSelectedNicheId(value);
+                const next = NICHE_OPTIONS.find((item) => item.id === value);
+                if (next && value !== "custom") setSubNiche(next.keywords[0]);
+              }}
+            >
+              <SelectTrigger className="h-9 text-xs mt-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {NICHE_OPTIONS.map((item) => (
+                  <SelectItem key={item.id} value={item.id}>
+                    {item.label}
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
           <div>
-            <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Location (optional)</label>
+            <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Sub-niche / keyword</label>
+            {selectedNicheId === "custom" ? (
+              <Input
+                placeholder="Type exact keyword"
+                value={customNiche}
+                onChange={(e) => setCustomNiche(e.target.value)}
+                className="h-9 text-xs mt-1"
+              />
+            ) : (
+              <Select value={subNiche} onValueChange={setSubNiche}>
+                <SelectTrigger className="h-9 text-xs mt-1">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {selectedNiche.keywords.map((keyword) => (
+                    <SelectItem key={keyword} value={keyword}>
+                      {keyword}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            )}
+          </div>
+          <div>
+            <label className="text-[10px] uppercase tracking-widest text-muted-foreground">City, State</label>
             <Input
-              placeholder="Miami, FL"
+              list="verified-cities"
+              placeholder="Fort Lauderdale, FL"
               value={location}
+              onBlur={() => locationCheck.valid && setLocation(locationCheck.normalized)}
               onChange={(e) => setLocation(e.target.value)}
-              className="h-9 text-xs mt-1"
+              className={`h-9 text-xs mt-1 ${location && !locationCheck.valid ? "border-destructive" : ""}`}
             />
+            <datalist id="verified-cities">
+              {VERIFIED_CITIES.map((city) => (
+                <option key={city} value={city} />
+              ))}
+            </datalist>
+            <p className={`text-[10px] mt-1 ${locationCheck.valid ? "text-muted-foreground" : "text-destructive"}`}>
+              {locationCheck.message}
+            </p>
+          </div>
+          <div>
+            <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Result limit</label>
+            <Select value={limit} onValueChange={setLimit}>
+              <SelectTrigger className="h-9 text-xs mt-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="10">10 ads</SelectItem>
+                <SelectItem value="25">25 ads</SelectItem>
+                <SelectItem value="50">50 ads</SelectItem>
+                <SelectItem value="100">100 ads</SelectItem>
+              </SelectContent>
+            </Select>
           </div>
           <div>
             <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Platforms</label>
@@ -210,48 +502,73 @@ export default function AdHijack() {
                   key={p.id}
                   type="button"
                   onClick={() => togglePlatform(p.id)}
+                  disabled={!p.supported}
+                  title={p.note}
                   className={`px-2 py-1 rounded text-[11px] border transition-colors ${
-                    selectedPlatforms.includes(p.id)
+                    selectedPlatforms.includes(p.id as SupportedPlatform)
                       ? "bg-primary text-primary-foreground border-primary"
-                      : "border-border text-muted-foreground hover:bg-muted/50"
+                      : p.supported
+                        ? "border-border text-muted-foreground hover:bg-muted/50"
+                        : "border-border text-muted-foreground/40 cursor-not-allowed"
                   }`}
                 >
-                  {p.label} {p.free && <span className="opacity-70">(free)</span>}
+                  {p.label} {!p.supported && <span className="opacity-70">soon</span>}
                 </button>
               ))}
             </div>
           </div>
         </div>
-        <div className="mt-4 flex items-center justify-between">
-          <p className="text-[10px] text-muted-foreground">
-            Meta uses the official Ad Library API. TikTok / LinkedIn / Google use Apify (~$0.50/1k ads).
-          </p>
-          <Button onClick={runScan} disabled={scanning} size="sm">
-            {scanning ? <Loader2 className="h-3 w-3 animate-spin" /> : <Radar className="h-3 w-3" />}
-            {scanning ? "Scanning…" : "Run Scan"}
-          </Button>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
+          <div className="space-y-1">
+            <p className="text-[10px] text-muted-foreground">
+              Meta and TikTok are validated Apify actors. LinkedIn/Google are disabled until a reliable actor is connected.
+            </p>
+            {apiStatus && <p className="text-[10px] text-primary">Apify status: {apiStatus}</p>}
+          </div>
+          <div className="flex items-center gap-2">
+            <Button onClick={checkApify} disabled={scanning} size="sm" variant="outline">
+              <ShieldCheck className="h-3 w-3" /> Check Apify
+            </Button>
+            <Button onClick={() => runScan()} disabled={scanning || !locationCheck.valid} size="sm">
+              {scanning && !scanningJobId ? <Loader2 className="h-3 w-3 animate-spin" /> : <Radar className="h-3 w-3" />}
+              {scanning && !scanningJobId ? "Scanning…" : "Run Scan"}
+            </Button>
+          </div>
         </div>
       </Card>
 
-      {/* Recent scan jobs */}
       {jobs.length > 0 && (
         <Card className="p-4">
           <h2 className="text-sm font-bold mb-2">Recent Scans</h2>
           <div className="space-y-1">
             {jobs.slice(0, 5).map((j) => (
-              <div key={j.id} className="flex items-center justify-between text-[11px] py-1 border-b border-border last:border-0">
-                <div className="flex items-center gap-2">
+              <div
+                key={j.id}
+                className="flex flex-col gap-2 lg:flex-row lg:items-center lg:justify-between text-[11px] py-2 border-b border-border last:border-0"
+              >
+                <div className="flex items-center gap-2 flex-wrap">
                   <Badge variant={j.status === "completed" ? "default" : j.status === "failed" ? "destructive" : "secondary"} className="text-[9px]">
                     {j.status}
                   </Badge>
                   <span className="font-medium">{j.niche}</span>
                   {j.location && <span className="text-muted-foreground">· {j.location}</span>}
                   <span className="text-muted-foreground">· {j.platforms.join(", ")}</span>
+                  {j.last_error && <span className="text-destructive">· {j.last_error.slice(0, 80)}</span>}
                 </div>
-                <div className="flex items-center gap-3 text-muted-foreground">
-                  <span>{j.ads_found} ads</span>
+                <div className="flex items-center gap-3 text-muted-foreground flex-wrap">
+                  <span>{j.ads_found} new ads</span>
                   <span>${Number(j.total_cost_usd).toFixed(2)}</span>
                   <span>{new Date(j.created_at).toLocaleString()}</span>
+                  <Button
+                    size="sm"
+                    variant="outline"
+                    disabled={scanning}
+                    onClick={() => runScan({ niche: j.niche, location: j.location, platforms: j.platforms, mode: "rescan", jobId: j.id })}
+                    className="h-7 text-[10px]"
+                  >
+                    {scanningJobId === j.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
+                    Rescan
+                  </Button>
                 </div>
               </div>
             ))}
@@ -259,7 +576,6 @@ export default function AdHijack() {
         </Card>
       )}
 
-      {/* Ads list */}
       <Card className="p-4">
         <div className="flex items-center justify-between mb-3">
           <h2 className="text-sm font-bold">Scraped Ads ({ads.length})</h2>
@@ -273,7 +589,9 @@ export default function AdHijack() {
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
-                      <Badge variant="outline" className="text-[9px]">{ad.platform}</Badge>
+                      <Badge variant="outline" className="text-[9px]">
+                        {ad.platform}
+                      </Badge>
                       <span className="text-xs font-bold truncate">{ad.advertiser_name}</span>
                       <Badge variant={ad.status === "converted" ? "default" : "secondary"} className="text-[9px]">
                         {ad.status}
@@ -290,7 +608,7 @@ export default function AdHijack() {
                         rel="noopener noreferrer"
                         className="text-[10px] text-primary hover:underline flex items-center gap-1"
                       >
-                        <ExternalLink className="h-2.5 w-2.5" /> {new URL(ad.landing_url).hostname}
+                        <ExternalLink className="h-2.5 w-2.5" /> {safeHost(ad.landing_url)}
                       </a>
                       {ad.source_ad_url && (
                         <a
@@ -309,7 +627,6 @@ export default function AdHijack() {
                   </button>
                 </div>
 
-                {/* Action row */}
                 <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
                   {!ad.prospect_id ? (
                     <Button size="sm" variant="outline" onClick={() => convertToProspect(ad)} className="h-7 text-[10px]">
@@ -325,11 +642,7 @@ export default function AdHijack() {
                     disabled={generatingFor === ad.id}
                     className="h-7 text-[10px]"
                   >
-                    {generatingFor === ad.id ? (
-                      <Loader2 className="h-3 w-3 animate-spin" />
-                    ) : (
-                      <Sparkles className="h-3 w-3" />
-                    )}
+                    {generatingFor === ad.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <Sparkles className="h-3 w-3" />}
                     {ad.comment_template ? "Regenerate Comment" : "Generate Comment"}
                   </Button>
                 </div>
@@ -338,12 +651,7 @@ export default function AdHijack() {
                   <div className="bg-muted/30 rounded p-2 mt-2">
                     <p className="text-[11px] whitespace-pre-wrap">{ad.comment_template}</p>
                     <div className="flex gap-1.5 mt-2">
-                      <Button
-                        size="sm"
-                        variant="ghost"
-                        onClick={() => copyText(ad.comment_template!)}
-                        className="h-6 text-[10px]"
-                      >
+                      <Button size="sm" variant="ghost" onClick={() => copyText(ad.comment_template!)} className="h-6 text-[10px]">
                         <Copy className="h-3 w-3" /> Copy comment
                       </Button>
                       {ad.source_ad_url && (
