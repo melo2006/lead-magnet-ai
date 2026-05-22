@@ -561,7 +561,7 @@ async function scrapeTikTokViaApify(
   limit: number,
 ): Promise<ScrapedAd[]> {
   const searchQueries = getTikTokSearchQueries(niche);
-  const actorLimit = Math.max(limit, Math.min(limit * 4, 200));
+  const actorLimit = limit;
   const items = await runApifyActor(token, "aiscraperdev~tiktok-ads-library-scraper", {
     searchQueries,
     source: "both",
