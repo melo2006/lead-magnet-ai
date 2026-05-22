@@ -555,11 +555,21 @@ serve(async (req) => {
       const existingKeys = new Set((existingRows ?? []).map((r: any) => `${r.platform}::${r.landing_url}`));
       const rows = uniqueAds
         .filter((a) => !existingKeys.has(`${a.platform}::${a.landing_url}`))
-        .map((a) => ({
-          ...a,
-          scan_job_id: jobId,
-          metadata: { ...(a.metadata ?? {}), search_niche: niche, search_location: location, engagement_target: engagementTarget },
-        }));
+        .map((a) => {
+          const meta = a.metadata ?? {};
+          const isCommentable = meta.is_commentable === true;
+          const hasContact = Boolean(meta.contact_page_url);
+          const engagement_status = isCommentable ? "commentable" : hasContact ? "contact_form" : "dark_post";
+          return {
+            ...a,
+            scan_job_id: jobId,
+            approval_status: "pending",
+            engagement_status,
+            detected_language: typeof meta.detected_language === "string" ? meta.detected_language : null,
+            ad_country: countries[0] ?? null,
+            metadata: { ...meta, search_niche: niche, search_location: location, search_countries: countries, engagement_target: engagementTarget },
+          };
+        });
       duplicateCount += uniqueAds.length - rows.length;
       if (rows.length > 0) {
         const { data: inserted, error: insertErr } = await supabase.from("scraped_ads").insert(rows).select("id");
