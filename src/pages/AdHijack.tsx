@@ -890,28 +890,70 @@ export default function AdHijack() {
                 });
               };
 
+              const daysRun = getDaysRunning(ad);
+              const variants = getVariantCount(ad);
+              const mediaType = getMediaType(ad);
+              const active = getIsActive(ad);
+              const affiliate = getIsAffiliate(ad);
+              const approval = ad.approval_status ?? "pending";
+              const checked = selectedAdIds.has(ad.id);
+              const daysColor = daysRun == null ? "border-border text-muted-foreground"
+                : daysRun >= 90 ? "border-orange-500/60 text-orange-400"
+                : daysRun >= 60 ? "border-emerald-500/60 text-emerald-400"
+                : daysRun >= 14 ? "border-amber-500/60 text-amber-400"
+                : "border-red-500/60 text-red-400";
+
               return (
-              <div key={ad.id} className="border border-border rounded p-3 space-y-2">
-                <div className="flex items-start justify-between gap-3">
+              <div key={ad.id} className={`border rounded p-3 space-y-2 ${checked ? "border-primary" : "border-border"}`}>
+                <div className="flex items-start gap-3">
+                  <input type="checkbox" checked={checked} onChange={() => toggleSelect(ad.id)} className="mt-1 h-3.5 w-3.5" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <Badge variant="outline" className="text-[9px]">{ad.platform}</Badge>
                       {onFb && <Badge variant="outline" className="text-[9px] border-blue-500/40 text-blue-400">FB</Badge>}
                       {onIg && <Badge variant="outline" className="text-[9px] border-pink-500/40 text-pink-400">IG</Badge>}
                       <span className="text-xs font-bold truncate">{ad.advertiser_name}</span>
-                      <Badge variant={ad.status === "converted" ? "default" : "secondary"} className="text-[9px]">
-                        {ad.status}
+
+                      {/* Approval badge */}
+                      <Badge
+                        variant="outline"
+                        className={`text-[9px] ${approval === "approved" ? "border-emerald-500/60 text-emerald-400" : approval === "rejected" ? "border-red-500/60 text-red-400" : "border-amber-500/60 text-amber-400"}`}
+                      >
+                        {approval === "approved" ? "✅ approved" : approval === "rejected" ? "❌ rejected" : "⏳ pending"}
                       </Badge>
+
+                      {/* Performance signals */}
+                      {daysRun != null && (
+                        <Badge variant="outline" className={`text-[9px] ${daysColor}`} title={`Ad started ~${daysRun}d ago`}>
+                          {daysRun >= 90 ? "🔥 " : ""}{daysRun}d {active ? "active" : "ended"}
+                        </Badge>
+                      )}
+                      {variants >= 2 && (
+                        <Badge variant="outline" className="text-[9px] border-emerald-500/40 text-emerald-400" title="Variants of this same advertiser in this scan">
+                          {variants}× variants
+                        </Badge>
+                      )}
+                      {mediaType !== "unknown" && (
+                        <Badge variant="outline" className="text-[9px] border-purple-500/40 text-purple-400">
+                          {mediaType}
+                        </Badge>
+                      )}
+                      {affiliate && (
+                        <Badge variant="outline" className="text-[9px] border-yellow-500/40 text-yellow-400" title="Landing URL contains affiliate tracking">
+                          💰 affiliate
+                        </Badge>
+                      )}
+
                       {commentable ? (
                         <Badge className="text-[9px] bg-primary/20 text-primary border-primary/40">Commentable</Badge>
                       ) : (
-                        <Badge variant="outline" className="text-[9px] border-amber-500/40 text-amber-400" title="Dark post — no public thread to comment on. Use Open Page to comment on their latest organic post or DM them.">
-                          Dark post · no public thread
+                        <Badge variant="outline" className="text-[9px] border-amber-500/40 text-amber-400" title="Dark post — no public thread.">
+                          Dark post
                         </Badge>
                       )}
                       {!commentable && links.contactPage && (
                         <Badge variant="outline" className="text-[9px] border-primary/40 text-primary">
-                          Contact page found
+                          Contact page
                         </Badge>
                       )}
                     </div>
@@ -926,9 +968,18 @@ export default function AdHijack() {
                       </a>
                     </div>
                   </div>
-                  <button onClick={() => deleteAd(ad.id)} className="text-muted-foreground hover:text-destructive">
-                    <Trash2 className="h-3 w-3" />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    {approval !== "approved" && (
+                      <button onClick={() => setApproval(ad.id, "approved")} title="Approve"
+                        className="text-emerald-400 hover:text-emerald-300"><Check className="h-3.5 w-3.5" /></button>
+                    )}
+                    {approval !== "rejected" && (
+                      <button onClick={() => setApproval(ad.id, "rejected")} title="Reject"
+                        className="text-amber-400 hover:text-amber-300"><X className="h-3.5 w-3.5" /></button>
+                    )}
+                    <button onClick={() => deleteAd(ad.id)} title="Delete"
+                      className="text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
+                  </div>
                 </div>
 
                 <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
