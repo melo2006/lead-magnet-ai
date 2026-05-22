@@ -74,6 +74,42 @@ const getErrorMessage = (error: unknown) => (error instanceof Error ? error.mess
 
 const NICHE_OPTIONS = [
   {
+    id: "ai-tech",
+    label: "AI / Tech (hot)",
+    keywords: [
+      "ai agent",
+      "ai voice agent",
+      "ai chatbot",
+      "ai video generator",
+      "ai film",
+      "ai marketing tool",
+      "ai sales tool",
+      "ai automation software",
+      "ai news",
+      "ai course",
+    ],
+  },
+  {
+    id: "skincare-beauty",
+    label: "Skincare & Beauty (nationwide)",
+    keywords: ["skincare", "anti-aging serum", "retinol cream", "korean skincare", "vitamin c serum", "wrinkle cream", "beauty subscription"],
+  },
+  {
+    id: "supplements",
+    label: "Supplements & Health (nationwide)",
+    keywords: ["weight loss supplement", "collagen", "greens powder", "pre workout", "testosterone booster", "sleep supplement", "gut health"],
+  },
+  {
+    id: "ecommerce-dtc",
+    label: "DTC E-commerce (nationwide)",
+    keywords: ["smart watch", "led mask", "posture corrector", "scalp massager", "home gym", "pet supplement", "ergonomic chair"],
+  },
+  {
+    id: "coaching-courses",
+    label: "Coaching & Online Courses",
+    keywords: ["business coach", "online course", "trading course", "real estate course", "fitness coach", "life coach", "marketing mastermind"],
+  },
+  {
     id: "med-spa",
     label: "Med Spa",
     keywords: ["med spa", "botox", "laser hair removal", "weight loss clinic", "skin rejuvenation"],
@@ -274,8 +310,8 @@ const matchesAdsFilter = (ad: ScrapedAd, filter: AdsFilter): boolean => {
 
 export default function AdHijack() {
   const { toast } = useToast();
-  const [selectedNicheId, setSelectedNicheId] = useState("med-spa");
-  const [subNiche, setSubNiche] = useState("med spa");
+  const [selectedNicheId, setSelectedNicheId] = useState("ai-tech");
+  const [subNiche, setSubNiche] = useState("ai agent");
   const [customNiche, setCustomNiche] = useState("");
   const [location, setLocation] = useState("");
   const [selectedCountries, setSelectedCountries] = useState<Country[]>(["US", "CA", "GB", "AU"]);
@@ -732,6 +768,9 @@ export default function AdHijack() {
             </SelectTrigger>
             <SelectContent>
               <SelectItem value="all">All ads ({ads.length})</SelectItem>
+              <SelectItem value="pending">⏳ Pending review ({pendingCount})</SelectItem>
+              <SelectItem value="approved">✅ Approved ({approvedCount})</SelectItem>
+              <SelectItem value="rejected">❌ Rejected</SelectItem>
               <SelectItem value="commentable">Public/commentable ({commentableCount})</SelectItem>
               <SelectItem value="contact_fallback">Website contact fallback ({contactFallbackCount})</SelectItem>
               <SelectItem value="dark">Dark posts / no thread ({ads.length - commentableCount})</SelectItem>
