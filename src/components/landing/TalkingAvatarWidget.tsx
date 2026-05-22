@@ -1,5 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
-import { X, Mic, MicOff, Phone, PhoneOff, ExternalLink, Loader2, Minimize2, Maximize2 } from "lucide-react";
+import { X, Mic, MicOff, Phone, PhoneOff, ExternalLink, Loader2, Minimize2, Maximize2, Volume2, Bluetooth, Headphones } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import realisticAvatar from "@/assets/aspen_blonde_avatar.jpg";
 import DraggableFloating from "@/components/landing/demo-results/DraggableFloating";
@@ -191,6 +191,8 @@ const TalkingAvatarWidget = () => {
   const [isAgentSpeaking, setIsAgentSpeaking] = useState(false);
   const [duration, setDuration] = useState(0);
   const [avatarState, setAvatarState] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [audioOutputs, setAudioOutputs] = useState<MediaDeviceInfo[]>([]);
+  const [currentSinkId, setCurrentSinkId] = useState<string>("");
 
   const retellClientRef = useRef<any>(null);
   const talkingHeadRef = useRef<any>(null);
@@ -481,22 +483,42 @@ const TalkingAvatarWidget = () => {
         analyser.smoothingTimeConstant = 0.18;
       }
 
-      // Audio output follows active device (Bluetooth, speaker, etc.)
-      // The Retell SDK uses an <audio> element under the hood; find it and
-      // keep its sinkId in sync with the OS default output.
+      // Default to loud output (speakerphone) so the user can actually hear Aspen.
+      // Provide a button to cycle between available outputs (speaker / earpiece / bluetooth / headphones).
       try {
-        const syncAudioOutput = () => {
+        const applySink = (sinkId: string) => {
           const audioEls = document.querySelectorAll("audio");
           audioEls.forEach((el: any) => {
-            if (typeof el.setSinkId === "function" && navigator.mediaDevices) {
-              // Use default device (empty string = system default, follows OS routing)
-              el.setSinkId("").catch(() => {});
+            if (typeof el.setSinkId === "function") {
+              el.setSinkId(sinkId).catch(() => {});
             }
           });
         };
-        syncAudioOutput();
-        // Re-sync whenever the user changes audio devices
-        const handleDeviceChange = () => syncAudioOutput();
+
+        const refreshOutputs = async () => {
+          try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const outs = devices.filter((d) => d.kind === "audiooutput");
+            setAudioOutputs(outs);
+
+            // Pick the loudest default: prefer speaker, then bluetooth/headphones, then default.
+            const score = (label: string) => {
+              const l = label.toLowerCase();
+              if (l.includes("speaker")) return 4;
+              if (l.includes("bluetooth")) return 3;
+              if (l.includes("headphone") || l.includes("headset")) return 2;
+              if (l.includes("default")) return 1;
+              return 0;
+            };
+            const preferred = outs.slice().sort((a, b) => score(b.label) - score(a.label))[0];
+            const sinkId = preferred?.deviceId ?? "";
+            setCurrentSinkId(sinkId);
+            applySink(sinkId);
+          } catch { /* permissions or unsupported */ }
+        };
+
+        refreshOutputs();
+        const handleDeviceChange = () => refreshOutputs();
         navigator.mediaDevices?.addEventListener("devicechange", handleDeviceChange);
         retellClient.on("call_ended", () => {
           navigator.mediaDevices?.removeEventListener("devicechange", handleDeviceChange);
@@ -524,6 +546,26 @@ const TalkingAvatarWidget = () => {
       setIsMuted((prev) => !prev);
     } catch { /* noop */ }
   }, [isMuted]);
+
+  const cycleAudioOutput = useCallback(() => {
+    if (audioOutputs.length === 0) return;
+    const idx = audioOutputs.findIndex((d) => d.deviceId === currentSinkId);
+    const next = audioOutputs[(idx + 1) % audioOutputs.length];
+    const nextId = next?.deviceId ?? "";
+    setCurrentSinkId(nextId);
+    document.querySelectorAll("audio").forEach((el: any) => {
+      if (typeof el.setSinkId === "function") el.setSinkId(nextId).catch(() => {});
+    });
+  }, [audioOutputs, currentSinkId]);
+
+  const currentOutputLabel = (() => {
+    const dev = audioOutputs.find((d) => d.deviceId === currentSinkId);
+    const label = (dev?.label || "Default").toLowerCase();
+    if (label.includes("bluetooth")) return { name: "Bluetooth", Icon: Bluetooth };
+    if (label.includes("headphone") || label.includes("headset")) return { name: "Headphones", Icon: Headphones };
+    if (label.includes("speaker")) return { name: "Speaker", Icon: Volume2 };
+    return { name: dev?.label?.split(" (")[0] || "Speaker", Icon: Volume2 };
+  })();
 
   const handleExpand = () => setWidgetState("expanded");
   const handleMinimize = () => setWidgetState("minimized");
@@ -663,24 +705,24 @@ const TalkingAvatarWidget = () => {
 
       {/* Aspen photo with glow */}
       <div className="relative overflow-hidden bg-gradient-to-b from-muted/40 via-background to-muted/20">
-        <div className="relative h-[180px] w-full flex items-center justify-center">
+        <div className="relative h-[120px] w-full flex items-center justify-center">
           {/* Glow rings — intensify when speaking */}
           <div
-            className={`pointer-events-none absolute h-36 w-36 rounded-full bg-primary/30 blur-3xl transition-opacity duration-300 ${
+            className={`pointer-events-none absolute h-24 w-24 rounded-full bg-primary/30 blur-3xl transition-opacity duration-300 ${
               isAgentSpeaking ? "opacity-100 animate-pulse" : callStatus === "active" ? "opacity-60" : "opacity-40"
             }`}
           />
           <div
-            className={`pointer-events-none absolute h-28 w-28 rounded-full bg-primary/40 blur-2xl transition-opacity duration-300 ${
+            className={`pointer-events-none absolute h-20 w-20 rounded-full bg-primary/40 blur-2xl transition-opacity duration-300 ${
               isAgentSpeaking ? "opacity-100 animate-pulse" : "opacity-50"
             }`}
           />
           <div
-            className={`relative h-32 w-32 overflow-hidden rounded-full border-2 shadow-2xl transition-all duration-300 ${
+            className={`relative h-20 w-20 overflow-hidden rounded-full border-2 shadow-2xl transition-all duration-300 ${
               isAgentSpeaking
-                ? "border-primary shadow-[0_0_40px_hsl(var(--primary)/0.7)] scale-105"
+                ? "border-primary shadow-[0_0_32px_hsl(var(--primary)/0.7)] scale-105"
                 : callStatus === "active"
-                  ? "border-primary/60 shadow-[0_0_24px_hsl(var(--primary)/0.4)]"
+                  ? "border-primary/60 shadow-[0_0_20px_hsl(var(--primary)/0.4)]"
                   : "border-border"
             }`}
           >
@@ -734,6 +776,14 @@ const TalkingAvatarWidget = () => {
                 title={isMuted ? "Unmute" : "Mute"}
               >
                 {isMuted ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
+              </button>
+              <button
+                onClick={cycleAudioOutput}
+                disabled={audioOutputs.length <= 1}
+                className="rounded-full bg-muted p-2 text-foreground hover:bg-muted/80 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                title={`Audio: ${currentOutputLabel.name}${audioOutputs.length > 1 ? " — tap to switch" : ""}`}
+              >
+                <currentOutputLabel.Icon className="h-3.5 w-3.5" />
               </button>
               <button
                 onClick={handleMinimize}
