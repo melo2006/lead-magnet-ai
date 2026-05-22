@@ -14,6 +14,54 @@ export type Database = {
   }
   public: {
     Tables: {
+      ad_scan_jobs: {
+        Row: {
+          ads_converted: number
+          ads_found: number
+          completed_at: string | null
+          created_at: string
+          id: string
+          last_error: string | null
+          location: string | null
+          niche: string
+          platform_results: Json
+          platforms: string[]
+          status: string
+          total_cost_usd: number
+          updated_at: string
+        }
+        Insert: {
+          ads_converted?: number
+          ads_found?: number
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          location?: string | null
+          niche: string
+          platform_results?: Json
+          platforms?: string[]
+          status?: string
+          total_cost_usd?: number
+          updated_at?: string
+        }
+        Update: {
+          ads_converted?: number
+          ads_found?: number
+          completed_at?: string | null
+          created_at?: string
+          id?: string
+          last_error?: string | null
+          location?: string | null
+          niche?: string
+          platform_results?: Json
+          platforms?: string[]
+          status?: string
+          total_cost_usd?: number
+          updated_at?: string
+        }
+        Relationships: []
+      }
       call_event_logs: {
         Row: {
           call_history_id: string
@@ -1098,6 +1146,77 @@ export type Database = {
           zip_code?: string | null
         }
         Relationships: []
+      }
+      scraped_ads: {
+        Row: {
+          ad_creative_text: string | null
+          ad_id: string | null
+          ad_media_url: string | null
+          advertiser_handle: string | null
+          advertiser_name: string
+          comment_template: string | null
+          created_at: string
+          cta_text: string | null
+          id: string
+          landing_url: string
+          metadata: Json
+          platform: string
+          posted_at: string | null
+          prospect_id: string | null
+          scan_job_id: string | null
+          source_ad_url: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          ad_creative_text?: string | null
+          ad_id?: string | null
+          ad_media_url?: string | null
+          advertiser_handle?: string | null
+          advertiser_name: string
+          comment_template?: string | null
+          created_at?: string
+          cta_text?: string | null
+          id?: string
+          landing_url: string
+          metadata?: Json
+          platform: string
+          posted_at?: string | null
+          prospect_id?: string | null
+          scan_job_id?: string | null
+          source_ad_url?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          ad_creative_text?: string | null
+          ad_id?: string | null
+          ad_media_url?: string | null
+          advertiser_handle?: string | null
+          advertiser_name?: string
+          comment_template?: string | null
+          created_at?: string
+          cta_text?: string | null
+          id?: string
+          landing_url?: string
+          metadata?: Json
+          platform?: string
+          posted_at?: string | null
+          prospect_id?: string | null
+          scan_job_id?: string | null
+          source_ad_url?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "scraped_ads_scan_job_id_fkey"
+            columns: ["scan_job_id"]
+            isOneToOne: false
+            referencedRelation: "ad_scan_jobs"
+            referencedColumns: ["id"]
+          },
+        ]
       }
       scraping_usage: {
         Row: {
