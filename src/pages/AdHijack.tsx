@@ -349,7 +349,7 @@ export default function AdHijack() {
   const [selectedCountries, setSelectedCountries] = useState<Country[]>(["US", "CA", "GB", "AU"]);
   const [englishOnly, setEnglishOnly] = useState(true);
   const [limit, setLimit] = useState("25");
-  const [selectedPlatforms, setSelectedPlatforms] = useState<SupportedPlatform[]>(["meta"]);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<SupportedPlatform[]>(["meta", "tiktok"]);
   const [scanning, setScanning] = useState(false);
   const [scanningJobId, setScanningJobId] = useState<string | null>(null);
   const [apiStatus, setApiStatus] = useState<string | null>(null);
