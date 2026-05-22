@@ -27,7 +27,7 @@ serve(async (req) => {
 
     const body = await req.json();
     const scrapedAdId: string = String(body?.scraped_ad_id ?? "").trim();
-    const demoBaseUrl: string = String(body?.demo_base_url ?? `${SHORT_DOMAIN}/demo`);
+    const demoBaseUrl: string = String(body?.demo_base_url ?? `${SHORT_DOMAIN}/demo-site`);
     if (!scrapedAdId) {
       return new Response(JSON.stringify({ error: "scraped_ad_id required" }), {
         status: 400,
@@ -42,9 +42,15 @@ serve(async (req) => {
       .single();
     if (adErr || !ad) throw new Error("Ad not found");
 
-    const targetUrl = ad.prospect_id
-      ? `${demoBaseUrl}?prospectId=${ad.prospect_id}`
-      : `${demoBaseUrl}?url=${encodeURIComponent(ad.landing_url)}`;
+    const targetParams = new URLSearchParams({
+      url: ad.landing_url,
+      name: ad.advertiser_name,
+      niche: ad.metadata?.search_niche || ad.platform || "general",
+      source: "ad_hijack",
+      scrapedAdId,
+    });
+    if (ad.prospect_id) targetParams.set("prospectId", ad.prospect_id);
+    const targetUrl = `${demoBaseUrl}?${targetParams.toString()}`;
 
     // Reuse an existing short link for this ad, otherwise create one
     let shortUrl: string;
