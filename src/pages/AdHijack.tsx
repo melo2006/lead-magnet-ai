@@ -213,10 +213,29 @@ const safeHost = (url: string) => {
   }
 };
 
-const getBestAdOpenUrl = (ad: ScrapedAd) => {
-  const postUrl = typeof ad.metadata?.post_url === "string" ? ad.metadata.post_url : null;
-  const libraryUrl = typeof ad.metadata?.library_url === "string" ? ad.metadata.library_url : null;
-  return postUrl || ad.source_ad_url || libraryUrl || null;
+const metaStr = (ad: ScrapedAd, key: string): string | null => {
+  const v = ad.metadata?.[key];
+  return typeof v === "string" && v.trim() ? v : null;
+};
+
+const getAdLinks = (ad: ScrapedAd) => ({
+  fbPost: metaStr(ad, "fb_post_url"),
+  igPost: metaStr(ad, "ig_post_url"),
+  fbPage: metaStr(ad, "fb_page_url"),
+  igPage: metaStr(ad, "ig_page_url"),
+  library: metaStr(ad, "library_url") || ad.source_ad_url,
+});
+
+const getPublisherPlatforms = (ad: ScrapedAd): string[] => {
+  const raw = ad.metadata?.publisher_platforms;
+  if (!Array.isArray(raw)) return [];
+  return raw.map((v) => String(v).toLowerCase());
+};
+
+const isCommentable = (ad: ScrapedAd): boolean => {
+  if (ad.metadata?.is_commentable === true) return true;
+  const l = getAdLinks(ad);
+  return Boolean(l.fbPost || l.igPost);
 };
 
 export default function AdHijack() {
