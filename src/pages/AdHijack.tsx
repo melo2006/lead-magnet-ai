@@ -132,7 +132,6 @@ export default function AdHijack() {
           .insert({
             business_name: ad.advertiser_name,
             website_url: ad.landing_url,
-            niche: ad.metadata && (ad as any).metadata?.niche,
             place_id: `ad_hijack_${ad.id}`,
             contact_method: "ad_hijack",
             notes: `Sourced from ${ad.platform} ad. Ad copy: ${(ad.ad_creative_text ?? "").slice(0, 200)}`,
