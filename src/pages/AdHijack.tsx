@@ -28,7 +28,8 @@ type EngagementTarget = "all" | "commentable_only" | "all_with_contact";
 type AdsFilter =
   | "all" | "commentable" | "contact_fallback" | "dark"
   | "pending" | "approved" | "rejected"
-  | "winners" | "scaling" | "video" | "affiliate";
+  | "winners" | "scaling" | "video" | "affiliate"
+  | "ig_only" | "fb_only" | "tiktok_only";
 type Country = "US" | "CA" | "GB" | "AU";
 
 interface ScrapedAd {
@@ -283,6 +284,7 @@ const getAdLinks = (ad: ScrapedAd) => ({
   igPost: metaStr(ad, "ig_post_url"),
   fbPage: metaStr(ad, "fb_page_url"),
   igPage: metaStr(ad, "ig_page_url"),
+  tiktokPost: metaStr(ad, "tiktok_post_url") || (ad.platform === "tiktok" ? ad.source_ad_url ?? undefined : undefined),
   contactPage: metaStr(ad, "contact_page_url"),
   library: metaStr(ad, "library_url") || ad.source_ad_url,
 });
@@ -324,6 +326,17 @@ const matchesAdsFilter = (ad: ScrapedAd, filter: AdsFilter): boolean => {
   if (filter === "scaling") return getVariantCount(ad) >= 10;
   if (filter === "video") return getMediaType(ad) === "video";
   if (filter === "affiliate") return getIsAffiliate(ad);
+  if (filter === "ig_only") {
+    const p = getPublisherPlatforms(ad);
+    const l = getAdLinks(ad);
+    return Boolean(l.igPost) || (p.includes("instagram") && !p.includes("facebook"));
+  }
+  if (filter === "fb_only") {
+    const p = getPublisherPlatforms(ad);
+    const l = getAdLinks(ad);
+    return Boolean(l.fbPost) || (p.includes("facebook") && !p.includes("instagram"));
+  }
+  if (filter === "tiktok_only") return ad.platform === "tiktok";
   return true;
 };
 
@@ -336,7 +349,7 @@ export default function AdHijack() {
   const [selectedCountries, setSelectedCountries] = useState<Country[]>(["US", "CA", "GB", "AU"]);
   const [englishOnly, setEnglishOnly] = useState(true);
   const [limit, setLimit] = useState("25");
-  const [selectedPlatforms, setSelectedPlatforms] = useState<SupportedPlatform[]>(["meta"]);
+  const [selectedPlatforms, setSelectedPlatforms] = useState<SupportedPlatform[]>(["meta", "tiktok"]);
   const [scanning, setScanning] = useState(false);
   const [scanningJobId, setScanningJobId] = useState<string | null>(null);
   const [apiStatus, setApiStatus] = useState<string | null>(null);
@@ -586,7 +599,7 @@ export default function AdHijack() {
     for (const ad of targets) {
       const links = getAdLinks(ad);
       const url = mode === "post"
-        ? (links.fbPost || links.igPost || links.fbPage || links.igPage)
+        ? (links.tiktokPost || links.igPost || links.fbPost || links.igPage || links.fbPage)
         : (links.contactPage || links.fbPage);
       if (!url) continue;
       window.open(url, "_blank", "noopener,noreferrer");
@@ -608,6 +621,9 @@ export default function AdHijack() {
   const scalingCount = ads.filter((a) => getVariantCount(a) >= 10).length;
   const videoCount = ads.filter((a) => getMediaType(a) === "video").length;
   const affiliateCount = ads.filter(getIsAffiliate).length;
+  const igOnlyCount = ads.filter((a) => matchesAdsFilter(a, "ig_only")).length;
+  const fbOnlyCount = ads.filter((a) => matchesAdsFilter(a, "fb_only")).length;
+  const tiktokOnlyCount = ads.filter((a) => a.platform === "tiktok").length;
 
   return (
     <div className="space-y-6">
@@ -836,6 +852,9 @@ export default function AdHijack() {
               <SelectItem value="pending">⏳ Pending review ({pendingCount})</SelectItem>
               <SelectItem value="approved">✅ Approved ({approvedCount})</SelectItem>
               <SelectItem value="rejected">❌ Rejected</SelectItem>
+              <SelectItem value="ig_only">📸 Instagram only — easy comments ({igOnlyCount})</SelectItem>
+              <SelectItem value="tiktok_only">🎵 TikTok only — easiest ({tiktokOnlyCount})</SelectItem>
+              <SelectItem value="fb_only">📘 Facebook only — hardest ({fbOnlyCount})</SelectItem>
               <SelectItem value="winners">🔥 Winners — 60d+ active ({winnersCount})</SelectItem>
               <SelectItem value="scaling">📈 Scaling hard — 10+ variants ({scalingCount})</SelectItem>
               <SelectItem value="video">🎬 Video ads ({videoCount})</SelectItem>

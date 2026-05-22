@@ -415,6 +415,19 @@ async function scrapeMetaViaApify(
 }
 
 // --- TIKTOK via aiscraperdev/tiktok-ads-library-scraper ---
+function pickTikTokPostUrl(item: any): string | undefined {
+  const candidates = [
+    item.detailUrl, item.detail_url, item.previewUrl, item.preview_url,
+    item.videoUrl, item.video_url, item.shareUrl, item.share_url,
+    item.adUrl, item.ad_url, item.url,
+  ];
+  for (const v of candidates) {
+    const u = cleanUrl(v);
+    if (u && /tiktok\.com/i.test(u)) return u;
+  }
+  return undefined;
+}
+
 function normalizeTikTokAd(item: any): ScrapedAd | null {
   const landing =
     item.landingPageUrl ||
@@ -426,6 +439,13 @@ function normalizeTikTokAd(item: any): ScrapedAd | null {
     item.click_url;
   if (!landing) return null;
   const landingUrl = String(landing).startsWith("http") ? String(landing) : `https://${landing}`;
+  const tikTokPostUrl = pickTikTokPostUrl(item);
+  const startRaw = item.createdAt || item.startDate || item.first_seen || item.firstSeen;
+  const startMsRaw = startRaw ? new Date(String(startRaw)).getTime() : NaN;
+  const startMs = Number.isFinite(startMsRaw) ? startMsRaw : null;
+  const isActive = item.isActive ?? item.is_active ?? true;
+  const daysRunning = computeDaysRunning(startMs, null);
+  const isAffiliate = detectAffiliate(landingUrl);
 
   return {
     platform: "tiktok",
@@ -436,9 +456,20 @@ function normalizeTikTokAd(item: any): ScrapedAd | null {
     cta_text: item.cta || item.ctaText || item.callToAction,
     ad_creative_text: item.title || item.description || item.adText,
     ad_media_url: item.videoUrl || item.coverUrl || item.imageUrl,
-    posted_at: item.createdAt || item.startDate || item.firstSeen,
-    source_ad_url: item.detailUrl || item.previewUrl,
-    metadata: { region: item.region, source: item.source },
+    posted_at: startRaw ? String(startRaw) : undefined,
+    source_ad_url: tikTokPostUrl,
+    metadata: {
+      publisher_platforms: ["tiktok"],
+      tiktok_post_url: tikTokPostUrl,
+      post_url: tikTokPostUrl,
+      is_commentable: Boolean(tikTokPostUrl),
+      days_running: daysRunning,
+      is_active: isActive !== false,
+      media_type: item.videoUrl ? "video" : "image",
+      is_affiliate: isAffiliate,
+      region: item.region,
+      source: "aiscraperdev/tiktok-ads-library-scraper",
+    },
   };
 }
 
@@ -454,6 +485,7 @@ async function scrapeTikTokViaApify(
     region: "US",
     maxAds: limit,
   });
+  console.log(`[tiktok] raw items: ${items.length}`);
   return items.map(normalizeTikTokAd).filter((x): x is ScrapedAd => !!x);
 }
 
