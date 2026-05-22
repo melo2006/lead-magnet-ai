@@ -91,6 +91,26 @@ function detectLanguage(text: string | undefined): { isEnglish: boolean; languag
 }
 
 function cleanUrl(value: unknown): string | undefined {
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const url = cleanUrl(item);
+      if (url) return url;
+    }
+    return undefined;
+  }
+  if (value && typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    const preferredKeys = ["url", "play_url", "download_url", "1080p", "720p", "540p", "480p", "360p", "hd", "sd"];
+    for (const key of preferredKeys) {
+      const url = cleanUrl(obj[key]);
+      if (url) return url;
+    }
+    for (const nested of Object.values(obj).slice(0, 12)) {
+      const url = cleanUrl(nested);
+      if (url) return url;
+    }
+    return undefined;
+  }
   if (!value) return undefined;
   const raw = String(value).trim();
   if (!raw || raw === "null" || raw === "undefined") return undefined;
@@ -120,6 +140,16 @@ function absolutizeUrl(href: string, base: string): string | undefined {
 
 function isLikelyContactUrl(url: string): boolean {
   return /\/(contact|contact-us|book|booking|appointment|appointments|consultation|request|quote|schedule)(\/|\?|#|$)/i.test(url);
+}
+
+function canDiscoverContactPage(landingUrl: string | undefined): boolean {
+  if (!landingUrl) return false;
+  try {
+    const host = new URL(landingUrl).hostname.toLowerCase();
+    return !/(^|\.)(facebook|fb|instagram|tiktok)\.com$/.test(host);
+  } catch {
+    return false;
+  }
 }
 
 async function discoverContactPage(landingUrl: string, timeoutMs = 6500): Promise<string | undefined> {
@@ -182,6 +212,14 @@ function firstValue(...values: unknown[]): string | undefined {
   for (const value of values) {
     if (typeof value === "string" && value.trim()) return value.trim();
     if (typeof value === "number") return String(value);
+  }
+  return undefined;
+}
+
+function firstCleanUrl(...values: unknown[]): string | undefined {
+  for (const value of values) {
+    const url = cleanUrl(value);
+    if (url) return url;
   }
   return undefined;
 }
@@ -419,7 +457,7 @@ function pickTikTokPostUrl(item: any): string | undefined {
   const candidates = [
     item.detailUrl, item.detail_url, item.previewUrl, item.preview_url,
     item.videoUrl, item.video_url, item.shareUrl, item.share_url,
-    item.adUrl, item.ad_url, item.url,
+    item.adUrl, item.ad_url, item.landing_page_url, item.landingPageUrl, item.url,
   ];
   for (const v of candidates) {
     const u = cleanUrl(v);
@@ -430,24 +468,24 @@ function pickTikTokPostUrl(item: any): string | undefined {
 
 function normalizeTikTokAd(item: any): ScrapedAd | null {
   const landingRaw =
-    item.landingPageUrl || item.landing_url || item.landingUrl ||
+    item.landingPageUrl || item.landing_page_url || item.landing_url || item.landingUrl ||
     item.adUrl || item.url || item.advertiserUrl || item.click_url ||
     item.brandUrl || item.brand_url;
   const tikTokPostUrl = pickTikTokPostUrl(item);
-  const videoUrl =
+  const videoUrl = firstCleanUrl(
     item.videoUrl || item.video_url || item.videoUrl1080p || item.videoUrl720p ||
-    item.video_url_1080p || item.video_url_720p;
-  const coverUrl = item.coverUrl || item.cover_url || item.imageUrl;
+    item.video_url_1080p || item.video_url_720p || item.video_url_hd,
+  );
+  const coverUrl = firstCleanUrl(item.coverUrl, item.cover_url, item.cover_image_url, item.imageUrl);
   const advertiserName =
-    item.advertiserName || item.brandName || item.advertiser ||
+    item.advertiserName || item.advertiser_name || item.brandName || item.advertiser ||
     item.brand || item.author || item.nickname || "Unknown";
 
   // Permissive: keep if we have ANY usable signal.
   if (!landingRaw && !tikTokPostUrl && !videoUrl && advertiserName === "Unknown") return null;
 
-  const landingUrl = landingRaw
-    ? (String(landingRaw).startsWith("http") ? String(landingRaw) : `https://${landingRaw}`)
-    : (tikTokPostUrl || videoUrl || "");
+  const adId = item.id || item.ad_id || item.adId || item.materialId || item.adIdStr;
+  const landingUrl = firstCleanUrl(landingRaw) || tikTokPostUrl || videoUrl || (adId ? `https://library.tiktok.com/ads/detail/?ad_id=${adId}` : "");
 
   const startRaw =
     item.createdAt || item.startDate || item.first_seen || item.firstSeen ||
@@ -464,12 +502,12 @@ function normalizeTikTokAd(item: any): ScrapedAd | null {
 
   return {
     platform: "tiktok",
-    ad_id: item.id || item.adId || item.materialId || item.adIdStr || tikTokPostUrl || crypto.randomUUID(),
+    ad_id: adId || tikTokPostUrl || crypto.randomUUID(),
     advertiser_name: advertiserName,
-    advertiser_handle: item.advertiserId || item.brandId || item.uniqueId,
+    advertiser_handle: item.advertiserId || item.advertiser_id || item.brandId || item.uniqueId,
     landing_url: landingUrl,
-    cta_text: item.cta || item.ctaText || item.callToAction,
-    ad_creative_text: item.title || item.description || item.adText || item.text,
+    cta_text: item.cta || item.ctaText || item.cta_text || item.callToAction,
+    ad_creative_text: item.title || item.description || item.adText || item.ad_text || item.text,
     ad_media_url: videoUrl || coverUrl,
     posted_at: startRaw ? String(startRaw) : undefined,
     source_ad_url: tikTokPostUrl,
@@ -629,7 +667,7 @@ serve(async (req) => {
     }
 
     if (engagementTarget === "all_with_contact") {
-      const darkAds = allAds.filter((ad) => ad.metadata?.is_commentable !== true && ad.landing_url);
+      const darkAds = allAds.filter((ad) => ad.metadata?.is_commentable !== true && canDiscoverContactPage(ad.landing_url));
       let checked = 0;
       for (const ad of darkAds.slice(0, Math.min(darkAds.length, 20))) {
         const contactPageUrl = await discoverContactPage(ad.landing_url);
