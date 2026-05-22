@@ -639,24 +639,25 @@ export default function AdHijack() {
       <Card className="p-4">
         <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
           <h2 className="text-sm font-bold">
-            Scraped Ads ({commentableOnly ? ads.filter(isCommentable).length : ads.length}
-            {commentableOnly ? ` of ${ads.length}` : ""})
+            Scraped Ads ({filteredAds.length}{adsFilter !== "all" ? ` of ${ads.length}` : ""})
           </h2>
-          <label className="flex items-center gap-2 text-[11px] text-muted-foreground cursor-pointer">
-            <input
-              type="checkbox"
-              checked={commentableOnly}
-              onChange={(e) => setCommentableOnly(e.target.checked)}
-              className="accent-primary"
-            />
-            Show only commentable ads (with a real public post)
-          </label>
+          <Select value={adsFilter} onValueChange={(value) => setAdsFilter(value as AdsFilter)}>
+            <SelectTrigger className="h-8 w-[240px] text-[11px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All ads ({ads.length})</SelectItem>
+              <SelectItem value="commentable">Public/commentable ({commentableCount})</SelectItem>
+              <SelectItem value="contact_fallback">Website contact fallback ({contactFallbackCount})</SelectItem>
+              <SelectItem value="dark">Dark posts / no thread ({ads.length - commentableCount})</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         {ads.length === 0 ? (
           <p className="text-xs text-muted-foreground text-center py-8">No ads scraped yet. Run your first scan above.</p>
         ) : (
           <div className="space-y-3">
-            {(commentableOnly ? ads.filter(isCommentable) : ads).map((ad) => {
+            {filteredAds.map((ad) => {
               const links = getAdLinks(ad);
               const platforms = getPublisherPlatforms(ad);
               const onFb = platforms.includes("facebook") || Boolean(links.fbPost || links.fbPage);
