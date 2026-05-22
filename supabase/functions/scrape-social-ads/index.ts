@@ -93,53 +93,88 @@ function pickLandingUrl(item: any): string | undefined {
   const s = item?.snapshot ?? {};
   const cards = Array.isArray(s.cards) ? s.cards : [];
   const link = firstValue(
-    s.link_url,
-    s.linkUrl,
-    s.link,
-    s.website_url,
-    s.websiteUrl,
-    cards[0]?.link_url,
-    cards[0]?.linkUrl,
-    cards[0]?.link,
-    item.link_url,
-    item.linkUrl,
-    item.landingPageUrl,
-    item.landing_page_url,
-    item.adLandingPage,
-    item.destinationUrl,
-    item.url,
+    s.link_url, s.linkUrl, s.link, s.website_url, s.websiteUrl,
+    cards[0]?.link_url, cards[0]?.linkUrl, cards[0]?.link,
+    item.link_url, item.linkUrl, item.landingPageUrl, item.landing_page_url,
+    item.adLandingPage, item.destinationUrl, item.url,
   );
   return cleanUrl(link);
 }
 
-function pickPostUrl(item: any): string | undefined {
+function pickFbPostUrl(item: any): string | undefined {
   const s = item?.snapshot ?? {};
   const cards = Array.isArray(s.cards) ? s.cards : [];
-  return cleanUrl(firstValue(
-    s.page_post_url,
-    s.pagePostUrl,
-    s.post_url,
-    s.postUrl,
-    s.permalink_url,
-    s.permalinkUrl,
-    cards[0]?.page_post_url,
-    cards[0]?.post_url,
-    item.page_post_url,
-    item.pagePostUrl,
-    item.post_url,
-    item.postUrl,
-    item.permalink_url,
-    item.permalinkUrl,
+  const url = cleanUrl(firstValue(
+    s.page_post_url, s.pagePostUrl, s.post_url, s.postUrl,
+    s.permalink_url, s.permalinkUrl,
+    cards[0]?.page_post_url, cards[0]?.post_url,
+    item.page_post_url, item.pagePostUrl, item.post_url, item.postUrl,
+    item.permalink_url, item.permalinkUrl,
   ));
+  if (!url) return undefined;
+  return /facebook\.com|fb\.com|fb\.watch/i.test(url) ? url : undefined;
+}
+
+function pickIgPostUrl(item: any): string | undefined {
+  const s = item?.snapshot ?? {};
+  const cards = Array.isArray(s.cards) ? s.cards : [];
+  const candidates = [
+    s.instagram_url, s.instagramUrl, s.ig_post_url, s.igPostUrl,
+    s.instagram_permalink, s.instagramPermalink,
+    cards[0]?.instagram_url, cards[0]?.instagramUrl,
+    item.instagram_url, item.instagramUrl, item.ig_post_url,
+  ];
+  for (const v of candidates) {
+    const u = cleanUrl(v);
+    if (u && /instagram\.com/i.test(u)) return u;
+  }
+  return undefined;
+}
+
+function pickFbPageUrl(item: any): string | undefined {
+  const s = item?.snapshot ?? {};
+  const direct = cleanUrl(firstValue(
+    s.page_profile_uri, s.pageProfileUri, s.page_url, s.pageUrl,
+    item.page_profile_uri, item.pageProfileUri, item.page_url, item.pageUrl,
+  ));
+  if (direct && /facebook\.com|fb\.com/i.test(direct)) return direct;
+  const pageId = firstValue(s.page_id, s.pageId, item.page_id, item.pageId, item.pageID);
+  if (pageId) return `https://www.facebook.com/${pageId}`;
+  return undefined;
+}
+
+function pickIgPageUrl(item: any): string | undefined {
+  const s = item?.snapshot ?? {};
+  const handle = firstValue(
+    s.instagram_handle, s.instagramHandle,
+    s.instagram_actor_name, s.instagramActorName,
+    item.instagram_handle, item.instagramHandle,
+  );
+  if (handle) {
+    const clean = String(handle).replace(/^@/, "").trim();
+    if (clean) return `https://www.instagram.com/${clean}`;
+  }
+  const direct = cleanUrl(firstValue(s.instagram_profile_url, s.instagramProfileUrl));
+  return direct && /instagram\.com/i.test(direct) ? direct : undefined;
+}
+
+function inferPublisherPlatforms(item: any): string[] {
+  const raw = item.publisher_platform || item.publisherPlatform ||
+    item?.snapshot?.publisher_platform || item?.snapshot?.publisherPlatform || [];
+  const arr = Array.isArray(raw) ? raw : [raw].filter(Boolean);
+  return arr.map((p: unknown) => String(p).toLowerCase());
 }
 
 function normalizeMetaAd(item: any): ScrapedAd | null {
   const s = item?.snapshot ?? {};
   const cards = Array.isArray(s.cards) ? s.cards : [];
   const adId = firstValue(item.ad_archive_id, item.adArchiveId, item.adArchiveID, item.id);
-  const postUrl = pickPostUrl(item);
+  const fbPostUrl = pickFbPostUrl(item);
+  const igPostUrl = pickIgPostUrl(item);
+  const fbPageUrl = pickFbPageUrl(item);
+  const igPageUrl = pickIgPageUrl(item);
   const libraryUrl = cleanUrl(item.url) || (adId ? `https://www.facebook.com/ads/library/?id=${adId}` : undefined);
-  const sourceUrl = postUrl || libraryUrl;
+  const sourceUrl = fbPostUrl || igPostUrl || libraryUrl;
   const landingUrl = pickLandingUrl(item) || sourceUrl;
   const advertiser = firstValue(s.page_name, s.pageName, item.page_name, item.pageName, item.advertiserName);
   if (!landingUrl || !advertiser) return null;
@@ -150,6 +185,9 @@ function normalizeMetaAd(item: any): ScrapedAd | null {
       ? new Date(Number(item.startDate) * 1000).toISOString()
       : firstValue(item.startDateFormatted, item.start_date_formatted);
 
+  const publisherPlatforms = inferPublisherPlatforms(item);
+  const isCommentable = Boolean(fbPostUrl || igPostUrl);
+
   return {
     platform: "meta",
     ad_id: adId,
@@ -158,33 +196,26 @@ function normalizeMetaAd(item: any): ScrapedAd | null {
     landing_url: landingUrl,
     cta_text: firstValue(s.cta_text, s.ctaText, s.title, cards[0]?.cta_text, cards[0]?.ctaText, item.cta),
     ad_creative_text: firstValue(
-      s.body?.text,
-      s.bodyText,
-      s.caption,
-      s.title,
-      s.link_description,
-      s.linkDescription,
-      cards[0]?.body,
-      cards[0]?.bodyText,
-      cards[0]?.title,
-      item.text,
+      s.body?.text, s.bodyText, s.caption, s.title,
+      s.link_description, s.linkDescription,
+      cards[0]?.body, cards[0]?.bodyText, cards[0]?.title, item.text,
     ),
-    ad_media_url: cleanUrl(
-      firstValue(
-        s.videos?.[0]?.video_preview_image_url,
-        s.videos?.[0]?.videoPreviewImageUrl,
-        s.images?.[0]?.original_image_url,
-        s.images?.[0]?.originalImageUrl,
-        cards[0]?.original_image_url,
-        cards[0]?.originalImageUrl,
-      ),
-    ),
+    ad_media_url: cleanUrl(firstValue(
+      s.videos?.[0]?.video_preview_image_url, s.videos?.[0]?.videoPreviewImageUrl,
+      s.images?.[0]?.original_image_url, s.images?.[0]?.originalImageUrl,
+      cards[0]?.original_image_url, cards[0]?.originalImageUrl,
+    )),
     posted_at: startedAt,
     source_ad_url: sourceUrl,
     metadata: {
-      publisher_platforms: item.publisher_platform || item.publisherPlatform || s.publisher_platform || s.publisherPlatform || [],
-      post_url: postUrl,
+      publisher_platforms: publisherPlatforms,
+      fb_post_url: fbPostUrl,
+      ig_post_url: igPostUrl,
+      fb_page_url: fbPageUrl,
+      ig_page_url: igPageUrl,
+      post_url: fbPostUrl || igPostUrl,
       library_url: libraryUrl,
+      is_commentable: isCommentable,
       source: "apify/facebook-ads-scraper",
     },
   };
