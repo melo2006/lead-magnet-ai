@@ -301,6 +301,18 @@ const isCommentable = (ad: ScrapedAd): boolean => {
 
 const hasContactFallback = (ad: ScrapedAd): boolean => Boolean(getAdLinks(ad).contactPage);
 
+const getDaysRunning = (ad: ScrapedAd): number | null => {
+  const v = ad.metadata?.days_running;
+  return typeof v === "number" ? v : null;
+};
+const getVariantCount = (ad: ScrapedAd): number => {
+  const v = ad.metadata?.variant_count;
+  return typeof v === "number" && v > 0 ? v : 1;
+};
+const getMediaType = (ad: ScrapedAd): string => String(ad.metadata?.media_type ?? "unknown");
+const getIsActive = (ad: ScrapedAd): boolean => ad.metadata?.is_active !== false;
+const getIsAffiliate = (ad: ScrapedAd): boolean => ad.metadata?.is_affiliate === true;
+
 const matchesAdsFilter = (ad: ScrapedAd, filter: AdsFilter): boolean => {
   if (filter === "commentable") return isCommentable(ad);
   if (filter === "contact_fallback") return hasContactFallback(ad);
@@ -308,6 +320,10 @@ const matchesAdsFilter = (ad: ScrapedAd, filter: AdsFilter): boolean => {
   if (filter === "pending") return (ad.approval_status ?? "pending") === "pending";
   if (filter === "approved") return ad.approval_status === "approved";
   if (filter === "rejected") return ad.approval_status === "rejected";
+  if (filter === "winners") return getIsActive(ad) && (getDaysRunning(ad) ?? 0) >= 60;
+  if (filter === "scaling") return getVariantCount(ad) >= 10;
+  if (filter === "video") return getMediaType(ad) === "video";
+  if (filter === "affiliate") return getIsAffiliate(ad);
   return true;
 };
 
