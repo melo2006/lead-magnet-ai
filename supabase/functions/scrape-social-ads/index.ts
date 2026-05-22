@@ -719,7 +719,7 @@ serve(async (req) => {
     let upsertedCount = 0;
     let duplicateCount = 0;
     const uniqueAds = Array.from(
-      new Map(allAds.map((ad) => [`${ad.platform}::${ad.landing_url}`, ad])).values(),
+      new Map(allAds.map((ad) => [`${ad.platform}::${ad.ad_id || ad.landing_url}`, ad])).values(),
     );
     duplicateCount += allAds.length - uniqueAds.length;
 
@@ -739,6 +739,7 @@ serve(async (req) => {
           const engagement_status = isCommentable ? "commentable" : hasContact ? "contact_form" : "dark_post";
           return {
             ...a,
+            landing_url: a.platform === "tiktok" && a.ad_id ? `${a.landing_url}${a.landing_url.includes("?") ? "&" : "?"}src_ad_id=${encodeURIComponent(a.ad_id)}` : a.landing_url,
             scan_job_id: jobId,
             approval_status: "pending",
             engagement_status,
