@@ -756,14 +756,31 @@ const TalkingAvatarWidget = () => {
   const toggleAudioRoute = useCallback(async () => {
     const client = retellClientRef.current as any;
     if (!client) return;
-    if (audioRoute === "speaker") {
-      client._routeEarpiece?.();
-      setAudioRoute("earpiece");
-    } else {
-      await client._routeSpeaker?.();
-      setAudioRoute("speaker");
-    }
-  }, [audioRoute]);
+    if (isRoutingAudio) return;
+    const nextRoute: AudioRoute =
+      audioRoute === "bluetooth"
+        ? "speaker"
+        : audioRoute === "speaker"
+          ? "earpiece"
+          : hasBluetoothOutput
+            ? "bluetooth"
+            : "speaker";
+
+    if (nextRoute === "speaker") await client._routeSpeaker?.();
+    else if (nextRoute === "bluetooth") await client._routeBluetooth?.();
+    else await client._routeEarpiece?.();
+  }, [audioRoute, hasBluetoothOutput, isRoutingAudio]);
+
+  const audioRouteTitle =
+    audioRoute === "speaker"
+      ? "Speakerphone active (tap for earpiece)"
+      : audioRoute === "bluetooth"
+        ? "Bluetooth active (tap for speakerphone)"
+        : hasBluetoothOutput
+          ? "Earpiece active (tap for Bluetooth)"
+          : "Earpiece active (tap for speakerphone)";
+
+  const AudioRouteIcon = audioRoute === "bluetooth" ? Bluetooth : audioRoute === "speaker" ? Volume2 : Phone;
 
 
 
