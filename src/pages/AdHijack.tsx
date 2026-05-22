@@ -697,6 +697,11 @@ export default function AdHijack() {
                           Dark post · no public thread
                         </Badge>
                       )}
+                      {!commentable && links.contactPage && (
+                        <Badge variant="outline" className="text-[9px] border-primary/40 text-primary">
+                          Contact page found
+                        </Badge>
+                      )}
                     </div>
                     {ad.cta_text && <p className="text-[11px] mt-1 font-medium">{ad.cta_text}</p>}
                     {ad.ad_creative_text && (
@@ -766,10 +771,16 @@ export default function AdHijack() {
                           <ExternalLink className="h-3 w-3" /> Ad Library
                         </Button>
                       )}
+                      {links.contactPage && (
+                        <Button size="sm" variant="ghost" className="h-6 text-[10px] text-primary"
+                          onClick={() => openWithComment(links.contactPage!, "Contact page — paste into their form")}> 
+                          <ExternalLink className="h-3 w-3" /> Copy + Open Contact Page
+                        </Button>
+                      )}
                     </div>
                     {!commentable && (
                       <p className="text-[10px] text-amber-400/80 mt-2">
-                        This ad has no public post thread (a "dark post"). Open the FB Page or IG profile and comment on their most recent organic post, or send a DM.
+                        This ad has no public post thread (a "dark post"). Use the contact page fallback when available, or open their FB/IG profile for a manual DM/latest-post comment.
                       </p>
                     )}
                   </div>
