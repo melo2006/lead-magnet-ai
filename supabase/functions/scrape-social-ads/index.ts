@@ -626,23 +626,27 @@ async function scrapeTikTokViaApify(
 ): Promise<ScrapedAd[]> {
   const searchQueries = getTikTokSearchQueries(niche);
   const actorLimit = Math.min(Math.max(limit * 4, 50), 250);
-  const region = countries.includes("US") ? "US" : countries[0] ?? "US";
   const startDate = new Date(Date.now() - 1000 * 60 * 60 * 24 * 180).toISOString().slice(0, 10);
   const endDate = new Date().toISOString().slice(0, 10);
-  const items = await runApifyActor(token, "aiscraperdev~tiktok-ads-library-scraper", {
-    searchQuery: searchQueries.join(", "),
-    searchQueries,
-    source: "both",
-    region,
-    adStatus: "active",
-    adFormat: "video",
-    startDate,
-    endDate,
-    dateRange: "custom",
-    maxResults: actorLimit,
-    maxAds: actorLimit,
-  });
-  console.log(`[tiktok] queries=${searchQueries.join("|")} region=${region} actorLimit=${actorLimit} raw items: ${items.length}`);
+  const regions = countries.length ? countries : ["US"];
+  const items: unknown[] = [];
+  for (const region of regions) {
+    const regionItems = await runApifyActor(token, "aiscraperdev~tiktok-ads-library-scraper", {
+      searchQuery: searchQueries.join(", "),
+      searchQueries,
+      source: "both",
+      region,
+      adStatus: "active",
+      adFormat: "video",
+      startDate,
+      endDate,
+      dateRange: "custom",
+      maxResults: actorLimit,
+      maxAds: actorLimit,
+    });
+    items.push(...regionItems);
+  }
+  console.log(`[tiktok] queries=${searchQueries.join("|")} regions=${regions.join(",")} actorLimit=${actorLimit} raw items: ${items.length}`);
   if (items[0]) {
     console.log(`[tiktok] sample keys: ${Object.keys(items[0]).join(",")}`);
     console.log(`[tiktok] sample item: ${JSON.stringify(items[0]).slice(0, 800)}`);
