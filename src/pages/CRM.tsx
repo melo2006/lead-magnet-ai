@@ -13,6 +13,7 @@ import CallHistoryView from "@/components/crm/CallHistoryView";
 import ImportedListsView from "@/components/crm/ImportedListsView";
 import ImportedListDetailView from "@/components/crm/ImportedListDetailView";
 import EngagementDashboard from "@/components/crm/EngagementDashboard";
+import AdHijack from "@/pages/AdHijack";
 
 const CRM = () => {
   return (
@@ -39,6 +40,7 @@ const CRM = () => {
               <Route path="engagement" element={<EngagementDashboard />} />
               <Route path="follow-up" element={<FollowUpIntelligence />} />
               <Route path="templates" element={<TemplatesView />} />
+              <Route path="ad-hijack" element={<AdHijack />} />
               <Route path="*" element={<CRMDashboard />} />
             </Routes>
           </main>
