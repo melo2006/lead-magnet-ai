@@ -112,11 +112,34 @@ function pickLandingUrl(item: any): string | undefined {
   return cleanUrl(link);
 }
 
+function pickPostUrl(item: any): string | undefined {
+  const s = item?.snapshot ?? {};
+  const cards = Array.isArray(s.cards) ? s.cards : [];
+  return cleanUrl(firstValue(
+    s.page_post_url,
+    s.pagePostUrl,
+    s.post_url,
+    s.postUrl,
+    s.permalink_url,
+    s.permalinkUrl,
+    cards[0]?.page_post_url,
+    cards[0]?.post_url,
+    item.page_post_url,
+    item.pagePostUrl,
+    item.post_url,
+    item.postUrl,
+    item.permalink_url,
+    item.permalinkUrl,
+  ));
+}
+
 function normalizeMetaAd(item: any): ScrapedAd | null {
   const s = item?.snapshot ?? {};
   const cards = Array.isArray(s.cards) ? s.cards : [];
   const adId = firstValue(item.ad_archive_id, item.adArchiveId, item.adArchiveID, item.id);
-  const sourceUrl = cleanUrl(item.url) || (adId ? `https://www.facebook.com/ads/library/?id=${adId}` : undefined);
+  const postUrl = pickPostUrl(item);
+  const libraryUrl = cleanUrl(item.url) || (adId ? `https://www.facebook.com/ads/library/?id=${adId}` : undefined);
+  const sourceUrl = postUrl || libraryUrl;
   const landingUrl = pickLandingUrl(item) || sourceUrl;
   const advertiser = firstValue(s.page_name, s.pageName, item.page_name, item.pageName, item.advertiserName);
   if (!landingUrl || !advertiser) return null;
@@ -160,6 +183,8 @@ function normalizeMetaAd(item: any): ScrapedAd | null {
     source_ad_url: sourceUrl,
     metadata: {
       publisher_platforms: item.publisher_platform || item.publisherPlatform || s.publisher_platform || s.publisherPlatform || [],
+      post_url: postUrl,
+      library_url: libraryUrl,
       source: "apify/facebook-ads-scraper",
     },
   };
@@ -342,7 +367,11 @@ serve(async (req) => {
       const existingKeys = new Set((existingRows ?? []).map((r: any) => `${r.platform}::${r.landing_url}`));
       const rows = uniqueAds
         .filter((a) => !existingKeys.has(`${a.platform}::${a.landing_url}`))
-        .map((a) => ({ ...a, scan_job_id: jobId }));
+        .map((a) => ({
+          ...a,
+          scan_job_id: jobId,
+          metadata: { ...(a.metadata ?? {}), search_niche: niche, search_location: location },
+        }));
       duplicateCount += uniqueAds.length - rows.length;
       if (rows.length > 0) {
         const { data: inserted, error: insertErr } = await supabase.from("scraped_ads").insert(rows).select("id");

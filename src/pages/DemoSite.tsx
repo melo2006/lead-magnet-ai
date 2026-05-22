@@ -153,7 +153,31 @@ const ScanFallbackPreview = ({ leadData, siteName, homepageUrl }: ScanFallbackPr
   </div>
 );
 
-const mergeLeadRecordIntoDemoData = (record: any, current: DemoLeadData): DemoLeadData => ({
+type DemoLeadRecord = Partial<{
+  id: string;
+  updated_at: string;
+  full_name: string;
+  business_name: string;
+  email: string;
+  phone: string;
+  website_url: string;
+  niche: string;
+  website_screenshot: string;
+  screenshot_tablet: string;
+  screenshot_mobile: string;
+  website_title: string;
+  website_description: string;
+  website_content: string;
+  brand_colors: unknown;
+  brand_logo: string;
+}>;
+
+const asBrandColors = (value: unknown) =>
+  value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, string | undefined>)
+    : undefined;
+
+const mergeLeadRecordIntoDemoData = (record: DemoLeadRecord, current: DemoLeadData): DemoLeadData => ({
   ...current,
   leadId: record.id || current.leadId,
   previewVersion: record.updated_at || current.previewVersion,
@@ -164,12 +188,12 @@ const mergeLeadRecordIntoDemoData = (record: any, current: DemoLeadData): DemoLe
   phone: record.phone || current.phone,
   niche: record.niche || current.niche,
   screenshot: record.website_screenshot || current.screenshot || null,
-  screenshotTablet: (record as any).screenshot_tablet || current.screenshotTablet || null,
-  screenshotMobile: (record as any).screenshot_mobile || current.screenshotMobile || null,
+  screenshotTablet: record.screenshot_tablet || current.screenshotTablet || null,
+  screenshotMobile: record.screenshot_mobile || current.screenshotMobile || null,
   title: record.website_title || current.title || "",
   description: record.website_description || current.description || "",
   websiteContent: record.website_content || current.websiteContent || "",
-  colors: (record.brand_colors as Record<string, string>) || current.colors || {},
+  colors: asBrandColors(record.brand_colors) || current.colors || {},
   logo: record.brand_logo || current.logo || "",
 });
 
@@ -745,16 +769,16 @@ const DemoSite = () => {
             </button>
           </div>
 
-          {/* Right: CTA Sign Up button */}
+          {/* Right: CTA info button */}
           <button
             onClick={() => navigate("/#pricing")}
-            className="group relative shrink-0 overflow-hidden rounded-xl border border-primary/50 bg-primary/15 px-3 py-1.5 text-left transition-all hover:border-primary hover:bg-primary/25 hover:shadow-lg hover:shadow-primary/20 sm:px-4 sm:py-2"
+            className="group relative shrink-0 overflow-hidden rounded-xl border border-primary/50 bg-primary px-3 py-1.5 text-left text-primary-foreground transition-all hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20 sm:px-4 sm:py-2"
           >
-            <p className="text-[10px] font-extrabold uppercase leading-tight tracking-wide text-primary sm:text-xs">
-              50% Off — Sign Up
+            <p className="text-[10px] font-extrabold uppercase leading-tight tracking-wide sm:text-xs">
+              Get More Info
             </p>
-            <p className="text-[8px] font-medium leading-tight text-muted-foreground sm:text-[9px]">
-              Voice + Chat from $99/mo
+            <p className="text-[8px] font-medium leading-tight text-primary-foreground/80 sm:text-[9px]">
+              AI Hidden Leads
             </p>
           </button>
         </div>

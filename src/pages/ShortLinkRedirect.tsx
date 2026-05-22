@@ -19,7 +19,12 @@ export default function ShortLinkRedirect() {
         });
         if (error) throw error;
         if (!data?.target_url) throw new Error("Link not found");
-        window.location.replace(data.target_url);
+
+        const target = new URL(data.target_url, window.location.origin);
+        if (target.pathname === "/demo") {
+          target.pathname = "/demo-site";
+        }
+        window.location.replace(target.toString());
       } catch (e) {
         setError(e instanceof Error ? e.message : "Could not resolve link.");
       }

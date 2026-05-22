@@ -36,6 +36,7 @@ interface ScrapedAd {
   prospect_id: string | null;
   scan_job_id: string | null;
   created_at: string;
+  metadata?: Record<string, unknown> | null;
 }
 
 interface ScanJob {
@@ -210,6 +211,12 @@ const safeHost = (url: string) => {
   } catch {
     return url;
   }
+};
+
+const getBestAdOpenUrl = (ad: ScrapedAd) => {
+  const postUrl = typeof ad.metadata?.post_url === "string" ? ad.metadata.post_url : null;
+  const libraryUrl = typeof ad.metadata?.library_url === "string" ? ad.metadata.library_url : null;
+  return postUrl || ad.source_ad_url || libraryUrl || null;
 };
 
 export default function AdHijack() {
@@ -584,7 +591,10 @@ export default function AdHijack() {
           <p className="text-xs text-muted-foreground text-center py-8">No ads scraped yet. Run your first scan above.</p>
         ) : (
           <div className="space-y-3">
-            {ads.map((ad) => (
+            {ads.map((ad) => {
+              const adOpenUrl = getBestAdOpenUrl(ad);
+
+              return (
               <div key={ad.id} className="border border-border rounded p-3 space-y-2">
                 <div className="flex items-start justify-between gap-3">
                   <div className="flex-1 min-w-0">
@@ -610,14 +620,14 @@ export default function AdHijack() {
                       >
                         <ExternalLink className="h-2.5 w-2.5" /> {safeHost(ad.landing_url)}
                       </a>
-                      {ad.source_ad_url && (
+                      {adOpenUrl && (
                         <a
-                          href={ad.source_ad_url}
+                          href={adOpenUrl}
                           target="_blank"
                           rel="noopener noreferrer"
                           className="text-[10px] text-muted-foreground hover:underline flex items-center gap-1"
                         >
-                          <ExternalLink className="h-2.5 w-2.5" /> View ad
+                          <ExternalLink className="h-2.5 w-2.5" /> View ad / post
                         </a>
                       )}
                     </div>
@@ -659,7 +669,7 @@ export default function AdHijack() {
                       >
                         <Copy className="h-3 w-3" /> Copy comment
                       </Button>
-                      {ad.source_ad_url && (
+                      {adOpenUrl && (
                         <Button
                           size="sm"
                           variant="ghost"
@@ -668,10 +678,12 @@ export default function AdHijack() {
                             // Copy first so it's ready to paste, then pop a real new tab
                             // where the user is already logged into the platform.
                             navigator.clipboard.writeText(ad.comment_template!);
-                            window.open(ad.source_ad_url!, "_blank", "noopener,noreferrer");
+                            window.open(adOpenUrl, "_blank", "noopener,noreferrer");
                             toast({
                               title: "Comment copied — paste with Cmd/Ctrl+V",
-                              description: "Opened the ad in a new tab.",
+                              description: adOpenUrl.includes("/ads/library")
+                                ? "Opened the Meta ad library. Meta may not expose a public comment thread for every ad."
+                                : "Opened the original post in a new tab.",
                             });
                           }}
                         >
@@ -682,7 +694,7 @@ export default function AdHijack() {
                   </div>
                 )}
               </div>
-            ))}
+            );})}
           </div>
         )}
       </Card>
