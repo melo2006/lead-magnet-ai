@@ -483,22 +483,42 @@ const TalkingAvatarWidget = () => {
         analyser.smoothingTimeConstant = 0.18;
       }
 
-      // Audio output follows active device (Bluetooth, speaker, etc.)
-      // The Retell SDK uses an <audio> element under the hood; find it and
-      // keep its sinkId in sync with the OS default output.
+      // Default to loud output (speakerphone) so the user can actually hear Aspen.
+      // Provide a button to cycle between available outputs (speaker / earpiece / bluetooth / headphones).
       try {
-        const syncAudioOutput = () => {
+        const applySink = (sinkId: string) => {
           const audioEls = document.querySelectorAll("audio");
           audioEls.forEach((el: any) => {
-            if (typeof el.setSinkId === "function" && navigator.mediaDevices) {
-              // Use default device (empty string = system default, follows OS routing)
-              el.setSinkId("").catch(() => {});
+            if (typeof el.setSinkId === "function") {
+              el.setSinkId(sinkId).catch(() => {});
             }
           });
         };
-        syncAudioOutput();
-        // Re-sync whenever the user changes audio devices
-        const handleDeviceChange = () => syncAudioOutput();
+
+        const refreshOutputs = async () => {
+          try {
+            const devices = await navigator.mediaDevices.enumerateDevices();
+            const outs = devices.filter((d) => d.kind === "audiooutput");
+            setAudioOutputs(outs);
+
+            // Pick the loudest default: prefer speaker, then bluetooth/headphones, then default.
+            const score = (label: string) => {
+              const l = label.toLowerCase();
+              if (l.includes("speaker")) return 4;
+              if (l.includes("bluetooth")) return 3;
+              if (l.includes("headphone") || l.includes("headset")) return 2;
+              if (l.includes("default")) return 1;
+              return 0;
+            };
+            const preferred = outs.slice().sort((a, b) => score(b.label) - score(a.label))[0];
+            const sinkId = preferred?.deviceId ?? "";
+            setCurrentSinkId(sinkId);
+            applySink(sinkId);
+          } catch { /* permissions or unsupported */ }
+        };
+
+        refreshOutputs();
+        const handleDeviceChange = () => refreshOutputs();
         navigator.mediaDevices?.addEventListener("devicechange", handleDeviceChange);
         retellClient.on("call_ended", () => {
           navigator.mediaDevices?.removeEventListener("devicechange", handleDeviceChange);
