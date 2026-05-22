@@ -558,11 +558,56 @@ export default function AdHijack() {
     toast({ title: "Comment saved" });
   };
 
+  const toggleSelect = (id: string) => {
+    setSelectedAdIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const selectAllFiltered = () => {
+    setSelectedAdIds((prev) => {
+      const next = new Set(prev);
+      filteredAds.forEach((a) => next.add(a.id));
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelectedAdIds(new Set());
+
+  const bulkOpenSelected = async (mode: "post" | "contact") => {
+    const targets = ads.filter((a) => selectedAdIds.has(a.id));
+    if (targets.length === 0) { toast({ title: "Nothing selected" }); return; }
+    // Build a single joined comment block for paste-into-many workflow
+    const comments = targets.map((a) => a.comment_template).filter(Boolean);
+    if (comments.length) navigator.clipboard.writeText(comments[0] ?? "");
+    let opened = 0;
+    for (const ad of targets) {
+      const links = getAdLinks(ad);
+      const url = mode === "post"
+        ? (links.fbPost || links.igPost || links.fbPage || links.igPage)
+        : (links.contactPage || links.fbPage);
+      if (!url) continue;
+      window.open(url, "_blank", "noopener,noreferrer");
+      opened += 1;
+      await new Promise((r) => setTimeout(r, 250)); // pop-up blocker friendliness
+    }
+    toast({
+      title: `Opened ${opened} tabs`,
+      description: comments.length ? "First comment copied. Use Cmd/Ctrl+V in each tab." : "No comments generated yet — generate first.",
+    });
+  };
+
   const filteredAds = ads.filter((ad) => matchesAdsFilter(ad, adsFilter));
   const commentableCount = ads.filter(isCommentable).length;
   const contactFallbackCount = ads.filter(hasContactFallback).length;
   const pendingCount = ads.filter((a) => (a.approval_status ?? "pending") === "pending").length;
   const approvedCount = ads.filter((a) => a.approval_status === "approved").length;
+  const winnersCount = ads.filter((a) => getIsActive(a) && (getDaysRunning(a) ?? 0) >= 60).length;
+  const scalingCount = ads.filter((a) => getVariantCount(a) >= 10).length;
+  const videoCount = ads.filter((a) => getMediaType(a) === "video").length;
+  const affiliateCount = ads.filter(getIsAffiliate).length;
 
   return (
     <div className="space-y-6">
