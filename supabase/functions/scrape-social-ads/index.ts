@@ -390,6 +390,11 @@ serve(async (req) => {
     const limitPerPlatform: number = Math.min(Math.max(Number(body?.limit ?? 25), 1), 100);
     const verifyOnly: boolean = body?.verify === true;
     const mode: ScanMode = body?.mode === "rescan" ? "rescan" : "fresh";
+    const requestedTarget = String(body?.engagement_target ?? "all_with_contact");
+    const engagementTarget: EngagementTarget =
+      requestedTarget === "commentable_only" || requestedTarget === "all" || requestedTarget === "all_with_contact"
+        ? requestedTarget
+        : "all_with_contact";
 
     const APIFY_TOKEN = Deno.env.get("APIFY_API_TOKEN");
 
@@ -449,7 +454,7 @@ serve(async (req) => {
       try {
         let batch: ScrapedAd[] = [];
         if (platform === "meta") {
-          const r = await scrapeMetaViaApify(APIFY_TOKEN, niche, location, limitPerPlatform);
+          const r = await scrapeMetaViaApify(APIFY_TOKEN, niche, location, limitPerPlatform, engagementTarget);
           batch = r.ads;
           totalCost += (batch.length / 1000) * 3.4;
         } else if (platform === "tiktok") {
@@ -462,6 +467,24 @@ serve(async (req) => {
         console.error(`[scrape-social-ads] ${platform} failed:`, e?.message);
         platformResults[platform] = { count: 0, error: String(e?.message ?? e) };
       }
+    }
+
+    if (engagementTarget === "all_with_contact") {
+      const darkAds = allAds.filter((ad) => ad.metadata?.is_commentable !== true && ad.landing_url);
+      let checked = 0;
+      for (const ad of darkAds.slice(0, Math.min(darkAds.length, 20))) {
+        const contactPageUrl = await discoverContactPage(ad.landing_url);
+        checked += 1;
+        ad.metadata = {
+          ...(ad.metadata ?? {}),
+          contact_page_url: contactPageUrl,
+          has_contact_fallback: Boolean(contactPageUrl),
+        };
+      }
+      platformResults._contact_fallbacks = {
+        count: allAds.filter((ad) => Boolean(ad.metadata?.contact_page_url)).length,
+        error: checked < darkAds.length ? `Checked ${checked} of ${darkAds.length} dark ads to keep scans fast` : undefined,
+      };
     }
 
     // Save only new ads for rescans so the count reflects fresh finds, not old duplicates.
@@ -484,7 +507,7 @@ serve(async (req) => {
         .map((a) => ({
           ...a,
           scan_job_id: jobId,
-          metadata: { ...(a.metadata ?? {}), search_niche: niche, search_location: location },
+          metadata: { ...(a.metadata ?? {}), search_niche: niche, search_location: location, engagement_target: engagementTarget },
         }));
       duplicateCount += uniqueAds.length - rows.length;
       if (rows.length > 0) {
@@ -513,7 +536,7 @@ serve(async (req) => {
         status: "completed",
         ads_found: upsertedCount,
         total_cost_usd: Number(totalCost.toFixed(3)),
-        platform_results: { ...platformResults, _duplicates_skipped: duplicateCount, _mode: mode },
+        platform_results: { ...platformResults, _duplicates_skipped: duplicateCount, _mode: mode, _engagement_target: engagementTarget },
         completed_at: new Date().toISOString(),
       })
       .eq("id", jobId);
@@ -523,7 +546,7 @@ serve(async (req) => {
         success: true,
         job_id: jobId,
         ads_found: upsertedCount,
-        platform_results: { ...platformResults, _duplicates_skipped: duplicateCount, _mode: mode },
+        platform_results: { ...platformResults, _duplicates_skipped: duplicateCount, _mode: mode, _engagement_target: engagementTarget },
         total_cost_usd: Number(totalCost.toFixed(3)),
         apify_user: tokenCheck.username,
       }),
