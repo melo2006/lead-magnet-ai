@@ -262,6 +262,31 @@ function inferPublisherPlatforms(item: any): string[] {
   return arr.map((p: unknown) => String(p).toLowerCase());
 }
 
+function inferMediaType(item: any): "video" | "carousel" | "image" | "dco" | "unknown" {
+  const s = item?.snapshot ?? {};
+  const cards = Array.isArray(s.cards) ? s.cards : [];
+  if (Array.isArray(s.videos) && s.videos.length > 0) return "video";
+  if (cards.length > 1) return "carousel";
+  if (s.display_format === "dco" || item.display_format === "dco") return "dco";
+  if (Array.isArray(s.images) && s.images.length > 0) return "image";
+  if (cards.length === 1) return "image";
+  return "unknown";
+}
+
+// Affiliate-link detection — regex for common affiliate network params and domains
+const AFFILIATE_REGEX =
+  /(\?|&)(aff_?id|affiliate|ref(_?id)?|partner(_?id)?|sub_?id|clickid|utm_aff)=|clickbank|digistore24|shareasale|impact\.com|partnerstack|rakuten|cj\.com|clkbank|warriorplus|jvzoo|skimresources|skimlinks|linksynergy/i;
+function detectAffiliate(landingUrl: string | undefined): boolean {
+  if (!landingUrl) return false;
+  return AFFILIATE_REGEX.test(landingUrl);
+}
+
+function computeDaysRunning(startMs: number | null, endMs: number | null): number | null {
+  if (!startMs) return null;
+  const end = endMs ?? Date.now();
+  return Math.floor(Math.max(0, end - startMs) / 86400000);
+}
+
 function normalizeMetaAd(item: any): ScrapedAd | null {
   const s = item?.snapshot ?? {};
   const cards = Array.isArray(s.cards) ? s.cards : [];
@@ -276,20 +301,29 @@ function normalizeMetaAd(item: any): ScrapedAd | null {
   const advertiser = firstValue(s.page_name, s.pageName, item.page_name, item.pageName, item.advertiserName);
   if (!landingUrl || !advertiser) return null;
 
-  const startedAt = item.start_date
-    ? new Date(Number(item.start_date) * 1000).toISOString()
-    : item.startDate
-      ? new Date(Number(item.startDate) * 1000).toISOString()
-      : firstValue(item.startDateFormatted, item.start_date_formatted);
+  const startMs = item.start_date ? Number(item.start_date) * 1000
+    : item.startDate ? Number(item.startDate) * 1000 : null;
+  const endMs = item.end_date ? Number(item.end_date) * 1000
+    : item.endDate ? Number(item.endDate) * 1000 : null;
+  const startedAt = startMs ? new Date(startMs).toISOString()
+    : firstValue(item.startDateFormatted, item.start_date_formatted);
 
+  const isActive = (item.is_active ?? item.isActive ?? (item.end_date == null && item.endDate == null)) !== false;
+  const daysRunning = computeDaysRunning(startMs, isActive ? null : endMs);
+  const mediaType = inferMediaType(item);
   const publisherPlatforms = inferPublisherPlatforms(item);
   const isCommentable = Boolean(fbPostUrl || igPostUrl);
+  const pageId = firstValue(s.page_id, s.pageId, item.page_id, item.pageId, item.pageID);
+  const pageTotalAds = Number(
+    s.page_like_count_active_ads ?? item.page_total_active_ads ?? item.pageTotalActiveAds ?? 0,
+  ) || null;
+  const isAffiliate = detectAffiliate(landingUrl);
 
   return {
     platform: "meta",
     ad_id: adId,
     advertiser_name: advertiser,
-    advertiser_handle: firstValue(s.page_id, s.pageId, item.page_id, item.pageId, item.pageID),
+    advertiser_handle: pageId,
     landing_url: landingUrl,
     cta_text: firstValue(s.cta_text, s.ctaText, s.title, cards[0]?.cta_text, cards[0]?.ctaText, item.cta),
     ad_creative_text: firstValue(
@@ -313,6 +347,14 @@ function normalizeMetaAd(item: any): ScrapedAd | null {
       post_url: fbPostUrl || igPostUrl,
       library_url: libraryUrl,
       is_commentable: isCommentable,
+      page_id: pageId,
+      days_running: daysRunning,
+      is_active: isActive,
+      end_date: endMs ? new Date(endMs).toISOString() : null,
+      media_type: mediaType,
+      card_count: cards.length,
+      page_total_active_ads: pageTotalAds,
+      is_affiliate: isAffiliate,
       source: "apify/facebook-ads-scraper",
     },
   };
