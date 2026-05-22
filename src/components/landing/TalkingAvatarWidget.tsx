@@ -778,6 +778,14 @@ const TalkingAvatarWidget = () => {
                 {isMuted ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
               </button>
               <button
+                onClick={cycleAudioOutput}
+                disabled={audioOutputs.length <= 1}
+                className="rounded-full bg-muted p-2 text-foreground hover:bg-muted/80 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
+                title={`Audio: ${currentOutputLabel.name}${audioOutputs.length > 1 ? " — tap to switch" : ""}`}
+              >
+                <currentOutputLabel.Icon className="h-3.5 w-3.5" />
+              </button>
+              <button
                 onClick={handleMinimize}
                 className="rounded-full bg-muted p-2 text-foreground hover:bg-muted/80"
                 title="Minimize"
