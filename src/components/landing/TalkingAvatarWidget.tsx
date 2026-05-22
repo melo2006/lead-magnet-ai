@@ -200,6 +200,7 @@ const TalkingAvatarWidget = () => {
   const audioSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const remoteTrackRef = useRef<any>(null);
   const silentSinkAudioRef = useRef<HTMLAudioElement | null>(null);
+  const earpieceAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const retellClientRef = useRef<any>(null);
   const talkingHeadRef = useRef<any>(null);
@@ -213,6 +214,20 @@ const TalkingAvatarWidget = () => {
   const setAudioRouteState = useCallback((route: AudioRoute) => {
     audioRouteRef.current = route;
     setAudioRoute(route);
+  }, []);
+
+  const refreshBluetoothOutput = useCallback(async () => {
+    try {
+      if (!navigator.mediaDevices?.enumerateDevices) return false;
+      const devices = await navigator.mediaDevices.enumerateDevices();
+      const hasBluetooth = devices.some((device) =>
+        device.kind === "audiooutput" && /bluetooth|airpods|buds|headset/i.test(device.label || ""),
+      );
+      setHasBluetoothOutput(hasBluetooth);
+      return hasBluetooth;
+    } catch {
+      return false;
+    }
   }, []);
 
   const focusAvatarOnViewer = useCallback((duration = 300000) => {
