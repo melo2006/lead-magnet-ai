@@ -10,9 +10,9 @@ import {
 
 const crmItems = [
   { title: "Dashboard", url: "/dashboard", icon: LayoutDashboard },
+  { title: "Ad Hijack 🆕", url: "/dashboard/ad-hijack", icon: Target },
   { title: "Prospects", url: "/dashboard/prospects", icon: Search },
   { title: "Intent Leads", url: "/dashboard/intent-leads", icon: Radar },
-  { title: "Ad Hijack", url: "/dashboard/ad-hijack", icon: Target },
   { title: "Campaigns", url: "/dashboard/campaigns", icon: Megaphone },
   { title: "Pipeline", url: "/dashboard/pipeline", icon: LayoutGrid },
   { title: "Call History", url: "/dashboard/calls", icon: PhoneIncoming },
