@@ -191,6 +191,8 @@ const TalkingAvatarWidget = () => {
   const [isAgentSpeaking, setIsAgentSpeaking] = useState(false);
   const [duration, setDuration] = useState(0);
   const [avatarState, setAvatarState] = useState<"idle" | "loading" | "ready" | "error">("idle");
+  const [audioOutputs, setAudioOutputs] = useState<MediaDeviceInfo[]>([]);
+  const [currentSinkId, setCurrentSinkId] = useState<string>("");
 
   const retellClientRef = useRef<any>(null);
   const talkingHeadRef = useRef<any>(null);
