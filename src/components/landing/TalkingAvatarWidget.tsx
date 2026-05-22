@@ -705,24 +705,24 @@ const TalkingAvatarWidget = () => {
 
       {/* Aspen photo with glow */}
       <div className="relative overflow-hidden bg-gradient-to-b from-muted/40 via-background to-muted/20">
-        <div className="relative h-[180px] w-full flex items-center justify-center">
+        <div className="relative h-[120px] w-full flex items-center justify-center">
           {/* Glow rings — intensify when speaking */}
           <div
-            className={`pointer-events-none absolute h-36 w-36 rounded-full bg-primary/30 blur-3xl transition-opacity duration-300 ${
+            className={`pointer-events-none absolute h-24 w-24 rounded-full bg-primary/30 blur-3xl transition-opacity duration-300 ${
               isAgentSpeaking ? "opacity-100 animate-pulse" : callStatus === "active" ? "opacity-60" : "opacity-40"
             }`}
           />
           <div
-            className={`pointer-events-none absolute h-28 w-28 rounded-full bg-primary/40 blur-2xl transition-opacity duration-300 ${
+            className={`pointer-events-none absolute h-20 w-20 rounded-full bg-primary/40 blur-2xl transition-opacity duration-300 ${
               isAgentSpeaking ? "opacity-100 animate-pulse" : "opacity-50"
             }`}
           />
           <div
-            className={`relative h-32 w-32 overflow-hidden rounded-full border-2 shadow-2xl transition-all duration-300 ${
+            className={`relative h-20 w-20 overflow-hidden rounded-full border-2 shadow-2xl transition-all duration-300 ${
               isAgentSpeaking
-                ? "border-primary shadow-[0_0_40px_hsl(var(--primary)/0.7)] scale-105"
+                ? "border-primary shadow-[0_0_32px_hsl(var(--primary)/0.7)] scale-105"
                 : callStatus === "active"
-                  ? "border-primary/60 shadow-[0_0_24px_hsl(var(--primary)/0.4)]"
+                  ? "border-primary/60 shadow-[0_0_20px_hsl(var(--primary)/0.4)]"
                   : "border-border"
             }`}
           >
