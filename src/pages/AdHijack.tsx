@@ -700,6 +700,7 @@ export default function AdHijack() {
                   <SelectValue />
                 </SelectTrigger>
                 <SelectContent>
+                  <SelectItem value="__all__">⭐ All sub-niches ({selectedNiche.keywords.length})</SelectItem>
                   {selectedNiche.keywords.map((keyword) => (
                     <SelectItem key={keyword} value={keyword}>
                       {keyword}
