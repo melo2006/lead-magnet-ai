@@ -1,116 +1,171 @@
+# Ad Hijack Engine
 
+A new module at `/dashboard/ad-hijack` that scrapes active social media ads (Meta, TikTok, LinkedIn, Google), extracts each advertiser's landing-page URL, enriches them as prospects, generates a personalized demo link, and produces both a copy-paste comment template AND an outbound email/SMS campaign.
 
-# AI Hidden Leads — Homepage Redesign Plan
+## Goal
 
-## The Problem
+Replace paid ads with high-relevance comment engagement on competitors' own ads — every comment links to a fully personalized live demo of *that advertiser's* website with our voice + chat AI overlaid.
 
-Your current marketing page (`/marketing`) focuses narrowly on "missed calls" and AI voice demos. But your business offers much more: lead generation, database reactivation, AI voice agents, chat widgets, campaign automation, and outreach — plus a unique 90-second live demo generator that no competitor (including ClientForce) has.
+## Data Sources (v1)
 
-The homepage needs to reflect the full platform and position AI Hidden Leads as a complete lead generation and sales automation solution for local businesses.
+| Platform | Method | Cost |
+|---|---|---|
+| Meta (FB + Instagram) | Official **Meta Ad Library API** (free, requires Meta dev app + identity verification) | Free |
+| TikTok | **Apify** actor `apify/tiktok-ads-library-scraper` | ~$0.50/1k ads |
+| LinkedIn | **Apify** actor `apify/linkedin-ads-library-scraper` | ~$0.50/1k ads |
+| Google | **Apify** actor `apify/google-ads-transparency-scraper` | ~$0.50/1k ads |
 
-## What ClientForce Does (and Doesn't)
+**Apify** is the single new dependency. One `APIFY_API_TOKEN` secret covers TikTok + LinkedIn + Google. Meta uses its own `META_ADS_ACCESS_TOKEN`.
 
-ClientForce offers: AI sales agents, auto-prospecting, multi-channel outreach (email/SMS/WhatsApp/voice), unified inbox, lead finder, Chrome extension, calendar booking, proposals, agency mode, and reselling.
+User must add two secrets before scraping works:
+- `APIFY_API_TOKEN` — get from apify.com/account
+- `META_ADS_ACCESS_TOKEN` — get from developers.facebook.com after creating an app
 
-**What they DON'T have** (your unique advantages):
-- 90-second personalized live demo generator (scan any website, show AI in action)
-- Instant before/after website preview with embedded AI
-- Speed-to-lead (auto-call within 60 seconds of engagement)
-- Visual outreach templates with website mockups
+## Architecture
 
-## Proposed New Homepage Structure
+```text
+┌──────────────────────────────────────────────────────────────┐
+│ /dashboard/ad-hijack  (new page)                              │
+│                                                               │
+│  Scan tab     →  niche + geo + platform multi-select          │
+│                  Calls edge fn: scrape-social-ads             │
+│                                                               │
+│  Results tab  →  Table of scraped ads (ad creative, CTA,      │
+│                  landing URL, advertiser, platform)           │
+│                  Bulk action: "Convert to prospects"          │
+│                                                               │
+│  Outreach tab →  Per-ad: comment template + demo link +       │
+│                  "Copy" button + "Send via email/SMS" button  │
+└──────────────────────────────────────────────────────────────┘
+                          │
+                          ▼
+┌──────────────────────────────────────────────────────────────┐
+│ Edge functions (new)                                          │
+│  • scrape-social-ads     — orchestrates Meta API + Apify     │
+│  • generate-ad-comment   — Gemini-generated friendly comment │
+│                                                               │
+│ Reuses existing:                                              │
+│  • scan-website (Firecrawl)  for landing-page enrichment     │
+│  • Apollo enrichment         for contact info                │
+│  • send-outreach-email/sms   for outbound                    │
+│  • /demo?leadId=xxx          for personalized demo           │
+└──────────────────────────────────────────────────────────────┘
+                          │
+                          ▼
+┌──────────────────────────────────────────────────────────────┐
+│ New tables                                                    │
+│  • scraped_ads           — raw ad records, dedup by URL      │
+│  • ad_scan_jobs          — scan history + cost tracking      │
+│                                                               │
+│ Reused:                                                       │
+│  • prospects             — converted ads land here           │
+│  • scraping_usage        — cost telemetry                    │
+└──────────────────────────────────────────────────────────────┘
+```
 
-The homepage will be rebuilt at `/` (replacing the CRM as the default route — CRM moves to `/dashboard/*`).
+## User Workflow
 
-### Section 1: Hero
-- **Headline**: "Stop Losing Leads. Start Closing Them — With AI."
-- **Subheadline**: "AI Hidden Leads finds your ideal customers, reaches out automatically, and answers every call, chat, and text — 24/7. See it work on YOUR business in 90 seconds."
-- **Two CTAs**: "See Your Free AI Demo" (scrolls to demo form) + "Watch How It Works" (video modal)
-- **Trust badges**: "No credit card · 90-second setup · Works for any local business"
+1. **Scan** — Pick niche ("med spa"), location ("Miami"), platforms (toggle 4). Click Scan.
+2. **Review** — Table shows: ad thumbnail, advertiser name, CTA text, landing URL, platform, date posted. Filter/sort/dedupe.
+3. **Convert** — Select rows → "Convert to prospects" → runs landing-page Firecrawl scan + Apollo enrichment → creates prospect with `source = 'ad_hijack'` and stores the original ad URL.
+4. **Generate Outreach** — For each prospect:
+   - **Comment template** (manual paste): Gemini writes a friendly, on-brand comment about their ad with a shortlink to their personalized demo. User clicks "Copy" → pastes on the actual social ad.
+   - **Email/SMS** (automated): Reuses existing `send-outreach-email` / `send-outreach-sms` with a pre-filled template referencing the ad they ran.
+5. **Track** — Demo views, email opens, comment-link clicks all flow into the existing engagement dashboard.
 
-### Section 2: Pain Points / Stats
-- Keep the existing missed-call stats but expand to include: "78% of leads go to the first responder", "Only 27% of leads ever get contacted", "$1,200 average lost per missed opportunity"
+## TOS Safety Rails
 
-### Section 3: Services Grid (NEW — inspired by ClientForce but tailored to YOUR offering)
-Six core services, each as a card:
+- **Never auto-post comments** — clipboard copy only. Honors `mem://constraints/scraping-account-safety`.
+- All scraping happens server-side via Apify (their proxy infrastructure) or the official Meta API. No browser automation from user accounts.
+- Outbound email/SMS reuses existing opt-out compliance (`do_not_contact`, stop footers).
 
-1. **AI Voice Agent** — 24/7 receptionist that answers, qualifies, books appointments, and warm-transfers hot leads to your phone
-2. **AI Chat Widget** — Instant website chat trained on your business. Captures leads, answers FAQs, books appointments
-3. **Lead Generation Engine** — Intent-based prospecting that finds businesses actively searching for your services (Google Maps, directories, intent signals)
-4. **Database Reactivation** — AI calls your old/dead lead lists, re-engages them, and books appointments automatically
-5. **Automated Outreach Campaigns** — Multi-step email + SMS + voice sequences with personalized website demos attached
-6. **Speed-to-Lead** — When a prospect opens your email or views your demo, AI calls them within 60 seconds
+## Cost Model
 
-### Section 4: "How It Works" (Revised)
-Four steps:
-1. **We Find Your Leads** — AI scans for businesses in your niche that need your services
-2. **We Send Personalized Demos** — Each prospect gets a custom demo showing AI on THEIR website
-3. **AI Handles Every Response** — Voice, chat, email, SMS — all answered instantly, 24/7
-4. **You Close the Deal** — Qualified leads are warm-transferred to you or booked on your calendar
+Per 100 ads scraped + enriched:
+- Apify: ~$0.05
+- Firecrawl landing scan: ~$0.10
+- Apollo enrichment: ~$1.00
+- Gemini comment generation: ~$0.02
+- **Total: ~$1.17 per 100 leads** vs. ~$50-200 in ad spend for equivalent reach.
 
-### Section 5: Before/After (Keep existing)
-The website transformation showcase — this is unique to you and very compelling.
+Logged to `scraping_usage` with `scan_type = 'ad_hijack'`.
 
-### Section 6: The "Demo Drop" Differentiator (NEW)
-A focused section showing what makes you unique vs. competitors:
-- "While others send cold emails, we send personalized AI demos"
-- Show a visual of the demo link / phone mockup that prospects receive
-- "Your prospect sees their OWN website with AI chat and voice — in 90 seconds"
+## Technical Details
 
-### Section 7: Testimonials (Keep existing)
+### New tables (migration)
 
-### Section 8: Pricing / Packages (NEW — optional, can be added later)
-Three tiers similar to ClientForce but for YOUR services:
-- **Starter**: AI Voice + Chat widget setup
-- **Growth**: Everything + lead generation + outreach campaigns
-- **Agency**: Everything + database reactivation + white-label
+```sql
+CREATE TABLE public.ad_scan_jobs (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  niche text NOT NULL,
+  location text,
+  platforms text[] NOT NULL,
+  status text NOT NULL DEFAULT 'queued', -- queued|running|completed|failed
+  ads_found integer NOT NULL DEFAULT 0,
+  ads_converted integer NOT NULL DEFAULT 0,
+  total_cost_usd numeric(10,3) NOT NULL DEFAULT 0,
+  last_error text,
+  created_at timestamptz NOT NULL DEFAULT now(),
+  completed_at timestamptz
+);
 
-### Section 9: Lead Capture / Demo Form (Keep existing)
-The form that generates the 90-second live demo.
+CREATE TABLE public.scraped_ads (
+  id uuid PRIMARY KEY DEFAULT gen_random_uuid(),
+  scan_job_id uuid REFERENCES public.ad_scan_jobs(id) ON DELETE CASCADE,
+  platform text NOT NULL, -- meta|tiktok|linkedin|google
+  ad_id text,             -- platform-native id
+  advertiser_name text NOT NULL,
+  advertiser_handle text,
+  landing_url text NOT NULL,
+  cta_text text,
+  ad_creative_text text,
+  ad_media_url text,
+  posted_at timestamptz,
+  source_ad_url text,     -- link back to the original ad
+  prospect_id uuid REFERENCES public.prospects(id) ON DELETE SET NULL,
+  comment_template text,  -- cached generated comment
+  status text NOT NULL DEFAULT 'new', -- new|converted|commented|skipped
+  created_at timestamptz NOT NULL DEFAULT now(),
+  UNIQUE (platform, landing_url)
+);
+```
 
-### Section 10: Compliance Footer (NEW)
-- Privacy Policy link
-- Terms of Service link
-- SMS/communication consent language
-- This satisfies carrier compliance requirements for toll-free SMS verification
+RLS: same permissive policies as `prospects` (multi-tenant pattern already in use here).
 
-## Routing Changes
+### New edge functions
 
-| Current | New |
-|---------|-----|
-| `/` → CRM dashboard | `/` → New homepage |
-| `/marketing` → Marketing page | Remove (merged into `/`) |
-| CRM at `/*` | CRM at `/dashboard/*` |
-| `/demo` | `/demo` (unchanged) |
-| `/demo-site` | `/demo-site` (unchanged) |
+- `supabase/functions/scrape-social-ads/index.ts` — accepts `{ niche, location, platforms[] }`, fan-outs to Meta API + Apify actors, upserts into `scraped_ads`, records cost in `scraping_usage`.
+- `supabase/functions/generate-ad-comment/index.ts` — accepts `{ scraped_ad_id }`, calls Gemini via Lovable AI Gateway with a strict prompt: friendly, non-spammy, one sentence, mentions a relevant detail from the ad, includes demo shortlink. Caches result on `scraped_ads.comment_template`.
 
-## Files to Create/Modify
+Both register in `supabase/config.toml` with `verify_jwt = false` to match existing pattern.
 
-1. **New components**:
-   - `src/components/landing/ServicesGrid.tsx` — 6-service card grid
-   - `src/components/landing/DemoDifferentiator.tsx` — unique value prop section
-   - `src/components/landing/PricingSection.tsx` — pricing tiers (optional)
-   - `src/pages/PrivacyPolicy.tsx` — compliance page
-   - `src/pages/TermsOfService.tsx` — compliance page
+### New frontend files
 
-2. **Modified files**:
-   - `src/pages/Index.tsx` — rebuild with new section order and services
-   - `src/components/landing/HeroSection.tsx` — new headline/copy
-   - `src/components/landing/FeaturesSection.tsx` — replace with expanded services
-   - `src/components/landing/HowItWorksSection.tsx` — revised 4-step flow
-   - `src/components/landing/Footer.tsx` — add Privacy/Terms links
-   - `src/App.tsx` — update routing (`/` = homepage, `/dashboard/*` = CRM)
-   - `src/pages/CRM.tsx` — adjust for new route prefix
+- `src/pages/AdHijack.tsx` (route handler under `/dashboard/ad-hijack`)
+- `src/components/crm/ad-hijack/AdScanForm.tsx`
+- `src/components/crm/ad-hijack/AdResultsTable.tsx`
+- `src/components/crm/ad-hijack/AdOutreachPanel.tsx` (per-ad comment + email/SMS actions)
+- `src/components/crm/ad-hijack/AdScanHistory.tsx`
 
-## What This Does NOT Change
-- The CRM dashboard and all its features remain intact (just at `/dashboard/*`)
-- The demo flow (`/demo`, `/demo-site`) stays the same
-- All edge functions, database tables, and backend logic are untouched
-- Outreach templates and campaign system remain as-is
+Add nav entry in `src/components/crm/CRMSidebar.tsx`.
+Add route in `src/pages/CRM.tsx`.
 
-## Implementation Order
-1. Create Privacy Policy and Terms of Service pages (unblocks SMS compliance)
-2. Rebuild the homepage with new sections
-3. Update routing so `/` is the homepage and CRM moves to `/dashboard`
-4. Add compliance links to footer
+### Secrets required
 
+| Secret | Where to get it |
+|---|---|
+| `APIFY_API_TOKEN` | apify.com → Settings → Integrations |
+| `META_ADS_ACCESS_TOKEN` | developers.facebook.com → create app → Ad Library API access |
+
+Will request via `add_secret` tool on first scan if missing.
+
+## Out of Scope (v1)
+
+- Automated comment posting (TOS risk, banned)
+- Multi-language ad parsing (English only first)
+- Video ad transcription
+- Browser-based scraping of TikTok/LinkedIn (Apify covers this more safely)
+
+## Memory Updates
+
+After build: save new memory `mem://features/crm/ad-hijack-engine` describing the workflow, the manual-paste rule, and the Apify dependency. Update `mem://index.md` with the reference.
