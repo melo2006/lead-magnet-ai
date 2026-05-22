@@ -572,23 +572,40 @@ export default function AdHijack() {
             )}
           </div>
           <div>
-            <label className="text-[10px] uppercase tracking-widest text-muted-foreground">City, State</label>
+            <label className="text-[10px] uppercase tracking-widest text-muted-foreground">City, State (optional)</label>
             <Input
               list="verified-cities"
-              placeholder="Fort Lauderdale, FL"
+              placeholder="Leave blank for nationwide"
               value={location}
               onBlur={() => locationCheck.valid && setLocation(locationCheck.normalized)}
               onChange={(e) => setLocation(e.target.value)}
               className={`h-9 text-xs mt-1 ${location && !locationCheck.valid ? "border-destructive" : ""}`}
             />
             <datalist id="verified-cities">
-              {VERIFIED_CITIES.map((city) => (
-                <option key={city} value={city} />
-              ))}
+              {VERIFIED_CITIES.map((city) => (<option key={city} value={city} />))}
             </datalist>
             <p className={`text-[10px] mt-1 ${locationCheck.valid ? "text-muted-foreground" : "text-destructive"}`}>
               {locationCheck.message}
             </p>
+          </div>
+          <div>
+            <label className="text-[10px] uppercase tracking-widest text-muted-foreground flex items-center gap-1"><Globe className="h-3 w-3" /> Countries (English markets)</label>
+            <div className="flex flex-wrap gap-1.5 mt-1">
+              {COUNTRY_OPTIONS.map((c) => (
+                <button
+                  key={c.code}
+                  type="button"
+                  onClick={() => setSelectedCountries((prev) => prev.includes(c.code) ? prev.filter((x) => x !== c.code) : [...prev, c.code])}
+                  className={`px-2 py-1 rounded text-[11px] border transition-colors ${selectedCountries.includes(c.code) ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:bg-muted/50"}`}
+                >
+                  {c.flag} {c.code}
+                </button>
+              ))}
+            </div>
+            <label className="flex items-center gap-1.5 mt-1.5 text-[10px] text-muted-foreground cursor-pointer">
+              <input type="checkbox" checked={englishOnly} onChange={(e) => setEnglishOnly(e.target.checked)} className="h-3 w-3" />
+              English ads only (skip Korean, Chinese, Arabic, etc.)
+            </label>
           </div>
           <div>
             <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Result limit</label>
