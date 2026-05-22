@@ -702,6 +702,15 @@ const TalkingAvatarWidget = () => {
                 {isMuted ? <MicOff className="h-3 w-3" /> : <Mic className="h-3 w-3" />}
               </button>
               <button
+                onClick={toggleAudioRoute}
+                className={`rounded-full p-1.5 transition-all ${
+                  audioRoute === "speaker" ? "bg-primary/15 text-primary" : "bg-muted text-foreground"
+                }`}
+                title={audioRoute === "speaker" ? "Speakerphone (tap for earpiece)" : "Earpiece (tap for speakerphone)"}
+              >
+                {audioRoute === "speaker" ? <Volume2 className="h-3 w-3" /> : <Phone className="h-3 w-3" />}
+              </button>
+              <button
                 onClick={endCall}
                 className="rounded-full bg-destructive p-1.5 text-destructive-foreground"
                 title="End call"
