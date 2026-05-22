@@ -570,6 +570,19 @@ const TalkingAvatarWidget = () => {
           }
 
           const stream = new MediaStream([track.mediaStreamTrack]);
+          if (!speakerAudioRef.current) {
+            const speakerAudio = document.createElement("audio");
+            speakerAudio.autoplay = true;
+            speakerAudio.muted = false;
+            (speakerAudio as any).playsInline = false;
+            speakerAudio.style.display = "none";
+            document.body.appendChild(speakerAudio);
+            speakerAudioRef.current = speakerAudio;
+          }
+          speakerAudioRef.current.srcObject = stream;
+          await setSinkIfSupported(speakerAudioRef.current, "speaker");
+          await speakerAudioRef.current.play().catch(() => {});
+
           const AC = (window.AudioContext || (window as any).webkitAudioContext) as typeof AudioContext;
           if (!audioCtxRef.current) audioCtxRef.current = new AC();
           const ctx = audioCtxRef.current;
@@ -610,6 +623,12 @@ const TalkingAvatarWidget = () => {
             silentSinkAudioRef.current.pause();
             silentSinkAudioRef.current.srcObject = null;
           }
+          if (speakerAudioRef.current) {
+            speakerAudioRef.current.pause();
+            speakerAudioRef.current.srcObject = null;
+            speakerAudioRef.current.remove();
+            speakerAudioRef.current = null;
+          }
           const track = remoteTrackRef.current ?? findRemoteTrack();
           remoteTrackRef.current = track;
           if (!track) return;
@@ -637,7 +656,32 @@ const TalkingAvatarWidget = () => {
       };
 
       const routeToBluetooth = async () => {
-        await routeToEarpiece();
+        try {
+          setIsRoutingAudio(true);
+          const track = remoteTrackRef.current ?? findRemoteTrack();
+          if (!track) return;
+          remoteTrackRef.current = track;
+          try { track.detach().forEach((el: HTMLAudioElement) => el.remove()); } catch { /* noop */ }
+          try { audioSourceRef.current?.disconnect(); } catch { /* noop */ }
+          audioSourceRef.current = null;
+          const stream = new MediaStream([track.mediaStreamTrack]);
+          if (!speakerAudioRef.current) {
+            const bluetoothAudio = document.createElement("audio");
+            bluetoothAudio.autoplay = true;
+            bluetoothAudio.muted = false;
+            (bluetoothAudio as any).playsInline = true;
+            bluetoothAudio.style.display = "none";
+            document.body.appendChild(bluetoothAudio);
+            speakerAudioRef.current = bluetoothAudio;
+          }
+          speakerAudioRef.current.srcObject = stream;
+          await setSinkIfSupported(speakerAudioRef.current, "bluetooth");
+          await speakerAudioRef.current.play().catch(() => {});
+        } catch (e) {
+          console.error("Failed to route audio to Bluetooth:", e);
+        } finally {
+          setIsRoutingAudio(false);
+        }
         setAudioRouteState("bluetooth");
       };
 
