@@ -191,8 +191,11 @@ const TalkingAvatarWidget = () => {
   const [isAgentSpeaking, setIsAgentSpeaking] = useState(false);
   const [duration, setDuration] = useState(0);
   const [avatarState, setAvatarState] = useState<"idle" | "loading" | "ready" | "error">("idle");
-  const [audioOutputs, setAudioOutputs] = useState<MediaDeviceInfo[]>([]);
-  const [currentSinkId, setCurrentSinkId] = useState<string>("");
+  const [audioRoute, setAudioRoute] = useState<"speaker" | "earpiece">("speaker");
+  const audioCtxRef = useRef<AudioContext | null>(null);
+  const audioSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
+  const remoteTrackRef = useRef<any>(null);
+  const silentSinkAudioRef = useRef<HTMLAudioElement | null>(null);
 
   const retellClientRef = useRef<any>(null);
   const talkingHeadRef = useRef<any>(null);
@@ -483,52 +486,103 @@ const TalkingAvatarWidget = () => {
         analyser.smoothingTimeConstant = 0.18;
       }
 
-      // Default to loud output (speakerphone) so the user can actually hear Aspen.
-      // Provide a button to cycle between available outputs (speaker / earpiece / bluetooth / headphones).
-      try {
-        const applySink = (sinkId: string) => {
-          const audioEls = document.querySelectorAll("audio");
-          audioEls.forEach((el: any) => {
-            if (typeof el.setSinkId === "function") {
-              el.setSinkId(sinkId).catch(() => {});
-            }
-          });
-        };
+      // ── Android speakerphone fix ──
+      // LiveKit (used by Retell) attaches the remote WebRTC track to a regular
+      // <audio> element. Android Chrome routes that to the EARPIECE because it's
+      // classified as voice-communication audio. setSinkId cannot change this.
+      // The reliable fix: detach the track and pipe it through Web Audio API,
+      // whose AudioContext destination is classified as MEDIA → goes to the loudspeaker.
+      const findRemoteTrack = () => {
+        const room = (retellClient as any).room;
+        if (!room?.remoteParticipants) return null;
+        const participants = Array.from(room.remoteParticipants.values()) as any[];
+        for (const p of participants) {
+          const pubs = Array.from(p.audioTrackPublications?.values?.() ?? []) as any[];
+          for (const pub of pubs) {
+            if (pub.track?.mediaStreamTrack) return pub.track;
+          }
+        }
+        return null;
+      };
 
-        const refreshOutputs = async () => {
-          try {
-            const devices = await navigator.mediaDevices.enumerateDevices();
-            const outs = devices.filter((d) => d.kind === "audiooutput");
-            setAudioOutputs(outs);
+      const routeToSpeaker = async () => {
+        try {
+          const track = remoteTrackRef.current ?? findRemoteTrack();
+          if (!track) return;
+          remoteTrackRef.current = track;
+          // Detach the LiveKit-attached audio element (earpiece route).
+          try { track.detach().forEach((el: HTMLAudioElement) => el.remove()); } catch { /* noop */ }
 
-            // Pick the loudest default: prefer speaker, then bluetooth/headphones, then default.
-            const score = (label: string) => {
-              const l = label.toLowerCase();
-              if (l.includes("speaker")) return 4;
-              if (l.includes("bluetooth")) return 3;
-              if (l.includes("headphone") || l.includes("headset")) return 2;
-              if (l.includes("default")) return 1;
-              return 0;
-            };
-            const preferred = outs.slice().sort((a, b) => score(b.label) - score(a.label))[0];
-            const sinkId = preferred?.deviceId ?? "";
-            setCurrentSinkId(sinkId);
-            applySink(sinkId);
-          } catch { /* permissions or unsupported */ }
-        };
+          const stream = new MediaStream([track.mediaStreamTrack]);
+          const AC = (window.AudioContext || (window as any).webkitAudioContext) as typeof AudioContext;
+          if (!audioCtxRef.current) audioCtxRef.current = new AC();
+          const ctx = audioCtxRef.current;
+          await ctx.resume();
+          try { audioSourceRef.current?.disconnect(); } catch { /* noop */ }
+          const source = ctx.createMediaStreamSource(stream);
+          source.connect(ctx.destination);
+          audioSourceRef.current = source;
 
-        refreshOutputs();
-        const handleDeviceChange = () => refreshOutputs();
-        navigator.mediaDevices?.addEventListener("devicechange", handleDeviceChange);
-        retellClient.on("call_ended", () => {
-          navigator.mediaDevices?.removeEventListener("devicechange", handleDeviceChange);
-        });
-      } catch { /* audio routing not supported in this browser */ }
+          // Chrome on Android requires the stream to also be attached to a
+          // (muted) <audio> element for the MediaStreamSource to actually pull frames.
+          if (!silentSinkAudioRef.current) {
+            const sink = document.createElement("audio");
+            sink.muted = true;
+            sink.autoplay = true;
+            (sink as any).playsInline = true;
+            document.body.appendChild(sink);
+            silentSinkAudioRef.current = sink;
+          }
+          silentSinkAudioRef.current.srcObject = stream;
+          silentSinkAudioRef.current.play().catch(() => {});
+        } catch (e) {
+          console.error("Failed to route audio to speaker:", e);
+        }
+      };
+
+      const routeToEarpiece = () => {
+        try {
+          audioSourceRef.current?.disconnect();
+          audioSourceRef.current = null;
+          if (silentSinkAudioRef.current) {
+            silentSinkAudioRef.current.srcObject = null;
+          }
+          const track = remoteTrackRef.current ?? findRemoteTrack();
+          remoteTrackRef.current = track;
+          // Re-attach via LiveKit → routes to earpiece (voice-communication stream)
+          track?.attach();
+        } catch (e) {
+          console.error("Failed to route audio to earpiece:", e);
+        }
+      };
+
+      // Wait briefly for the remote track to arrive, then default to speaker.
+      const speakerDefaultTimer = setTimeout(() => {
+        if (audioRoute === "speaker") routeToSpeaker();
+      }, 400);
+
+      retellClient.on("call_ended", () => {
+        clearTimeout(speakerDefaultTimer);
+        try { audioSourceRef.current?.disconnect(); } catch { /* noop */ }
+        audioSourceRef.current = null;
+        remoteTrackRef.current = null;
+        if (silentSinkAudioRef.current) {
+          silentSinkAudioRef.current.srcObject = null;
+          silentSinkAudioRef.current.remove();
+          silentSinkAudioRef.current = null;
+        }
+        try { audioCtxRef.current?.close(); } catch { /* noop */ }
+        audioCtxRef.current = null;
+      });
+
+      // Expose helpers on the ref so the toggle button can call them.
+      (retellClientRef.current as any)._routeSpeaker = routeToSpeaker;
+      (retellClientRef.current as any)._routeEarpiece = routeToEarpiece;
     } catch (err) {
       console.error("Failed to start spokesperson call:", err);
       setCallStatus("idle");
     }
-  }, [focusAvatarOnViewer, resetAvatarMotion]);
+  }, [focusAvatarOnViewer, resetAvatarMotion, audioRoute]);
 
   const endCall = useCallback(() => {
     try { retellClientRef.current?.stopCall(); } catch { /* noop */ }
@@ -547,25 +601,19 @@ const TalkingAvatarWidget = () => {
     } catch { /* noop */ }
   }, [isMuted]);
 
-  const cycleAudioOutput = useCallback(() => {
-    if (audioOutputs.length === 0) return;
-    const idx = audioOutputs.findIndex((d) => d.deviceId === currentSinkId);
-    const next = audioOutputs[(idx + 1) % audioOutputs.length];
-    const nextId = next?.deviceId ?? "";
-    setCurrentSinkId(nextId);
-    document.querySelectorAll("audio").forEach((el: any) => {
-      if (typeof el.setSinkId === "function") el.setSinkId(nextId).catch(() => {});
-    });
-  }, [audioOutputs, currentSinkId]);
+  const toggleAudioRoute = useCallback(async () => {
+    const client = retellClientRef.current as any;
+    if (!client) return;
+    if (audioRoute === "speaker") {
+      client._routeEarpiece?.();
+      setAudioRoute("earpiece");
+    } else {
+      await client._routeSpeaker?.();
+      setAudioRoute("speaker");
+    }
+  }, [audioRoute]);
 
-  const currentOutputLabel = (() => {
-    const dev = audioOutputs.find((d) => d.deviceId === currentSinkId);
-    const label = (dev?.label || "Default").toLowerCase();
-    if (label.includes("bluetooth")) return { name: "Bluetooth", Icon: Bluetooth };
-    if (label.includes("headphone") || label.includes("headset")) return { name: "Headphones", Icon: Headphones };
-    if (label.includes("speaker")) return { name: "Speaker", Icon: Volume2 };
-    return { name: dev?.label?.split(" (")[0] || "Speaker", Icon: Volume2 };
-  })();
+
 
   const handleExpand = () => setWidgetState("expanded");
   const handleMinimize = () => setWidgetState("minimized");
@@ -778,12 +826,13 @@ const TalkingAvatarWidget = () => {
                 {isMuted ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
               </button>
               <button
-                onClick={cycleAudioOutput}
-                disabled={audioOutputs.length <= 1}
-                className="rounded-full bg-muted p-2 text-foreground hover:bg-muted/80 disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-1"
-                title={`Audio: ${currentOutputLabel.name}${audioOutputs.length > 1 ? " — tap to switch" : ""}`}
+                onClick={toggleAudioRoute}
+                className={`rounded-full p-2 transition-all flex items-center gap-1 ${
+                  audioRoute === "speaker" ? "bg-primary/15 text-primary" : "bg-muted text-foreground hover:bg-muted/80"
+                }`}
+                title={audioRoute === "speaker" ? "Speakerphone (tap for earpiece)" : "Earpiece (tap for speakerphone)"}
               >
-                <currentOutputLabel.Icon className="h-3.5 w-3.5" />
+                {audioRoute === "speaker" ? <Volume2 className="h-3.5 w-3.5" /> : <Phone className="h-3.5 w-3.5" />}
               </button>
               <button
                 onClick={handleMinimize}
