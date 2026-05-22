@@ -50,6 +50,13 @@ interface ScanJob {
   created_at: string;
 }
 
+interface PlatformScanResult {
+  count: number;
+  error?: string;
+}
+
+const getErrorMessage = (error: unknown) => (error instanceof Error ? error.message : String(error));
+
 const NICHE_OPTIONS = [
   {
     id: "med-spa",
@@ -290,7 +297,10 @@ export default function AdHijack() {
       const duplicates = data?.platform_results?._duplicates_skipped ?? 0;
       const platformSummary = Object.entries(data?.platform_results ?? {})
         .filter(([platform]) => !platform.startsWith("_"))
-        .map(([platform, result]: [string, any]) => `${platform}: ${result.count}${result.error ? " ⚠" : ""}`)
+        .map(([platform, result]) => {
+          const scanResult = result as PlatformScanResult;
+          return `${platform}: ${scanResult.count}${scanResult.error ? " ⚠" : ""}`;
+        })
         .join(" · ");
 
       toast({
@@ -298,10 +308,10 @@ export default function AdHijack() {
         description: `${platformSummary}${duplicates ? ` · ${duplicates} duplicates skipped` : ""}`,
       });
       await loadData();
-    } catch (e: any) {
+    } catch (e: unknown) {
       toast({
         title: "Scan failed",
-        description: e?.message ?? String(e),
+        description: getErrorMessage(e),
         variant: "destructive",
       });
     } finally {
@@ -317,9 +327,9 @@ export default function AdHijack() {
       if (error) throw error;
       setApiStatus(data?.ok ? `Connected as ${data.username}` : data?.error ?? "Not connected");
       toast({ title: data?.ok ? "Apify API is working" : "Apify check failed", description: data?.username ?? data?.error });
-    } catch (e: any) {
-      setApiStatus(e?.message ?? String(e));
-      toast({ title: "Apify check failed", description: e?.message ?? String(e), variant: "destructive" });
+    } catch (e: unknown) {
+      setApiStatus(getErrorMessage(e));
+      toast({ title: "Apify check failed", description: getErrorMessage(e), variant: "destructive" });
     }
   };
 
