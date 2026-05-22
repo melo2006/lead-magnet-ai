@@ -620,6 +620,9 @@ export default function AdHijack() {
   const scalingCount = ads.filter((a) => getVariantCount(a) >= 10).length;
   const videoCount = ads.filter((a) => getMediaType(a) === "video").length;
   const affiliateCount = ads.filter(getIsAffiliate).length;
+  const igOnlyCount = ads.filter((a) => matchesAdsFilter(a, "ig_only")).length;
+  const fbOnlyCount = ads.filter((a) => matchesAdsFilter(a, "fb_only")).length;
+  const tiktokOnlyCount = ads.filter((a) => a.platform === "tiktok").length;
 
   return (
     <div className="space-y-6">
