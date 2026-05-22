@@ -457,7 +457,7 @@ export default function AdHijack() {
           <Radar className="h-4 w-4 text-primary" />
           <h2 className="text-sm font-bold">New Scan</h2>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
           <div>
             <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Niche</label>
             <Select
@@ -534,6 +534,19 @@ export default function AdHijack() {
                 <SelectItem value="25">25 ads</SelectItem>
                 <SelectItem value="50">50 ads</SelectItem>
                 <SelectItem value="100">100 ads</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Engagement target</label>
+            <Select value={engagementTarget} onValueChange={(value) => setEngagementTarget(value as EngagementTarget)}>
+              <SelectTrigger className="h-9 text-xs mt-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all_with_contact">All + contact fallback</SelectItem>
+                <SelectItem value="commentable_only">Public/commentable only</SelectItem>
+                <SelectItem value="all">All ads only</SelectItem>
               </SelectContent>
             </Select>
           </div>
