@@ -21,7 +21,7 @@ export default function ShortLinkRedirect() {
         if (!data?.target_url) throw new Error("Link not found");
 
         const target = new URL(data.target_url, window.location.origin);
-        if (target.origin === window.location.origin && target.pathname === "/demo") {
+        if (target.pathname === "/demo") {
           target.pathname = "/demo-site";
         }
         window.location.replace(target.toString());
