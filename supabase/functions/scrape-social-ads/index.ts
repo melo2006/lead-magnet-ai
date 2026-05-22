@@ -730,14 +730,15 @@ serve(async (req) => {
     duplicateCount += allAds.length - uniqueAds.length;
 
     if (uniqueAds.length > 0) {
+      const storedLandingUrls = uniqueAds.map(getStoredLandingUrl);
       const { data: existingRows, error: existingErr } = await supabase
         .from("scraped_ads")
         .select("platform,landing_url")
-        .in("landing_url", uniqueAds.map((a) => a.landing_url));
+        .in("landing_url", storedLandingUrls);
       if (existingErr) throw existingErr;
       const existingKeys = new Set((existingRows ?? []).map((r: any) => `${r.platform}::${r.landing_url}`));
       const rows = uniqueAds
-        .filter((a) => !existingKeys.has(`${a.platform}::${a.landing_url}`))
+        .filter((a) => !existingKeys.has(`${a.platform}::${getStoredLandingUrl(a)}`))
         .map((a) => {
           const meta = a.metadata ?? {};
           const isCommentable = meta.is_commentable === true;
@@ -745,7 +746,7 @@ serve(async (req) => {
           const engagement_status = isCommentable ? "commentable" : hasContact ? "contact_form" : "dark_post";
           return {
             ...a,
-            landing_url: a.platform === "tiktok" && a.ad_id ? `${a.landing_url}${a.landing_url.includes("?") ? "&" : "?"}src_ad_id=${encodeURIComponent(a.ad_id)}` : a.landing_url,
+            landing_url: getStoredLandingUrl(a),
             scan_job_id: jobId,
             approval_status: "pending",
             engagement_status,
