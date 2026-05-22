@@ -619,7 +619,7 @@ export default function AdHijack() {
                   <span>{j.ads_found} new ads</span>
                   {typeof j.platform_results?._engagement_target === "string" && (
                     <Badge variant="outline" className="text-[9px]">
-                      {String(j.platform_results._engagement_target).replaceAll("_", " ")}
+                      {String(j.platform_results._engagement_target).replace(/_/g, " ")}
                     </Badge>
                   )}
                   <span>${Number(j.total_cost_usd).toFixed(2)}</span>
