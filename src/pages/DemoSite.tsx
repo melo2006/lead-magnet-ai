@@ -168,9 +168,14 @@ type DemoLeadRecord = Partial<{
   website_title: string;
   website_description: string;
   website_content: string;
-  brand_colors: Record<string, string>;
+  brand_colors: unknown;
   brand_logo: string;
 }>;
+
+const asBrandColors = (value: unknown) =>
+  value && typeof value === "object" && !Array.isArray(value)
+    ? (value as Record<string, string | undefined>)
+    : undefined;
 
 const mergeLeadRecordIntoDemoData = (record: DemoLeadRecord, current: DemoLeadData): DemoLeadData => ({
   ...current,
@@ -188,7 +193,7 @@ const mergeLeadRecordIntoDemoData = (record: DemoLeadRecord, current: DemoLeadDa
   title: record.website_title || current.title || "",
   description: record.website_description || current.description || "",
   websiteContent: record.website_content || current.websiteContent || "",
-  colors: (record.brand_colors as Record<string, string>) || current.colors || {},
+  colors: asBrandColors(record.brand_colors) || current.colors || {},
   logo: record.brand_logo || current.logo || "",
 });
 
