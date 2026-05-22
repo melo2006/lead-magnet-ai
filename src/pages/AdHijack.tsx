@@ -599,7 +599,7 @@ export default function AdHijack() {
     for (const ad of targets) {
       const links = getAdLinks(ad);
       const url = mode === "post"
-        ? (links.fbPost || links.igPost || links.fbPage || links.igPage)
+        ? (links.tiktokPost || links.igPost || links.fbPost || links.igPage || links.fbPage)
         : (links.contactPage || links.fbPage);
       if (!url) continue;
       window.open(url, "_blank", "noopener,noreferrer");
