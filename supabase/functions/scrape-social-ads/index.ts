@@ -115,15 +115,22 @@ async function scrapeMetaViaApify(
   niche: string,
   location: string,
   limit: number,
-): Promise<ScrapedAd[]> {
+): Promise<{ ads: ScrapedAd[]; rawSample: unknown }> {
   const countryCode = location.toLowerCase().includes("uk") ? "GB" : "US";
   const searchUrl = buildFbAdLibrarySearchUrl(niche, countryCode);
+  console.log(`[meta] searchUrl=${searchUrl} limit=${limit}`);
   const items = await runApifyActor(token, "apify~facebook-ads-scraper", {
     startUrls: [{ url: searchUrl }],
     resultsLimit: limit,
     activeStatus: "active",
   });
-  return items.map(normalizeMetaAd).filter((x): x is ScrapedAd => !!x);
+  console.log(`[meta] raw items: ${items.length}`);
+  if (items.length > 0) {
+    console.log(`[meta] sample keys: ${Object.keys(items[0] as any).slice(0, 30).join(",")}`);
+  }
+  const ads = items.map(normalizeMetaAd).filter((x): x is ScrapedAd => !!x);
+  console.log(`[meta] normalized: ${ads.length} (dropped ${items.length - ads.length})`);
+  return { ads, rawSample: items[0] ?? null };
 }
 
 // --- TIKTOK via aiscraperdev/tiktok-ads-library-scraper ---
