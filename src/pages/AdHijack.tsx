@@ -20,6 +20,8 @@ import {
 
 type Platform = "meta" | "tiktok" | "linkedin" | "google";
 type SupportedPlatform = "meta" | "tiktok";
+type EngagementTarget = "all" | "commentable_only" | "all_with_contact";
+type AdsFilter = "all" | "commentable" | "contact_fallback" | "dark";
 
 interface ScrapedAd {
   id: string;
@@ -49,6 +51,7 @@ interface ScanJob {
   total_cost_usd: number;
   last_error: string | null;
   created_at: string;
+  platform_results?: Record<string, unknown> | null;
 }
 
 interface PlatformScanResult {
@@ -223,6 +226,7 @@ const getAdLinks = (ad: ScrapedAd) => ({
   igPost: metaStr(ad, "ig_post_url"),
   fbPage: metaStr(ad, "fb_page_url"),
   igPage: metaStr(ad, "ig_page_url"),
+  contactPage: metaStr(ad, "contact_page_url"),
   library: metaStr(ad, "library_url") || ad.source_ad_url,
 });
 
@@ -236,6 +240,15 @@ const isCommentable = (ad: ScrapedAd): boolean => {
   if (ad.metadata?.is_commentable === true) return true;
   const l = getAdLinks(ad);
   return Boolean(l.fbPost || l.igPost);
+};
+
+const hasContactFallback = (ad: ScrapedAd): boolean => Boolean(getAdLinks(ad).contactPage);
+
+const matchesAdsFilter = (ad: ScrapedAd, filter: AdsFilter): boolean => {
+  if (filter === "commentable") return isCommentable(ad);
+  if (filter === "contact_fallback") return hasContactFallback(ad);
+  if (filter === "dark") return !isCommentable(ad);
+  return true;
 };
 
 export default function AdHijack() {
@@ -252,7 +265,8 @@ export default function AdHijack() {
   const [ads, setAds] = useState<ScrapedAd[]>([]);
   const [jobs, setJobs] = useState<ScanJob[]>([]);
   const [generatingFor, setGeneratingFor] = useState<string | null>(null);
-  const [commentableOnly, setCommentableOnly] = useState(false);
+  const [engagementTarget, setEngagementTarget] = useState<EngagementTarget>("all_with_contact");
+  const [adsFilter, setAdsFilter] = useState<AdsFilter>("all");
 
   const loadData = useCallback(async () => {
     const [adsRes, jobsRes] = await Promise.all([
@@ -290,6 +304,7 @@ export default function AdHijack() {
     platforms?: string[];
     mode?: "fresh" | "rescan";
     jobId?: string;
+    engagementTarget?: EngagementTarget;
   }) => {
     const scanNiche = (override?.niche ?? searchKeyword).trim();
     const scanLocationRaw = (override?.location ?? location) ?? "";
@@ -317,6 +332,7 @@ export default function AdHijack() {
           platforms: scanPlatforms,
           limit: override?.mode === "rescan" ? Math.max(Number(limit), 50) : Number(limit),
           mode: override?.mode ?? "fresh",
+          engagement_target: override?.engagementTarget ?? engagementTarget,
         },
       });
       if (error) throw error;
@@ -425,6 +441,10 @@ export default function AdHijack() {
     setAds((prev) => prev.filter((a) => a.id !== id));
   };
 
+  const filteredAds = ads.filter((ad) => matchesAdsFilter(ad, adsFilter));
+  const commentableCount = ads.filter(isCommentable).length;
+  const contactFallbackCount = ads.filter(hasContactFallback).length;
+
   return (
     <div className="space-y-6">
       <div>
@@ -441,7 +461,7 @@ export default function AdHijack() {
           <Radar className="h-4 w-4 text-primary" />
           <h2 className="text-sm font-bold">New Scan</h2>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
           <div>
             <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Niche</label>
             <Select
@@ -522,6 +542,19 @@ export default function AdHijack() {
             </Select>
           </div>
           <div>
+            <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Engagement target</label>
+            <Select value={engagementTarget} onValueChange={(value) => setEngagementTarget(value as EngagementTarget)}>
+              <SelectTrigger className="h-9 text-xs mt-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="all_with_contact">All + contact fallback</SelectItem>
+                <SelectItem value="commentable_only">Public/commentable only</SelectItem>
+                <SelectItem value="all">All ads only</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
             <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Platforms</label>
             <div className="flex flex-wrap gap-1.5 mt-1">
               {PLATFORMS.map((p) => (
@@ -548,7 +581,7 @@ export default function AdHijack() {
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
           <div className="space-y-1">
             <p className="text-[10px] text-muted-foreground">
-              Meta and TikTok are validated Apify actors. LinkedIn/Google are disabled until a reliable actor is connected.
+              Use Public/commentable only for direct FB/IG comment threads. Use All + contact fallback to find a website contact page for dark posts.
             </p>
             {apiStatus && <p className="text-[10px] text-primary">Apify status: {apiStatus}</p>}
           </div>
@@ -584,13 +617,18 @@ export default function AdHijack() {
                 </div>
                 <div className="flex items-center gap-3 text-muted-foreground flex-wrap">
                   <span>{j.ads_found} new ads</span>
+                  {typeof j.platform_results?._engagement_target === "string" && (
+                    <Badge variant="outline" className="text-[9px]">
+                      {String(j.platform_results._engagement_target).replace(/_/g, " ")}
+                    </Badge>
+                  )}
                   <span>${Number(j.total_cost_usd).toFixed(2)}</span>
                   <span>{new Date(j.created_at).toLocaleString()}</span>
                   <Button
                     size="sm"
                     variant="outline"
                     disabled={scanning}
-                    onClick={() => runScan({ niche: j.niche, location: j.location, platforms: j.platforms, mode: "rescan", jobId: j.id })}
+                    onClick={() => runScan({ niche: j.niche, location: j.location, platforms: j.platforms, mode: "rescan", jobId: j.id, engagementTarget })}
                     className="h-7 text-[10px]"
                   >
                     {scanningJobId === j.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}
@@ -606,24 +644,25 @@ export default function AdHijack() {
       <Card className="p-4">
         <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
           <h2 className="text-sm font-bold">
-            Scraped Ads ({commentableOnly ? ads.filter(isCommentable).length : ads.length}
-            {commentableOnly ? ` of ${ads.length}` : ""})
+            Scraped Ads ({filteredAds.length}{adsFilter !== "all" ? ` of ${ads.length}` : ""})
           </h2>
-          <label className="flex items-center gap-2 text-[11px] text-muted-foreground cursor-pointer">
-            <input
-              type="checkbox"
-              checked={commentableOnly}
-              onChange={(e) => setCommentableOnly(e.target.checked)}
-              className="accent-primary"
-            />
-            Show only commentable ads (with a real public post)
-          </label>
+          <Select value={adsFilter} onValueChange={(value) => setAdsFilter(value as AdsFilter)}>
+            <SelectTrigger className="h-8 w-[240px] text-[11px]">
+              <SelectValue />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All ads ({ads.length})</SelectItem>
+              <SelectItem value="commentable">Public/commentable ({commentableCount})</SelectItem>
+              <SelectItem value="contact_fallback">Website contact fallback ({contactFallbackCount})</SelectItem>
+              <SelectItem value="dark">Dark posts / no thread ({ads.length - commentableCount})</SelectItem>
+            </SelectContent>
+          </Select>
         </div>
         {ads.length === 0 ? (
           <p className="text-xs text-muted-foreground text-center py-8">No ads scraped yet. Run your first scan above.</p>
         ) : (
           <div className="space-y-3">
-            {(commentableOnly ? ads.filter(isCommentable) : ads).map((ad) => {
+            {filteredAds.map((ad) => {
               const links = getAdLinks(ad);
               const platforms = getPublisherPlatforms(ad);
               const onFb = platforms.includes("facebook") || Boolean(links.fbPost || links.fbPage);
@@ -656,6 +695,11 @@ export default function AdHijack() {
                       ) : (
                         <Badge variant="outline" className="text-[9px] border-amber-500/40 text-amber-400" title="Dark post — no public thread to comment on. Use Open Page to comment on their latest organic post or DM them.">
                           Dark post · no public thread
+                        </Badge>
+                      )}
+                      {!commentable && links.contactPage && (
+                        <Badge variant="outline" className="text-[9px] border-primary/40 text-primary">
+                          Contact page found
                         </Badge>
                       )}
                     </div>
@@ -727,10 +771,16 @@ export default function AdHijack() {
                           <ExternalLink className="h-3 w-3" /> Ad Library
                         </Button>
                       )}
+                      {links.contactPage && (
+                        <Button size="sm" variant="ghost" className="h-6 text-[10px] text-primary"
+                          onClick={() => openWithComment(links.contactPage!, "Contact page — paste into their form")}> 
+                          <ExternalLink className="h-3 w-3" /> Copy + Open Contact Page
+                        </Button>
+                      )}
                     </div>
                     {!commentable && (
                       <p className="text-[10px] text-amber-400/80 mt-2">
-                        This ad has no public post thread (a "dark post"). Open the FB Page or IG profile and comment on their most recent organic post, or send a DM.
+                        This ad has no public post thread (a "dark post"). Use the contact page fallback when available, or open their FB/IG profile for a manual DM/latest-post comment.
                       </p>
                     )}
                   </div>
