@@ -472,10 +472,11 @@ function normalizeTikTokAd(item: any): ScrapedAd | null {
     item.adUrl || item.url || item.advertiserUrl || item.click_url ||
     item.brandUrl || item.brand_url;
   const tikTokPostUrl = pickTikTokPostUrl(item);
-  const videoUrl =
+  const videoUrl = firstCleanUrl(
     item.videoUrl || item.video_url || item.videoUrl1080p || item.videoUrl720p ||
-    item.video_url_1080p || item.video_url_720p || item.video_url_hd;
-  const coverUrl = item.coverUrl || item.cover_url || item.cover_image_url || item.imageUrl;
+    item.video_url_1080p || item.video_url_720p || item.video_url_hd,
+  );
+  const coverUrl = firstCleanUrl(item.coverUrl, item.cover_url, item.cover_image_url, item.imageUrl);
   const advertiserName =
     item.advertiserName || item.advertiser_name || item.brandName || item.advertiser ||
     item.brand || item.author || item.nickname || "Unknown";
@@ -483,9 +484,8 @@ function normalizeTikTokAd(item: any): ScrapedAd | null {
   // Permissive: keep if we have ANY usable signal.
   if (!landingRaw && !tikTokPostUrl && !videoUrl && advertiserName === "Unknown") return null;
 
-  const landingUrl = landingRaw
-    ? (String(landingRaw).startsWith("http") ? String(landingRaw) : `https://${landingRaw}`)
-    : (tikTokPostUrl || videoUrl || "");
+  const adId = item.id || item.ad_id || item.adId || item.materialId || item.adIdStr;
+  const landingUrl = firstCleanUrl(landingRaw) || tikTokPostUrl || videoUrl || (adId ? `https://library.tiktok.com/ads/detail/?ad_id=${adId}` : "");
 
   const startRaw =
     item.createdAt || item.startDate || item.first_seen || item.firstSeen ||
@@ -502,7 +502,7 @@ function normalizeTikTokAd(item: any): ScrapedAd | null {
 
   return {
     platform: "tiktok",
-    ad_id: item.id || item.ad_id || item.adId || item.materialId || item.adIdStr || tikTokPostUrl || crypto.randomUUID(),
+    ad_id: adId || tikTokPostUrl || crypto.randomUUID(),
     advertiser_name: advertiserName,
     advertiser_handle: item.advertiserId || item.advertiser_id || item.brandId || item.uniqueId,
     landing_url: landingUrl,
