@@ -91,6 +91,26 @@ function detectLanguage(text: string | undefined): { isEnglish: boolean; languag
 }
 
 function cleanUrl(value: unknown): string | undefined {
+  if (Array.isArray(value)) {
+    for (const item of value) {
+      const url = cleanUrl(item);
+      if (url) return url;
+    }
+    return undefined;
+  }
+  if (value && typeof value === "object") {
+    const obj = value as Record<string, unknown>;
+    const preferredKeys = ["url", "play_url", "download_url", "1080p", "720p", "540p", "480p", "360p", "hd", "sd"];
+    for (const key of preferredKeys) {
+      const url = cleanUrl(obj[key]);
+      if (url) return url;
+    }
+    for (const nested of Object.values(obj).slice(0, 12)) {
+      const url = cleanUrl(nested);
+      if (url) return url;
+    }
+    return undefined;
+  }
   if (!value) return undefined;
   const raw = String(value).trim();
   if (!raw || raw === "null" || raw === "undefined") return undefined;
@@ -192,6 +212,14 @@ function firstValue(...values: unknown[]): string | undefined {
   for (const value of values) {
     if (typeof value === "string" && value.trim()) return value.trim();
     if (typeof value === "number") return String(value);
+  }
+  return undefined;
+}
+
+function firstCleanUrl(...values: unknown[]): string | undefined {
+  for (const value of values) {
+    const url = cleanUrl(value);
+    if (url) return url;
   }
   return undefined;
 }
