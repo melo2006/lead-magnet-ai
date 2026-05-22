@@ -16,12 +16,17 @@ import {
   ArrowRight,
   RefreshCw,
   ShieldCheck,
+  Check,
+  X,
+  Globe,
 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 
 type Platform = "meta" | "tiktok" | "linkedin" | "google";
 type SupportedPlatform = "meta" | "tiktok";
 type EngagementTarget = "all" | "commentable_only" | "all_with_contact";
-type AdsFilter = "all" | "commentable" | "contact_fallback" | "dark";
+type AdsFilter = "all" | "commentable" | "contact_fallback" | "dark" | "pending" | "approved" | "rejected";
+type Country = "US" | "CA" | "GB" | "AU";
 
 interface ScrapedAd {
   id: string;
@@ -35,6 +40,10 @@ interface ScrapedAd {
   posted_at: string | null;
   comment_template: string | null;
   status: string;
+  approval_status: string | null;
+  engagement_status: string | null;
+  detected_language: string | null;
+  ad_country: string | null;
   prospect_id: string | null;
   scan_job_id: string | null;
   created_at: string;
@@ -46,6 +55,8 @@ interface ScanJob {
   niche: string;
   location: string | null;
   platforms: string[];
+  countries?: string[] | null;
+  languages?: string[] | null;
   status: string;
   ads_found: number;
   total_cost_usd: number;
@@ -187,23 +198,30 @@ const formatLocation = (value: string) =>
     )
     .join(", ");
 
+const COUNTRY_OPTIONS: { code: Country; label: string; flag: string }[] = [
+  { code: "US", label: "United States", flag: "🇺🇸" },
+  { code: "CA", label: "Canada", flag: "🇨🇦" },
+  { code: "GB", label: "United Kingdom", flag: "🇬🇧" },
+  { code: "AU", label: "Australia", flag: "🇦🇺" },
+];
+
 const validateLocation = (value: string): { valid: boolean; message: string; normalized: string } => {
   const trimmed = value.trim();
-  if (!trimmed) return { valid: true, message: "Optional, but city + state improves local ad quality.", normalized: "" };
+  if (!trimmed) return { valid: true, message: "Leave blank for nationwide search across selected countries.", normalized: "" };
 
   const match = trimmed.match(/^([a-zA-Z .'-]{2,60}),\s*([a-zA-Z]{2})$/);
   if (!match) {
-    return { valid: false, message: "Use City, ST format, for example Fort Lauderdale, FL.", normalized: trimmed };
+    return { valid: false, message: "Use City, ST format (e.g. Fort Lauderdale, FL) or leave blank for nationwide.", normalized: trimmed };
   }
 
   const normalized = formatLocation(`${match[1]}, ${match[2]}`);
   const state = match[2].toUpperCase();
-  if (!US_STATES.has(state)) return { valid: false, message: "State must be a valid 2-letter US state code.", normalized };
+  if (!US_STATES.has(state)) return { valid: false, message: "Use a valid 2-letter US state, or leave blank for nationwide.", normalized };
 
   const verified = VERIFIED_CITIES.some((city) => city.toLowerCase() === normalized.toLowerCase());
   return {
     valid: true,
-    message: verified ? "Verified city format for Apify searches." : "Valid city/state format; not in quick-pick list, but safe to scan.",
+    message: verified ? "Verified city format." : "Valid city/state format.",
     normalized,
   };
 };
@@ -248,6 +266,9 @@ const matchesAdsFilter = (ad: ScrapedAd, filter: AdsFilter): boolean => {
   if (filter === "commentable") return isCommentable(ad);
   if (filter === "contact_fallback") return hasContactFallback(ad);
   if (filter === "dark") return !isCommentable(ad);
+  if (filter === "pending") return (ad.approval_status ?? "pending") === "pending";
+  if (filter === "approved") return ad.approval_status === "approved";
+  if (filter === "rejected") return ad.approval_status === "rejected";
   return true;
 };
 
@@ -256,7 +277,9 @@ export default function AdHijack() {
   const [selectedNicheId, setSelectedNicheId] = useState("med-spa");
   const [subNiche, setSubNiche] = useState("med spa");
   const [customNiche, setCustomNiche] = useState("");
-  const [location, setLocation] = useState("Fort Lauderdale, FL");
+  const [location, setLocation] = useState("");
+  const [selectedCountries, setSelectedCountries] = useState<Country[]>(["US", "CA", "GB", "AU"]);
+  const [englishOnly, setEnglishOnly] = useState(true);
   const [limit, setLimit] = useState("25");
   const [selectedPlatforms, setSelectedPlatforms] = useState<SupportedPlatform[]>(["meta"]);
   const [scanning, setScanning] = useState(false);
@@ -266,7 +289,8 @@ export default function AdHijack() {
   const [jobs, setJobs] = useState<ScanJob[]>([]);
   const [generatingFor, setGeneratingFor] = useState<string | null>(null);
   const [engagementTarget, setEngagementTarget] = useState<EngagementTarget>("all_with_contact");
-  const [adsFilter, setAdsFilter] = useState<AdsFilter>("all");
+  const [adsFilter, setAdsFilter] = useState<AdsFilter>("pending");
+  const [editingComment, setEditingComment] = useState<Record<string, string>>({});
 
   const loadData = useCallback(async () => {
     const [adsRes, jobsRes] = await Promise.all([
@@ -302,6 +326,8 @@ export default function AdHijack() {
     niche?: string;
     location?: string | null;
     platforms?: string[];
+    countries?: string[];
+    languages?: string[];
     mode?: "fresh" | "rescan";
     jobId?: string;
     engagementTarget?: EngagementTarget;
@@ -312,13 +338,21 @@ export default function AdHijack() {
     const scanPlatforms = (override?.platforms ?? selectedPlatforms).filter(
       (p): p is SupportedPlatform => p === "meta" || p === "tiktok",
     );
+    const scanCountries = (override?.countries ?? selectedCountries).filter((c): c is Country =>
+      ["US", "CA", "GB", "AU"].includes(c),
+    );
+    const scanLanguages = override?.languages ?? (englishOnly ? ["en"] : ["en", "other"]);
 
     if (!scanNiche || scanPlatforms.length === 0) {
       toast({ title: "Keyword and at least one supported platform required", variant: "destructive" });
       return;
     }
+    if (scanCountries.length === 0) {
+      toast({ title: "Pick at least one country", variant: "destructive" });
+      return;
+    }
     if (!scanLocation.valid) {
-      toast({ title: "Fix the location first", description: scanLocation.message, variant: "destructive" });
+      toast({ title: "Fix the city or leave blank", description: scanLocation.message, variant: "destructive" });
       return;
     }
 
@@ -329,6 +363,8 @@ export default function AdHijack() {
         body: {
           niche: scanNiche,
           location: scanLocation.normalized,
+          countries: scanCountries,
+          languages: scanLanguages,
           platforms: scanPlatforms,
           limit: override?.mode === "rescan" ? Math.max(Number(limit), 50) : Number(limit),
           mode: override?.mode ?? "fresh",
@@ -441,9 +477,36 @@ export default function AdHijack() {
     setAds((prev) => prev.filter((a) => a.id !== id));
   };
 
+  const setApproval = async (id: string, status: "approved" | "rejected" | "pending") => {
+    const { error } = await supabase.from("scraped_ads").update({ approval_status: status }).eq("id", id);
+    if (error) { toast({ title: "Update failed", description: error.message, variant: "destructive" }); return; }
+    setAds((prev) => prev.map((a) => (a.id === id ? { ...a, approval_status: status } : a)));
+  };
+
+  const bulkApprovePending = async () => {
+    const ids = filteredAds.filter((a) => (a.approval_status ?? "pending") === "pending").map((a) => a.id);
+    if (ids.length === 0) { toast({ title: "No pending ads in view" }); return; }
+    const { error } = await supabase.from("scraped_ads").update({ approval_status: "approved" }).in("id", ids);
+    if (error) { toast({ title: "Bulk approve failed", description: error.message, variant: "destructive" }); return; }
+    setAds((prev) => prev.map((a) => (ids.includes(a.id) ? { ...a, approval_status: "approved" } : a)));
+    toast({ title: `Approved ${ids.length} ads` });
+  };
+
+  const saveCommentEdit = async (id: string) => {
+    const text = editingComment[id];
+    if (text === undefined) return;
+    const { error } = await supabase.from("scraped_ads").update({ comment_template: text }).eq("id", id);
+    if (error) { toast({ title: "Save failed", description: error.message, variant: "destructive" }); return; }
+    setAds((prev) => prev.map((a) => (a.id === id ? { ...a, comment_template: text } : a)));
+    setEditingComment((prev) => { const n = { ...prev }; delete n[id]; return n; });
+    toast({ title: "Comment saved" });
+  };
+
   const filteredAds = ads.filter((ad) => matchesAdsFilter(ad, adsFilter));
   const commentableCount = ads.filter(isCommentable).length;
   const contactFallbackCount = ads.filter(hasContactFallback).length;
+  const pendingCount = ads.filter((a) => (a.approval_status ?? "pending") === "pending").length;
+  const approvedCount = ads.filter((a) => a.approval_status === "approved").length;
 
   return (
     <div className="space-y-6">
@@ -509,23 +572,40 @@ export default function AdHijack() {
             )}
           </div>
           <div>
-            <label className="text-[10px] uppercase tracking-widest text-muted-foreground">City, State</label>
+            <label className="text-[10px] uppercase tracking-widest text-muted-foreground">City, State (optional)</label>
             <Input
               list="verified-cities"
-              placeholder="Fort Lauderdale, FL"
+              placeholder="Leave blank for nationwide"
               value={location}
               onBlur={() => locationCheck.valid && setLocation(locationCheck.normalized)}
               onChange={(e) => setLocation(e.target.value)}
               className={`h-9 text-xs mt-1 ${location && !locationCheck.valid ? "border-destructive" : ""}`}
             />
             <datalist id="verified-cities">
-              {VERIFIED_CITIES.map((city) => (
-                <option key={city} value={city} />
-              ))}
+              {VERIFIED_CITIES.map((city) => (<option key={city} value={city} />))}
             </datalist>
             <p className={`text-[10px] mt-1 ${locationCheck.valid ? "text-muted-foreground" : "text-destructive"}`}>
               {locationCheck.message}
             </p>
+          </div>
+          <div>
+            <label className="text-[10px] uppercase tracking-widest text-muted-foreground flex items-center gap-1"><Globe className="h-3 w-3" /> Countries (English markets)</label>
+            <div className="flex flex-wrap gap-1.5 mt-1">
+              {COUNTRY_OPTIONS.map((c) => (
+                <button
+                  key={c.code}
+                  type="button"
+                  onClick={() => setSelectedCountries((prev) => prev.includes(c.code) ? prev.filter((x) => x !== c.code) : [...prev, c.code])}
+                  className={`px-2 py-1 rounded text-[11px] border transition-colors ${selectedCountries.includes(c.code) ? "bg-primary text-primary-foreground border-primary" : "border-border text-muted-foreground hover:bg-muted/50"}`}
+                >
+                  {c.flag} {c.code}
+                </button>
+              ))}
+            </div>
+            <label className="flex items-center gap-1.5 mt-1.5 text-[10px] text-muted-foreground cursor-pointer">
+              <input type="checkbox" checked={englishOnly} onChange={(e) => setEnglishOnly(e.target.checked)} className="h-3 w-3" />
+              English ads only (skip Korean, Chinese, Arabic, etc.)
+            </label>
           </div>
           <div>
             <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Result limit</label>
@@ -628,7 +708,7 @@ export default function AdHijack() {
                     size="sm"
                     variant="outline"
                     disabled={scanning}
-                    onClick={() => runScan({ niche: j.niche, location: j.location, platforms: j.platforms, mode: "rescan", jobId: j.id, engagementTarget })}
+                    onClick={() => runScan({ niche: j.niche, location: j.location, platforms: j.platforms, countries: (j.countries as string[] | undefined) ?? selectedCountries, languages: (j.languages as string[] | undefined) ?? (englishOnly ? ["en"] : ["en","other"]), mode: "rescan", jobId: j.id, engagementTarget })}
                     className="h-7 text-[10px]"
                   >
                     {scanningJobId === j.id ? <Loader2 className="h-3 w-3 animate-spin" /> : <RefreshCw className="h-3 w-3" />}

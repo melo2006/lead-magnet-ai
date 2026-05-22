@@ -62,6 +62,8 @@ async function runApifyActor(
 }
 
 // --- META (Facebook + Instagram) via apify/facebook-ads-scraper ---
+const SUPPORTED_COUNTRIES = ["US", "CA", "GB", "AU"] as const;
+
 function buildFbAdLibrarySearchUrl(niche: string, countryCode: string): string {
   const params = new URLSearchParams({
     active_status: "active",
@@ -71,6 +73,21 @@ function buildFbAdLibrarySearchUrl(niche: string, countryCode: string): string {
     search_type: "keyword_unordered",
   });
   return `https://www.facebook.com/ads/library/?${params.toString()}`;
+}
+
+// Detect non-English ads by checking for CJK / Korean / Arabic / Cyrillic / Thai / Hebrew blocks.
+const NON_ENGLISH_REGEX = /[\u0400-\u04FF\u0590-\u05FF\u0600-\u06FF\u0E00-\u0E7F\u1100-\u11FF\u3040-\u30FF\u3130-\u318F\u3400-\u4DBF\u4E00-\u9FFF\uAC00-\uD7AF]/;
+function detectLanguage(text: string | undefined): { isEnglish: boolean; language: string } {
+  if (!text || text.trim().length < 4) return { isEnglish: true, language: "unknown" };
+  if (!NON_ENGLISH_REGEX.test(text)) return { isEnglish: true, language: "en" };
+  if (/[\u3040-\u30FF]/.test(text)) return { isEnglish: false, language: "ja" };
+  if (/[\uAC00-\uD7AF\u1100-\u11FF]/.test(text)) return { isEnglish: false, language: "ko" };
+  if (/[\u4E00-\u9FFF\u3400-\u4DBF]/.test(text)) return { isEnglish: false, language: "zh" };
+  if (/[\u0600-\u06FF]/.test(text)) return { isEnglish: false, language: "ar" };
+  if (/[\u0590-\u05FF]/.test(text)) return { isEnglish: false, language: "he" };
+  if (/[\u0400-\u04FF]/.test(text)) return { isEnglish: false, language: "ru" };
+  if (/[\u0E00-\u0E7F]/.test(text)) return { isEnglish: false, language: "th" };
+  return { isEnglish: false, language: "other" };
 }
 
 function cleanUrl(value: unknown): string | undefined {
@@ -304,16 +321,19 @@ function normalizeMetaAd(item: any): ScrapedAd | null {
 async function scrapeMetaViaApify(
   token: string,
   niche: string,
-  location: string,
+  countries: string[],
   limit: number,
   engagementTarget: EngagementTarget,
+  englishOnly: boolean,
 ): Promise<{ ads: ScrapedAd[]; rawSample: unknown }> {
-  const countryCode = location.toLowerCase().includes("uk") ? "GB" : "US";
-  const searchUrl = buildFbAdLibrarySearchUrl(niche, countryCode);
-  const actorLimit = engagementTarget === "commentable_only" ? Math.min(limit * 3, 100) : limit;
-  console.log(`[meta] searchUrl=${searchUrl} limit=${actorLimit} target=${engagementTarget}`);
+  const safeCountries = countries.length ? countries : ["US"];
+  const startUrls = safeCountries.map((cc) => ({ url: buildFbAdLibrarySearchUrl(niche, cc) }));
+  // Over-scrape when we need to filter (commentable or non-English)
+  const overscrapeFactor = engagementTarget === "commentable_only" ? 3 : englishOnly ? 1.6 : 1;
+  const actorLimit = Math.min(Math.ceil(limit * overscrapeFactor), 200);
+  console.log(`[meta] countries=${safeCountries.join(",")} actorLimit=${actorLimit} target=${engagementTarget} englishOnly=${englishOnly}`);
   const items = await runApifyActor(token, "apify~facebook-ads-scraper", {
-    startUrls: [{ url: searchUrl }],
+    startUrls,
     resultsLimit: actorLimit,
     activeStatus: "active",
   });
@@ -322,8 +342,23 @@ async function scrapeMetaViaApify(
     console.log(`[meta] sample keys: ${Object.keys(items[0] as any).slice(0, 30).join(",")}`);
   }
   const normalized = items.map(normalizeMetaAd).filter((x): x is ScrapedAd => !!x);
-  const ads = (engagementTarget === "commentable_only" ? normalized.filter((ad) => ad.metadata?.is_commentable === true) : normalized).slice(0, limit);
-  console.log(`[meta] normalized: ${ads.length} (dropped ${items.length - ads.length})`);
+
+  // Annotate with detected language + country tag
+  for (const ad of normalized) {
+    const detection = detectLanguage(ad.ad_creative_text);
+    ad.metadata = {
+      ...(ad.metadata ?? {}),
+      detected_language: detection.language,
+      is_english: detection.isEnglish,
+    };
+  }
+
+  let filtered = normalized;
+  if (englishOnly) filtered = filtered.filter((ad) => ad.metadata?.is_english !== false);
+  if (engagementTarget === "commentable_only") filtered = filtered.filter((ad) => ad.metadata?.is_commentable === true);
+
+  const ads = filtered.slice(0, limit);
+  console.log(`[meta] normalized: ${normalized.length} after-filter: ${filtered.length} kept: ${ads.length}`);
   return { ads, rawSample: items[0] ?? null };
 }
 
@@ -382,7 +417,15 @@ serve(async (req) => {
   try {
     const body = await req.json();
     const niche: string = String(body?.niche ?? "").trim();
-    const location: string = String(body?.location ?? "").trim();
+    const location: string = String(body?.location ?? "").trim(); // optional now
+    const requestedCountries: string[] = Array.isArray(body?.countries) && body.countries.length
+      ? body.countries.map((c: unknown) => String(c).toUpperCase()).filter((c: string) => (SUPPORTED_COUNTRIES as readonly string[]).includes(c))
+      : ["US"];
+    const countries = requestedCountries.length ? requestedCountries : ["US"];
+    const languages: string[] = Array.isArray(body?.languages) && body.languages.length
+      ? body.languages.map((l: unknown) => String(l).toLowerCase())
+      : ["en"];
+    const englishOnly = languages.includes("en") && languages.length === 1;
     const requestedPlatforms: string[] = Array.isArray(body?.platforms) ? body.platforms : [];
     const platforms: Platform[] = requestedPlatforms.filter(
       (p): p is Platform => p === "meta" || p === "tiktok",
@@ -440,7 +483,15 @@ serve(async (req) => {
     // Create job
     const { data: job, error: jobErr } = await supabase
       .from("ad_scan_jobs")
-      .insert({ niche, location, platforms, status: "running" })
+      .insert({
+        niche,
+        location: location || null,
+        platforms,
+        countries,
+        languages,
+        result_limit: limitPerPlatform,
+        status: "running",
+      })
       .select()
       .single();
     if (jobErr) throw jobErr;
@@ -454,7 +505,7 @@ serve(async (req) => {
       try {
         let batch: ScrapedAd[] = [];
         if (platform === "meta") {
-          const r = await scrapeMetaViaApify(APIFY_TOKEN, niche, location, limitPerPlatform, engagementTarget);
+          const r = await scrapeMetaViaApify(APIFY_TOKEN, niche, countries, limitPerPlatform, engagementTarget, englishOnly);
           batch = r.ads;
           totalCost += (batch.length / 1000) * 3.4;
         } else if (platform === "tiktok") {
@@ -504,11 +555,21 @@ serve(async (req) => {
       const existingKeys = new Set((existingRows ?? []).map((r: any) => `${r.platform}::${r.landing_url}`));
       const rows = uniqueAds
         .filter((a) => !existingKeys.has(`${a.platform}::${a.landing_url}`))
-        .map((a) => ({
-          ...a,
-          scan_job_id: jobId,
-          metadata: { ...(a.metadata ?? {}), search_niche: niche, search_location: location, engagement_target: engagementTarget },
-        }));
+        .map((a) => {
+          const meta = a.metadata ?? {};
+          const isCommentable = meta.is_commentable === true;
+          const hasContact = Boolean(meta.contact_page_url);
+          const engagement_status = isCommentable ? "commentable" : hasContact ? "contact_form" : "dark_post";
+          return {
+            ...a,
+            scan_job_id: jobId,
+            approval_status: "pending",
+            engagement_status,
+            detected_language: typeof meta.detected_language === "string" ? meta.detected_language : null,
+            ad_country: countries[0] ?? null,
+            metadata: { ...meta, search_niche: niche, search_location: location, search_countries: countries, engagement_target: engagementTarget },
+          };
+        });
       duplicateCount += uniqueAds.length - rows.length;
       if (rows.length > 0) {
         const { data: inserted, error: insertErr } = await supabase.from("scraped_ads").insert(rows).select("id");

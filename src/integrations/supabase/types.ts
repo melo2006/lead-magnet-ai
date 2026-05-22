@@ -19,13 +19,16 @@ export type Database = {
           ads_converted: number
           ads_found: number
           completed_at: string | null
+          countries: string[]
           created_at: string
           id: string
+          languages: string[]
           last_error: string | null
           location: string | null
           niche: string
           platform_results: Json
           platforms: string[]
+          result_limit: number
           status: string
           total_cost_usd: number
           updated_at: string
@@ -34,13 +37,16 @@ export type Database = {
           ads_converted?: number
           ads_found?: number
           completed_at?: string | null
+          countries?: string[]
           created_at?: string
           id?: string
+          languages?: string[]
           last_error?: string | null
           location?: string | null
           niche: string
           platform_results?: Json
           platforms?: string[]
+          result_limit?: number
           status?: string
           total_cost_usd?: number
           updated_at?: string
@@ -49,13 +55,16 @@ export type Database = {
           ads_converted?: number
           ads_found?: number
           completed_at?: string | null
+          countries?: string[]
           created_at?: string
           id?: string
+          languages?: string[]
           last_error?: string | null
           location?: string | null
           niche?: string
           platform_results?: Json
           platforms?: string[]
+          result_limit?: number
           status?: string
           total_cost_usd?: number
           updated_at?: string
@@ -1149,14 +1158,18 @@ export type Database = {
       }
       scraped_ads: {
         Row: {
+          ad_country: string | null
           ad_creative_text: string | null
           ad_id: string | null
           ad_media_url: string | null
           advertiser_handle: string | null
           advertiser_name: string
+          approval_status: string
           comment_template: string | null
           created_at: string
           cta_text: string | null
+          detected_language: string | null
+          engagement_status: string | null
           id: string
           landing_url: string
           metadata: Json
@@ -1169,14 +1182,18 @@ export type Database = {
           updated_at: string
         }
         Insert: {
+          ad_country?: string | null
           ad_creative_text?: string | null
           ad_id?: string | null
           ad_media_url?: string | null
           advertiser_handle?: string | null
           advertiser_name: string
+          approval_status?: string
           comment_template?: string | null
           created_at?: string
           cta_text?: string | null
+          detected_language?: string | null
+          engagement_status?: string | null
           id?: string
           landing_url: string
           metadata?: Json
@@ -1189,14 +1206,18 @@ export type Database = {
           updated_at?: string
         }
         Update: {
+          ad_country?: string | null
           ad_creative_text?: string | null
           ad_id?: string | null
           ad_media_url?: string | null
           advertiser_handle?: string | null
           advertiser_name?: string
+          approval_status?: string
           comment_template?: string | null
           created_at?: string
           cta_text?: string | null
+          detected_language?: string | null
+          engagement_status?: string | null
           id?: string
           landing_url?: string
           metadata?: Json
