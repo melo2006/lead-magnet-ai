@@ -325,6 +325,17 @@ const matchesAdsFilter = (ad: ScrapedAd, filter: AdsFilter): boolean => {
   if (filter === "scaling") return getVariantCount(ad) >= 10;
   if (filter === "video") return getMediaType(ad) === "video";
   if (filter === "affiliate") return getIsAffiliate(ad);
+  if (filter === "ig_only") {
+    const p = getPublisherPlatforms(ad);
+    const l = getAdLinks(ad);
+    return Boolean(l.igPost) || (p.includes("instagram") && !p.includes("facebook"));
+  }
+  if (filter === "fb_only") {
+    const p = getPublisherPlatforms(ad);
+    const l = getAdLinks(ad);
+    return Boolean(l.fbPost) || (p.includes("facebook") && !p.includes("instagram"));
+  }
+  if (filter === "tiktok_only") return ad.platform === "tiktok";
   return true;
 };
 
