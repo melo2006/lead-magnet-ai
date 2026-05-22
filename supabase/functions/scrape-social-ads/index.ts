@@ -62,6 +62,8 @@ async function runApifyActor(
 }
 
 // --- META (Facebook + Instagram) via apify/facebook-ads-scraper ---
+const SUPPORTED_COUNTRIES = ["US", "CA", "GB", "AU"] as const;
+
 function buildFbAdLibrarySearchUrl(niche: string, countryCode: string): string {
   const params = new URLSearchParams({
     active_status: "active",
@@ -71,6 +73,21 @@ function buildFbAdLibrarySearchUrl(niche: string, countryCode: string): string {
     search_type: "keyword_unordered",
   });
   return `https://www.facebook.com/ads/library/?${params.toString()}`;
+}
+
+// Detect non-English ads by checking for CJK / Korean / Arabic / Cyrillic / Thai / Hebrew blocks.
+const NON_ENGLISH_REGEX = /[\u0400-\u04FF\u0590-\u05FF\u0600-\u06FF\u0E00-\u0E7F\u1100-\u11FF\u3040-\u30FF\u3130-\u318F\u3400-\u4DBF\u4E00-\u9FFF\uAC00-\uD7AF]/;
+function detectLanguage(text: string | undefined): { isEnglish: boolean; language: string } {
+  if (!text || text.trim().length < 4) return { isEnglish: true, language: "unknown" };
+  if (!NON_ENGLISH_REGEX.test(text)) return { isEnglish: true, language: "en" };
+  if (/[\u3040-\u30FF]/.test(text)) return { isEnglish: false, language: "ja" };
+  if (/[\uAC00-\uD7AF\u1100-\u11FF]/.test(text)) return { isEnglish: false, language: "ko" };
+  if (/[\u4E00-\u9FFF\u3400-\u4DBF]/.test(text)) return { isEnglish: false, language: "zh" };
+  if (/[\u0600-\u06FF]/.test(text)) return { isEnglish: false, language: "ar" };
+  if (/[\u0590-\u05FF]/.test(text)) return { isEnglish: false, language: "he" };
+  if (/[\u0400-\u04FF]/.test(text)) return { isEnglish: false, language: "ru" };
+  if (/[\u0E00-\u0E7F]/.test(text)) return { isEnglish: false, language: "th" };
+  return { isEnglish: false, language: "other" };
 }
 
 function cleanUrl(value: unknown): string | undefined {
