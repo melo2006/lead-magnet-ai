@@ -851,6 +851,9 @@ export default function AdHijack() {
               <SelectItem value="pending">⏳ Pending review ({pendingCount})</SelectItem>
               <SelectItem value="approved">✅ Approved ({approvedCount})</SelectItem>
               <SelectItem value="rejected">❌ Rejected</SelectItem>
+              <SelectItem value="ig_only">📸 Instagram only — easy comments ({igOnlyCount})</SelectItem>
+              <SelectItem value="tiktok_only">🎵 TikTok only — easiest ({tiktokOnlyCount})</SelectItem>
+              <SelectItem value="fb_only">📘 Facebook only — hardest ({fbOnlyCount})</SelectItem>
               <SelectItem value="winners">🔥 Winners — 60d+ active ({winnersCount})</SelectItem>
               <SelectItem value="scaling">📈 Scaling hard — 10+ variants ({scalingCount})</SelectItem>
               <SelectItem value="video">🎬 Video ads ({videoCount})</SelectItem>
