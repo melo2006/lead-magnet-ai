@@ -466,11 +466,35 @@ function pickTikTokPostUrl(item: any): string | undefined {
   return undefined;
 }
 
+const TIKTOK_QUERY_EXPANSIONS: Record<string, string[]> = {
+  skincare: ["skincare", "skin care", "retinol cream", "vitamin c serum", "anti-aging serum", "beauty subscription"],
+  "skin care": ["skin care", "skincare", "retinol cream", "vitamin c serum", "anti-aging serum", "beauty subscription"],
+  collagen: ["collagen", "collagen peptides", "collagen powder", "skin supplement"],
+  "weight loss supplement": ["weight loss supplement", "fat burner", "greens powder", "gut health", "metabolism supplement"],
+};
+
+function getTikTokSearchQueries(niche: string): string[] {
+  const normalized = niche.trim().toLowerCase();
+  const expanded = TIKTOK_QUERY_EXPANSIONS[normalized] ?? [niche];
+  return Array.from(new Set([niche, ...expanded].map((q) => q.trim()).filter(Boolean))).slice(0, 6);
+}
+
 function normalizeTikTokAd(item: any): ScrapedAd | null {
-  const landingRaw =
-    item.landingPageUrl || item.landing_page_url || item.landing_url || item.landingUrl ||
-    item.adUrl || item.url || item.advertiserUrl || item.click_url ||
-    item.brandUrl || item.brand_url;
+  const adId = firstValue(item.id, item.ad_id, item.adId, item.materialId, item.adIdStr);
+  const detailUrl = adId ? `https://library.tiktok.com/ads/detail/?ad_id=${adId}` : undefined;
+  const landingUrlCandidate = firstCleanUrl(
+    item.landingPageUrl,
+    item.landing_page_url,
+    item.landing_url,
+    item.landingUrl,
+    item.adUrl,
+    item.ad_url,
+    item.advertiserUrl,
+    item.click_url,
+    item.brandUrl,
+    item.brand_url,
+    typeof item.url === "string" ? item.url : undefined,
+  );
   const tikTokPostUrl = pickTikTokPostUrl(item);
   const videoUrl = firstCleanUrl(
     item.videoUrl || item.video_url || item.videoUrl1080p || item.videoUrl720p ||
@@ -482,10 +506,9 @@ function normalizeTikTokAd(item: any): ScrapedAd | null {
     item.brand || item.author || item.nickname || "Unknown";
 
   // Permissive: keep if we have ANY usable signal.
-  if (!landingRaw && !tikTokPostUrl && !videoUrl && advertiserName === "Unknown") return null;
+  if (!landingUrlCandidate && !tikTokPostUrl && !detailUrl && !videoUrl && advertiserName === "Unknown") return null;
 
-  const adId = item.id || item.ad_id || item.adId || item.materialId || item.adIdStr;
-  const landingUrl = firstCleanUrl(landingRaw) || tikTokPostUrl || videoUrl || (adId ? `https://library.tiktok.com/ads/detail/?ad_id=${adId}` : "");
+  const landingUrl = landingUrlCandidate || tikTokPostUrl || detailUrl || videoUrl || coverUrl || "";
 
   const startRaw =
     item.createdAt || item.startDate || item.first_seen || item.firstSeen ||
@@ -514,8 +537,10 @@ function normalizeTikTokAd(item: any): ScrapedAd | null {
     metadata: {
       publisher_platforms: ["tiktok"],
       tiktok_post_url: tikTokPostUrl,
+      tiktok_detail_url: detailUrl,
       post_url: tikTokPostUrl,
-      is_commentable: Boolean(tikTokPostUrl),
+      library_url: detailUrl,
+      is_commentable: Boolean(tikTokPostUrl && /tiktok\.com\/@[^/]+\/video\//i.test(tikTokPostUrl)),
       days_running: daysRunning,
       is_active: isActive !== false,
       media_type: videoUrl ? "video" : "image",
@@ -535,20 +560,32 @@ async function scrapeTikTokViaApify(
   _location: string,
   limit: number,
 ): Promise<ScrapedAd[]> {
+  const searchQueries = getTikTokSearchQueries(niche);
+  const actorLimit = limit;
   const items = await runApifyActor(token, "aiscraperdev~tiktok-ads-library-scraper", {
-    searchQuery: niche,
+    searchQueries,
     source: "both",
     region: "US",
-    maxAds: limit,
+    adStatus: "active",
+    adFormat: "all",
+    dateRange: "last_90_days",
+    maxResults: actorLimit,
+    maxAds: actorLimit,
   });
-  console.log(`[tiktok] raw items: ${items.length}`);
+  console.log(`[tiktok] queries=${searchQueries.join("|")} actorLimit=${actorLimit} raw items: ${items.length}`);
   if (items[0]) {
     console.log(`[tiktok] sample keys: ${Object.keys(items[0]).join(",")}`);
     console.log(`[tiktok] sample item: ${JSON.stringify(items[0]).slice(0, 800)}`);
   }
   const normalized = items.map(normalizeTikTokAd).filter((x): x is ScrapedAd => !!x);
   console.log(`[tiktok] normalized: ${normalized.length}`);
-  return normalized;
+  return normalized.slice(0, limit);
+}
+
+function getStoredLandingUrl(ad: ScrapedAd): string {
+  if (ad.platform !== "tiktok" || !ad.ad_id) return ad.landing_url;
+  if (ad.landing_url.includes("src_ad_id=")) return ad.landing_url;
+  return `${ad.landing_url}${ad.landing_url.includes("?") ? "&" : "?"}src_ad_id=${encodeURIComponent(ad.ad_id)}`;
 }
 
 serve(async (req) => {
@@ -688,19 +725,20 @@ serve(async (req) => {
     let upsertedCount = 0;
     let duplicateCount = 0;
     const uniqueAds = Array.from(
-      new Map(allAds.map((ad) => [`${ad.platform}::${ad.landing_url}`, ad])).values(),
+      new Map(allAds.map((ad) => [`${ad.platform}::${ad.ad_id || ad.landing_url}`, ad])).values(),
     );
     duplicateCount += allAds.length - uniqueAds.length;
 
     if (uniqueAds.length > 0) {
+      const storedLandingUrls = uniqueAds.map(getStoredLandingUrl);
       const { data: existingRows, error: existingErr } = await supabase
         .from("scraped_ads")
         .select("platform,landing_url")
-        .in("landing_url", uniqueAds.map((a) => a.landing_url));
+        .in("landing_url", storedLandingUrls);
       if (existingErr) throw existingErr;
       const existingKeys = new Set((existingRows ?? []).map((r: any) => `${r.platform}::${r.landing_url}`));
       const rows = uniqueAds
-        .filter((a) => !existingKeys.has(`${a.platform}::${a.landing_url}`))
+        .filter((a) => !existingKeys.has(`${a.platform}::${getStoredLandingUrl(a)}`))
         .map((a) => {
           const meta = a.metadata ?? {};
           const isCommentable = meta.is_commentable === true;
@@ -708,6 +746,7 @@ serve(async (req) => {
           const engagement_status = isCommentable ? "commentable" : hasContact ? "contact_form" : "dark_post";
           return {
             ...a,
+            landing_url: getStoredLandingUrl(a),
             scan_job_id: jobId,
             approval_status: "pending",
             engagement_status,

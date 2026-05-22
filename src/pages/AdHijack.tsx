@@ -274,6 +274,26 @@ const safeHost = (url: string) => {
   }
 };
 
+const renderLinkedText = (text: string) => {
+  const urlRegex = /(https?:\/\/[^\s<>'"]+)/g;
+  const parts = text.split(urlRegex);
+  return parts.map((part, index) =>
+    /^https?:\/\//.test(part) ? (
+      <a
+        key={`${part}-${index}`}
+        href={part}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-primary underline underline-offset-2 break-all"
+      >
+        {part}
+      </a>
+    ) : (
+      <span key={`${part}-${index}`}>{part}</span>
+    ),
+  );
+};
+
 const metaStr = (ad: ScrapedAd, key: string): string | null => {
   const v = ad.metadata?.[key];
   return typeof v === "string" && v.trim() ? v : null;
@@ -574,7 +594,8 @@ export default function AdHijack() {
   const toggleSelect = (id: string) => {
     setSelectedAdIds((prev) => {
       const next = new Set(prev);
-      next.has(id) ? next.delete(id) : next.add(id);
+      if (next.has(id)) next.delete(id);
+      else next.add(id);
       return next;
     });
   };
@@ -1018,7 +1039,7 @@ export default function AdHijack() {
 
                 {ad.comment_template && (
                   <div className="bg-muted/30 rounded p-2 mt-2">
-                    <p className="text-[11px] whitespace-pre-wrap break-all">{ad.comment_template}</p>
+                    <p className="text-[11px] whitespace-pre-wrap break-words">{renderLinkedText(ad.comment_template)}</p>
                     <div className="flex gap-1.5 mt-2 flex-wrap">
                       <Button size="sm" variant="ghost" onClick={() => copyText(ad.comment_template!)} className="h-6 text-[10px]">
                         <Copy className="h-3 w-3" /> Copy comment
