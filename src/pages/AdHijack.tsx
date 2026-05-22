@@ -327,6 +327,17 @@ const getDaysRunning = (ad: ScrapedAd): number | null => {
   const v = ad.metadata?.days_running;
   return typeof v === "number" ? v : null;
 };
+const getAudienceSize = (ad: ScrapedAd): number | null => {
+  const values = [ad.metadata?.estimated_audience, ad.metadata?.target_audience_size, ad.metadata?.likes, ad.metadata?.views];
+  for (const value of values) {
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string" && value.trim()) {
+      const parsed = Number(value.replace(/[^0-9.]/g, ""));
+      if (Number.isFinite(parsed)) return parsed;
+    }
+  }
+  return null;
+};
 const getVariantCount = (ad: ScrapedAd): number => {
   const v = ad.metadata?.variant_count;
   return typeof v === "number" && v > 0 ? v : 1;
@@ -366,9 +377,12 @@ export default function AdHijack() {
   const [subNiche, setSubNiche] = useState("ai agent");
   const [customNiche, setCustomNiche] = useState("");
   const [location, setLocation] = useState("");
-  const [selectedCountries, setSelectedCountries] = useState<Country[]>(["US", "CA", "GB", "AU"]);
+  const [selectedCountries, setSelectedCountries] = useState<Country[]>(["US"]);
   const [englishOnly, setEnglishOnly] = useState(true);
   const [limit, setLimit] = useState("25");
+  const [minTikTokActiveDays, setMinTikTokActiveDays] = useState("30");
+  const [minTikTokAudience, setMinTikTokAudience] = useState("1000");
+  const [requireBusinessWebsite, setRequireBusinessWebsite] = useState(true);
   const [selectedPlatforms, setSelectedPlatforms] = useState<SupportedPlatform[]>(["meta", "tiktok"]);
   const [scanning, setScanning] = useState(false);
   const [scanningJobId, setScanningJobId] = useState<string | null>(null);
@@ -467,6 +481,9 @@ export default function AdHijack() {
             limit: override?.mode === "rescan" ? Math.max(Number(limit), 50) : Number(limit),
             mode: override?.mode ?? "fresh",
             engagement_target: override?.engagementTarget ?? engagementTarget,
+            min_tiktok_active_days: Number(minTikTokActiveDays),
+            min_tiktok_audience: Number(minTikTokAudience),
+            require_business_website: requireBusinessWebsite,
           },
         });
         if (error) throw error;
@@ -682,7 +699,7 @@ export default function AdHijack() {
           <Radar className="h-4 w-4 text-primary" />
           <h2 className="text-sm font-bold">New Scan</h2>
         </div>
-        <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+        <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-6 gap-3">
           <div>
             <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Niche</label>
             <Select
@@ -794,6 +811,34 @@ export default function AdHijack() {
             </Select>
           </div>
           <div>
+            <label className="text-[10px] uppercase tracking-widest text-muted-foreground">TikTok age</label>
+            <Select value={minTikTokActiveDays} onValueChange={setMinTikTokActiveDays}>
+              <SelectTrigger className="h-9 text-xs mt-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0">Any age</SelectItem>
+                <SelectItem value="14">14+ days active</SelectItem>
+                <SelectItem value="30">30+ days active</SelectItem>
+                <SelectItem value="60">60+ days active</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
+            <label className="text-[10px] uppercase tracking-widest text-muted-foreground">TikTok reach</label>
+            <Select value={minTikTokAudience} onValueChange={setMinTikTokAudience}>
+              <SelectTrigger className="h-9 text-xs mt-1">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="0">Any reach</SelectItem>
+                <SelectItem value="1000">1k+ audience/views</SelectItem>
+                <SelectItem value="5000">5k+ audience/views</SelectItem>
+                <SelectItem value="10000">10k+ audience/views</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+          <div>
             <label className="text-[10px] uppercase tracking-widest text-muted-foreground">Platforms</label>
             <div className="flex flex-wrap gap-1.5 mt-1">
               {PLATFORMS.map((p) => (
@@ -815,6 +860,12 @@ export default function AdHijack() {
                 </button>
               ))}
             </div>
+          </div>
+          <div className="md:col-span-2 xl:col-span-3 flex items-end">
+            <label className="flex items-center gap-2 text-[10px] text-muted-foreground cursor-pointer pb-2">
+              <input type="checkbox" checked={requireBusinessWebsite} onChange={(e) => setRequireBusinessWebsite(e.target.checked)} className="h-3 w-3" />
+              Require a real business website before saving TikTok ads
+            </label>
           </div>
         </div>
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3">
@@ -859,6 +910,11 @@ export default function AdHijack() {
                   {typeof j.platform_results?._engagement_target === "string" && (
                     <Badge variant="outline" className="text-[9px]">
                       {String(j.platform_results._engagement_target).replace(/_/g, " ")}
+                    </Badge>
+                  )}
+                  {typeof j.platform_results?._quality_filters === "object" && j.platform_results?._quality_filters !== null && (
+                    <Badge variant="outline" className="text-[9px]">
+                      qualified before save
                     </Badge>
                   )}
                   <span>${Number(j.total_cost_usd).toFixed(2)}</span>
@@ -954,6 +1010,7 @@ export default function AdHijack() {
               const daysRun = getDaysRunning(ad);
               const variants = getVariantCount(ad);
               const mediaType = getMediaType(ad);
+              const audience = getAudienceSize(ad);
               const active = getIsActive(ad);
               const affiliate = getIsAffiliate(ad);
               const approval = ad.approval_status ?? "pending";
@@ -979,6 +1036,7 @@ export default function AdHijack() {
                       <Badge
                         variant="outline"
                         className={`text-[9px] ${approval === "approved" ? "border-emerald-500/60 text-emerald-400" : approval === "rejected" ? "border-red-500/60 text-red-400" : "border-amber-500/60 text-amber-400"}`}
+                        title="Pending means scraped but not reviewed yet. Approve it before converting it into a prospect."
                       >
                         {approval === "approved" ? "✅ approved" : approval === "rejected" ? "❌ rejected" : "⏳ pending"}
                       </Badge>
@@ -997,6 +1055,11 @@ export default function AdHijack() {
                       {mediaType !== "unknown" && (
                         <Badge variant="outline" className="text-[9px] border-purple-500/40 text-purple-400">
                           {mediaType}
+                        </Badge>
+                      )}
+                      {audience != null && audience > 0 && (
+                        <Badge variant="outline" className="text-[9px] border-primary/40 text-primary" title="TikTok audience, view, or like signal returned by the scraper">
+                          {audience >= 1000 ? `${Math.round(audience / 1000)}k` : audience} reach
                         </Badge>
                       )}
                       {affiliate && (

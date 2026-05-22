@@ -13,6 +13,12 @@ type Platform = "meta" | "tiktok";
 type ScanMode = "fresh" | "rescan";
 type EngagementTarget = "all" | "commentable_only" | "all_with_contact";
 
+interface ScanQualityFilters {
+  minTikTokActiveDays: number;
+  minTikTokAudience: number;
+  requireBusinessWebsite: boolean;
+}
+
 interface ScrapedAd {
   platform: Platform;
   ad_id?: string;
@@ -216,6 +222,17 @@ function firstValue(...values: unknown[]): string | undefined {
   return undefined;
 }
 
+function numberValue(...values: unknown[]): number | null {
+  for (const value of values) {
+    if (value === null || value === undefined || value === "") continue;
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    const cleaned = String(value).replace(/[^0-9.]/g, "");
+    const parsed = Number(cleaned);
+    if (Number.isFinite(parsed)) return parsed;
+  }
+  return null;
+}
+
 function firstCleanUrl(...values: unknown[]): string | undefined {
   for (const value of values) {
     const url = cleanUrl(value);
@@ -319,6 +336,44 @@ function detectAffiliate(landingUrl: string | undefined): boolean {
   return AFFILIATE_REGEX.test(landingUrl);
 }
 
+function isBusinessWebsiteUrl(url: string | undefined): boolean {
+  if (!url) return false;
+  try {
+    const host = new URL(url).hostname.toLowerCase().replace(/^www\./, "");
+    if (!host.includes(".")) return false;
+    return !/(^|\.)(facebook|fb|instagram|tiktok|youtube|youtu|google|doubleclick|linktr|bit\.ly|tinyurl|snapchat|pinterest)\./i.test(host)
+      && host !== "library.tiktok.com"
+      && host !== "ads.tiktok.com"
+      && !/tiktokcdn|byteoversea|ibyteimg|cloudfront|shopifycdn/i.test(host);
+  } catch {
+    return false;
+  }
+}
+
+function getAdAudience(ad: ScrapedAd): number | null {
+  const meta = ad.metadata ?? {};
+  return numberValue(meta.estimated_audience, meta.target_audience_size, meta.likes, meta.views);
+}
+
+function passesTikTokQuality(ad: ScrapedAd, countries: string[], quality: ScanQualityFilters): boolean {
+  const meta = ad.metadata ?? {};
+  const region = String(meta.region ?? "").toUpperCase();
+  const sourceChannel = String(meta.source_channel ?? "").toLowerCase();
+
+  if (quality.requireBusinessWebsite && !isBusinessWebsiteUrl(ad.landing_url)) return false;
+  if (quality.minTikTokActiveDays > 0 && ((typeof meta.days_running === "number" ? meta.days_running : null) ?? -1) < quality.minTikTokActiveDays) return false;
+
+  if (quality.minTikTokAudience > 0) {
+    const audience = getAdAudience(ad);
+    if (audience === null || audience < quality.minTikTokAudience) return false;
+  }
+
+  if (region && region !== "ALL" && countries.length > 0 && !countries.includes(region)) return false;
+  if (region === "ALL" && countries.length > 0) return false;
+
+  return true;
+}
+
 function computeDaysRunning(startMs: number | null, endMs: number | null): number | null {
   if (!startMs) return null;
   const end = endMs ?? Date.now();
@@ -356,6 +411,10 @@ function normalizeMetaAd(item: any): ScrapedAd | null {
     s.page_like_count_active_ads ?? item.page_total_active_ads ?? item.pageTotalActiveAds ?? 0,
   ) || null;
   const isAffiliate = detectAffiliate(landingUrl);
+  const estimatedAudience = numberValue(item.estimated_audience, item.estimatedAudience);
+  const targetAudienceSize = numberValue(item.target_audience_size, item.targetAudienceSize);
+  const likes = numberValue(item.likes, item.likeCount, item.like_count);
+  const sourceChannel = String(item.source ?? item.source_channel ?? item.sourceChannel ?? "").toLowerCase();
 
   return {
     platform: "meta",
@@ -546,8 +605,11 @@ function normalizeTikTokAd(item: any): ScrapedAd | null {
       media_type: videoUrl ? "video" : "image",
       is_affiliate: isAffiliate,
       region: item.region || item.country,
+      source_channel: sourceChannel,
+      estimated_audience: estimatedAudience,
+      target_audience_size: targetAudienceSize,
       ctr_rank: item.ctrRank || item.ctr_rank,
-      likes: item.likes || item.likeCount,
+      likes,
       source: "aiscraperdev/tiktok-ads-library-scraper",
       raw_keys: Object.keys(item).slice(0, 30),
     },
@@ -559,31 +621,45 @@ async function scrapeTikTokViaApify(
   niche: string,
   _location: string,
   limit: number,
+  countries: string[],
+  quality: ScanQualityFilters,
 ): Promise<ScrapedAd[]> {
   const searchQueries = getTikTokSearchQueries(niche);
-  const actorLimit = limit;
-  const items = await runApifyActor(token, "aiscraperdev~tiktok-ads-library-scraper", {
-    searchQueries,
-    source: "both",
-    region: "US",
-    adStatus: "active",
-    adFormat: "all",
-    dateRange: "last_90_days",
-    maxResults: actorLimit,
-    maxAds: actorLimit,
-  });
-  console.log(`[tiktok] queries=${searchQueries.join("|")} actorLimit=${actorLimit} raw items: ${items.length}`);
+  const actorLimit = Math.min(Math.max(limit * 4, 50), 250);
+  const startDate = new Date(Date.now() - 1000 * 60 * 60 * 24 * 180).toISOString().slice(0, 10);
+  const endDate = new Date().toISOString().slice(0, 10);
+  const regions = countries.length ? countries : ["US"];
+  const items: unknown[] = [];
+  for (const region of regions) {
+    const regionItems = await runApifyActor(token, "aiscraperdev~tiktok-ads-library-scraper", {
+      searchQuery: searchQueries.join(", "),
+      searchQueries,
+      source: "both",
+      region,
+      adStatus: "active",
+      adFormat: "video",
+      startDate,
+      endDate,
+      dateRange: "custom",
+      maxResults: actorLimit,
+      maxAds: actorLimit,
+    });
+    items.push(...regionItems);
+  }
+  console.log(`[tiktok] queries=${searchQueries.join("|")} regions=${regions.join(",")} actorLimit=${actorLimit} raw items: ${items.length}`);
   if (items[0]) {
     console.log(`[tiktok] sample keys: ${Object.keys(items[0]).join(",")}`);
     console.log(`[tiktok] sample item: ${JSON.stringify(items[0]).slice(0, 800)}`);
   }
   const normalized = items.map(normalizeTikTokAd).filter((x): x is ScrapedAd => !!x);
-  console.log(`[tiktok] normalized: ${normalized.length}`);
-  return normalized.slice(0, limit);
+  const filtered = normalized.filter((ad) => passesTikTokQuality(ad, countries, quality));
+  console.log(`[tiktok] normalized: ${normalized.length} quality-kept: ${filtered.length} filters=${JSON.stringify(quality)}`);
+  return filtered.slice(0, limit);
 }
 
 function getStoredLandingUrl(ad: ScrapedAd): string {
   if (ad.platform !== "tiktok" || !ad.ad_id) return ad.landing_url;
+  if (!/library\.tiktok\.com|ads\.tiktok\.com/i.test(ad.landing_url)) return ad.landing_url;
   if (ad.landing_url.includes("src_ad_id=")) return ad.landing_url;
   return `${ad.landing_url}${ad.landing_url.includes("?") ? "&" : "?"}src_ad_id=${encodeURIComponent(ad.ad_id)}`;
 }
@@ -621,6 +697,11 @@ serve(async (req) => {
       requestedTarget === "commentable_only" || requestedTarget === "all" || requestedTarget === "all_with_contact"
         ? requestedTarget
         : "all_with_contact";
+    const quality: ScanQualityFilters = {
+      minTikTokActiveDays: Math.min(Math.max(Number(body?.min_tiktok_active_days ?? 30), 0), 365),
+      minTikTokAudience: Math.min(Math.max(Number(body?.min_tiktok_audience ?? 1000), 0), 10000000),
+      requireBusinessWebsite: body?.require_business_website !== false,
+    };
 
     const APIFY_TOKEN = Deno.env.get("APIFY_API_TOKEN");
 
@@ -692,7 +773,7 @@ serve(async (req) => {
           batch = r.ads;
           totalCost += (batch.length / 1000) * 3.4;
         } else if (platform === "tiktok") {
-          batch = await scrapeTikTokViaApify(APIFY_TOKEN, niche, location, limitPerPlatform);
+          batch = await scrapeTikTokViaApify(APIFY_TOKEN, niche, location, limitPerPlatform, countries, quality);
           totalCost += (batch.length / 1000) * 3.5;
         }
         platformResults[platform] = { count: batch.length };
@@ -751,8 +832,8 @@ serve(async (req) => {
             approval_status: "pending",
             engagement_status,
             detected_language: typeof meta.detected_language === "string" ? meta.detected_language : null,
-            ad_country: countries[0] ?? null,
-            metadata: { ...meta, search_niche: niche, search_location: location, search_countries: countries, engagement_target: engagementTarget },
+            ad_country: typeof meta.region === "string" && countries.includes(meta.region.toUpperCase()) ? meta.region.toUpperCase() : countries[0] ?? null,
+            metadata: { ...meta, search_niche: niche, search_location: location, search_countries: countries, engagement_target: engagementTarget, quality_filters: quality },
           };
         });
       duplicateCount += uniqueAds.length - rows.length;
@@ -782,7 +863,7 @@ serve(async (req) => {
         status: "completed",
         ads_found: upsertedCount,
         total_cost_usd: Number(totalCost.toFixed(3)),
-        platform_results: { ...platformResults, _duplicates_skipped: duplicateCount, _mode: mode, _engagement_target: engagementTarget },
+        platform_results: { ...platformResults, _duplicates_skipped: duplicateCount, _mode: mode, _engagement_target: engagementTarget, _quality_filters: quality },
         completed_at: new Date().toISOString(),
       })
       .eq("id", jobId);
@@ -792,7 +873,7 @@ serve(async (req) => {
         success: true,
         job_id: jobId,
         ads_found: upsertedCount,
-        platform_results: { ...platformResults, _duplicates_skipped: duplicateCount, _mode: mode, _engagement_target: engagementTarget },
+        platform_results: { ...platformResults, _duplicates_skipped: duplicateCount, _mode: mode, _engagement_target: engagementTarget, _quality_filters: quality },
         total_cost_usd: Number(totalCost.toFixed(3)),
         apify_user: tokenCheck.username,
       }),
