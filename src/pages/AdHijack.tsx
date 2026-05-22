@@ -25,7 +25,10 @@ import { Textarea } from "@/components/ui/textarea";
 type Platform = "meta" | "tiktok" | "linkedin" | "google";
 type SupportedPlatform = "meta" | "tiktok";
 type EngagementTarget = "all" | "commentable_only" | "all_with_contact";
-type AdsFilter = "all" | "commentable" | "contact_fallback" | "dark" | "pending" | "approved" | "rejected";
+type AdsFilter =
+  | "all" | "commentable" | "contact_fallback" | "dark"
+  | "pending" | "approved" | "rejected"
+  | "winners" | "scaling" | "video" | "affiliate";
 type Country = "US" | "CA" | "GB" | "AU";
 
 interface ScrapedAd {
@@ -298,6 +301,18 @@ const isCommentable = (ad: ScrapedAd): boolean => {
 
 const hasContactFallback = (ad: ScrapedAd): boolean => Boolean(getAdLinks(ad).contactPage);
 
+const getDaysRunning = (ad: ScrapedAd): number | null => {
+  const v = ad.metadata?.days_running;
+  return typeof v === "number" ? v : null;
+};
+const getVariantCount = (ad: ScrapedAd): number => {
+  const v = ad.metadata?.variant_count;
+  return typeof v === "number" && v > 0 ? v : 1;
+};
+const getMediaType = (ad: ScrapedAd): string => String(ad.metadata?.media_type ?? "unknown");
+const getIsActive = (ad: ScrapedAd): boolean => ad.metadata?.is_active !== false;
+const getIsAffiliate = (ad: ScrapedAd): boolean => ad.metadata?.is_affiliate === true;
+
 const matchesAdsFilter = (ad: ScrapedAd, filter: AdsFilter): boolean => {
   if (filter === "commentable") return isCommentable(ad);
   if (filter === "contact_fallback") return hasContactFallback(ad);
@@ -305,6 +320,10 @@ const matchesAdsFilter = (ad: ScrapedAd, filter: AdsFilter): boolean => {
   if (filter === "pending") return (ad.approval_status ?? "pending") === "pending";
   if (filter === "approved") return ad.approval_status === "approved";
   if (filter === "rejected") return ad.approval_status === "rejected";
+  if (filter === "winners") return getIsActive(ad) && (getDaysRunning(ad) ?? 0) >= 60;
+  if (filter === "scaling") return getVariantCount(ad) >= 10;
+  if (filter === "video") return getMediaType(ad) === "video";
+  if (filter === "affiliate") return getIsAffiliate(ad);
   return true;
 };
 
@@ -327,6 +346,7 @@ export default function AdHijack() {
   const [engagementTarget, setEngagementTarget] = useState<EngagementTarget>("all_with_contact");
   const [adsFilter, setAdsFilter] = useState<AdsFilter>("pending");
   const [editingComment, setEditingComment] = useState<Record<string, string>>({});
+  const [selectedAdIds, setSelectedAdIds] = useState<Set<string>>(new Set());
 
   const loadData = useCallback(async () => {
     const [adsRes, jobsRes] = await Promise.all([
@@ -538,11 +558,56 @@ export default function AdHijack() {
     toast({ title: "Comment saved" });
   };
 
+  const toggleSelect = (id: string) => {
+    setSelectedAdIds((prev) => {
+      const next = new Set(prev);
+      next.has(id) ? next.delete(id) : next.add(id);
+      return next;
+    });
+  };
+
+  const selectAllFiltered = () => {
+    setSelectedAdIds((prev) => {
+      const next = new Set(prev);
+      filteredAds.forEach((a) => next.add(a.id));
+      return next;
+    });
+  };
+
+  const clearSelection = () => setSelectedAdIds(new Set());
+
+  const bulkOpenSelected = async (mode: "post" | "contact") => {
+    const targets = ads.filter((a) => selectedAdIds.has(a.id));
+    if (targets.length === 0) { toast({ title: "Nothing selected" }); return; }
+    // Build a single joined comment block for paste-into-many workflow
+    const comments = targets.map((a) => a.comment_template).filter(Boolean);
+    if (comments.length) navigator.clipboard.writeText(comments[0] ?? "");
+    let opened = 0;
+    for (const ad of targets) {
+      const links = getAdLinks(ad);
+      const url = mode === "post"
+        ? (links.fbPost || links.igPost || links.fbPage || links.igPage)
+        : (links.contactPage || links.fbPage);
+      if (!url) continue;
+      window.open(url, "_blank", "noopener,noreferrer");
+      opened += 1;
+      await new Promise((r) => setTimeout(r, 250)); // pop-up blocker friendliness
+    }
+    toast({
+      title: `Opened ${opened} tabs`,
+      description: comments.length ? "First comment copied. Use Cmd/Ctrl+V in each tab." : "No comments generated yet — generate first.",
+    });
+  };
+
   const filteredAds = ads.filter((ad) => matchesAdsFilter(ad, adsFilter));
   const commentableCount = ads.filter(isCommentable).length;
   const contactFallbackCount = ads.filter(hasContactFallback).length;
   const pendingCount = ads.filter((a) => (a.approval_status ?? "pending") === "pending").length;
   const approvedCount = ads.filter((a) => a.approval_status === "approved").length;
+  const winnersCount = ads.filter((a) => getIsActive(a) && (getDaysRunning(a) ?? 0) >= 60).length;
+  const scalingCount = ads.filter((a) => getVariantCount(a) >= 10).length;
+  const videoCount = ads.filter((a) => getMediaType(a) === "video").length;
+  const affiliateCount = ads.filter(getIsAffiliate).length;
 
   return (
     <div className="space-y-6">
@@ -763,7 +828,7 @@ export default function AdHijack() {
             Scraped Ads ({filteredAds.length}{adsFilter !== "all" ? ` of ${ads.length}` : ""})
           </h2>
           <Select value={adsFilter} onValueChange={(value) => setAdsFilter(value as AdsFilter)}>
-            <SelectTrigger className="h-8 w-[240px] text-[11px]">
+            <SelectTrigger className="h-8 w-[260px] text-[11px]">
               <SelectValue />
             </SelectTrigger>
             <SelectContent>
@@ -771,12 +836,40 @@ export default function AdHijack() {
               <SelectItem value="pending">⏳ Pending review ({pendingCount})</SelectItem>
               <SelectItem value="approved">✅ Approved ({approvedCount})</SelectItem>
               <SelectItem value="rejected">❌ Rejected</SelectItem>
+              <SelectItem value="winners">🔥 Winners — 60d+ active ({winnersCount})</SelectItem>
+              <SelectItem value="scaling">📈 Scaling hard — 10+ variants ({scalingCount})</SelectItem>
+              <SelectItem value="video">🎬 Video ads ({videoCount})</SelectItem>
+              <SelectItem value="affiliate">💰 Has affiliate link ({affiliateCount})</SelectItem>
               <SelectItem value="commentable">Public/commentable ({commentableCount})</SelectItem>
               <SelectItem value="contact_fallback">Website contact fallback ({contactFallbackCount})</SelectItem>
               <SelectItem value="dark">Dark posts / no thread ({ads.length - commentableCount})</SelectItem>
             </SelectContent>
           </Select>
         </div>
+
+        {/* Bulk action toolbar */}
+        <div className="flex items-center gap-2 flex-wrap mb-3 p-2 bg-muted/20 rounded text-[10px]">
+          <span className="text-muted-foreground">
+            {selectedAdIds.size > 0 ? `${selectedAdIds.size} selected` : "Select ads to bulk-act:"}
+          </span>
+          <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={selectAllFiltered}>
+            Select all in view
+          </Button>
+          <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={clearSelection} disabled={selectedAdIds.size === 0}>
+            Clear
+          </Button>
+          <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={bulkApprovePending}>
+            <Check className="h-3 w-3" /> Bulk approve pending in view
+          </Button>
+          <div className="w-px h-4 bg-border" />
+          <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => bulkOpenSelected("post")} disabled={selectedAdIds.size === 0}>
+            <ExternalLink className="h-3 w-3" /> Copy + open all selected POSTS
+          </Button>
+          <Button size="sm" variant="outline" className="h-6 text-[10px]" onClick={() => bulkOpenSelected("contact")} disabled={selectedAdIds.size === 0}>
+            <ExternalLink className="h-3 w-3" /> Copy + open all selected CONTACT pages
+          </Button>
+        </div>
+
         {ads.length === 0 ? (
           <p className="text-xs text-muted-foreground text-center py-8">No ads scraped yet. Run your first scan above.</p>
         ) : (
@@ -797,28 +890,70 @@ export default function AdHijack() {
                 });
               };
 
+              const daysRun = getDaysRunning(ad);
+              const variants = getVariantCount(ad);
+              const mediaType = getMediaType(ad);
+              const active = getIsActive(ad);
+              const affiliate = getIsAffiliate(ad);
+              const approval = ad.approval_status ?? "pending";
+              const checked = selectedAdIds.has(ad.id);
+              const daysColor = daysRun == null ? "border-border text-muted-foreground"
+                : daysRun >= 90 ? "border-orange-500/60 text-orange-400"
+                : daysRun >= 60 ? "border-emerald-500/60 text-emerald-400"
+                : daysRun >= 14 ? "border-amber-500/60 text-amber-400"
+                : "border-red-500/60 text-red-400";
+
               return (
-              <div key={ad.id} className="border border-border rounded p-3 space-y-2">
-                <div className="flex items-start justify-between gap-3">
+              <div key={ad.id} className={`border rounded p-3 space-y-2 ${checked ? "border-primary" : "border-border"}`}>
+                <div className="flex items-start gap-3">
+                  <input type="checkbox" checked={checked} onChange={() => toggleSelect(ad.id)} className="mt-1 h-3.5 w-3.5" />
                   <div className="flex-1 min-w-0">
                     <div className="flex items-center gap-2 flex-wrap">
                       <Badge variant="outline" className="text-[9px]">{ad.platform}</Badge>
                       {onFb && <Badge variant="outline" className="text-[9px] border-blue-500/40 text-blue-400">FB</Badge>}
                       {onIg && <Badge variant="outline" className="text-[9px] border-pink-500/40 text-pink-400">IG</Badge>}
                       <span className="text-xs font-bold truncate">{ad.advertiser_name}</span>
-                      <Badge variant={ad.status === "converted" ? "default" : "secondary"} className="text-[9px]">
-                        {ad.status}
+
+                      {/* Approval badge */}
+                      <Badge
+                        variant="outline"
+                        className={`text-[9px] ${approval === "approved" ? "border-emerald-500/60 text-emerald-400" : approval === "rejected" ? "border-red-500/60 text-red-400" : "border-amber-500/60 text-amber-400"}`}
+                      >
+                        {approval === "approved" ? "✅ approved" : approval === "rejected" ? "❌ rejected" : "⏳ pending"}
                       </Badge>
+
+                      {/* Performance signals */}
+                      {daysRun != null && (
+                        <Badge variant="outline" className={`text-[9px] ${daysColor}`} title={`Ad started ~${daysRun}d ago`}>
+                          {daysRun >= 90 ? "🔥 " : ""}{daysRun}d {active ? "active" : "ended"}
+                        </Badge>
+                      )}
+                      {variants >= 2 && (
+                        <Badge variant="outline" className="text-[9px] border-emerald-500/40 text-emerald-400" title="Variants of this same advertiser in this scan">
+                          {variants}× variants
+                        </Badge>
+                      )}
+                      {mediaType !== "unknown" && (
+                        <Badge variant="outline" className="text-[9px] border-purple-500/40 text-purple-400">
+                          {mediaType}
+                        </Badge>
+                      )}
+                      {affiliate && (
+                        <Badge variant="outline" className="text-[9px] border-yellow-500/40 text-yellow-400" title="Landing URL contains affiliate tracking">
+                          💰 affiliate
+                        </Badge>
+                      )}
+
                       {commentable ? (
                         <Badge className="text-[9px] bg-primary/20 text-primary border-primary/40">Commentable</Badge>
                       ) : (
-                        <Badge variant="outline" className="text-[9px] border-amber-500/40 text-amber-400" title="Dark post — no public thread to comment on. Use Open Page to comment on their latest organic post or DM them.">
-                          Dark post · no public thread
+                        <Badge variant="outline" className="text-[9px] border-amber-500/40 text-amber-400" title="Dark post — no public thread.">
+                          Dark post
                         </Badge>
                       )}
                       {!commentable && links.contactPage && (
                         <Badge variant="outline" className="text-[9px] border-primary/40 text-primary">
-                          Contact page found
+                          Contact page
                         </Badge>
                       )}
                     </div>
@@ -833,9 +968,18 @@ export default function AdHijack() {
                       </a>
                     </div>
                   </div>
-                  <button onClick={() => deleteAd(ad.id)} className="text-muted-foreground hover:text-destructive">
-                    <Trash2 className="h-3 w-3" />
-                  </button>
+                  <div className="flex items-center gap-1">
+                    {approval !== "approved" && (
+                      <button onClick={() => setApproval(ad.id, "approved")} title="Approve"
+                        className="text-emerald-400 hover:text-emerald-300"><Check className="h-3.5 w-3.5" /></button>
+                    )}
+                    {approval !== "rejected" && (
+                      <button onClick={() => setApproval(ad.id, "rejected")} title="Reject"
+                        className="text-amber-400 hover:text-amber-300"><X className="h-3.5 w-3.5" /></button>
+                    )}
+                    <button onClick={() => deleteAd(ad.id)} title="Delete"
+                      className="text-muted-foreground hover:text-destructive"><Trash2 className="h-3 w-3" /></button>
+                  </div>
                 </div>
 
                 <div className="flex flex-wrap gap-2 pt-2 border-t border-border">
