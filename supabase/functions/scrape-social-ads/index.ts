@@ -254,7 +254,8 @@ serve(async (req) => {
       try {
         let batch: ScrapedAd[] = [];
         if (platform === "meta") {
-          batch = await scrapeMetaViaApify(APIFY_TOKEN, niche, location, limitPerPlatform);
+          const r = await scrapeMetaViaApify(APIFY_TOKEN, niche, location, limitPerPlatform);
+          batch = r.ads;
           totalCost += (batch.length / 1000) * 3.4;
         } else if (platform === "tiktok") {
           batch = await scrapeTikTokViaApify(APIFY_TOKEN, niche, location, limitPerPlatform);
