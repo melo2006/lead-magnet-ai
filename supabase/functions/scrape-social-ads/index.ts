@@ -411,6 +411,10 @@ function normalizeMetaAd(item: any): ScrapedAd | null {
     s.page_like_count_active_ads ?? item.page_total_active_ads ?? item.pageTotalActiveAds ?? 0,
   ) || null;
   const isAffiliate = detectAffiliate(landingUrl);
+  const estimatedAudience = numberValue(item.estimated_audience, item.estimatedAudience);
+  const targetAudienceSize = numberValue(item.target_audience_size, item.targetAudienceSize);
+  const likes = numberValue(item.likes, item.likeCount, item.like_count);
+  const sourceChannel = String(item.source ?? item.source_channel ?? item.sourceChannel ?? "").toLowerCase();
 
   return {
     platform: "meta",
@@ -601,8 +605,11 @@ function normalizeTikTokAd(item: any): ScrapedAd | null {
       media_type: videoUrl ? "video" : "image",
       is_affiliate: isAffiliate,
       region: item.region || item.country,
+      source_channel: sourceChannel,
+      estimated_audience: estimatedAudience,
+      target_audience_size: targetAudienceSize,
       ctr_rank: item.ctrRank || item.ctr_rank,
-      likes: item.likes || item.likeCount,
+      likes,
       source: "aiscraperdev/tiktok-ads-library-scraper",
       raw_keys: Object.keys(item).slice(0, 30),
     },
@@ -614,27 +621,36 @@ async function scrapeTikTokViaApify(
   niche: string,
   _location: string,
   limit: number,
+  countries: string[],
+  quality: ScanQualityFilters,
 ): Promise<ScrapedAd[]> {
   const searchQueries = getTikTokSearchQueries(niche);
-  const actorLimit = limit;
+  const actorLimit = Math.min(Math.max(limit * 4, 50), 250);
+  const region = countries.includes("US") ? "US" : countries[0] ?? "US";
+  const startDate = new Date(Date.now() - 1000 * 60 * 60 * 24 * 180).toISOString().slice(0, 10);
+  const endDate = new Date().toISOString().slice(0, 10);
   const items = await runApifyActor(token, "aiscraperdev~tiktok-ads-library-scraper", {
+    searchQuery: searchQueries.join(", "),
     searchQueries,
     source: "both",
-    region: "US",
+    region,
     adStatus: "active",
-    adFormat: "all",
-    dateRange: "last_90_days",
+    adFormat: "video",
+    startDate,
+    endDate,
+    dateRange: "custom",
     maxResults: actorLimit,
     maxAds: actorLimit,
   });
-  console.log(`[tiktok] queries=${searchQueries.join("|")} actorLimit=${actorLimit} raw items: ${items.length}`);
+  console.log(`[tiktok] queries=${searchQueries.join("|")} region=${region} actorLimit=${actorLimit} raw items: ${items.length}`);
   if (items[0]) {
     console.log(`[tiktok] sample keys: ${Object.keys(items[0]).join(",")}`);
     console.log(`[tiktok] sample item: ${JSON.stringify(items[0]).slice(0, 800)}`);
   }
   const normalized = items.map(normalizeTikTokAd).filter((x): x is ScrapedAd => !!x);
-  console.log(`[tiktok] normalized: ${normalized.length}`);
-  return normalized.slice(0, limit);
+  const filtered = normalized.filter((ad) => passesTikTokQuality(ad, countries, quality));
+  console.log(`[tiktok] normalized: ${normalized.length} quality-kept: ${filtered.length} filters=${JSON.stringify(quality)}`);
+  return filtered.slice(0, limit);
 }
 
 function getStoredLandingUrl(ad: ScrapedAd): string {
