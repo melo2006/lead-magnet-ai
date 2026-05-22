@@ -477,9 +477,36 @@ export default function AdHijack() {
     setAds((prev) => prev.filter((a) => a.id !== id));
   };
 
+  const setApproval = async (id: string, status: "approved" | "rejected" | "pending") => {
+    const { error } = await supabase.from("scraped_ads").update({ approval_status: status }).eq("id", id);
+    if (error) { toast({ title: "Update failed", description: error.message, variant: "destructive" }); return; }
+    setAds((prev) => prev.map((a) => (a.id === id ? { ...a, approval_status: status } : a)));
+  };
+
+  const bulkApprovePending = async () => {
+    const ids = filteredAds.filter((a) => (a.approval_status ?? "pending") === "pending").map((a) => a.id);
+    if (ids.length === 0) { toast({ title: "No pending ads in view" }); return; }
+    const { error } = await supabase.from("scraped_ads").update({ approval_status: "approved" }).in("id", ids);
+    if (error) { toast({ title: "Bulk approve failed", description: error.message, variant: "destructive" }); return; }
+    setAds((prev) => prev.map((a) => (ids.includes(a.id) ? { ...a, approval_status: "approved" } : a)));
+    toast({ title: `Approved ${ids.length} ads` });
+  };
+
+  const saveCommentEdit = async (id: string) => {
+    const text = editingComment[id];
+    if (text === undefined) return;
+    const { error } = await supabase.from("scraped_ads").update({ comment_template: text }).eq("id", id);
+    if (error) { toast({ title: "Save failed", description: error.message, variant: "destructive" }); return; }
+    setAds((prev) => prev.map((a) => (a.id === id ? { ...a, comment_template: text } : a)));
+    setEditingComment((prev) => { const n = { ...prev }; delete n[id]; return n; });
+    toast({ title: "Comment saved" });
+  };
+
   const filteredAds = ads.filter((ad) => matchesAdsFilter(ad, adsFilter));
   const commentableCount = ads.filter(isCommentable).length;
   const contactFallbackCount = ads.filter(hasContactFallback).length;
+  const pendingCount = ads.filter((a) => (a.approval_status ?? "pending") === "pending").length;
+  const approvedCount = ads.filter((a) => a.approval_status === "approved").length;
 
   return (
     <div className="space-y-6">
