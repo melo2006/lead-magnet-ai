@@ -196,6 +196,7 @@ const TalkingAvatarWidget = () => {
   const [hasBluetoothOutput, setHasBluetoothOutput] = useState(false);
   const [isRoutingAudio, setIsRoutingAudio] = useState(false);
   const audioRouteRef = useRef<AudioRoute>("speaker");
+  const hasUserChangedAudioRouteRef = useRef(false);
   const audioCtxRef = useRef<AudioContext | null>(null);
   const audioSourceRef = useRef<MediaStreamAudioSourceNode | null>(null);
   const remoteTrackRef = useRef<any>(null);
@@ -758,6 +759,11 @@ const TalkingAvatarWidget = () => {
     const client = retellClientRef.current as any;
     if (!client) return;
     if (isRoutingAudio) return;
+    if (!hasUserChangedAudioRouteRef.current) {
+      hasUserChangedAudioRouteRef.current = true;
+      await client._routeSpeaker?.();
+      return;
+    }
     const nextRoute: AudioRoute =
       audioRoute === "bluetooth"
         ? "speaker"
