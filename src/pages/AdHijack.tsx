@@ -16,7 +16,11 @@ import {
   ArrowRight,
   RefreshCw,
   ShieldCheck,
+  Check,
+  X,
+  Globe,
 } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 
 type Platform = "meta" | "tiktok" | "linkedin" | "google";
 type SupportedPlatform = "meta" | "tiktok";
