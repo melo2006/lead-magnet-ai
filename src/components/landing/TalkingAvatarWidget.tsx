@@ -542,15 +542,26 @@ const TalkingAvatarWidget = () => {
 
       const routeToEarpiece = () => {
         try {
-          audioSourceRef.current?.disconnect();
+          // Tear down Web Audio (speaker) route
+          try { audioSourceRef.current?.disconnect(); } catch { /* noop */ }
           audioSourceRef.current = null;
+          try { audioCtxRef.current?.suspend(); } catch { /* noop */ }
           if (silentSinkAudioRef.current) {
+            silentSinkAudioRef.current.pause();
             silentSinkAudioRef.current.srcObject = null;
           }
           const track = remoteTrackRef.current ?? findRemoteTrack();
           remoteTrackRef.current = track;
-          // Re-attach via LiveKit → routes to earpiece (voice-communication stream)
-          track?.attach();
+          if (!track) return;
+          // LiveKit attach() returns an audio element; we MUST append it to DOM
+          // and unmute it so Android routes via voice-communication (earpiece / BT-HSP).
+          const el = track.attach() as HTMLAudioElement;
+          el.muted = false;
+          el.autoplay = true;
+          (el as any).playsInline = true;
+          el.style.display = "none";
+          document.body.appendChild(el);
+          el.play().catch(() => {});
         } catch (e) {
           console.error("Failed to route audio to earpiece:", e);
         }
