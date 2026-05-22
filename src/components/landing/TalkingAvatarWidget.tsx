@@ -590,9 +590,10 @@ const TalkingAvatarWidget = () => {
           // voice-communication (earpiece). Must also play a non-MediaStream <audio>
           // (src= silent data URI) so Android keeps the page in MEDIA output mode.
           const AC = (window.AudioContext || (window as any).webkitAudioContext) as typeof AudioContext;
-          if (!audioCtxRef.current || audioCtxRef.current.state === "closed") {
-            audioCtxRef.current = new AC({ latencyHint: "playback" } as AudioContextOptions);
-          }
+          // Always recreate with 'playback' latency hint to force MEDIA stream type on Android.
+          try { await audioCtxRef.current?.close(); } catch { /* noop */ }
+          audioCtxRef.current = new AC({ latencyHint: "playback" } as AudioContextOptions);
+
           const ctx = audioCtxRef.current;
           await ctx.resume();
           try { audioSourceRef.current?.disconnect(); } catch { /* noop */ }
