@@ -369,7 +369,7 @@ function passesTikTokQuality(ad: ScrapedAd, countries: string[], quality: ScanQu
   }
 
   if (region && region !== "ALL" && countries.length > 0 && !countries.includes(region)) return false;
-  if (region === "ALL" && sourceChannel === "ad_library" && countries.includes("US")) return false;
+  if (region === "ALL" && countries.length > 0) return false;
 
   return true;
 }
