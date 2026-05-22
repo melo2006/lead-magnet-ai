@@ -32,3 +32,10 @@ verify_jwt = false
 
 [functions.payments-webhook]
 verify_jwt = false
+
+[functions.scrape-social-ads]
+verify_jwt = false
+
+[functions.generate-ad-comment]
+verify_jwt = false
+
