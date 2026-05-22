@@ -1038,7 +1038,7 @@ export default function AdHijack() {
 
                 {ad.comment_template && (
                   <div className="bg-muted/30 rounded p-2 mt-2">
-                    <p className="text-[11px] whitespace-pre-wrap break-all">{ad.comment_template}</p>
+                    <p className="text-[11px] whitespace-pre-wrap break-words">{renderLinkedText(ad.comment_template)}</p>
                     <div className="flex gap-1.5 mt-2 flex-wrap">
                       <Button size="sm" variant="ghost" onClick={() => copyText(ad.comment_template!)} className="h-6 text-[10px]">
                         <Copy className="h-3 w-3" /> Copy comment
