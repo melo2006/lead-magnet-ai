@@ -265,7 +265,8 @@ export default function AdHijack() {
   const [ads, setAds] = useState<ScrapedAd[]>([]);
   const [jobs, setJobs] = useState<ScanJob[]>([]);
   const [generatingFor, setGeneratingFor] = useState<string | null>(null);
-  const [commentableOnly, setCommentableOnly] = useState(false);
+  const [engagementTarget, setEngagementTarget] = useState<EngagementTarget>("all_with_contact");
+  const [adsFilter, setAdsFilter] = useState<AdsFilter>("all");
 
   const loadData = useCallback(async () => {
     const [adsRes, jobsRes] = await Promise.all([
@@ -303,6 +304,7 @@ export default function AdHijack() {
     platforms?: string[];
     mode?: "fresh" | "rescan";
     jobId?: string;
+    engagementTarget?: EngagementTarget;
   }) => {
     const scanNiche = (override?.niche ?? searchKeyword).trim();
     const scanLocationRaw = (override?.location ?? location) ?? "";
@@ -330,6 +332,7 @@ export default function AdHijack() {
           platforms: scanPlatforms,
           limit: override?.mode === "rescan" ? Math.max(Number(limit), 50) : Number(limit),
           mode: override?.mode ?? "fresh",
+          engagement_target: override?.engagementTarget ?? engagementTarget,
         },
       });
       if (error) throw error;
