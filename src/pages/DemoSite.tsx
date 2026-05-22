@@ -153,7 +153,26 @@ const ScanFallbackPreview = ({ leadData, siteName, homepageUrl }: ScanFallbackPr
   </div>
 );
 
-const mergeLeadRecordIntoDemoData = (record: any, current: DemoLeadData): DemoLeadData => ({
+type DemoLeadRecord = Partial<{
+  id: string;
+  updated_at: string;
+  full_name: string;
+  business_name: string;
+  email: string;
+  phone: string;
+  website_url: string;
+  niche: string;
+  website_screenshot: string;
+  screenshot_tablet: string;
+  screenshot_mobile: string;
+  website_title: string;
+  website_description: string;
+  website_content: string;
+  brand_colors: Record<string, string>;
+  brand_logo: string;
+}>;
+
+const mergeLeadRecordIntoDemoData = (record: DemoLeadRecord, current: DemoLeadData): DemoLeadData => ({
   ...current,
   leadId: record.id || current.leadId,
   previewVersion: record.updated_at || current.previewVersion,
@@ -164,8 +183,8 @@ const mergeLeadRecordIntoDemoData = (record: any, current: DemoLeadData): DemoLe
   phone: record.phone || current.phone,
   niche: record.niche || current.niche,
   screenshot: record.website_screenshot || current.screenshot || null,
-  screenshotTablet: (record as any).screenshot_tablet || current.screenshotTablet || null,
-  screenshotMobile: (record as any).screenshot_mobile || current.screenshotMobile || null,
+  screenshotTablet: record.screenshot_tablet || current.screenshotTablet || null,
+  screenshotMobile: record.screenshot_mobile || current.screenshotMobile || null,
   title: record.website_title || current.title || "",
   description: record.website_description || current.description || "",
   websiteContent: record.website_content || current.websiteContent || "",
