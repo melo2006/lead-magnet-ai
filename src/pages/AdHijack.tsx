@@ -274,6 +274,26 @@ const safeHost = (url: string) => {
   }
 };
 
+const renderLinkedText = (text: string) => {
+  const urlRegex = /(https?:\/\/[^\s<>'"]+)/g;
+  const parts = text.split(urlRegex);
+  return parts.map((part, index) =>
+    urlRegex.test(part) ? (
+      <a
+        key={`${part}-${index}`}
+        href={part}
+        target="_blank"
+        rel="noopener noreferrer"
+        className="text-primary underline underline-offset-2 break-all"
+      >
+        {part}
+      </a>
+    ) : (
+      <span key={`${part}-${index}`}>{part}</span>
+    ),
+  );
+};
+
 const metaStr = (ad: ScrapedAd, key: string): string | null => {
   const v = ad.metadata?.[key];
   return typeof v === "string" && v.trim() ? v : null;
