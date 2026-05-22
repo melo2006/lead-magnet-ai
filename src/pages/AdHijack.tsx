@@ -28,7 +28,8 @@ type EngagementTarget = "all" | "commentable_only" | "all_with_contact";
 type AdsFilter =
   | "all" | "commentable" | "contact_fallback" | "dark"
   | "pending" | "approved" | "rejected"
-  | "winners" | "scaling" | "video" | "affiliate";
+  | "winners" | "scaling" | "video" | "affiliate"
+  | "ig_only" | "fb_only" | "tiktok_only";
 type Country = "US" | "CA" | "GB" | "AU";
 
 interface ScrapedAd {
