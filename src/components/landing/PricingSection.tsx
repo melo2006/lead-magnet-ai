@@ -206,7 +206,7 @@ const PricingSection = () => {
           <div className="rounded-xl border border-border bg-card/50 p-5">
             <p className="text-sm text-center text-muted-foreground leading-relaxed">
               <span className="font-semibold text-foreground">How we compare:</span>{" "}
-              Basic AI voice agents start at $25–$50/mo elsewhere — but they ONLY answer calls. We bundle voice + chat + lead capture + booking + warm transfers starting at{" "}
+              Basic AI voice agents start at $75–$150+/mo elsewhere — but they ONLY answer calls. We bundle voice + chat + lead capture + booking + warm transfers starting at{" "}
               <span className="text-primary font-medium">$99/mo</span>. No per-seat fees, no hidden API charges.
             </p>
           </div>
