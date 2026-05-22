@@ -36,6 +36,7 @@ interface ScrapedAd {
   prospect_id: string | null;
   scan_job_id: string | null;
   created_at: string;
+  metadata?: Record<string, unknown> | null;
 }
 
 interface ScanJob {
@@ -210,6 +211,12 @@ const safeHost = (url: string) => {
   } catch {
     return url;
   }
+};
+
+const getBestAdOpenUrl = (ad: ScrapedAd) => {
+  const postUrl = typeof ad.metadata?.post_url === "string" ? ad.metadata.post_url : null;
+  const libraryUrl = typeof ad.metadata?.library_url === "string" ? ad.metadata.library_url : null;
+  return postUrl || ad.source_ad_url || libraryUrl || null;
 };
 
 export default function AdHijack() {
