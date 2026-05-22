@@ -429,33 +429,48 @@ function pickTikTokPostUrl(item: any): string | undefined {
 }
 
 function normalizeTikTokAd(item: any): ScrapedAd | null {
-  const landing =
-    item.landingPageUrl ||
-    item.landing_url ||
-    item.landingUrl ||
-    item.adUrl ||
-    item.url ||
-    item.advertiserUrl ||
-    item.click_url;
-  if (!landing) return null;
-  const landingUrl = String(landing).startsWith("http") ? String(landing) : `https://${landing}`;
+  const landingRaw =
+    item.landingPageUrl || item.landing_url || item.landingUrl ||
+    item.adUrl || item.url || item.advertiserUrl || item.click_url ||
+    item.brandUrl || item.brand_url;
   const tikTokPostUrl = pickTikTokPostUrl(item);
-  const startRaw = item.createdAt || item.startDate || item.first_seen || item.firstSeen;
-  const startMsRaw = startRaw ? new Date(String(startRaw)).getTime() : NaN;
-  const startMs = Number.isFinite(startMsRaw) ? startMsRaw : null;
+  const videoUrl =
+    item.videoUrl || item.video_url || item.videoUrl1080p || item.videoUrl720p ||
+    item.video_url_1080p || item.video_url_720p;
+  const coverUrl = item.coverUrl || item.cover_url || item.imageUrl;
+  const advertiserName =
+    item.advertiserName || item.brandName || item.advertiser ||
+    item.brand || item.author || item.nickname || "Unknown";
+
+  // Permissive: keep if we have ANY usable signal.
+  if (!landingRaw && !tikTokPostUrl && !videoUrl && advertiserName === "Unknown") return null;
+
+  const landingUrl = landingRaw
+    ? (String(landingRaw).startsWith("http") ? String(landingRaw) : `https://${landingRaw}`)
+    : (tikTokPostUrl || videoUrl || "");
+
+  const startRaw =
+    item.createdAt || item.startDate || item.first_seen || item.firstSeen ||
+    item.firstShownDate || item.first_shown_date || item.adShowDate;
+  const endRaw = item.lastShownDate || item.last_shown_date || item.endDate;
+  const startMs = startRaw ? new Date(String(startRaw)).getTime() : NaN;
+  const endMs = endRaw ? new Date(String(endRaw)).getTime() : NaN;
   const isActive = item.isActive ?? item.is_active ?? true;
-  const daysRunning = computeDaysRunning(startMs, null);
+  const daysRunning = computeDaysRunning(
+    Number.isFinite(startMs) ? startMs : null,
+    Number.isFinite(endMs) ? endMs : null,
+  );
   const isAffiliate = detectAffiliate(landingUrl);
 
   return {
     platform: "tiktok",
-    ad_id: item.id || item.adId || item.materialId,
-    advertiser_name: item.advertiserName || item.brandName || item.advertiser || "Unknown",
-    advertiser_handle: item.advertiserId || item.brandId,
+    ad_id: item.id || item.adId || item.materialId || item.adIdStr || tikTokPostUrl || crypto.randomUUID(),
+    advertiser_name: advertiserName,
+    advertiser_handle: item.advertiserId || item.brandId || item.uniqueId,
     landing_url: landingUrl,
     cta_text: item.cta || item.ctaText || item.callToAction,
-    ad_creative_text: item.title || item.description || item.adText,
-    ad_media_url: item.videoUrl || item.coverUrl || item.imageUrl,
+    ad_creative_text: item.title || item.description || item.adText || item.text,
+    ad_media_url: videoUrl || coverUrl,
     posted_at: startRaw ? String(startRaw) : undefined,
     source_ad_url: tikTokPostUrl,
     metadata: {
@@ -465,10 +480,13 @@ function normalizeTikTokAd(item: any): ScrapedAd | null {
       is_commentable: Boolean(tikTokPostUrl),
       days_running: daysRunning,
       is_active: isActive !== false,
-      media_type: item.videoUrl ? "video" : "image",
+      media_type: videoUrl ? "video" : "image",
       is_affiliate: isAffiliate,
-      region: item.region,
+      region: item.region || item.country,
+      ctr_rank: item.ctrRank || item.ctr_rank,
+      likes: item.likes || item.likeCount,
       source: "aiscraperdev/tiktok-ads-library-scraper",
+      raw_keys: Object.keys(item).slice(0, 30),
     },
   };
 }
@@ -486,7 +504,13 @@ async function scrapeTikTokViaApify(
     maxAds: limit,
   });
   console.log(`[tiktok] raw items: ${items.length}`);
-  return items.map(normalizeTikTokAd).filter((x): x is ScrapedAd => !!x);
+  if (items[0]) {
+    console.log(`[tiktok] sample keys: ${Object.keys(items[0]).join(",")}`);
+    console.log(`[tiktok] sample item: ${JSON.stringify(items[0]).slice(0, 800)}`);
+  }
+  const normalized = items.map(normalizeTikTokAd).filter((x): x is ScrapedAd => !!x);
+  console.log(`[tiktok] normalized: ${normalized.length}`);
+  return normalized;
 }
 
 serve(async (req) => {
