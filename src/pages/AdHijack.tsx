@@ -649,17 +649,34 @@ export default function AdHijack() {
 
                 {ad.comment_template && (
                   <div className="bg-muted/30 rounded p-2 mt-2">
-                    <p className="text-[11px] whitespace-pre-wrap">{ad.comment_template}</p>
+                    <p className="text-[11px] whitespace-pre-wrap break-all">{ad.comment_template}</p>
                     <div className="flex gap-1.5 mt-2">
-                      <Button size="sm" variant="ghost" onClick={() => copyText(ad.comment_template!)} className="h-6 text-[10px]">
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        onClick={() => copyText(ad.comment_template!)}
+                        className="h-6 text-[10px]"
+                      >
                         <Copy className="h-3 w-3" /> Copy comment
                       </Button>
                       {ad.source_ad_url && (
-                        <a href={ad.source_ad_url} target="_blank" rel="noopener noreferrer">
-                          <Button size="sm" variant="ghost" className="h-6 text-[10px]">
-                            <ExternalLink className="h-3 w-3" /> Open ad to paste
-                          </Button>
-                        </a>
+                        <Button
+                          size="sm"
+                          variant="ghost"
+                          className="h-6 text-[10px]"
+                          onClick={() => {
+                            // Copy first so it's ready to paste, then pop a real new tab
+                            // where the user is already logged into the platform.
+                            navigator.clipboard.writeText(ad.comment_template!);
+                            window.open(ad.source_ad_url!, "_blank", "noopener,noreferrer");
+                            toast({
+                              title: "Comment copied — paste with Cmd/Ctrl+V",
+                              description: "Opened the ad in a new tab.",
+                            });
+                          }}
+                        >
+                          <ExternalLink className="h-3 w-3" /> Copy + Open ad
+                        </Button>
                       )}
                     </div>
                   </div>
