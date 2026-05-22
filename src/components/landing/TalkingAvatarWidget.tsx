@@ -578,6 +578,42 @@ const TalkingAvatarWidget = () => {
       // Expose helpers on the ref so the toggle button can call them.
       (retellClientRef.current as any)._routeSpeaker = routeToSpeaker;
       (retellClientRef.current as any)._routeEarpiece = routeToEarpiece;
+    } catch (err) {
+      console.error("Failed to start spokesperson call:", err);
+      setCallStatus("idle");
+    }
+  }, [focusAvatarOnViewer, resetAvatarMotion, audioRoute]);
+
+  const endCall = useCallback(() => {
+    try { retellClientRef.current?.stopCall(); } catch { /* noop */ }
+    setCallStatus("idle");
+    setIsAgentSpeaking(false);
+    setIsMuted(false);
+    resetAvatarMotion();
+    if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+  }, [resetAvatarMotion]);
+
+  const toggleMute = useCallback(() => {
+    try {
+      if (isMuted) retellClientRef.current?.unmute();
+      else retellClientRef.current?.mute();
+      setIsMuted((prev) => !prev);
+    } catch { /* noop */ }
+  }, [isMuted]);
+
+  const toggleAudioRoute = useCallback(async () => {
+    const client = retellClientRef.current as any;
+    if (!client) return;
+    if (audioRoute === "speaker") {
+      client._routeEarpiece?.();
+      setAudioRoute("earpiece");
+    } else {
+      await client._routeSpeaker?.();
+      setAudioRoute("speaker");
+    }
+  }, [audioRoute]);
+
+
 
   const handleExpand = () => setWidgetState("expanded");
   const handleMinimize = () => setWidgetState("minimized");
