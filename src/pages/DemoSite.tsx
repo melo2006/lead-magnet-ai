@@ -6,6 +6,7 @@ import { getResponsiveScreenshotSrc, getSiteName, withCacheKey } from "@/compone
 import VoiceAgentWidget from "@/components/landing/demo-results/VoiceAgentWidget";
 import ChatWidget from "@/components/landing/demo-results/ChatWidget";
 import WebsiteShowcase from "@/components/landing/demo-results/WebsiteShowcase";
+import GeoGridWidget from "@/components/landing/demo-results/GeoGridWidget";
 import DemoWatermark from "@/components/landing/demo-results/DemoWatermark";
 import DraggableFloating from "@/components/landing/demo-results/DraggableFloating";
 import ScanningAnimation from "@/components/landing/ScanningAnimation";
@@ -933,7 +934,19 @@ const DemoSite = () => {
 
         {isPreviewLoading && <DemoLoadingState websiteUrl={homepageUrl} businessName={siteName} overlay />}
 
+        {/* ===== Local Google Maps Geo-Grid Blind-Spot Diagnostic ===== */}
+        {hasAnyPreview && (
+          <GeoGridWidget
+            businessName={siteName}
+            websiteUrl={homepageUrl}
+            defaultKeyword={leadData.niche && leadData.niche !== "general" ? `${leadData.niche} near me` : ""}
+            onVoiceCall={() => { setVoiceOpen(true); setChatOpen(false); }}
+            onBookCall={() => navigate("/#pricing")}
+          />
+        )}
+
         {/* ===== AI Widget buttons — draggable floating ===== */}
+
         {hasAnyPreview && (
           <>
             <DraggableFloating initialX={24} initialY={window.innerHeight - 100} anchorRight={false}>
