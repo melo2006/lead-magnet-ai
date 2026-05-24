@@ -39,3 +39,8 @@ verify_jwt = false
 [functions.generate-ad-comment]
 verify_jwt = false
 
+[functions.geo-grid-scan]
+verify_jwt = false
+
+
+
