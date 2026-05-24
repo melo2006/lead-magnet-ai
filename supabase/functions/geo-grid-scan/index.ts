@@ -137,16 +137,20 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Resolve center
+    // Resolve center — try in order: explicit coords -> address geocode -> Places text search -> business+website geocode -> business name geocode
     let center: { lat: number; lng: number; formatted?: string } | null = null;
     if (typeof centerLat === "number" && typeof centerLng === "number") {
       center = { lat: centerLat, lng: centerLng };
-    } else {
-      const q = address || `${businessName} ${websiteUrl || ""}`.trim();
-      center = await geocode(q);
     }
+    if (!center && address) center = await geocode(address);
+    if (!center) center = await findBusinessLocation(businessName, websiteUrl);
+    if (!center && websiteUrl) center = await geocode(`${businessName} ${websiteUrl}`.trim());
+    if (!center) center = await geocode(businessName);
+
     if (!center) {
-      return new Response(JSON.stringify({ error: "Could not geocode business location" }), {
+      return new Response(JSON.stringify({
+        error: `Could not locate "${businessName}" on Google Maps. Try providing the business address.`,
+      }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
