@@ -22,8 +22,37 @@ async function geocode(query: string): Promise<{ lat: number; lng: number; forma
   const r = await fetch(url);
   const j = await r.json();
   const first = j?.results?.[0];
-  if (!first) return null;
+  if (!first) {
+    console.warn("Geocode no results for:", query, "status:", j?.status, j?.error_message);
+    return null;
+  }
   return { lat: first.geometry.location.lat, lng: first.geometry.location.lng, formatted: first.formatted_address };
+}
+
+// Find business via Google Places Text Search (more reliable than geocoding a name)
+async function findBusinessLocation(businessName: string, websiteUrl?: string): Promise<{ lat: number; lng: number; formatted: string } | null> {
+  try {
+    const query = websiteUrl ? `${businessName} ${websiteUrl}` : businessName;
+    const res = await fetch("https://places.googleapis.com/v1/places:searchText", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": GOOGLE_MAPS_API_KEY,
+        "X-Goog-FieldMask": "places.location,places.formattedAddress,places.displayName",
+      },
+      body: JSON.stringify({ textQuery: query, maxResultCount: 1, languageCode: "en" }),
+    });
+    const j = await res.json();
+    const first = j?.places?.[0];
+    if (!first?.location) {
+      console.warn("Places search no results for:", query, JSON.stringify(j).slice(0, 200));
+      return null;
+    }
+    return { lat: first.location.latitude, lng: first.location.longitude, formatted: first.formattedAddress || "" };
+  } catch (e) {
+    console.error("findBusinessLocation error:", e);
+    return null;
+  }
 }
 
 // Build a small circle polygon around a point for Apify's customGeolocation
@@ -108,16 +137,20 @@ Deno.serve(async (req) => {
       });
     }
 
-    // Resolve center
+    // Resolve center — try in order: explicit coords -> address geocode -> Places text search -> business+website geocode -> business name geocode
     let center: { lat: number; lng: number; formatted?: string } | null = null;
     if (typeof centerLat === "number" && typeof centerLng === "number") {
       center = { lat: centerLat, lng: centerLng };
-    } else {
-      const q = address || `${businessName} ${websiteUrl || ""}`.trim();
-      center = await geocode(q);
     }
+    if (!center && address) center = await geocode(address);
+    if (!center) center = await findBusinessLocation(businessName, websiteUrl);
+    if (!center && websiteUrl) center = await geocode(`${businessName} ${websiteUrl}`.trim());
+    if (!center) center = await geocode(businessName);
+
     if (!center) {
-      return new Response(JSON.stringify({ error: "Could not geocode business location" }), {
+      return new Response(JSON.stringify({
+        error: `Could not locate "${businessName}" on Google Maps. Try providing the business address.`,
+      }), {
         status: 400, headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
