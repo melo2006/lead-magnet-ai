@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import {
   CheckCircle,
   Globe,
@@ -18,33 +19,27 @@ import {
 const scanSteps = [
   {
     icon: Search,
-    label: "Scanning website content",
-    detail: "Reading pages, services, and contact info…",
+    key: "content",
   },
   {
     icon: Globe,
-    label: "Analyzing your online presence",
-    detail: "Capturing screenshots and brand details…",
+    key: "presence",
   },
   {
     icon: Mic,
-    label: "Preparing Voice AI demo",
-    detail: "A new way to never miss a customer call.",
+    key: "voice",
   },
   {
     icon: MessageSquare,
-    label: "Setting up Chat AI",
-    detail: "Instant answers turn visitors into captured leads.",
+    key: "chat",
   },
   {
     icon: PhoneCall,
-    label: "Enabling warm transfers",
-    detail: "Hot leads get connected to a human—fast.",
+    key: "transfer",
   },
   {
     icon: Sparkles,
-    label: "Finalizing your live demo",
-    detail: "See how AI captures leads you're missing today.",
+    key: "final",
   },
 ] as const;
 
@@ -52,33 +47,27 @@ const scanSteps = [
 const benefitMessages = [
   {
     icon: Clock,
-    headline: "Never Miss Another Call",
-    body: "Your AI receptionist answers 24/7 — nights, weekends, and holidays — so every caller becomes a potential customer.",
+    key: "missCall",
   },
   {
     icon: CalendarCheck,
-    headline: "Instant Appointments",
-    body: "AI books, reschedules, and follows up automatically. No more phone tag — your calendar fills itself.",
+    key: "appointments",
   },
   {
     icon: TrendingUp,
-    headline: "Capture 2–5x More Leads",
-    body: "Most businesses miss 40% of calls. With AI answering every one, just 1–2 extra leads per month pays for itself.",
+    key: "moreLeads",
   },
   {
     icon: ShieldCheck,
-    headline: "Live in 1–2 Days",
-    body: "Setup is fast and painless. Your custom AI agent is trained on your business and ready to take calls within 48 hours.",
+    key: "liveFast",
   },
   {
     icon: Headphones,
-    headline: "Warm Transfer to You",
-    body: "When a hot lead is on the line, AI transfers them live to you or your team with a full summary — no context lost.",
+    key: "warmTransfer",
   },
   {
     icon: MessageSquare,
-    headline: "Chat AI on Your Website",
-    body: "Visitors get instant answers about services, pricing, and availability — converting browsers into booked appointments.",
+    key: "chatAi",
   },
 ];
 
@@ -116,6 +105,7 @@ const ScanningAnimation = ({
   onCancel,
   mode = "timed",
 }: ScanningAnimationProps) => {
+  const { t } = useTranslation();
   const [currentStep, setCurrentStep] = useState(0);
   const [progress, setProgress] = useState(0);
   const [currentBenefit, setCurrentBenefit] = useState(0);
@@ -210,7 +200,7 @@ const ScanningAnimation = ({
           transition={{ delay: 0.2 }}
           className="text-lg font-bold text-foreground sm:text-xl"
         >
-          {firstName ? `Hi ${firstName}, thanks for trying our AI!` : "Thanks for trying our AI!"}
+          {firstName ? t("scan.greetingWithName", { name: firstName }) : t("scan.greeting")}
         </motion.p>
         <motion.p
           initial={{ opacity: 0 }}
@@ -218,9 +208,9 @@ const ScanningAnimation = ({
           transition={{ delay: 0.4 }}
           className="mt-1 text-xs leading-relaxed text-muted-foreground sm:text-sm"
         >
-          We're building a live demo of{" "}
+          {t("scan.buildingPrefix")} {" "}
           <span className="font-semibold text-foreground">{displayName}</span> with AI Voice &amp; Chat
-          — personalized for your business. Hang tight!
+          {t("scan.buildingSuffix")}
         </motion.p>
       </div>
 
@@ -232,7 +222,7 @@ const ScanningAnimation = ({
         <div className="relative flex flex-col items-center text-center">
           {/* Eyebrow */}
           <p className="text-[9px] font-bold uppercase tracking-[0.3em] text-primary sm:text-[10px]">
-            Building your live demo
+            {t("scan.eyebrow")}
           </p>
 
           {/* Business name */}
@@ -287,12 +277,12 @@ const ScanningAnimation = ({
               className="mt-3"
             >
               <p className="text-sm font-semibold text-foreground sm:text-base">
-                {isComplete ? "Your demo is ready!" : activeStep.label}
+                {isComplete ? t("scan.readyTitle") : t(`scan.steps.${activeStep.key}.label`)}
               </p>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground sm:text-sm">
                 {isComplete
                   ? "The real site with AI voice, chat & warm transfer."
-                  : activeStep.detail}
+                  : t(`scan.steps.${activeStep.key}.detail`)}
               </p>
             </motion.div>
           </AnimatePresence>
@@ -308,7 +298,7 @@ const ScanningAnimation = ({
               />
             </div>
             <p className="mt-1.5 text-[10px] font-medium text-muted-foreground">
-              {isComplete ? "Complete" : `${Math.round(progress)}% — Scanning website + preparing widgets…`}
+              {isComplete ? t("scan.complete") : t("scan.progress", { progress: Math.round(progress) })}
             </p>
           </div>
 
@@ -318,7 +308,7 @@ const ScanningAnimation = ({
               onClick={onCancel}
               className="mt-4 text-xs font-medium text-muted-foreground hover:text-foreground transition-colors underline underline-offset-2"
             >
-              Stop creating Live Demo
+              {t("scan.stop")}
             </button>
           )}
         </div>
@@ -339,9 +329,9 @@ const ScanningAnimation = ({
               <BenefitIcon className="h-4 w-4 text-primary" />
             </div>
             <div className="text-left">
-              <p className="text-sm font-semibold text-foreground">{activeBenefit.headline}</p>
+              <p className="text-sm font-semibold text-foreground">{t(`scan.benefits.${activeBenefit.key}.headline`)}</p>
               <p className="mt-0.5 text-xs leading-relaxed text-muted-foreground">
-                {activeBenefit.body}
+                {t(`scan.benefits.${activeBenefit.key}.body`)}
               </p>
             </div>
           </motion.div>
@@ -355,9 +345,9 @@ const ScanningAnimation = ({
         transition={{ delay: 1 }}
         className="text-center text-[10px] text-muted-foreground/70 sm:text-xs"
       >
-        Have questions? Ask our Voice AI to{" "}
-        <span className="font-semibold text-primary">transfer you to a sales specialist</span>{" "}
-        anytime during the demo.
+        {t("scan.questionsPrefix")} {" "}
+        <span className="font-semibold text-primary">{t("scan.transferSpecialist")}</span>{" "}
+        {t("scan.questionsSuffix")}
       </motion.p>
     </motion.div>
   );
