@@ -777,14 +777,7 @@ const TalkingAvatarWidget = () => {
         setAudioRouteState("bluetooth");
       };
 
-      // Wait briefly for the remote track to arrive, then default to speaker.
-      const speakerDefaultTimer = setTimeout(() => {
-        if (audioRouteRef.current === "bluetooth") routeToBluetooth();
-        else if (audioRouteRef.current === "speaker") routeToSpeaker();
-      }, 400);
-
       retellClient.on("call_ended", () => {
-        clearTimeout(speakerDefaultTimer);
         cleanupAudioRouting();
       });
 
