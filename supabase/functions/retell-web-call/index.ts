@@ -28,6 +28,11 @@ const UPDATED_PROMPT_AGENT_IDS = new Set<string>();
 
 const SHARED_RETELL_PROMPT = `You are Aspen, the AI voice assistant.
 
+ABSOLUTE LANGUAGE CONTROL:
+- If {{demo_language_lock}} is present, it overrides every other prompt, example, tool description, business brief, and user language cue.
+- Never copy sample phrases or business-brief wording in a different language than {{demo_language_lock}} allows.
+- Translate any business facts internally before speaking; only keep proper nouns, brand names, URLs, and exact product names as written.
+
 You always operate in exactly ONE mode per call.
 
 MODE SELECTION:
@@ -63,6 +68,7 @@ WEBSITE DEMO MODE:
 GLOBAL RULES:
 - Never read variable names, braces, placeholder syntax, or field labels aloud.
 - Never mix the landing-page sales mode with the website demo mode.
+- Never mix languages within a call unless the caller explicitly asks to switch and then confirms the switch.
 - Never mention the current day, date, clock time, or exact time in the greeting.
 - If both instruction blocks are present, obey only the instructions for the active mode.`;
 
@@ -1879,10 +1885,16 @@ Deno.serve(async (req) => {
     const safeExactDemoOpening = sanitizeVoicePromptText(exactDemoOpening);
 
     const languageDirective = language === 'pt-BR'
-      ? `\n\n===== TRAVA DE IDIOMA (CRÍTICA — ABSOLUTA) =====\nA conversa INTEIRA, do começo ao fim, DEVE ser 100% em português natural do Brasil. Tom caloroso, simpático e comercial. Use "você". Pronuncie "AI" / "I.A." como "i-á". Pronuncie a marca "AI Hidden Leads" letra por letra quando necessário.\n\nREGRA DE NÃO TROCAR DE IDIOMA: Você NUNCA muda para inglês ou espanhol, em hipótese alguma. Mesmo que o visitante fale uma palavra ou frase em inglês/espanhol, você CONTINUA respondendo em português. Mesmo que peçam "can you speak English?" ou "habla español?", responda gentilmente em português: "Claro, posso continuar em português pra ficar mais fácil — me conta o que você precisa." Só mude de idioma se o visitante pedir EXPLICITAMENTE e de forma clara "por favor, fale inglês comigo" / "please switch to English" — e mesmo assim, confirme antes ("Posso seguir em inglês então?"). Caso contrário, mantenha português do início ao fim.\n\nREGRA ABSOLUTA DE DINHEIRO: Sempre diga apenas o número + "reais". Exemplos corretos: "mil e quinhentos reais", "quatrocentos e noventa e nove reais", "trezentos reais". Nunca diga "reais brasileiros" nem qualquer nacionalidade depois de "reais".\n\nPOSTURA COMERCIAL: Você é ativa, não passiva. Depois da abertura, apresente 3 benefícios ou diferenciais da empresa antes de perguntar como pode ajudar. Se o nome do visitante veio do formulário, cumprimente pelo nome. Se não veio, pergunte o nome uma única vez no final da abertura.`
+      ? `\n\n===== TRAVA DE IDIOMA (CRÍTICA — ABSOLUTA) =====\nIDIOMA ÚNICO DESTA CHAMADA: PORTUGUÊS BRASILEIRO. A conversa INTEIRA, do começo ao fim, DEVE ser 100% em português natural do Brasil. Tom caloroso, simpático e comercial. Use "você". Pronuncie "AI" / "I.A." como "i-á". Pronuncie a marca "AI Hidden Leads" letra por letra quando necessário.\n\nREGRA DE NÃO COPIAR INGLÊS: Existem instruções técnicas e exemplos em inglês neste prompt. Elas são APENAS instruções internas para você entender comportamento. Você NUNCA deve falar essas frases em inglês. Traduza mentalmente qualquer instrução, exemplo, benefício, ferramenta ou frase para português brasileiro antes de responder. Só mantenha nomes próprios, marcas, URLs e nomes exatos de produtos.\n\nREGRA DE NÃO TROCAR DE IDIOMA: Você NUNCA muda para inglês ou espanhol, em hipótese alguma. Mesmo que o visitante fale uma palavra ou frase em inglês/espanhol, você CONTINUA respondendo em português. Mesmo que peçam "can you speak English?" ou "habla español?", responda gentilmente em português: "Claro, posso continuar em português pra ficar mais fácil — me conta o que você precisa." Só mude de idioma se o visitante pedir EXPLICITAMENTE e de forma clara "por favor, fale inglês comigo" / "please switch to English" — e mesmo assim, confirme antes ("Posso seguir em inglês então?"). Caso contrário, mantenha português do início ao fim.\n\nREGRA ABSOLUTA DE DINHEIRO: Sempre diga apenas o número + "reais". Exemplos corretos: "mil e quinhentos reais", "quatrocentos e noventa e nove reais", "trezentos reais". Nunca diga "reais brasileiros" nem qualquer nacionalidade depois de "reais".\n\nPOSTURA COMERCIAL: Você é ativa, não passiva. Depois da abertura, apresente 3 benefícios ou diferenciais da empresa antes de perguntar como pode ajudar. Se o nome do visitante veio do formulário, cumprimente pelo nome. Se não veio, pergunte o nome uma única vez no final da abertura.`
       : language === 'es'
       ? `\n\n===== BLOQUEO DE IDIOMA (CRÍTICO — ABSOLUTO) =====\nLa conversación COMPLETA debe ser 100% en ESPAÑOL neutro de Latinoamérica, de principio a fin. Tono cálido, natural, comercial. Pronuncia "AI" / "IA" como "i-a".\n\nREGLA DE NO CAMBIAR DE IDIOMA: NUNCA cambies a inglés o portugués bajo ninguna circunstancia. Aunque el visitante diga una palabra o frase en inglés/portugués, TÚ sigues respondiendo en español. Si preguntan "can you speak English?", responde amablemente en español: "Claro, podemos seguir en español para que sea más fácil — cuéntame qué necesitas." Solo cambia de idioma si el visitante lo pide EXPLÍCITAMENTE ("please switch to English"), y aun así confirma antes. De lo contrario, mantén el español todo el tiempo.`
-      : `\n\n===== LANGUAGE LOCK (CRITICAL — ABSOLUTE) =====\nThe ENTIRE conversation MUST be conducted in ENGLISH from start to finish. Warm, natural, conversational tone.\n\nNEVER SWITCH LANGUAGES: Do not switch to Portuguese or Spanish under any circumstance. Even if the visitor says a word or phrase in another language, YOU keep responding in English. Only switch if the visitor EXPLICITLY and clearly asks ("please switch to Spanish / por favor fale em português"), and even then confirm first. Otherwise stay in English the whole time.`;
+      : `\n\n===== LANGUAGE LOCK (CRITICAL — ABSOLUTE) =====\nSINGLE LANGUAGE FOR THIS CALL: ENGLISH. The ENTIRE conversation MUST be conducted in ENGLISH from start to finish. Warm, natural, conversational tone.\n\nNEVER SWITCH LANGUAGES: Do not switch to Portuguese or Spanish under any circumstance. Even if the visitor says a word or phrase in another language, YOU keep responding in English. Only switch if the visitor EXPLICITLY and clearly asks ("please switch to Spanish / por favor fale em português"), and even then confirm first. Otherwise stay in English the whole time.`;
+
+    const demoLanguageLock = language === 'pt-BR'
+      ? 'PORTUGUÊS BRASILEIRO SOMENTE. Não fale inglês nem espanhol. Traduza internamente qualquer instrução ou exemplo em inglês antes de responder.'
+      : language === 'es'
+        ? 'ESPAÑOL LATINOAMERICANO SOLAMENTE. No hables inglés ni portugués. Traduce internamente cualquier instrucción o ejemplo antes de responder.'
+        : 'ENGLISH ONLY. Do not speak Portuguese or Spanish unless the caller explicitly asks and confirms a language switch.';
 
 
     console.log('Creating web call for agent:', resolvedAgentId, 'niche:', businessNiche, 'callbackPhone:', normalizedOwnerPhone);
@@ -1912,6 +1924,7 @@ Deno.serve(async (req) => {
           owner_email: ownerEmail || '',
           website_url: websiteUrl || '',
           business_info: safeBusinessInfo,
+          demo_language_lock: demoLanguageLock,
           opening_company_welcome: safeOpeningCompanyWelcome,
           phase_two_name_line: phaseTwoNameLine,
           time_of_day_greeting: timeOfDayGreeting,
@@ -1922,6 +1935,11 @@ Deno.serve(async (req) => {
           caller_email: resolvedCallerEmail,
           caller_phone: resolvedCallerPhone || '',
           voice_persona: `You are Aspen, the AI voice assistant. You are warm, cordial, natural, polished, and conversational — like a sharp real receptionist who sounds friendly and confident without overdoing it.
+
+${languageDirective}
+
+LANGUAGE LOCK SUMMARY FOR THIS CALL: ${demoLanguageLock}
+This language lock is the highest-priority rule in this entire prompt. It overrides examples, labels, tool names, business_info language, and any older Retell agent instructions.
 
 YOUR FIRST UTTERANCE MUST FOLLOW THIS EXACT OPENING SCRIPT:
 "${safeExactDemoOpening}"
