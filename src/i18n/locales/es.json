@@ -1,0 +1,128 @@
+{
+  "nav": {
+    "services": "Servicios",
+    "howItWorks": "Cómo Funciona",
+    "pricing": "Precios",
+    "testimonials": "Testimonios",
+    "getFreeDemo": "Demo Gratis"
+  },
+  "lang": {
+    "label": "Idioma",
+    "en": "Inglés",
+    "pt-BR": "Portugués (Brasil)",
+    "es": "Español"
+  },
+  "hero": {
+    "badge": "Prueba Tu Sitio Con Voz de IA — Gratis en 2 Minutos",
+    "headline1": "Llamadas Perdidas =",
+    "headline2": "Dinero Perdido.",
+    "headline3": "Lo Resolvemos — Desde $99/mes.",
+    "sub": "Recepcionista de voz con IA + chat web + generación de leads — todo en una sola plataforma. Míralo funcionando en TU sitio en 90 segundos. Sin tarjeta, sin discurso de venta.",
+    "ctaPrimary": "🎙️ Prueba la Voz de IA en Tu Sitio — Gratis",
+    "ctaSecondary": "Ver Planes y Precios",
+    "trust": "Sin tarjeta · Configuración en 90 segundos · Para cualquier negocio",
+    "stat1": "Compran al que responde primero",
+    "stat2": "De los leads que nunca son contactados",
+    "stat3": "Perdidos por oportunidad no atendida",
+    "stat4": "Aumentaron sus ingresos usando IA",
+    "meetAspen": "Conoce a Aspen",
+    "aspenQuote": "\"La IA de voz hace mucho más de lo que crees — déjame mostrártelo. Haz clic en <strong>Hablar con Aspen</strong> abajo y te explico cómo convertir llamadas perdidas en citas agendadas y generar leads de tus propios clientes. ¡Pruébalo gratis, ahora mismo!\"",
+    "aspenHint": "Haz clic en el botón \"Hablar con Aspen\" a la izquierda para conversar en vivo"
+  },
+  "tryCta": {
+    "kicker": "Demo Gratis en Vivo",
+    "title": "Escucha TU Sitio Cobrar Vida Con IA — en Menos de 2 Minutos",
+    "sub": "Ingresa la URL de tu sitio y escucha cómo sonaría tu recepcionista de voz y tu chat de IA — totalmente gratis, sin tarjeta.",
+    "cta": "🎙️ Probar Mi Sitio Ahora — Gratis"
+  },
+  "services": {
+    "title": "Sabemos Lo Que Necesitas —",
+    "titleAccent": "Lo Hemos Oído Todo",
+    "sub": "\"Quiero más clientes.\" \"Quiero mejores reseñas.\" \"Quiero estar en la primera página de Google.\" \"Necesito mejor atención.\"",
+    "subStrong": "Hacemos todo eso — pero esto es por donde te recomendamos empezar.",
+    "core": "Servicio Principal",
+    "quickWins": "Resultados Rápidos",
+    "alsoAvailable": "También disponible:",
+    "alsoList": "Rediseño y modernización del sitio · SEO y posicionamiento en Google Maps · Optimización para Búsqueda con IA (GEO) · Devoluciones de llamada instantáneas · Entrenamiento personalizado del agente de IA",
+    "items": {
+      "voice": { "title": "Agente de Voz con IA", "desc": "Tu recepcionista 24/7. Atiende cada llamada con voz natural, califica leads, agenda citas y transfiere prospectos calientes a tu teléfono — en vivo. Nunca más pierdas una llamada." },
+      "chat": { "title": "Chat de IA en el Sitio", "desc": "Chat instantáneo entrenado en TU negocio. Captura leads, responde preguntas, agenda citas y convierte visitantes en clientes mientras duermes." },
+      "reactivation": { "title": "Reactivación de Base de Datos", "desc": "Tu CRM viejo es una mina de oro. Reactivamos leads dormidos durante meses — llamadas, correos y SMS con IA que vuelven a convertir contactos olvidados en clientes." },
+      "leadgen": { "title": "Generación de Leads", "desc": "Encontramos negocios y clientes que están buscando activamente tus servicios. Prospección por intención en Google, directorios y redes sociales — entregada a tu CRM cada día." },
+      "reviews": { "title": "Reputación y Reseñas", "desc": "Más reseñas de 5 estrellas en Google, automáticamente. Te ayudamos a responder, gestionar tu reputación y subir en el ranking de Google Maps." },
+      "outreach": { "title": "Prospección y Seguimiento", "desc": "Secuencias automáticas de correo y SMS que dan seguimiento por días o semanas. Mensajes personalizados, envíos programados y llamadas con IA cuando el lead interactúa." },
+      "social": { "title": "Gestión de Redes Sociales", "desc": "Publicaciones consistentes en tus redes. Creamos y programamos contenido para que mantengas presencia sin mover un dedo." }
+    }
+  },
+  "how": {
+    "title1": "De la Inscripción a los Resultados en",
+    "title2": "4 Pasos Simples",
+    "sub": "Sin conocimientos técnicos. Sin contratos largos. Nosotros nos encargamos del setup — tú te quedas con los leads.",
+    "s1": { "title": "Configuramos Tu IA", "desc": "En menos de 48 horas, instalamos un agente de voz y un chat de IA personalizados en tu sitio — entrenados en TU negocio, servicios y preguntas frecuentes." },
+    "s2": { "title": "La IA Responde Todo, 24/7", "desc": "Sin llamadas perdidas, sin esperas. Tu IA agenda citas, responde preguntas y captura cada lead automáticamente." },
+    "s3": { "title": "Los Leads Calientes Van Directo a Ti", "desc": "Cuando un cliente está listo para comprar, la IA te transfiere la llamada directo al teléfono. Atiendes un lead calificado, listo para cerrar." },
+    "s4": { "title": "Tú Creces — Nosotros Hacemos el Resto", "desc": "Seguimientos automáticos, solicitudes de reseñas y nutrición de leads en piloto automático. Tú te enfocas en tu negocio mientras impulsamos el crecimiento." }
+  },
+  "pricing": {
+    "badge": "Promo de Lanzamiento — 50% OFF los Primeros 3 Meses",
+    "title": "Precios",
+    "titleAccent": "Honestos y Transparentes",
+    "sub": "Sin tarifas ocultas. Sin contratos de 12 meses. Cancela cuando quieras.",
+    "perMo": "/mes",
+    "launchPrice": "Precio de lanzamiento",
+    "setup": "Setup:",
+    "free": "GRATIS",
+    "mostPopular": "Más Popular",
+    "essentials": { "name": "IA Esencial", "tag": "Voz + Chat — Nunca Más Pierdas un Lead", "cta": "Empezar por $99/mes" },
+    "growth": { "name": "Motor de Crecimiento", "tag": "Leads + Prospección + Reputación + Reactivación", "cta": "Hacer Crecer Mi Negocio" },
+    "full": { "name": "Full Service", "tag": "Manejamos Todo Tu Marketing", "cta": "Quiero Full Service" },
+    "transparencyTitle": "Total Transparencia: Costos de Uso de IA",
+    "transparencyBody": "Todos los planes incluyen un número base de interacciones por IA. El uso de voz y chat más allá de lo incluido se cobra a costo según tu volumen — típicamente <strong>$30–$90/mes</strong> para la mayoría de pequeños negocios. Trasladamos el costo del proveedor de IA sin margen. Siempre verás tu consumo en el panel antes de cualquier cobro. <strong>El uso varía según el volumen — no nos responsabilizamos por excedentes más allá de los minutos incluidos.</strong>",
+    "compareTitle": "Cómo nos comparamos:",
+    "compareBody": "Los agentes de voz básicos con IA cuestan desde $75–$150+/mes en otros lados — y SOLO contestan llamadas. Nosotros incluimos voz + chat + captura de leads + agendamiento + transferencia en vivo desde <strong>$99/mes</strong>. Sin tarifa por usuario, sin cobros ocultos de API."
+  },
+  "addons": {
+    "badge": "A La Carta",
+    "title": "Paquetes Adicionales de",
+    "titleAccent": "Crecimiento",
+    "sub": "Potencia tus resultados con estos servicios. Agrégalos a cualquier plan, cancela cuando quieras.",
+    "learnMore": "Saber Más",
+    "comingSoon": "Próximamente",
+    "futureTitle": "🔮 El Futuro de la Búsqueda:",
+    "futureBody": "Google ya no es la única forma en que los clientes te encuentran. ChatGPT, Gemini y Perplexity ya responden preguntas como \"mejor empresa de aire acondicionado cerca de mí\" — y citan negocios directamente. Nuestra Optimización para Búsqueda con IA (GEO) asegura que tu negocio aparezca en estos resultados."
+  },
+  "testimonials": {
+    "title1": "Gente Real. ",
+    "title2": "Resultados Reales.",
+    "sub": "Dueños de negocios de todas las industrias confían en AI Hidden Leads para captar más clientes."
+  },
+  "leadForm": {
+    "badge": "Demo personalizada y gratis",
+    "title1": "Mira Tu Asistente de IA",
+    "title2": "Funcionando",
+    "sub": "Completa los datos abajo. En 60 segundos verás tu sitio con chat y voz de IA funcionando en vivo.",
+    "name": "Tu Nombre",
+    "business": "Nombre del Negocio",
+    "website": "URL del Sitio",
+    "email": "Correo",
+    "phone": "Celular",
+    "altUrl": "URL Adicional",
+    "optional": "(opcional)",
+    "submit": "Generar Mi Demo Gratis"
+  },
+  "footer": {
+    "privacy": "Política de Privacidad",
+    "terms": "Términos de Servicio",
+    "smsConsent": "Al usar nuestros servicios, aceptas recibir mensajes SMS de AI Hidden Leads. La frecuencia varía. Responde STOP para cancelar. Responde HELP para ayuda. Pueden aplicar tarifas de SMS y datos. El consentimiento no es condición de compra.",
+    "copyright": "Generación de leads y automatización de ventas con IA."
+  },
+  "diff": {
+    "badge": "Por Qué Nos Eligen los Negocios",
+    "title1": "Deja de Perder Leads.",
+    "title2": "Empieza a Convertir 24/7.",
+    "sub": "La mayoría de negocios pierde el 62% de las llamadas fuera de horario. Nuestra IA atiende cada llamada, agenda citas y transfiere leads calientes en vivo — para que nunca más pierdas ingresos.",
+    "c1": { "title": "En Vivo en 48 Horas", "desc": "Sin meses de implementación. Escaneamos tu sitio, entrenamos al agente en tus servicios y lo lanzamos — todo en 2 días hábiles." },
+    "c2": { "title": "Sin Costos Ocultos", "desc": "Precios transparentes desde el día uno. Sin tarifas de setup, sin contratos largos. Cancela cuando quieras. Lo que ves es lo que pagas." },
+    "c3": { "title": "Prueba Antes de Comprar", "desc": "Mira la IA funcionando en TU sitio en menos de 2 minutos — gratis. Habla con ella, pruébala y luego decide. Sin tarjeta." }
+  }
+}

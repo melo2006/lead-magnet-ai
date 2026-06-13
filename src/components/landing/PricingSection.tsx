@@ -1,13 +1,13 @@
 import { motion } from "framer-motion";
 import { Check, Sparkles, Zap, Crown, Info } from "lucide-react";
+import { Trans, useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useNavigate } from "react-router-dom";
 
 const tiers = [
   {
-    name: "AI Essentials",
-    tagline: "Voice + Chat — Never Miss a Lead Again",
+    key: "essentials",
     price: 99,
     originalPrice: 199,
     setupFee: 99,
@@ -15,7 +15,37 @@ const tiers = [
     icon: Zap,
     popular: false,
     checkoutPlan: "essentials",
-    features: [
+    featureCount: 7,
+  },
+  {
+    key: "growth",
+    price: 199,
+    originalPrice: 399,
+    setupFee: 199,
+    originalSetup: 499,
+    icon: Sparkles,
+    popular: true,
+    checkoutPlan: "growth",
+    featureCount: 8,
+  },
+  {
+    key: "full",
+    price: 349,
+    originalPrice: 699,
+    setupFee: null,
+    originalSetup: 499,
+    icon: Crown,
+    popular: false,
+    checkoutPlan: "fullservice",
+    featureCount: 8,
+  },
+] as const;
+
+// Static feature lists by language are kept inline here as fallback English (keeps payload simple).
+// They're tier-specific operational features we don't translate per-character — using i18n.exists pattern.
+const FEATURES: Record<string, Record<string, string[]>> = {
+  en: {
+    essentials: [
       "AI Voice Agent (24/7 receptionist)",
       "AI Chat Widget on your website",
       "Lead capture & appointment booking",
@@ -24,19 +54,7 @@ const tiers = [
       "Email & SMS lead notifications",
       "Basic analytics dashboard",
     ],
-    cta: "Start for $99/mo",
-  },
-  {
-    name: "Growth Engine",
-    tagline: "Leads + Outreach + Reputation + Reactivation",
-    price: 199,
-    originalPrice: 399,
-    setupFee: 199,
-    originalSetup: 499,
-    icon: Sparkles,
-    popular: true,
-    checkoutPlan: "growth",
-    features: [
+    growth: [
       "Everything in AI Essentials",
       "Database Reactivation (revive old leads)",
       "50 new leads/month from prospecting",
@@ -46,19 +64,7 @@ const tiers = [
       "Speed-to-Lead (60-sec AI callback)",
       "CRM pipeline & tracking",
     ],
-    cta: "Grow My Business",
-  },
-  {
-    name: "Full Service",
-    tagline: "We Run Your Entire Marketing Machine",
-    price: 349,
-    originalPrice: 699,
-    setupFee: null,
-    originalSetup: 499,
-    icon: Crown,
-    popular: false,
-    checkoutPlan: "fullservice",
-    features: [
+    full: [
       "Everything in Growth Engine",
       "Unlimited lead generation",
       "Unlimited outreach campaigns",
@@ -68,15 +74,76 @@ const tiers = [
       "Dedicated account manager",
       "White-label reporting",
     ],
-    cta: "Go Full Service",
   },
-];
+  "pt-BR": {
+    essentials: [
+      "Agente de Voz com IA (recepcionista 24/7)",
+      "Chat de IA no seu site",
+      "Captura de leads e agendamento",
+      "Transferência ao vivo dos leads quentes",
+      "Até 100 interações de IA por mês",
+      "Notificação de lead por e-mail e SMS",
+      "Painel básico de analytics",
+    ],
+    growth: [
+      "Tudo do IA Essencial",
+      "Reativação de Base (recupera leads antigos)",
+      "50 leads novos por mês via prospecção",
+      "Campanhas automáticas de e-mail e SMS",
+      "Sequências de follow-up (dias/semanas)",
+      "Gestão de avaliações no Google",
+      "Speed-to-Lead (retorno em 60s por IA)",
+      "Pipeline e tracking de CRM",
+    ],
+    full: [
+      "Tudo do Motor de Crescimento",
+      "Geração de leads ilimitada",
+      "Campanhas de prospecção ilimitadas",
+      "Conteúdo e posts em redes sociais",
+      "Refresh do site incluído",
+      "Minutos de voz prioritários",
+      "Gerente de conta dedicado",
+      "Relatórios white-label",
+    ],
+  },
+  es: {
+    essentials: [
+      "Agente de Voz con IA (recepcionista 24/7)",
+      "Chat de IA en tu sitio",
+      "Captura de leads y agendamiento",
+      "Transferencia en vivo de leads calientes",
+      "Hasta 100 interacciones de IA al mes",
+      "Notificación de leads por correo y SMS",
+      "Panel básico de analítica",
+    ],
+    growth: [
+      "Todo lo de IA Esencial",
+      "Reactivación de Base (recupera leads viejos)",
+      "50 leads nuevos al mes desde prospección",
+      "Campañas automáticas de correo y SMS",
+      "Secuencias de seguimiento (días/semanas)",
+      "Gestión de reseñas de Google",
+      "Speed-to-Lead (devolución de llamada en 60s)",
+      "Pipeline y seguimiento en CRM",
+    ],
+    full: [
+      "Todo lo del Motor de Crecimiento",
+      "Generación de leads ilimitada",
+      "Campañas de prospección ilimitadas",
+      "Contenido y publicaciones en redes",
+      "Refresh del sitio incluido",
+      "Minutos de voz prioritarios",
+      "Gerente de cuenta dedicado",
+      "Reportes white-label",
+    ],
+  },
+};
 
 const PricingSection = () => {
   const navigate = useNavigate();
-  const scrollToDemo = () => {
-    document.getElementById("demo-form")?.scrollIntoView({ behavior: "smooth" });
-  };
+  const { t, i18n } = useTranslation();
+  const lang = (FEATURES[i18n.language] ? i18n.language : "en") as keyof typeof FEATURES;
+
   const handleCheckout = (plan: string) => {
     navigate(`/checkout?plan=${plan}`);
   };
@@ -92,91 +159,93 @@ const PricingSection = () => {
           className="text-center mb-14"
         >
           <Badge variant="outline" className="mb-4 border-primary/30 text-primary">
-            Launch Special — 50% Off First 3 Months
+            {t("pricing.badge")}
           </Badge>
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-            Honest, <span className="text-gradient-primary">Transparent Pricing</span>
+            {t("pricing.title")} <span className="text-gradient-primary">{t("pricing.titleAccent")}</span>
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            No hidden fees. No 12-month contracts. Cancel anytime.
+            {t("pricing.sub")}
           </p>
         </motion.div>
 
         <div className="grid md:grid-cols-3 gap-6 max-w-5xl mx-auto">
-          {tiers.map((tier, i) => (
-            <motion.div
-              key={tier.name}
-              initial={{ opacity: 0, y: 30 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ delay: i * 0.1 }}
-              className={`relative rounded-2xl border p-6 sm:p-8 flex flex-col ${
-                tier.popular
-                  ? "border-primary bg-primary/5 shadow-lg shadow-primary/10"
-                  : "border-border bg-card"
-              }`}
-            >
-              {tier.popular && (
-                <div className="absolute -top-3 left-1/2 -translate-x-1/2">
-                  <Badge className="bg-primary text-primary-foreground px-4 py-1 text-xs font-semibold">
-                    Most Popular
-                  </Badge>
-                </div>
-              )}
-
-              <div className="mb-6">
-                <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-3">
-                  <tier.icon className="w-5 h-5 text-primary" />
-                </div>
-                <h3 className="text-xl font-bold">{tier.name}</h3>
-                <p className="text-sm text-muted-foreground mt-1">{tier.tagline}</p>
-              </div>
-
-              <div className="mb-6">
-                <div className="flex items-baseline gap-2">
-                  <span className="text-4xl font-extrabold">${tier.price}</span>
-                  <span className="text-muted-foreground text-sm">/mo</span>
-                </div>
-                <p className="text-sm text-muted-foreground mt-1">
-                  <span className="line-through">${tier.originalPrice}/mo</span>
-                  <span className="text-primary ml-2 font-medium">Launch price</span>
-                </p>
-                <p className="text-xs text-muted-foreground mt-2">
-                  {tier.setupFee !== null ? (
-                    <>
-                      Setup: <span className="line-through">${tier.originalSetup}</span>{" "}
-                      <span className="text-primary font-semibold">${tier.setupFee}</span>
-                    </>
-                  ) : (
-                    <>
-                      Setup: <span className="line-through">${tier.originalSetup}</span>{" "}
-                      <span className="text-primary font-semibold">FREE</span>
-                    </>
-                  )}
-                </p>
-              </div>
-
-              <ul className="space-y-3 mb-6 flex-1">
-                {tier.features.map((feature) => (
-                  <li key={feature} className="flex items-start gap-2.5 text-sm">
-                    <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
-                    <span className="text-muted-foreground">{feature}</span>
-                  </li>
-                ))}
-              </ul>
-
-              <Button
-                onClick={() => handleCheckout(tier.checkoutPlan)}
-                variant={tier.popular ? "default" : "outline"}
-                className="w-full"
+          {tiers.map((tier, i) => {
+            const features = FEATURES[lang][tier.key];
+            return (
+              <motion.div
+                key={tier.key}
+                initial={{ opacity: 0, y: 30 }}
+                whileInView={{ opacity: 1, y: 0 }}
+                viewport={{ once: true }}
+                transition={{ delay: i * 0.1 }}
+                className={`relative rounded-2xl border p-6 sm:p-8 flex flex-col ${
+                  tier.popular
+                    ? "border-primary bg-primary/5 shadow-lg shadow-primary/10"
+                    : "border-border bg-card"
+                }`}
               >
-                {tier.cta}
-              </Button>
-            </motion.div>
-          ))}
+                {tier.popular && (
+                  <div className="absolute -top-3 left-1/2 -translate-x-1/2">
+                    <Badge className="bg-primary text-primary-foreground px-4 py-1 text-xs font-semibold">
+                      {t("pricing.mostPopular")}
+                    </Badge>
+                  </div>
+                )}
+
+                <div className="mb-6">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center mb-3">
+                    <tier.icon className="w-5 h-5 text-primary" />
+                  </div>
+                  <h3 className="text-xl font-bold">{t(`pricing.${tier.key}.name`)}</h3>
+                  <p className="text-sm text-muted-foreground mt-1">{t(`pricing.${tier.key}.tag`)}</p>
+                </div>
+
+                <div className="mb-6">
+                  <div className="flex items-baseline gap-2">
+                    <span className="text-4xl font-extrabold">${tier.price}</span>
+                    <span className="text-muted-foreground text-sm">{t("pricing.perMo")}</span>
+                  </div>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    <span className="line-through">${tier.originalPrice}{t("pricing.perMo")}</span>
+                    <span className="text-primary ml-2 font-medium">{t("pricing.launchPrice")}</span>
+                  </p>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    {tier.setupFee !== null ? (
+                      <>
+                        {t("pricing.setup")} <span className="line-through">${tier.originalSetup}</span>{" "}
+                        <span className="text-primary font-semibold">${tier.setupFee}</span>
+                      </>
+                    ) : (
+                      <>
+                        {t("pricing.setup")} <span className="line-through">${tier.originalSetup}</span>{" "}
+                        <span className="text-primary font-semibold">{t("pricing.free")}</span>
+                      </>
+                    )}
+                  </p>
+                </div>
+
+                <ul className="space-y-3 mb-6 flex-1">
+                  {features.map((feature) => (
+                    <li key={feature} className="flex items-start gap-2.5 text-sm">
+                      <Check className="w-4 h-4 text-primary mt-0.5 shrink-0" />
+                      <span className="text-muted-foreground">{feature}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                <Button
+                  onClick={() => handleCheckout(tier.checkoutPlan)}
+                  variant={tier.popular ? "default" : "outline"}
+                  className="w-full"
+                >
+                  {t(`pricing.${tier.key}.cta`)}
+                </Button>
+              </motion.div>
+            );
+          })}
         </div>
 
-        {/* Usage cost transparency */}
         <motion.div
           initial={{ opacity: 0 }}
           whileInView={{ opacity: 1 }}
@@ -188,16 +257,10 @@ const PricingSection = () => {
               <Info className="w-5 h-5 text-primary shrink-0 mt-0.5" />
               <div>
                 <p className="text-sm font-semibold text-foreground mb-1">
-                  Full Transparency: AI Usage Costs
+                  {t("pricing.transparencyTitle")}
                 </p>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                   All plans include a base number of AI interactions. Voice and chat usage beyond included minutes is billed at cost depending on your call volume — typically{" "}
-                   <span className="text-foreground font-medium">$30–$90/mo</span> for most small businesses. 
-                   We pass through the AI provider cost with no markup. You'll always see your usage in your dashboard before you're billed.{" "}
-                   <span className="text-foreground font-semibold">Usage varies by volume — we are not responsible for overage charges beyond included minutes.</span>
-                   <span className="block mt-1 text-xs italic">
-                     A busy vet clinic may use more; a consulting firm may use less. We'll estimate your cost before you sign up.
-                   </span>
+                  <Trans i18nKey="pricing.transparencyBody" components={{ strong: <span className="text-foreground font-medium" /> }} />
                 </p>
               </div>
             </div>
@@ -205,9 +268,8 @@ const PricingSection = () => {
 
           <div className="rounded-xl border border-border bg-card/50 p-5">
             <p className="text-sm text-center text-muted-foreground leading-relaxed">
-              <span className="font-semibold text-foreground">How we compare:</span>{" "}
-              Basic AI voice agents start at $75–$150+/mo elsewhere — but they ONLY answer calls. We bundle voice + chat + lead capture + booking + warm transfers starting at{" "}
-              <span className="text-primary font-medium">$99/mo</span>. No per-seat fees, no hidden API charges.
+              <span className="font-semibold text-foreground">{t("pricing.compareTitle")}</span>{" "}
+              <Trans i18nKey="pricing.compareBody" components={{ strong: <span className="text-primary font-medium" /> }} />
             </p>
           </div>
         </motion.div>
