@@ -665,8 +665,6 @@ async function retellFetch(path: string, apiKey: string, options: RequestInit = 
 }
 
 async function ensureSharedRetellPrompt(apiKey: string, agentId: string) {
-  if (agentId !== SHARED_WEB_AGENT_ID) return;
-
   const agents = await retellFetch('/list-agents', apiKey);
   const agent = Array.isArray(agents)
     ? agents.find((entry: any) => entry?.agent_id === agentId)
@@ -681,6 +679,7 @@ async function ensureSharedRetellPrompt(apiKey: string, agentId: string) {
     method: 'PATCH',
     body: JSON.stringify({
       general_prompt: SHARED_RETELL_PROMPT,
+      begin_message: '{{exact_demo_opening}}',
     }),
   });
 }
