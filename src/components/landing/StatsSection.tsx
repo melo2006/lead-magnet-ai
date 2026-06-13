@@ -34,9 +34,11 @@ const StatsSection = ({ niche }: StatsSectionProps) => {
     },
     {
       icon: DollarSign,
-      value: niche.stats.revenuePerMissedCall,
+      value: revenueDisplay,
       label: t("stats.cards.lost.label"),
-      sublabel: t("stats.cards.lost.sublabel"),
+      sublabel: isPT
+        ? `${t("stats.cards.lost.sublabel")} (≈ ${niche.stats.revenuePerMissedCall} USD)`
+        : t("stats.cards.lost.sublabel"),
       color: "text-[hsl(var(--warning))]",
       bg: "bg-[hsl(var(--warning)/0.1)]",
       border: "border-[hsl(var(--warning)/0.2)]",
