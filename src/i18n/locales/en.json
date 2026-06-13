@@ -177,7 +177,29 @@
     "learnMore": "Learn More",
     "comingSoon": "Coming Soon",
     "futureTitle": "🔮 The Future of Search:",
-    "futureBody": "Google isn't the only way customers find you anymore. ChatGPT, Gemini, and Perplexity are answering questions like \"best HVAC company near me\" — and citing businesses directly. Our AI Search Optimization (GEO) ensures your business shows up in these AI-powered results."
+    "futureBody": "Google isn't the only way customers find you anymore. ChatGPT, Gemini, and Perplexity are answering questions like \"best HVAC company near me\" — and citing businesses directly. Our AI Search Optimization (GEO) ensures your business shows up in these AI-powered results.",
+    "items": {
+      "websiteRefresh": {
+        "title": "Website Refresh",
+        "description": "Modern redesign of your existing website using the latest technology. Mobile-optimized, fast-loading, and conversion-ready.",
+        "note": "One-time fee"
+      },
+      "seoAudit": {
+        "title": "SEO Audit Report",
+        "description": "Full audit of your website's SEO health — what's broken, what's missing, and exactly what to fix to rank higher on Google.",
+        "note": "Included with any plan"
+      },
+      "aiSearch": {
+        "title": "AI Search Optimization",
+        "description": "Get your business cited by ChatGPT, Gemini, and Perplexity. The future of search isn't Google — it's AI. We optimize your presence for AI-powered results.",
+        "note": "New — early adopter pricing"
+      },
+      "mapsBoost": {
+        "title": "Google Maps Boost",
+        "description": "Climb the Google Maps 3-pack. We optimize your Google Business Profile, build citations, and manage review velocity for local dominance.",
+        "note": "Results in 60–90 days"
+      }
+    }
   },
   "testimonials": {
     "title1": "Real People. ",
