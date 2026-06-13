@@ -204,7 +204,9 @@ const DemoSite = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { t, i18n } = useTranslation();
   const [isScanning, setIsScanning] = useState(false);
+
 
   const latestLeadData = location.state?.leadData as DemoLeadData | undefined;
   const [leadData, setLeadData] = useState<DemoLeadData | undefined>(latestLeadData);
