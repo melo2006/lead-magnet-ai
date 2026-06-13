@@ -196,7 +196,7 @@ async function retellFetch(path: string, apiKey: string, options: RequestInit = 
   return payload;
 }
 
-async function ensureSharedPrompt(apiKey: string, agentId: string, beginMessage: string) {
+async function ensureSharedPrompt(apiKey: string, agentId: string) {
   const agents = await retellFetch("/list-agents", apiKey);
   const agent = Array.isArray(agents)
     ? agents.find((entry: any) => entry?.agent_id === agentId)
@@ -208,7 +208,7 @@ async function ensureSharedPrompt(apiKey: string, agentId: string, beginMessage:
     method: "PATCH",
     body: JSON.stringify({
       general_prompt: SHARED_RETELL_PROMPT,
-      begin_message: beginMessage,
+      begin_message: "{{begin_message}}",
     }),
   });
 }
