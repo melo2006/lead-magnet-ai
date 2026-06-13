@@ -141,10 +141,10 @@ async function retellFetch(path: string, apiKey: string, options: RequestInit = 
   return payload;
 }
 
-async function ensureSharedPrompt(apiKey: string) {
+async function ensureSharedPrompt(apiKey: string, agentId: string) {
   const agents = await retellFetch("/list-agents", apiKey);
   const agent = Array.isArray(agents)
-    ? agents.find((entry: any) => entry?.agent_id === RETELL_AGENT_ID)
+    ? agents.find((entry: any) => entry?.agent_id === agentId)
     : null;
 
   const llmId = agent?.response_engine?.llm_id;
@@ -171,7 +171,13 @@ Deno.serve(async (req) => {
       throw new Error("RETELL_API_KEY not configured");
     }
 
-    await ensureSharedPrompt(RETELL_API_KEY);
+    const body = await req.json().catch(() => ({}));
+    const langRaw = String(body?.language || "en").toLowerCase();
+    const langKey: "en" | "pt" | "es" =
+      langRaw.startsWith("pt") ? "pt" : langRaw.startsWith("es") ? "es" : "en";
+    const RETELL_AGENT_ID = AGENT_IDS[langKey];
+
+    await ensureSharedPrompt(RETELL_API_KEY, RETELL_AGENT_ID);
 
     const response = await fetch(`${RETELL_BASE}/v2/create-web-call`, {
       method: "POST",
@@ -188,6 +194,7 @@ Deno.serve(async (req) => {
         metadata: {
           source: "avatar-spokesperson",
           type: "landing-page-pitch",
+          language: langKey,
         },
       }),
     });
