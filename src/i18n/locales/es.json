@@ -112,10 +112,22 @@
     "title2": "Silencio",
     "sub": "Cada llamada que cae al buzón es dinero que se va. Esto es lo que muestran los datos sobre tu industria.",
     "cards": {
-      "unanswered": { "label": "de las llamadas quedan sin respuesta", "sublabel": "durante horario comercial" },
-      "lost": { "label": "perdidos por llamada no atendida", "sublabel": "impacto promedio en ingresos" },
-      "response": { "label": "tiempo promedio de respuesta", "sublabel": "sin asistente de IA" },
-      "firstResponder": { "label": "compran al primero que responde", "sublabel": "la velocidad siempre gana" }
+      "unanswered": {
+        "label": "de las llamadas quedan sin respuesta",
+        "sublabel": "durante horario comercial"
+      },
+      "lost": {
+        "label": "perdidos por llamada no atendida",
+        "sublabel": "impacto promedio en ingresos"
+      },
+      "response": {
+        "label": "tiempo promedio de respuesta",
+        "sublabel": "sin asistente de IA"
+      },
+      "firstResponder": {
+        "label": "compran al primero que responde",
+        "sublabel": "la velocidad siempre gana"
+      }
     }
   },
   "how": {
@@ -279,12 +291,30 @@
     "free": "Gratis",
     "noSignup": "Sin registro obligatorio",
     "benefits": {
-      "transfer": { "label": "Transferencia En Vivo", "desc": "La IA transfiere leads calientes a ti con resumen completo" },
-      "sms": { "label": "SMS Después de Cada Llamada", "desc": "Recibe un texto instantáneo con detalles y resumen del lead" },
-      "email": { "label": "Resumen por Correo", "desc": "Recap completo enviado por correo después de cada conversación" },
-      "crm": { "label": "Captura de Leads y CRM", "desc": "Cada lead queda guardado — usa nuestro CRM o integra el tuyo" },
-      "receptionist": { "label": "Recepcionista IA 24/7", "desc": "Nunca pierdas llamadas — la IA responde y agenda citas" },
-      "capture": { "label": "Captura Instantánea", "desc": "Convierte visitantes del sitio en llamadas agendadas" }
+      "transfer": {
+        "label": "Transferencia En Vivo",
+        "desc": "La IA transfiere leads calientes a ti con resumen completo"
+      },
+      "sms": {
+        "label": "SMS Después de Cada Llamada",
+        "desc": "Recibe un texto instantáneo con detalles y resumen del lead"
+      },
+      "email": {
+        "label": "Resumen por Correo",
+        "desc": "Recap completo enviado por correo después de cada conversación"
+      },
+      "crm": {
+        "label": "Captura de Leads y CRM",
+        "desc": "Cada lead queda guardado — usa nuestro CRM o integra el tuyo"
+      },
+      "receptionist": {
+        "label": "Recepcionista IA 24/7",
+        "desc": "Nunca pierdas llamadas — la IA responde y agenda citas"
+      },
+      "capture": {
+        "label": "Captura Instantánea",
+        "desc": "Convierte visitantes del sitio en llamadas agendadas"
+      }
     }
   },
   "scan": {
@@ -303,20 +333,56 @@
     "transferSpecialist": "que te transfiera con un especialista de ventas",
     "questionsSuffix": "en cualquier momento durante la demo.",
     "steps": {
-      "content": { "label": "Escaneando el contenido del sitio", "detail": "Leyendo páginas, servicios e información de contacto…" },
-      "presence": { "label": "Analizando tu presencia online", "detail": "Capturando imágenes y detalles de marca…" },
-      "voice": { "label": "Preparando la demo de Voz de IA", "detail": "Una nueva forma de nunca perder una llamada de cliente." },
-      "chat": { "label": "Configurando el Chat de IA", "detail": "Respuestas instantáneas convierten visitantes en leads capturados." },
-      "transfer": { "label": "Activando transferencias en vivo", "detail": "Los leads calientes se conectan con una persona rápidamente." },
-      "final": { "label": "Finalizando tu demo en vivo", "detail": "Mira cómo la IA captura leads que hoy podrías estar perdiendo." }
+      "content": {
+        "label": "Escaneando el contenido del sitio",
+        "detail": "Leyendo páginas, servicios e información de contacto…"
+      },
+      "presence": {
+        "label": "Analizando tu presencia online",
+        "detail": "Capturando imágenes y detalles de marca…"
+      },
+      "voice": {
+        "label": "Preparando la demo de Voz de IA",
+        "detail": "Una nueva forma de nunca perder una llamada de cliente."
+      },
+      "chat": {
+        "label": "Configurando el Chat de IA",
+        "detail": "Respuestas instantáneas convierten visitantes en leads capturados."
+      },
+      "transfer": {
+        "label": "Activando transferencias en vivo",
+        "detail": "Los leads calientes se conectan con una persona rápidamente."
+      },
+      "final": {
+        "label": "Finalizando tu demo en vivo",
+        "detail": "Mira cómo la IA captura leads que hoy podrías estar perdiendo."
+      }
     },
     "benefits": {
-      "missCall": { "headline": "Nunca Más Pierdas Una Llamada", "body": "Tu recepcionista de IA responde 24/7 — noches, fines de semana y feriados — para convertir cada llamada en oportunidad." },
-      "appointments": { "headline": "Citas Instantáneas", "body": "La IA agenda, reprograma y da seguimiento automáticamente. Se acabó perseguir clientes por teléfono." },
-      "moreLeads": { "headline": "Captura 2–5x Más Leads", "body": "Muchos negocios pierden 40% de llamadas. Con la IA respondiendo todo, 1–2 leads extra al mes pueden pagar el sistema." },
-      "liveFast": { "headline": "En Vivo en 1–2 Días", "body": "El setup es rápido y sencillo. Tu agente de IA se entrena en tu negocio y queda listo para responder en hasta 48 horas." },
-      "warmTransfer": { "headline": "Transferencia En Vivo Para Ti", "body": "Cuando un lead caliente está en línea, la IA lo transfiere en vivo a ti o a tu equipo con resumen completo." },
-      "chatAi": { "headline": "Chat de IA en Tu Sitio", "body": "Los visitantes reciben respuestas instantáneas sobre servicios, precios y disponibilidad — convirtiendo curiosos en citas." }
+      "missCall": {
+        "headline": "Nunca Más Pierdas Una Llamada",
+        "body": "Tu recepcionista de IA responde 24/7 — noches, fines de semana y feriados — para convertir cada llamada en oportunidad."
+      },
+      "appointments": {
+        "headline": "Citas Instantáneas",
+        "body": "La IA agenda, reprograma y da seguimiento automáticamente. Se acabó perseguir clientes por teléfono."
+      },
+      "moreLeads": {
+        "headline": "Captura 2–5x Más Leads",
+        "body": "Muchos negocios pierden 40% de llamadas. Con la IA respondiendo todo, 1–2 leads extra al mes pueden pagar el sistema."
+      },
+      "liveFast": {
+        "headline": "En Vivo en 1–2 Días",
+        "body": "El setup es rápido y sencillo. Tu agente de IA se entrena en tu negocio y queda listo para responder en hasta 48 horas."
+      },
+      "warmTransfer": {
+        "headline": "Transferencia En Vivo Para Ti",
+        "body": "Cuando un lead caliente está en línea, la IA lo transfiere en vivo a ti o a tu equipo con resumen completo."
+      },
+      "chatAi": {
+        "headline": "Chat de IA en Tu Sitio",
+        "body": "Los visitantes reciben respuestas instantáneas sobre servicios, precios y disponibilidad — convirtiendo curiosos en citas."
+      }
     }
   },
   "footer": {
@@ -364,5 +430,39 @@
     "expand": "Expandir",
     "close": "Cerrar",
     "endCall": "Colgar"
+  },
+  "demo": {
+    "homepage": "Inicio",
+    "liveDemo": "Demo en vivo",
+    "building": "Creando",
+    "getMoreInfo": "Más Información",
+    "brandTag": "AI Hidden Leads",
+    "tryAnother": "Probar Otro Sitio",
+    "back": "Volver",
+    "openSite": "Abrir sitio",
+    "trySiteAnyway": "Intentar de todas formas",
+    "talkToAspen": "Habla con Aspen",
+    "aiVoice": "Voz IA",
+    "chatWithAspen": "Chatea con Aspen",
+    "aiChat": "Chat IA",
+    "voiceAssistant": "Asistente de Voz IA",
+    "connectingTransfer": "Conectando transferencia...",
+    "callInProgress": "Llamada en curso",
+    "readyToStart": "Listo para empezar",
+    "mute": "Silenciar",
+    "unmute": "Activar",
+    "end": "Terminar",
+    "startCall": "Iniciar Llamada de Voz",
+    "connecting": "Conectando...",
+    "sendRecap": "📧 Envíame el resumen por correo",
+    "sendingRecap": "Enviando resumen…",
+    "recapSent": "✅ ¡Resumen enviado!",
+    "seePromo": "🚀 Conoce nuestra oferta — Visita AIHiddenLeads.com",
+    "audioOutput": "Salida de Audio",
+    "askAbout": "Pregunta sobre {{business}}, solicita una transferencia en vivo a {{owner}}, o agenda una cita de 15 minutos.",
+    "liveDemoDesc": "Esta es una demo en vivo de la voz IA para {{business}}. Aspen puede responder preguntas, transferirte en vivo al dueño, o agendar una cita.",
+    "dismiss": "Descartar",
+    "transferConnecting": "Conectándote con {{owner}}... Tu teléfono sonará en breve.",
+    "transferHint": "Contesta la llamada para unirte a la conferencia en vivo."
   }
 }

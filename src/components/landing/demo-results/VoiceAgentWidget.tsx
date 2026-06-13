@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Mic, MicOff, Phone, PhoneOff, Loader2, Maximize2, Minimize2, X, Volume2, VolumeX, Bluetooth, Speaker, Smartphone, Pause, Play, RotateCcw, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -22,8 +23,10 @@ interface VoiceAgentWidgetProps {
   callerName?: string;
   callerEmail?: string;
   callerPhone?: string;
+  language?: string;
   onClose?: () => void;
 }
+
 
 type CallStatus = "idle" | "connecting" | "active" | "ending";
 
@@ -180,9 +183,13 @@ const VoiceAgentWidget = ({
   callerName,
   callerEmail,
   callerPhone,
+  language,
   onClose,
 }: VoiceAgentWidgetProps) => {
   const { toast } = useToast();
+  const { t, i18n } = useTranslation();
+  const callLanguage = language || i18n.resolvedLanguage || i18n.language || "en";
+
   const [callStatus, setCallStatus] = useState<CallStatus>("idle");
   const [isMuted, setIsMuted] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
@@ -636,6 +643,8 @@ const VoiceAgentWidget = ({
           callerName: callerName || "",
           callerEmail: callerEmail || "",
           callerPhone: isLikelyCallablePhoneNumber(callerPhone) ? normalizePhoneNumber(callerPhone || "") : "",
+          language: callLanguage,
+
         },
       });
 
@@ -856,11 +865,12 @@ const VoiceAgentWidget = ({
             )}
           </div>
           <div>
-            <p className="text-sm font-bold">Talk to Aspen</p>
+            <p className="text-sm font-bold">{t("demo.talkToAspen")}</p>
             <p className="text-[10px] text-muted-foreground">
-              {transferInProgress ? "Connecting transfer..." : "AI Voice Assistant"}
+              {transferInProgress ? t("demo.connectingTransfer") : t("demo.voiceAssistant")}
             </p>
           </div>
+
         </div>
         <div className="flex items-center gap-2">
           {callStatus === "active" && (
@@ -888,7 +898,7 @@ const VoiceAgentWidget = ({
       {isMinimized ? (
         <div className="flex items-center gap-2 p-3">
           <p className="text-xs text-muted-foreground">
-            {callIsLive ? "Call in progress" : "Ready to start"}
+            {callIsLive ? t("demo.callInProgress") : t("demo.readyToStart")}
           </p>
           <div className="ml-auto flex items-center gap-2">
             {callIsLive && (
@@ -899,15 +909,16 @@ const VoiceAgentWidget = ({
                     isMuted ? "bg-destructive/20 text-destructive" : "bg-secondary text-foreground hover:bg-secondary/80"
                   }`}
                 >
-                  {isMuted ? "Unmute" : "Mute"}
+                  {isMuted ? t("demo.unmute") : t("demo.mute")}
                 </button>
                 <button
                   onClick={endCall}
                   className="rounded-lg bg-destructive px-3 py-1.5 text-xs font-semibold text-destructive-foreground transition-colors hover:bg-destructive/90"
                 >
-                  End
+                  {t("demo.end")}
                 </button>
               </>
+
             )}
           </div>
         </div>
@@ -915,8 +926,8 @@ const VoiceAgentWidget = ({
         <div className="p-4">
           <p className="text-xs text-muted-foreground mb-3">
             {callStatus === "active"
-              ? `Ask about ${businessName}, request a live transfer to ${resolvedOwnerName}, or book a 15-minute appointment.`
-              : `This is a live demo of AI voice for ${businessName}. Aspen can answer questions, transfer you live to the owner, or book an appointment.`}
+              ? t("demo.askAbout", { business: businessName, owner: resolvedOwnerName })
+              : t("demo.liveDemoDesc", { business: businessName })}
           </p>
 
           {callStatus === "idle" && (
@@ -926,7 +937,7 @@ const VoiceAgentWidget = ({
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary px-4 py-3 text-sm font-semibold text-primary-foreground transition-colors hover:bg-primary/90"
               >
                 <Phone className="h-4 w-4" />
-                Start Voice Call
+                {t("demo.startCall")}
               </button>
               {lastCallHistoryId && !recapSent && (
                 <button
@@ -935,11 +946,11 @@ const VoiceAgentWidget = ({
                   className="flex w-full items-center justify-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-4 py-2.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
                 >
                   {isSendingRecap ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
-                  {isSendingRecap ? "Sending recap…" : "📧 Send me the email recap"}
+                  {isSendingRecap ? t("demo.sendingRecap") : t("demo.sendRecap")}
                 </button>
               )}
               {recapSent && (
-                <p className="text-center text-[11px] text-muted-foreground">✅ Recap email sent!</p>
+                <p className="text-center text-[11px] text-muted-foreground">{t("demo.recapSent")}</p>
               )}
 
               {/* CTA to website */}
@@ -949,7 +960,7 @@ const VoiceAgentWidget = ({
                 rel="noopener noreferrer"
                 className="flex w-full items-center justify-center gap-2 rounded-xl bg-gradient-to-r from-emerald-600 to-emerald-500 px-4 py-2.5 text-xs font-bold text-white transition-opacity hover:opacity-90"
               >
-                🚀 See Our Promo — Visit AIHiddenLeads.com
+                {t("demo.seePromo")}
               </a>
             </div>
           )}
@@ -957,9 +968,10 @@ const VoiceAgentWidget = ({
           {callStatus === "connecting" && (
             <div className="flex w-full items-center justify-center gap-2 rounded-xl bg-primary/20 px-4 py-3 text-sm font-semibold text-primary">
               <Loader2 className="h-4 w-4 animate-spin" />
-              Connecting...
+              {t("demo.connecting")}
             </div>
           )}
+
 
           {(callStatus === "active" || callStatus === "ending") && (
             <>
@@ -972,8 +984,9 @@ const VoiceAgentWidget = ({
                   }`}
                 >
                   {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                  <span className="hidden min-[360px]:inline">{isMuted ? "Unmute" : "Mute"}</span>
+                  <span className="hidden min-[360px]:inline">{isMuted ? t("demo.unmute") : t("demo.mute")}</span>
                 </button>
+
                 <button
                   onClick={togglePause}
                   className={`flex h-11 w-11 items-center justify-center rounded-xl text-sm font-semibold transition-colors sm:h-12 sm:w-12 ${
@@ -1013,8 +1026,9 @@ const VoiceAgentWidget = ({
                   className="min-w-0 flex items-center justify-center gap-1.5 rounded-xl bg-destructive px-2.5 py-3 text-xs font-semibold text-destructive-foreground transition-colors hover:bg-destructive/90 sm:gap-2 sm:px-3 sm:text-sm"
                 >
                   <PhoneOff className="h-4 w-4" />
-                  <span className="hidden min-[360px]:inline">End</span>
+                  <span className="hidden min-[360px]:inline">{t("demo.end")}</span>
                 </button>
+
               </div>
 
               {/* Audio controls panel */}
@@ -1038,7 +1052,7 @@ const VoiceAgentWidget = ({
                   {/* Audio output device selector */}
                   {audioDevices.length > 1 && (
                     <div className="space-y-1.5">
-                      <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">Audio Output</p>
+                      <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{t("demo.audioOutput")}</p>
                       <div className="flex flex-wrap gap-1.5">
                         {audioDevices.map((device) => (
                           <button
@@ -1065,10 +1079,10 @@ const VoiceAgentWidget = ({
                 <div className="mt-2 space-y-2">
                   <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-primary/10 text-primary text-xs font-medium">
                     <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                    Connecting you with {resolvedOwnerName}... Your phone will ring shortly.
+                    {t("demo.transferConnecting", { owner: resolvedOwnerName })}
                   </div>
                   <p className="text-[10px] text-muted-foreground px-1">
-                    Answer the incoming call to join the live conference. The owner will be connected after a brief whisper.
+                    {t("demo.transferHint")}
                   </p>
                   <button
                     onClick={() => {
@@ -1077,10 +1091,11 @@ const VoiceAgentWidget = ({
                     }}
                     className="w-full rounded-lg bg-secondary px-3 py-2 text-xs font-medium text-foreground hover:bg-secondary/80 transition-colors"
                   >
-                    Dismiss
+                    {t("demo.dismiss")}
                   </button>
                 </div>
               )}
+
             </>
           )}
         </div>

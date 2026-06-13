@@ -1,5 +1,6 @@
 import { useLocation, useNavigate, useSearchParams } from "react-router-dom";
 import { useEffect, useState, useRef } from "react";
+import { useTranslation } from "react-i18next";
 import { MessageSquare, Mic, ArrowLeft, Phone } from "lucide-react";
 import type { DemoLeadData } from "@/components/landing/demo-results/demoResultsUtils";
 import { getResponsiveScreenshotSrc, getSiteName, withCacheKey } from "@/components/landing/demo-results/demoResultsUtils";
@@ -12,6 +13,7 @@ import DraggableFloating from "@/components/landing/demo-results/DraggableFloati
 import ScanningAnimation from "@/components/landing/ScanningAnimation";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+
 
 const DEFAULT_DEMO_OWNER_NAME = "your dedicated specialist";
 const LAST_DEMO_STORAGE_KEY = "lastDemoLeadData";
@@ -202,7 +204,9 @@ const DemoSite = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
+  const { t, i18n } = useTranslation();
   const [isScanning, setIsScanning] = useState(false);
+
 
   const latestLeadData = location.state?.leadData as DemoLeadData | undefined;
   const [leadData, setLeadData] = useState<DemoLeadData | undefined>(latestLeadData);
@@ -734,14 +738,14 @@ const DemoSite = () => {
             className="group inline-flex shrink-0 items-center gap-1.5 rounded-xl border border-border/50 bg-background/60 px-2.5 py-1.5 text-left transition-all hover:border-primary/40 hover:bg-primary/10 sm:px-3 sm:py-2"
           >
             <ArrowLeft className="h-3.5 w-3.5 shrink-0 text-muted-foreground transition-transform group-hover:-translate-x-0.5 group-hover:text-primary" />
-            <span className="text-[10px] font-semibold leading-tight text-muted-foreground group-hover:text-foreground sm:text-xs">Homepage</span>
+            <span className="text-[10px] font-semibold leading-tight text-muted-foreground group-hover:text-foreground sm:text-xs">{t("demo.homepage")}</span>
           </button>
 
           {/* Center: Demo info + admin controls */}
           <div className="flex min-w-0 flex-1 items-center justify-center gap-2">
             <div className="min-w-0 text-center">
               <p className="text-[9px] font-semibold uppercase tracking-[0.2em] text-muted-foreground sm:text-[10px]">
-                Live demo
+                {t("demo.liveDemo")}
               </p>
               <p className="truncate text-xs font-semibold text-foreground sm:text-sm">{siteName}</p>
             </div>
@@ -749,7 +753,7 @@ const DemoSite = () => {
             {isScanning && (
               <span className="inline-flex items-center gap-1.5 rounded-full border border-primary/20 bg-primary/10 px-2 py-0.5 text-[9px] font-semibold uppercase tracking-wider text-primary">
                 <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-primary" />
-                Building
+                {t("demo.building")}
               </span>
             )}
 
@@ -776,12 +780,13 @@ const DemoSite = () => {
             className="group relative shrink-0 overflow-hidden rounded-xl border border-primary/50 bg-primary px-3 py-1.5 text-left text-primary-foreground transition-all hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20 sm:px-4 sm:py-2"
           >
             <p className="text-[10px] font-extrabold uppercase leading-tight tracking-wide sm:text-xs">
-              Get More Info
+              {t("demo.getMoreInfo")}
             </p>
             <p className="text-[8px] font-medium leading-tight text-primary-foreground/80 sm:text-[9px]">
-              AI Hidden Leads
+              {t("demo.brandTag")}
             </p>
           </button>
+
         </div>
 
         {/* Test phone override panel */}
@@ -977,8 +982,8 @@ const DemoSite = () => {
                     <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-primary ring-2 ring-accent" />
                   </div>
                   <div className="text-left">
-                    <p className="text-xs font-semibold leading-tight sm:text-sm">Chat with Aspen</p>
-                    <p className="hidden text-[9px] opacity-80 sm:block">AI Chat</p>
+                    <p className="text-xs font-semibold leading-tight sm:text-sm">{t("demo.chatWithAspen")}</p>
+                    <p className="hidden text-[9px] opacity-80 sm:block">{t("demo.aiChat")}</p>
                   </div>
                 </button>
               )}
@@ -1001,6 +1006,7 @@ const DemoSite = () => {
                     callerName={knownCallerName}
                     callerEmail={knownCallerEmail}
                     callerPhone={knownCallerPhone}
+                    language={i18n.resolvedLanguage || i18n.language || "en"}
                     onClose={() => setVoiceOpen(false)}
                   />
                 </div>
@@ -1014,14 +1020,15 @@ const DemoSite = () => {
                     <span className="absolute -right-0.5 -top-0.5 h-2 w-2 rounded-full bg-accent ring-2 ring-primary" />
                   </div>
                   <div className="text-left">
-                    <p className="text-xs font-semibold leading-tight sm:text-sm">Talk to Aspen</p>
-                    <p className="hidden text-[9px] opacity-80 sm:block">AI Voice</p>
+                    <p className="text-xs font-semibold leading-tight sm:text-sm">{t("demo.talkToAspen")}</p>
+                    <p className="hidden text-[9px] opacity-80 sm:block">{t("demo.aiVoice")}</p>
                   </div>
                 </button>
               )}
             </DraggableFloating>
           </>
         )}
+
       </div>
 
     </div>
