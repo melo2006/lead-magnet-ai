@@ -841,7 +841,7 @@ const TalkingAvatarWidget = () => {
           </div>
           <div className="absolute inset-0 rounded-full border-2 border-primary/50 animate-ping" />
           <div className="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full shadow-md">
-            Talk to Aspen 🎙️
+            {t("avatar.talkCta")}
           </div>
         </div>
       </button>
