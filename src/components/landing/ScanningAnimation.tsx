@@ -209,7 +209,7 @@ const ScanningAnimation = ({
           className="mt-1 text-xs leading-relaxed text-muted-foreground sm:text-sm"
         >
           {t("scan.buildingPrefix")} {" "}
-          <span className="font-semibold text-foreground">{displayName}</span> with AI Voice &amp; Chat
+          <span className="font-semibold text-foreground">{displayName}</span> {t("scan.withAi")}
           {t("scan.buildingSuffix")}
         </motion.p>
       </div>
