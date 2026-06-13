@@ -397,21 +397,40 @@ const buildOpeningCompanyWelcome = ({
   return `${spokenBusinessName} welcomes customers with friendly, professional service. The team focuses on clear communication, quality work, and a smooth customer experience.`;
 };
 
-const buildPhaseTwoNameLine = (callerName?: string) => {
+const buildPhaseTwoNameLine = (callerName?: string, language: string = 'en') => {
   const cleanedName = typeof callerName === 'string' ? callerName.trim() : '';
-
+  if (language === 'pt-BR') {
+    return cleanedName
+      ? `Que bom falar com você, ${cleanedName}.`
+      : `Aliás, como você gostaria que eu te chamasse hoje?`;
+  }
+  if (language === 'es') {
+    return cleanedName
+      ? `Qué gusto hablar contigo, ${cleanedName}.`
+      : `Por cierto, ¿cómo te gustaría que te llame hoy?`;
+  }
   return cleanedName
     ? `It's great to connect with you, ${cleanedName}.`
     : `By the way, what name should I use for you today?`;
 };
 
-const getTimeOfDayGreeting = (timeZone = DEFAULT_TIME_ZONE) => {
+const getTimeOfDayGreeting = (timeZone = DEFAULT_TIME_ZONE, language: string = 'en') => {
   const hour = Number(new Intl.DateTimeFormat('en-US', {
     hour: 'numeric',
     hour12: false,
     timeZone,
   }).format(new Date()));
 
+  if (language === 'pt-BR') {
+    if (hour < 12) return 'Bom dia';
+    if (hour < 18) return 'Boa tarde';
+    return 'Boa noite';
+  }
+  if (language === 'es') {
+    if (hour < 12) return 'Buenos días';
+    if (hour < 19) return 'Buenas tardes';
+    return 'Buenas noches';
+  }
   if (hour < 12) return 'Good morning';
   if (hour < 18) return 'Good afternoon';
   return 'Good evening';
@@ -423,14 +442,23 @@ const buildPhaseTwoOpening = ({
   phaseTwoNameLine,
   timeOfDayGreeting,
   askHelpQuestion,
+  language = 'en',
 }: {
   spokenBusinessName: string;
   openingCompanyWelcome: string;
   phaseTwoNameLine: string;
   timeOfDayGreeting: string;
   askHelpQuestion: boolean;
-}) =>
-  `Hi, ${timeOfDayGreeting.toLowerCase()}. This is Aspen from ${spokenBusinessName}. ${openingCompanyWelcome} ${phaseTwoNameLine}${askHelpQuestion ? ' How can I help you today?' : ''}`;
+  language?: string;
+}) => {
+  if (language === 'pt-BR') {
+    return `Oi, ${timeOfDayGreeting.toLowerCase()}. Aqui é a Aspen, da ${spokenBusinessName}. ${openingCompanyWelcome} ${phaseTwoNameLine}${askHelpQuestion ? ' Como posso te ajudar hoje?' : ''}`;
+  }
+  if (language === 'es') {
+    return `Hola, ${timeOfDayGreeting.toLowerCase()}. Habla Aspen de ${spokenBusinessName}. ${openingCompanyWelcome} ${phaseTwoNameLine}${askHelpQuestion ? ' ¿En qué puedo ayudarte hoy?' : ''}`;
+  }
+  return `Hi, ${timeOfDayGreeting.toLowerCase()}. This is Aspen from ${spokenBusinessName}. ${openingCompanyWelcome} ${phaseTwoNameLine}${askHelpQuestion ? ' How can I help you today?' : ''}`;
+};
 
 const buildExactDemoOpening = ({
   spokenBusinessName,
@@ -438,20 +466,24 @@ const buildExactDemoOpening = ({
   phaseTwoNameLine,
   timeOfDayGreeting,
   askHelpQuestion,
+  language = 'en',
 }: {
   spokenBusinessName: string;
   openingCompanyWelcome: string;
   phaseTwoNameLine: string;
   timeOfDayGreeting: string;
   askHelpQuestion: boolean;
-}) =>
-  `${timeOfDayGreeting}. This is Aspen with AIHiddenLeads.com. I'm going to give you a quick sample of how I can work as your AI receptionist — I can answer calls, make appointments, change appointments, and even transfer calls live. Now I'm gonna be simulating as if I was already working on your website. Keep in mind, this is just a demo. ${buildPhaseTwoOpening({
-    spokenBusinessName,
-    openingCompanyWelcome,
-    phaseTwoNameLine,
-    timeOfDayGreeting,
-    askHelpQuestion,
-  })}`;
+  language?: string;
+}) => {
+  if (language === 'pt-BR') {
+    return `${timeOfDayGreeting}. Aqui é a Aspen, da AIHiddenLeads.com. Vou te dar uma amostra rápida de como eu posso trabalhar como sua recepcionista de I-A — eu atendo ligações, marco horários, remarco compromissos e até faço transferência ao vivo. Agora eu vou simular como se eu já estivesse trabalhando no seu site. Lembre-se: isto é só uma demonstração. ${buildPhaseTwoOpening({ spokenBusinessName, openingCompanyWelcome, phaseTwoNameLine, timeOfDayGreeting, askHelpQuestion, language })}`;
+  }
+  if (language === 'es') {
+    return `${timeOfDayGreeting}. Habla Aspen de AIHiddenLeads.com. Te voy a dar una muestra rápida de cómo puedo trabajar como tu recepcionista de IA — puedo atender llamadas, agendar citas, reagendarlas e incluso transferir llamadas en vivo. Ahora voy a simular como si ya estuviera trabajando en tu sitio web. Recuerda, esto es solo una demostración. ${buildPhaseTwoOpening({ spokenBusinessName, openingCompanyWelcome, phaseTwoNameLine, timeOfDayGreeting, askHelpQuestion, language })}`;
+  }
+  return `${timeOfDayGreeting}. This is Aspen with AIHiddenLeads.com. I'm going to give you a quick sample of how I can work as your AI receptionist — I can answer calls, make appointments, change appointments, and even transfer calls live. Now I'm gonna be simulating as if I was already working on your website. Keep in mind, this is just a demo. ${buildPhaseTwoOpening({ spokenBusinessName, openingCompanyWelcome, phaseTwoNameLine, timeOfDayGreeting, askHelpQuestion, language })}`;
+};
+
 
 const isLikelyCallablePhoneNumber = (value?: string | null) => {
   const normalized = normalizePhoneNumber(value ?? '');
