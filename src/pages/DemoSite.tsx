@@ -710,7 +710,10 @@ const DemoSite = () => {
     !requiresBrowserFallback &&
     !isWebsiteUnreachable &&
     (isIframeCheckPending || !hasIframeLoaded);
-  const shouldHoldScanningState = isScanning && !isStaticPreviewReady && !hasIframeLoaded && !hasLiveViewLoaded;
+  // Keep the scanning overlay visible while the backend scan is in progress, regardless of
+  // the iframe's onLoad (which fires for the initial blank document and would otherwise
+  // dismiss the overlay too early, leaving a black screen).
+  const shouldHoldScanningState = isScanning;
   const isPreviewLoading =
     shouldHoldScanningState ||
     isInlinePreviewLoading ||
