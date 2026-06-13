@@ -751,7 +751,7 @@ const TalkingAvatarWidget = () => {
       console.error("Failed to start spokesperson call:", err);
       setCallStatus("idle");
     }
-  }, [focusAvatarOnViewer, resetAvatarMotion, refreshBluetoothOutput, setAudioRouteState, setSinkIfSupported]);
+  }, [callStatus, focusAvatarOnViewer, resetAvatarMotion, refreshBluetoothOutput, setAudioRouteState, setSinkIfSupported]);
 
   const endCall = useCallback(() => {
     try { retellClientRef.current?.stopCall(); } catch { /* noop */ }
