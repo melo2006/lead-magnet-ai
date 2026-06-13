@@ -1900,12 +1900,12 @@ Deno.serve(async (req) => {
           owner_name: resolvedOwnerName,
           owner_email: ownerEmail || '',
           website_url: websiteUrl || '',
-          business_info: (businessInfo || 'A professional business offering quality services.').substring(0, 12000),
-          opening_company_welcome: openingCompanyWelcome,
+          business_info: safeBusinessInfo,
+          opening_company_welcome: safeOpeningCompanyWelcome,
           phase_two_name_line: phaseTwoNameLine,
           time_of_day_greeting: timeOfDayGreeting,
-          phase_two_opening: phaseTwoOpening,
-          exact_demo_opening: exactDemoOpening,
+          phase_two_opening: safePhaseTwoOpening,
+          exact_demo_opening: safeExactDemoOpening,
           owner_phone: normalizedOwnerPhone || '',
           caller_name: resolvedCallerName,
           caller_email: resolvedCallerEmail,
@@ -1913,7 +1913,7 @@ Deno.serve(async (req) => {
           voice_persona: `You are Aspen, the AI voice assistant. You are warm, cordial, natural, polished, and conversational — like a sharp real receptionist who sounds friendly and confident without overdoing it.
 
 YOUR FIRST UTTERANCE MUST FOLLOW THIS EXACT OPENING SCRIPT:
-"${exactDemoOpening}"
+"${safeExactDemoOpening}"
 
 ABSOLUTE OPENING GUARDRAILS:
 - Follow that exact opening script.
