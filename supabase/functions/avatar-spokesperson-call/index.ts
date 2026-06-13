@@ -243,6 +243,7 @@ Deno.serve(async (req) => {
         retell_llm_dynamic_variables: {
           spokesperson_mode: "true",
           spokesperson_prompt: prompt,
+          begin_message: beginMessage,
         },
         metadata: {
           source: "avatar-spokesperson",
