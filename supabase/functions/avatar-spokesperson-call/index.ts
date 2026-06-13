@@ -271,7 +271,6 @@ Deno.serve(async (req) => {
           retell_llm: {
             start_speaker: "agent",
             begin_message: beginMessage,
-            begin_after_user_silence_ms: 0,
           },
         },
         retell_llm_dynamic_variables: {
