@@ -18,6 +18,12 @@ const DEFAULT_TRANSFER_NUMBER = '+19547706622';
 const TWILIO_CALLER_ID = '+15612755757';
 const TRANSFER_TITLE = 'AI Solutions Specialist';
 const SHARED_WEB_AGENT_ID = 'agent_0dd08673d770e8adf08f920490';
+// Language-specific Retell agents (must match the homepage spokesperson voices)
+const LANGUAGE_AGENT_IDS: Record<'en' | 'pt-BR' | 'es', string> = {
+  'en': 'agent_0dd08673d770e8adf08f920490',
+  'pt-BR': Deno.env.get('RETELL_AGENT_ID_PT') || 'agent_f07d11526d03342668c043e4d1',
+  'es': Deno.env.get('RETELL_AGENT_ID_ES') || 'agent_f4bcf291c7a19b15cc020edce5',
+};
 
 const SHARED_RETELL_PROMPT = `You are Aspen, the AI voice assistant.
 
@@ -1813,6 +1819,13 @@ Deno.serve(async (req) => {
         ? 'es'
         : 'en';
 
+    // Route to the language-native Retell agent so the voice matches the homepage spokesperson
+    // (avoids American voice speaking broken Portuguese/Spanish).
+    const resolvedAgentId = LANGUAGE_AGENT_IDS[language] || agentId;
+    if (resolvedAgentId !== agentId) {
+      console.log(`[language-routing] Overriding agentId ${agentId} -> ${resolvedAgentId} for language ${language}`);
+    }
+
     const resolvedOwnerName = typeof ownerName === 'string' && ownerName.trim() ? ownerName.trim() : DEFAULT_OWNER_NAME;
     const normalizedOwnerPhone = normalizePhoneNumber(ownerPhone);
     const resolvedCallerName = typeof callerName === 'string' ? callerName.trim() : '';
@@ -1854,9 +1867,9 @@ Deno.serve(async (req) => {
       : '';
 
 
-    console.log('Creating web call for agent:', agentId, 'niche:', businessNiche, 'callbackPhone:', normalizedOwnerPhone);
+    console.log('Creating web call for agent:', resolvedAgentId, 'niche:', businessNiche, 'callbackPhone:', normalizedOwnerPhone);
 
-    await ensureSharedRetellPrompt(retellApiKey, agentId);
+    await ensureSharedRetellPrompt(retellApiKey, resolvedAgentId);
 
     const response = await fetch(`${RETELL_BASE}/v2/create-web-call`, {
       method: 'POST',
@@ -1865,7 +1878,7 @@ Deno.serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        agent_id: agentId,
+        agent_id: resolvedAgentId,
         retell_llm_dynamic_variables: {
           spokesperson_mode: 'false',
           business_name: businessName || 'Demo Business',
