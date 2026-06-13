@@ -9,9 +9,13 @@ const tiers = [
   {
     key: "essentials",
     price: 99,
+    priceBRL: 499,
     originalPrice: 199,
+    originalPriceBRL: 999,
     setupFee: 99,
+    setupFeeBRL: 499,
     originalSetup: 299,
+    originalSetupBRL: 1499,
     icon: Zap,
     popular: false,
     checkoutPlan: "essentials",
@@ -20,9 +24,13 @@ const tiers = [
   {
     key: "growth",
     price: 199,
+    priceBRL: 999,
     originalPrice: 399,
+    originalPriceBRL: 1999,
     setupFee: 199,
+    setupFeeBRL: 999,
     originalSetup: 499,
+    originalSetupBRL: 2499,
     icon: Sparkles,
     popular: true,
     checkoutPlan: "growth",
@@ -31,9 +39,13 @@ const tiers = [
   {
     key: "full",
     price: 349,
+    priceBRL: 1749,
     originalPrice: 699,
+    originalPriceBRL: 3499,
     setupFee: null,
+    setupFeeBRL: null,
     originalSetup: 499,
+    originalSetupBRL: 2499,
     icon: Crown,
     popular: false,
     checkoutPlan: "fullservice",
@@ -202,27 +214,57 @@ const PricingSection = () => {
                 </div>
 
                 <div className="mb-6">
-                  <div className="flex items-baseline gap-2">
-                    <span className="text-4xl font-extrabold">${tier.price}</span>
-                    <span className="text-muted-foreground text-sm">{t("pricing.perMo")}</span>
-                  </div>
-                  <p className="text-sm text-muted-foreground mt-1">
-                    <span className="line-through">${tier.originalPrice}{t("pricing.perMo")}</span>
-                    <span className="text-primary ml-2 font-medium">{t("pricing.launchPrice")}</span>
-                  </p>
-                  <p className="text-xs text-muted-foreground mt-2">
-                    {tier.setupFee !== null ? (
-                      <>
-                        {t("pricing.setup")} <span className="line-through">${tier.originalSetup}</span>{" "}
-                        <span className="text-primary font-semibold">${tier.setupFee}</span>
-                      </>
-                    ) : (
-                      <>
-                        {t("pricing.setup")} <span className="line-through">${tier.originalSetup}</span>{" "}
-                        <span className="text-primary font-semibold">{t("pricing.free")}</span>
-                      </>
-                    )}
-                  </p>
+                  {lang === "pt-BR" ? (
+                    <>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-4xl font-extrabold">R$ {tier.priceBRL.toLocaleString("pt-BR")}</span>
+                        <span className="text-muted-foreground text-sm">{t("pricing.perMo")}</span>
+                      </div>
+                      <p className="text-xs text-muted-foreground mt-1">(≈ ${tier.price} USD{t("pricing.perMo")})</p>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        <span className="line-through">R$ {tier.originalPriceBRL.toLocaleString("pt-BR")}{t("pricing.perMo")}</span>
+                        <span className="text-primary ml-2 font-medium">{t("pricing.launchPrice")}</span>
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        {tier.setupFeeBRL !== null ? (
+                          <>
+                            {t("pricing.setup")} <span className="line-through">R$ {tier.originalSetupBRL.toLocaleString("pt-BR")}</span>{" "}
+                            <span className="text-primary font-semibold">R$ {tier.setupFeeBRL.toLocaleString("pt-BR")}</span>{" "}
+                            <span className="text-muted-foreground">(≈ ${tier.setupFee} USD)</span>
+                          </>
+                        ) : (
+                          <>
+                            {t("pricing.setup")} <span className="line-through">R$ {tier.originalSetupBRL.toLocaleString("pt-BR")}</span>{" "}
+                            <span className="text-primary font-semibold">{t("pricing.free")}</span>
+                          </>
+                        )}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-baseline gap-2">
+                        <span className="text-4xl font-extrabold">${tier.price}</span>
+                        <span className="text-muted-foreground text-sm">{t("pricing.perMo")}</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground mt-1">
+                        <span className="line-through">${tier.originalPrice}{t("pricing.perMo")}</span>
+                        <span className="text-primary ml-2 font-medium">{t("pricing.launchPrice")}</span>
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        {tier.setupFee !== null ? (
+                          <>
+                            {t("pricing.setup")} <span className="line-through">${tier.originalSetup}</span>{" "}
+                            <span className="text-primary font-semibold">${tier.setupFee}</span>
+                          </>
+                        ) : (
+                          <>
+                            {t("pricing.setup")} <span className="line-through">${tier.originalSetup}</span>{" "}
+                            <span className="text-primary font-semibold">{t("pricing.free")}</span>
+                          </>
+                        )}
+                      </p>
+                    </>
+                  )}
                 </div>
 
                 <ul className="space-y-3 mb-6 flex-1">

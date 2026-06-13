@@ -8,7 +8,20 @@ interface StatsSectionProps {
 }
 
 const StatsSection = ({ niche }: StatsSectionProps) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isPT = i18n.language === "pt-BR";
+
+  // Brazilian Reais equivalents per niche, based on local SMB averages
+  const revenueBRLByNiche: Record<string, string> = {
+    realtors: "R$ 1.500",
+    medspa: "R$ 1.000",
+    autodetail: "R$ 450",
+    veterinary: "R$ 600",
+    marine: "R$ 2.200",
+  };
+  const revenueDisplay = isPT
+    ? (revenueBRLByNiche[niche.id] ?? niche.stats.revenuePerMissedCall)
+    : niche.stats.revenuePerMissedCall;
   const stats = [
     {
       icon: PhoneOff,
@@ -21,9 +34,11 @@ const StatsSection = ({ niche }: StatsSectionProps) => {
     },
     {
       icon: DollarSign,
-      value: niche.stats.revenuePerMissedCall,
+      value: revenueDisplay,
       label: t("stats.cards.lost.label"),
-      sublabel: t("stats.cards.lost.sublabel"),
+      sublabel: isPT
+        ? `${t("stats.cards.lost.sublabel")} (≈ ${niche.stats.revenuePerMissedCall} USD)`
+        : t("stats.cards.lost.sublabel"),
       color: "text-[hsl(var(--warning))]",
       bg: "bg-[hsl(var(--warning)/0.1)]",
       border: "border-[hsl(var(--warning)/0.2)]",
