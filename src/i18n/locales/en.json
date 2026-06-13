@@ -35,6 +35,38 @@
     "sub": "Enter your website URL and hear what your Voice AI receptionist & Chat AI widget would sound like — totally free, no credit card needed.",
     "cta": "🎙️ Try Your Website Now — Free"
   },
+  "beforeAfter": {
+    "titleStart": "From",
+    "outdated": "Outdated",
+    "to": "to",
+    "aiPowered": "AI-Powered",
+    "after": "With AI Hidden Leads ✨",
+    "desktopBefore": "Desktop — Before",
+    "desktopAfter": "Desktop — With AI Hidden Leads ✨",
+    "cta": "Transform My Website Now",
+    "niches": {
+      "realtors": {
+        "subtitle": "Your listing site could look like this — with a built-in AI voice agent and smart chatbot that never misses a buyer",
+        "before": "Your Realtor Site Today"
+      },
+      "medspa": {
+        "subtitle": "Your med spa site could look like this — with AI booking and a voice assistant that captures every consultation request",
+        "before": "Your Med Spa Site Today"
+      },
+      "autodetail": {
+        "subtitle": "Your detailing site could look like this — with an AI assistant that books jobs while you're polishing a Tesla",
+        "before": "Your Detail Site Today"
+      },
+      "veterinary": {
+        "subtitle": "Your vet clinic site could look like this — with AI triage and a voice agent that handles panicked pet parents 24/7",
+        "before": "Your Vet Site Today"
+      },
+      "marine": {
+        "subtitle": "Your marine service site could look like this — with AI scheduling and a voice agent that books haul-outs while you're on the dock",
+        "before": "Your Marine Site Today"
+      }
+    }
+  },
   "services": {
     "title": "We Know What You Need —",
     "titleAccent": "We've Heard It All",
