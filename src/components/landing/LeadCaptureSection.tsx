@@ -16,6 +16,7 @@ import {
   Building2,
 } from "lucide-react";
 import { z } from "zod";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
@@ -100,6 +101,7 @@ interface LeadCaptureSectionProps {
 
 const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [viewState, setViewState] = useState<ViewState>("form");
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -152,11 +154,11 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
     const newFiles = Array.from(e.target.files || []);
     const valid = newFiles.filter((f) => {
       if (!ALLOWED_TYPES.includes(f.type)) {
-        toast({ title: "Invalid file type", description: `${f.name} is not a PDF, TXT, or Word document.`, variant: "destructive" });
+        toast({ title: t("leadForm.invalidFile"), description: t("leadForm.invalidFileDesc", { file: f.name }), variant: "destructive" });
         return false;
       }
       if (f.size > MAX_FILE_SIZE) {
-        toast({ title: "File too large", description: `${f.name} exceeds 20MB.`, variant: "destructive" });
+        toast({ title: t("leadForm.fileTooLarge"), description: t("leadForm.fileTooLargeDesc", { file: f.name }), variant: "destructive" });
         return false;
       }
       return true;
@@ -190,8 +192,8 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
     const parsed = leadFormSchema.safeParse(formData);
     if (!parsed.success) {
       toast({
-        title: "Please fix the form",
-        description: parsed.error.issues[0]?.message ?? "Please review your details and try again.",
+        title: t("leadForm.fixForm"),
+        description: t("leadForm.reviewDetails"),
         variant: "destructive",
       });
       return;
@@ -242,8 +244,8 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
       if (scanResult.error) {
         console.error("Scan error:", scanResult.error);
         toast({
-          title: "Loading a basic demo",
-          description: "The site scan took too long, so the demo is opening with the saved business details.",
+          title: t("leadForm.loadingBasicDemo"),
+          description: t("leadForm.loadingBasicDemoDesc"),
         });
       } else {
         console.log("Scan completed:", scanResult.data);
@@ -305,7 +307,7 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
       }
     } catch (err) {
       console.error("Error submitting lead:", err);
-      toast({ title: "Something went wrong", description: "Please try again.", variant: "destructive" });
+      toast({ title: t("leadForm.errorTitle"), description: t("leadForm.errorDesc"), variant: "destructive" });
       setViewState("form");
     } finally {
       setIsSubmitting(false);
@@ -345,13 +347,13 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
           >
             <div className="inline-flex items-center gap-2 px-3 py-1.5 sm:px-4 sm:py-2 rounded-full border border-primary/20 bg-primary/5 mb-3 sm:mb-6">
               <Rocket className="w-4 h-4 text-primary" />
-              <span className="text-sm font-medium text-primary">Free personalized demo</span>
+              <span className="text-sm font-medium text-primary">{t("leadForm.badge")}</span>
             </div>
             <h2 className="text-2xl sm:text-3xl lg:text-4xl font-bold mb-2 sm:mb-4">
-              See Your AI Assistant <span className="text-gradient-primary">In Action</span>
+              {t("leadForm.title1")} <span className="text-gradient-primary">{t("leadForm.title2")}</span>
             </h2>
             <p className="text-muted-foreground text-sm sm:text-lg">
-              Enter your info below. In 60 seconds, you'll see your website with live AI chat and voice assistants.
+              {t("leadForm.sub")}
             </p>
           </motion.div>
 
@@ -366,7 +368,7 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
               <div className="space-y-1">
                 <label className="text-xs sm:text-sm font-medium text-foreground flex items-center gap-1.5">
-                  <User className="w-4 h-4 text-muted-foreground" /> Your Name <span className="text-destructive">*</span>
+                  <User className="w-4 h-4 text-muted-foreground" /> {t("leadForm.name")} <span className="text-destructive">*</span>
                 </label>
                 <Input
                   placeholder="Alex Johnson"
@@ -378,7 +380,7 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
               </div>
               <div className="space-y-1">
                 <label className="text-xs sm:text-sm font-medium text-foreground flex items-center gap-1.5">
-                  <Building2 className="w-3.5 h-3.5 text-muted-foreground" /> Business Name <span className="text-destructive">*</span>
+                  <Building2 className="w-3.5 h-3.5 text-muted-foreground" /> {t("leadForm.business")} <span className="text-destructive">*</span>
                 </label>
                 <Input
                   placeholder="Sunrise Dental Studio"
@@ -393,7 +395,7 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
               <div className="space-y-1">
                 <label className="text-xs sm:text-sm font-medium text-foreground flex items-center gap-1.5">
-                  <Globe className="w-3.5 h-3.5 text-muted-foreground" /> Website URL <span className="text-destructive">*</span>
+                  <Globe className="w-3.5 h-3.5 text-muted-foreground" /> {t("leadForm.website")} <span className="text-destructive">*</span>
                 </label>
                 <Input
                   placeholder="bankunited.com"
@@ -409,7 +411,7 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
               </div>
               <div className="space-y-1">
                 <label className="text-xs sm:text-sm font-medium text-foreground flex items-center gap-1.5">
-                  <Mail className="w-3.5 h-3.5 text-muted-foreground" /> Email <span className="text-xs text-muted-foreground">(optional)</span>
+                  <Mail className="w-3.5 h-3.5 text-muted-foreground" /> {t("leadForm.email")} <span className="text-xs text-muted-foreground">{t("leadForm.optional")}</span>
                 </label>
                 <Input
                   type="email"
@@ -424,7 +426,7 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-3">
               <div className="space-y-1">
                 <label className="text-xs sm:text-sm font-medium text-foreground flex items-center gap-1.5">
-                  <Phone className="w-3.5 h-3.5 text-muted-foreground" /> Cell Phone <span className="text-xs text-muted-foreground">(optional)</span>
+                  <Phone className="w-3.5 h-3.5 text-muted-foreground" /> {t("leadForm.phone")} <span className="text-xs text-muted-foreground">{t("leadForm.optional")}</span>
                 </label>
                 <Input
                   type="tel"
@@ -437,7 +439,7 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
 
               <div className="space-y-1">
                 <label className="text-xs sm:text-sm font-medium text-foreground flex items-center gap-1.5">
-                  <Link2 className="w-3.5 h-3.5 text-muted-foreground" /> Additional URL <span className="text-xs text-muted-foreground">(optional)</span>
+                  <Link2 className="w-3.5 h-3.5 text-muted-foreground" /> {t("leadForm.altUrl")} <span className="text-xs text-muted-foreground">{t("leadForm.optional")}</span>
                 </label>
                 <Input
                   placeholder="https://vendor-or-partner-site.com"
@@ -450,7 +452,7 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
 
             <div className="mb-4 space-y-1">
                 <label className="text-xs sm:text-sm font-medium text-foreground flex items-center gap-1.5">
-                <Upload className="w-3.5 h-3.5 text-muted-foreground" /> Upload Docs <span className="text-xs text-muted-foreground">(optional — up to 3)</span>
+                <Upload className="w-3.5 h-3.5 text-muted-foreground" /> {t("leadForm.uploadDocs")} <span className="text-xs text-muted-foreground">{t("leadForm.uploadOptional")}</span>
               </label>
               <div
                 className="rounded-xl border-2 border-dashed border-border bg-secondary/50 p-2 sm:p-4 text-center cursor-pointer hover:border-primary/40 transition-colors"
@@ -479,11 +481,11 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
                 />
                 {files.length === 0 ? (
                   <p className="text-sm text-muted-foreground">
-                    Drag & drop files here, or <span className="text-primary font-medium">click to browse</span>
+                    {t("leadForm.dragDrop")} <span className="text-primary font-medium">{t("leadForm.clickBrowse")}</span>
                   </p>
                 ) : (
                   <p className="text-xs text-muted-foreground mb-2">
-                    {files.length}/{MAX_FILES} files selected — click to add more
+                    {t("leadForm.filesSelected", { count: files.length, max: MAX_FILES })}
                   </p>
                 )}
               </div>
@@ -512,17 +514,17 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
               {isSubmitting ? (
                 <>
                   <Loader2 className="w-5 h-5 mr-2 animate-spin" />
-                  Submitting...
+                  {t("leadForm.submitting")}
                 </>
               ) : (
                 <>
-                  Build My AI Demo
+                  {t("leadForm.submit")}
                   <ArrowRight className="w-5 h-5 ml-2" />
                 </>
               )}
             </Button>
             <p className="text-xs text-muted-foreground text-center mt-2">
-              Required: owner name, business name, and website URL. Email and phone are optional but recommended for recap + scheduling.
+              {t("leadForm.requiredNote")}
             </p>
           </motion.form>
         </div>

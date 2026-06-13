@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { TrendingDown, Clock, DollarSign, PhoneOff } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { NicheData } from "@/data/nicheData";
 
 interface StatsSectionProps {
@@ -7,12 +8,13 @@ interface StatsSectionProps {
 }
 
 const StatsSection = ({ niche }: StatsSectionProps) => {
+  const { t } = useTranslation();
   const stats = [
     {
       icon: PhoneOff,
       value: niche.stats.missedCallRate,
-      label: "of calls go unanswered",
-      sublabel: "during business hours",
+      label: t("stats.cards.unanswered.label"),
+      sublabel: t("stats.cards.unanswered.sublabel"),
       color: "text-destructive",
       bg: "bg-destructive/10",
       border: "border-destructive/20",
@@ -20,8 +22,8 @@ const StatsSection = ({ niche }: StatsSectionProps) => {
     {
       icon: DollarSign,
       value: niche.stats.revenuePerMissedCall,
-      label: "lost per missed call",
-      sublabel: "average revenue impact",
+      label: t("stats.cards.lost.label"),
+      sublabel: t("stats.cards.lost.sublabel"),
       color: "text-[hsl(var(--warning))]",
       bg: "bg-[hsl(var(--warning)/0.1)]",
       border: "border-[hsl(var(--warning)/0.2)]",
@@ -29,8 +31,8 @@ const StatsSection = ({ niche }: StatsSectionProps) => {
     {
       icon: Clock,
       value: niche.stats.avgResponseTime,
-      label: "average response time",
-      sublabel: "without AI assistant",
+      label: t("stats.cards.response.label"),
+      sublabel: t("stats.cards.response.sublabel"),
       color: "text-accent",
       bg: "bg-accent/10",
       border: "border-accent/20",
@@ -38,8 +40,8 @@ const StatsSection = ({ niche }: StatsSectionProps) => {
     {
       icon: TrendingDown,
       value: "78%",
-      label: "buy from first responder",
-      sublabel: "speed wins every time",
+      label: t("stats.cards.firstResponder.label"),
+      sublabel: t("stats.cards.firstResponder.sublabel"),
       color: "text-primary",
       bg: "bg-primary/10",
       border: "border-primary/20",
@@ -57,10 +59,10 @@ const StatsSection = ({ niche }: StatsSectionProps) => {
           className="text-center mb-10 sm:mb-14"
         >
           <h2 className="text-2xl sm:text-4xl lg:text-5xl font-bold mb-4">
-            The Cost of <span className="text-destructive">Silence</span>
+            {t("stats.title1")} <span className="text-destructive">{t("stats.title2")}</span>
           </h2>
           <p className="text-muted-foreground text-sm sm:text-lg max-w-2xl mx-auto">
-            Every ring that goes to voicemail is money walking out the door. Here's what the data says about your industry.
+            {t("stats.sub")}
           </p>
         </motion.div>
 

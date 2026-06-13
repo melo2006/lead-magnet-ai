@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import {
   Globe,
   Loader2,
@@ -63,16 +64,17 @@ const formSchema = z.object({
 });
 
 const benefits = [
-  { icon: PhoneForwarded, label: "Warm Transfer", desc: "AI transfers hot leads live to you with a full summary" },
-  { icon: MessageSquare, label: "SMS After Every Call", desc: "Get an instant text with the lead details & summary" },
-  { icon: Mail, label: "Email Summary", desc: "Full call recap emailed to you after every conversation" },
-  { icon: UserCheck, label: "Lead Capture & CRM", desc: "Every lead is saved — use our CRM or integrate yours" },
-  { icon: Clock, label: "24/7 AI Receptionist", desc: "Never miss a call — AI answers & books appointments" },
-  { icon: Zap, label: "Instant Lead Capture", desc: "Converts website visitors into booked calls" },
+  { key: "transfer", icon: PhoneForwarded },
+  { key: "sms", icon: MessageSquare },
+  { key: "email", icon: Mail },
+  { key: "crm", icon: UserCheck },
+  { key: "receptionist", icon: Clock },
+  { key: "capture", icon: Zap },
 ];
 
 const TryDemo = () => {
   const { toast } = useToast();
+  const { t } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [fullName, setFullName] = useState("");
@@ -117,8 +119,7 @@ const TryDemo = () => {
 
     const parsed = formSchema.safeParse({ fullName, phone, email, url });
     if (!parsed.success) {
-      const firstError = parsed.error.issues[0];
-      toast({ title: "Missing info", description: firstError?.message, variant: "destructive" });
+      toast({ title: t("tryDemo.missingInfo"), description: t("tryDemo.fixFields"), variant: "destructive" });
       return;
     }
 
@@ -229,7 +230,7 @@ const TryDemo = () => {
 
       if (scanResult.error) {
         console.error("Scan error:", scanResult.error);
-        toast({ title: "Loading demo", description: "Opening with saved details." });
+        toast({ title: t("tryDemo.loadingDemo"), description: t("tryDemo.openingSaved") });
       }
 
       const { data: updatedLead } = await supabase
@@ -263,7 +264,7 @@ const TryDemo = () => {
       try { localStorage.setItem(LAST_DEMO_STORAGE_KEY, JSON.stringify(leadData)); } catch {}
     } catch (err) {
       console.error("Error:", err);
-      toast({ title: "Something went wrong", description: "Please try again.", variant: "destructive" });
+      toast({ title: t("tryDemo.errorTitle"), description: t("tryDemo.errorDesc"), variant: "destructive" });
       setIsScanning(false);
     } finally {
       setIsSubmitting(false);
@@ -309,17 +310,17 @@ const TryDemo = () => {
           transition={{ duration: 0.5, delay: 0.1 }}
         >
           <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold leading-tight mb-3">
-            See Your Website With{" "}
+            {t("tryDemo.headline1")}{" "}
             <span className="bg-gradient-to-r from-primary to-accent bg-clip-text text-transparent">
               AI
             </span>
-            {" "}— Live Demo
+            {" "}{t("tryDemo.headline2")}
           </h1>
           <p className="text-muted-foreground text-base sm:text-lg mb-2">
-            Enter your info below and within ~90 seconds, watch your website come alive with Voice AI and Chat AI — personalized for your business.
+            {t("tryDemo.sub")}
           </p>
           <p className="text-muted-foreground/70 text-xs sm:text-sm mb-5 italic">
-            Capture just one or two extra leads a month and the system pays for itself.
+            {t("tryDemo.payoff")}
           </p>
         </motion.div>
 
@@ -330,15 +331,15 @@ const TryDemo = () => {
           transition={{ duration: 0.5, delay: 0.2 }}
           className="grid grid-cols-2 sm:grid-cols-3 gap-2 mb-6"
         >
-          {benefits.map(({ icon: Icon, label, desc }) => (
+          {benefits.map(({ key, icon: Icon }) => (
             <div
-              key={label}
+              key={key}
               className="flex items-start gap-2 px-3 py-2 rounded-xl border border-border bg-card/60 backdrop-blur-sm text-left"
             >
               <Icon className="w-4 h-4 text-primary shrink-0 mt-0.5" />
               <div>
-                <p className="text-xs font-semibold text-foreground leading-tight">{label}</p>
-                <p className="text-[10px] text-muted-foreground leading-tight">{desc}</p>
+                <p className="text-xs font-semibold text-foreground leading-tight">{t(`tryDemo.benefits.${key}.label`)}</p>
+                <p className="text-[10px] text-muted-foreground leading-tight">{t(`tryDemo.benefits.${key}.desc`)}</p>
               </div>
             </div>
           ))}
@@ -357,7 +358,7 @@ const TryDemo = () => {
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Your Full Name *"
+                placeholder={t("tryDemo.namePlaceholder")}
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 className="pl-9 h-12 text-sm bg-card border-border rounded-xl focus-visible:ring-primary"
@@ -400,7 +401,7 @@ const TryDemo = () => {
             <div className="relative">
               <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Email (optional)"
+                placeholder={t("tryDemo.emailPlaceholder")}
                 type="email"
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
@@ -419,7 +420,7 @@ const TryDemo = () => {
             {isSubmitting ? (
               <Loader2 className="w-5 h-5 animate-spin" />
             ) : (
-              "Show Me My AI Demo"
+              t("tryDemo.submit")
             )}
           </Button>
         </motion.form>
@@ -436,12 +437,12 @@ const TryDemo = () => {
               type="button"
               onClick={() => navigate("/prospects")}
               className="mr-1 inline-flex items-center font-semibold text-foreground/80 transition-colors hover:text-primary"
-              title="Go to Prospects"
-              aria-label="Go to Prospects"
+              title={t("tryDemo.goToProspects")}
+              aria-label={t("tryDemo.goToProspects")}
             >
-              ⚡ Quick demo disclaimer:
+              {t("tryDemo.disclaimerLead")}
             </button>
-            This is a rapid AI-generated simulation built in about 90 seconds — not a full knowledge base. It gives you a taste of what your AI receptionist will sound like. The production version we build for you will be much more detailed and accurate. You can even test a live warm transfer during the demo!
+            {t("tryDemo.disclaimer")}
           </p>
         </motion.div>
 
@@ -456,14 +457,14 @@ const TryDemo = () => {
             {[...Array(5)].map((_, i) => (
               <Star key={i} className="w-4 h-4 fill-yellow-400 text-yellow-400" />
             ))}
-            <span className="text-sm text-muted-foreground ml-1.5">Trusted by 500+ local businesses</span>
+            <span className="text-sm text-muted-foreground ml-1.5">{t("tryDemo.trusted")}</span>
           </div>
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
-              <Shield className="w-3.5 h-3.5 text-primary" /> Free
+              <Shield className="w-3.5 h-3.5 text-primary" /> {t("tryDemo.free")}
             </span>
             <span>·</span>
-            <span>No signup required</span>
+            <span>{t("tryDemo.noSignup")}</span>
             <span>·</span>
             <span>~90 seconds</span>
           </div>

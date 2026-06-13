@@ -6,39 +6,27 @@ import { Button } from "@/components/ui/button";
 
 const addOns = [
   {
+    key: "websiteRefresh",
     icon: Wrench,
-    title: "Website Refresh",
     price: "$99",
-    description:
-      "Modern redesign of your existing website using the latest technology. Mobile-optimized, fast-loading, and conversion-ready.",
-    note: "One-time fee",
   },
   {
+    key: "seoAudit",
     icon: Search,
-    title: "SEO Audit Report",
     price: "FREE",
-    description:
-      "Full audit of your website's SEO health — what's broken, what's missing, and exactly what to fix to rank higher on Google.",
-    note: "Included with any plan",
   },
   {
+    key: "aiSearch",
     icon: Sparkles,
-    title: "AI Search Optimization",
     price: "$249",
     priceNote: "/mo",
-    description:
-      "Get your business cited by ChatGPT, Gemini, and Perplexity. The future of search isn't Google — it's AI. We optimize your presence for AI-powered results.",
-    note: "New — early adopter pricing",
-    badge: "Coming Soon",
+    badgeKey: "comingSoon",
   },
   {
+    key: "mapsBoost",
     icon: Globe,
-    title: "Google Maps Boost",
     price: "$149",
     priceNote: "/mo",
-    description:
-      "Climb the Google Maps 3-pack. We optimize your Google Business Profile, build citations, and manage review velocity for local dominance.",
-    note: "Results in 60–90 days",
   },
 ];
 
@@ -72,7 +60,7 @@ const AddOnPackages = () => {
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 max-w-5xl mx-auto">
           {addOns.map((addon, i) => (
             <motion.div
-              key={addon.title}
+              key={addon.key}
               initial={{ opacity: 0, y: 30 }}
               whileInView={{ opacity: 1, y: 0 }}
               viewport={{ once: true }}
@@ -83,26 +71,26 @@ const AddOnPackages = () => {
                 <div className="w-10 h-10 rounded-xl bg-primary/10 border border-primary/20 flex items-center justify-center">
                   <addon.icon className="w-5 h-5 text-primary" />
                 </div>
-                {addon.badge && (
+                {addon.badgeKey && (
                   <Badge variant="outline" className="border-accent/30 text-accent text-[10px] px-2 py-0.5">
-                    {addon.badge}
+                    {t(`addons.${addon.badgeKey}`)}
                   </Badge>
                 )}
               </div>
 
-              <h3 className="text-lg font-semibold mb-1">{addon.title}</h3>
+              <h3 className="text-lg font-semibold mb-1">{t(`addons.items.${addon.key}.title`)}</h3>
               <div className="flex items-baseline gap-1 mb-3">
                 <span className="text-2xl font-extrabold text-primary">{addon.price}</span>
                 {addon.priceNote && (
-                  <span className="text-sm text-muted-foreground">{addon.priceNote}</span>
+                  <span className="text-sm text-muted-foreground">{t("pricing.perMo")}</span>
                 )}
               </div>
 
               <p className="text-sm text-muted-foreground leading-relaxed flex-1 mb-4">
-                {addon.description}
+                {t(`addons.items.${addon.key}.description`)}
               </p>
 
-              <p className="text-xs text-muted-foreground italic mb-4">{addon.note}</p>
+              <p className="text-xs text-muted-foreground italic mb-4">{t(`addons.items.${addon.key}.note`)}</p>
 
               <Button
                 onClick={scrollToDemo}

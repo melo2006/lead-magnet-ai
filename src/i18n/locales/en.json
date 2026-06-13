@@ -35,6 +35,38 @@
     "sub": "Enter your website URL and hear what your Voice AI receptionist & Chat AI widget would sound like — totally free, no credit card needed.",
     "cta": "🎙️ Try Your Website Now — Free"
   },
+  "beforeAfter": {
+    "titleStart": "From",
+    "outdated": "Outdated",
+    "to": "to",
+    "aiPowered": "AI-Powered",
+    "after": "With AI Hidden Leads ✨",
+    "desktopBefore": "Desktop — Before",
+    "desktopAfter": "Desktop — With AI Hidden Leads ✨",
+    "cta": "Transform My Website Now",
+    "niches": {
+      "realtors": {
+        "subtitle": "Your listing site could look like this — with a built-in AI voice agent and smart chatbot that never misses a buyer",
+        "before": "Your Realtor Site Today"
+      },
+      "medspa": {
+        "subtitle": "Your med spa site could look like this — with AI booking and a voice assistant that captures every consultation request",
+        "before": "Your Med Spa Site Today"
+      },
+      "autodetail": {
+        "subtitle": "Your detailing site could look like this — with an AI assistant that books jobs while you're polishing a Tesla",
+        "before": "Your Detail Site Today"
+      },
+      "veterinary": {
+        "subtitle": "Your vet clinic site could look like this — with AI triage and a voice agent that handles panicked pet parents 24/7",
+        "before": "Your Vet Site Today"
+      },
+      "marine": {
+        "subtitle": "Your marine service site could look like this — with AI scheduling and a voice agent that books haul-outs while you're on the dock",
+        "before": "Your Marine Site Today"
+      }
+    }
+  },
   "services": {
     "title": "We Know What You Need —",
     "titleAccent": "We've Heard It All",
@@ -73,6 +105,17 @@
         "title": "Social Media Management",
         "desc": "Consistent social media posts across your platforms. We create and schedule content so you stay visible without lifting a finger."
       }
+    }
+  },
+  "stats": {
+    "title1": "The Cost of",
+    "title2": "Silence",
+    "sub": "Every ring that goes to voicemail is money walking out the door. Here's what the data says about your industry.",
+    "cards": {
+      "unanswered": { "label": "of calls go unanswered", "sublabel": "during business hours" },
+      "lost": { "label": "lost per missed call", "sublabel": "average revenue impact" },
+      "response": { "label": "average response time", "sublabel": "without AI assistant" },
+      "firstResponder": { "label": "buy from first responder", "sublabel": "speed wins every time" }
     }
   },
   "how": {
@@ -134,12 +177,55 @@
     "learnMore": "Learn More",
     "comingSoon": "Coming Soon",
     "futureTitle": "🔮 The Future of Search:",
-    "futureBody": "Google isn't the only way customers find you anymore. ChatGPT, Gemini, and Perplexity are answering questions like \"best HVAC company near me\" — and citing businesses directly. Our AI Search Optimization (GEO) ensures your business shows up in these AI-powered results."
+    "futureBody": "Google isn't the only way customers find you anymore. ChatGPT, Gemini, and Perplexity are answering questions like \"best HVAC company near me\" — and citing businesses directly. Our AI Search Optimization (GEO) ensures your business shows up in these AI-powered results.",
+    "items": {
+      "websiteRefresh": {
+        "title": "Website Refresh",
+        "description": "Modern redesign of your existing website using the latest technology. Mobile-optimized, fast-loading, and conversion-ready.",
+        "note": "One-time fee"
+      },
+      "seoAudit": {
+        "title": "SEO Audit Report",
+        "description": "Full audit of your website's SEO health — what's broken, what's missing, and exactly what to fix to rank higher on Google.",
+        "note": "Included with any plan"
+      },
+      "aiSearch": {
+        "title": "AI Search Optimization",
+        "description": "Get your business cited by ChatGPT, Gemini, and Perplexity. The future of search isn't Google — it's AI. We optimize your presence for AI-powered results.",
+        "note": "New — early adopter pricing"
+      },
+      "mapsBoost": {
+        "title": "Google Maps Boost",
+        "description": "Climb the Google Maps 3-pack. We optimize your Google Business Profile, build citations, and manage review velocity for local dominance.",
+        "note": "Results in 60–90 days"
+      }
+    }
   },
   "testimonials": {
     "title1": "Real People. ",
     "title2": "Real Results.",
-    "sub": "Business owners across every industry trust AI Hidden Leads to capture more customers."
+    "sub": "Business owners across every industry trust AI Hidden Leads to capture more customers.",
+    "previous": "Previous testimonial",
+    "next": "Next testimonial",
+    "goTo": "Go to testimonial {{number}}",
+    "items": {
+      "sarah": {
+        "quote": "We never miss a call anymore. The AI voice agent picks up every single inquiry — evenings, weekends, holidays. Our bookings are up 40% since we started using AI Hidden Leads.",
+        "title": "Real Estate Broker · RE/MAX South Florida"
+      },
+      "mike": {
+        "quote": "I was skeptical at first, but the personalized demo blew me away. They showed me my own website with AI on it — I signed up that same day. Best decision for my business.",
+        "title": "Owner · Thompson Plumbing & HVAC"
+      },
+      "jessica": {
+        "quote": "Our front desk used to miss half the calls during busy hours. Now the AI handles overflow, books consultations, and even follows up with leads we would've lost.",
+        "title": "Founder · Glow Aesthetic Med Spa"
+      },
+      "carlos": {
+        "quote": "The speed-to-lead feature is a game-changer. A customer views our demo and within a minute they get a call from our AI — it's like having a tireless sales team.",
+        "title": "Owner · Prestige Auto Detail"
+      }
+    }
   },
   "leadForm": {
     "badge": "Free personalized demo",
@@ -153,7 +239,85 @@
     "phone": "Cell Phone",
     "altUrl": "Additional URL",
     "optional": "(optional)",
-    "submit": "Generate My Free Demo"
+    "submit": "Build My AI Demo",
+    "uploadDocs": "Upload Docs",
+    "uploadOptional": "(optional — up to 3)",
+    "dragDrop": "Drag & drop files here, or",
+    "clickBrowse": "click to browse",
+    "filesSelected": "{{count}}/{{max}} files selected — click to add more",
+    "submitting": "Submitting...",
+    "requiredNote": "Required: owner name, business name, and website URL. Email and phone are optional but recommended for recap + scheduling.",
+    "invalidFile": "Invalid file type",
+    "invalidFileDesc": "{{file}} is not a PDF, TXT, or Word document.",
+    "fileTooLarge": "File too large",
+    "fileTooLargeDesc": "{{file}} exceeds 20MB.",
+    "fixForm": "Please fix the form",
+    "reviewDetails": "Please review your details and try again.",
+    "loadingBasicDemo": "Loading a basic demo",
+    "loadingBasicDemoDesc": "The site scan took too long, so the demo is opening with the saved business details.",
+    "errorTitle": "Something went wrong",
+    "errorDesc": "Please try again."
+  },
+  "tryDemo": {
+    "headline1": "See Your Website With",
+    "headline2": "— Live Demo",
+    "sub": "Enter your info below and within ~90 seconds, watch your website come alive with Voice AI and Chat AI — personalized for your business.",
+    "payoff": "Capture just one or two extra leads a month and the system pays for itself.",
+    "namePlaceholder": "Your Full Name *",
+    "emailPlaceholder": "Email (optional)",
+    "submit": "Show Me My AI Demo",
+    "missingInfo": "Missing info",
+    "fixFields": "Please complete the required fields and try again.",
+    "loadingDemo": "Loading demo",
+    "openingSaved": "Opening with saved details.",
+    "errorTitle": "Something went wrong",
+    "errorDesc": "Please try again.",
+    "goToProspects": "Go to Prospects",
+    "disclaimerLead": "⚡ Quick demo disclaimer:",
+    "disclaimer": " This is a rapid AI-generated simulation built in about 90 seconds — not a full knowledge base. It gives you a taste of what your AI receptionist will sound like. The production version we build for you will be much more detailed and accurate. You can even test a live warm transfer during the demo!",
+    "trusted": "Trusted by 500+ local businesses",
+    "free": "Free",
+    "noSignup": "No signup required",
+    "benefits": {
+      "transfer": { "label": "Warm Transfer", "desc": "AI transfers hot leads live to you with a full summary" },
+      "sms": { "label": "SMS After Every Call", "desc": "Get an instant text with the lead details & summary" },
+      "email": { "label": "Email Summary", "desc": "Full call recap emailed to you after every conversation" },
+      "crm": { "label": "Lead Capture & CRM", "desc": "Every lead is saved — use our CRM or integrate yours" },
+      "receptionist": { "label": "24/7 AI Receptionist", "desc": "Never miss a call — AI answers & books appointments" },
+      "capture": { "label": "Instant Lead Capture", "desc": "Converts website visitors into booked calls" }
+    }
+  },
+  "scan": {
+    "greetingWithName": "Hi {{name}}, thanks for trying our AI!",
+    "greeting": "Thanks for trying our AI!",
+    "buildingPrefix": "We're building a live demo of",
+    "withAi": "with AI Voice & Chat",
+    "buildingSuffix": "— personalized for your business. Hang tight!",
+    "eyebrow": "Building your live demo",
+    "readyTitle": "Your demo is ready!",
+    "readyDetail": "The real site with AI voice, chat & warm transfer.",
+    "complete": "Complete",
+    "progress": "{{progress}}% — Scanning website + preparing widgets…",
+    "stop": "Stop creating Live Demo",
+    "questionsPrefix": "Have questions? Ask our Voice AI to",
+    "transferSpecialist": "transfer you to a sales specialist",
+    "questionsSuffix": "anytime during the demo.",
+    "steps": {
+      "content": { "label": "Scanning website content", "detail": "Reading pages, services, and contact info…" },
+      "presence": { "label": "Analyzing your online presence", "detail": "Capturing screenshots and brand details…" },
+      "voice": { "label": "Preparing Voice AI demo", "detail": "A new way to never miss a customer call." },
+      "chat": { "label": "Setting up Chat AI", "detail": "Instant answers turn visitors into captured leads." },
+      "transfer": { "label": "Enabling warm transfers", "detail": "Hot leads get connected to a human—fast." },
+      "final": { "label": "Finalizing your live demo", "detail": "See how AI captures leads you're missing today." }
+    },
+    "benefits": {
+      "missCall": { "headline": "Never Miss Another Call", "body": "Your AI receptionist answers 24/7 — nights, weekends, and holidays — so every caller becomes a potential customer." },
+      "appointments": { "headline": "Instant Appointments", "body": "AI books, reschedules, and follows up automatically. No more phone tag — your calendar fills itself." },
+      "moreLeads": { "headline": "Capture 2–5x More Leads", "body": "Most businesses miss 40% of calls. With AI answering every one, just 1–2 extra leads per month pays for itself." },
+      "liveFast": { "headline": "Live in 1–2 Days", "body": "Setup is fast and painless. Your custom AI agent is trained on your business and ready to take calls within 48 hours." },
+      "warmTransfer": { "headline": "Warm Transfer to You", "body": "When a hot lead is on the line, AI transfers them live to you or your team with a full summary — no context lost." },
+      "chatAi": { "headline": "Chat AI on Your Website", "body": "Visitors get instant answers about services, pricing, and availability — converting browsers into booked appointments." }
+    }
   },
   "footer": {
     "privacy": "Privacy Policy",

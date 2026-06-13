@@ -35,6 +35,38 @@
     "sub": "Ingresa la URL de tu sitio y escucha cómo sonaría tu recepcionista de voz y tu chat de IA — totalmente gratis, sin tarjeta.",
     "cta": "🎙️ Probar Mi Sitio Ahora — Gratis"
   },
+  "beforeAfter": {
+    "titleStart": "De",
+    "outdated": "Anticuado",
+    "to": "a",
+    "aiPowered": "Con IA",
+    "after": "Con AI Hidden Leads ✨",
+    "desktopBefore": "Desktop — Antes",
+    "desktopAfter": "Desktop — Con AI Hidden Leads ✨",
+    "cta": "Transformar Mi Sitio Ahora",
+    "niches": {
+      "realtors": {
+        "subtitle": "Tu sitio inmobiliario podría verse así — con agente de voz con IA y chat inteligente que nunca pierde un comprador",
+        "before": "Tu Sitio Inmobiliario Hoy"
+      },
+      "medspa": {
+        "subtitle": "Tu sitio de estética podría verse así — con reservas por IA y una asistente de voz que captura cada consulta",
+        "before": "Tu Sitio de Estética Hoy"
+      },
+      "autodetail": {
+        "subtitle": "Tu sitio de detailing podría verse así — con una asistente de IA que agenda trabajos mientras tú trabajas",
+        "before": "Tu Sitio de Detailing Hoy"
+      },
+      "veterinary": {
+        "subtitle": "Tu sitio veterinario podría verse así — con triage por IA y agente de voz que atiende clientes 24/7",
+        "before": "Tu Sitio Veterinario Hoy"
+      },
+      "marine": {
+        "subtitle": "Tu sitio de servicios marinos podría verse así — con agendamiento por IA y agente de voz que reserva servicios mientras estás en el muelle",
+        "before": "Tu Sitio Marino Hoy"
+      }
+    }
+  },
   "services": {
     "title": "Sabemos Lo Que Necesitas —",
     "titleAccent": "Lo Hemos Oído Todo",
@@ -73,6 +105,17 @@
         "title": "Gestión de Redes Sociales",
         "desc": "Publicaciones consistentes en tus redes. Creamos y programamos contenido para que mantengas presencia sin mover un dedo."
       }
+    }
+  },
+  "stats": {
+    "title1": "El Costo del",
+    "title2": "Silencio",
+    "sub": "Cada llamada que cae al buzón es dinero que se va. Esto es lo que muestran los datos sobre tu industria.",
+    "cards": {
+      "unanswered": { "label": "de las llamadas quedan sin respuesta", "sublabel": "durante horario comercial" },
+      "lost": { "label": "perdidos por llamada no atendida", "sublabel": "impacto promedio en ingresos" },
+      "response": { "label": "tiempo promedio de respuesta", "sublabel": "sin asistente de IA" },
+      "firstResponder": { "label": "compran al primero que responde", "sublabel": "la velocidad siempre gana" }
     }
   },
   "how": {
@@ -134,12 +177,55 @@
     "learnMore": "Saber Más",
     "comingSoon": "Próximamente",
     "futureTitle": "🔮 El Futuro de la Búsqueda:",
-    "futureBody": "Google ya no es la única forma en que los clientes te encuentran. ChatGPT, Gemini y Perplexity ya responden preguntas como \"mejor empresa de aire acondicionado cerca de mí\" — y citan negocios directamente. Nuestra Optimización para Búsqueda con IA (GEO) asegura que tu negocio aparezca en estos resultados."
+    "futureBody": "Google ya no es la única forma en que los clientes te encuentran. ChatGPT, Gemini y Perplexity ya responden preguntas como \"mejor empresa de aire acondicionado cerca de mí\" — y citan negocios directamente. Nuestra Optimización para Búsqueda con IA (GEO) asegura que tu negocio aparezca en estos resultados.",
+    "items": {
+      "websiteRefresh": {
+        "title": "Actualización del Sitio",
+        "description": "Rediseño moderno de tu sitio actual con tecnología reciente. Optimizado para móvil, rápido y listo para convertir visitantes en leads.",
+        "note": "Pago único"
+      },
+      "seoAudit": {
+        "title": "Reporte de Auditoría SEO",
+        "description": "Auditoría completa de la salud SEO de tu sitio — qué está roto, qué falta y exactamente qué corregir para posicionar mejor en Google.",
+        "note": "Incluido con cualquier plan"
+      },
+      "aiSearch": {
+        "title": "Optimización para Búsqueda con IA",
+        "description": "Haz que tu negocio sea citado por ChatGPT, Gemini y Perplexity. El futuro de la búsqueda no es solo Google — es IA. Optimizamos tu presencia para resultados con IA.",
+        "note": "Nuevo — precio early adopter"
+      },
+      "mapsBoost": {
+        "title": "Impulso en Google Maps",
+        "description": "Sube al paquete local de Google Maps. Optimizamos tu Perfil de Empresa, creamos citas y gestionamos reseñas para dominar localmente.",
+        "note": "Resultados en 60–90 días"
+      }
+    }
   },
   "testimonials": {
     "title1": "Gente Real. ",
     "title2": "Resultados Reales.",
-    "sub": "Dueños de negocios de todas las industrias confían en AI Hidden Leads para captar más clientes."
+    "sub": "Dueños de negocios de todas las industrias confían en AI Hidden Leads para captar más clientes.",
+    "previous": "Testimonio anterior",
+    "next": "Siguiente testimonio",
+    "goTo": "Ir al testimonio {{number}}",
+    "items": {
+      "sarah": {
+        "quote": "Ya no perdemos llamadas. El agente de voz con IA contesta cada consulta — noches, fines de semana y feriados. Nuestras reservas subieron 40% desde que empezamos con AI Hidden Leads.",
+        "title": "Agente Inmobiliaria · RE/MAX South Florida"
+      },
+      "mike": {
+        "quote": "Al principio tenía dudas, pero la demo personalizada me impresionó. Me mostraron mi propio sitio con IA — me registré ese mismo día. La mejor decisión para mi negocio.",
+        "title": "Dueño · Thompson Plumbing & HVAC"
+      },
+      "jessica": {
+        "quote": "Nuestra recepción perdía la mitad de las llamadas en horas ocupadas. Ahora la IA maneja el exceso, agenda consultas y da seguimiento a leads que habríamos perdido.",
+        "title": "Fundadora · Glow Aesthetic Med Spa"
+      },
+      "carlos": {
+        "quote": "La función speed-to-lead cambió todo. Un cliente ve nuestra demo y en menos de un minuto recibe una llamada de nuestra IA — es como tener un equipo de ventas incansable.",
+        "title": "Dueño · Prestige Auto Detail"
+      }
+    }
   },
   "leadForm": {
     "badge": "Demo personalizada y gratis",
@@ -153,7 +239,85 @@
     "phone": "Celular",
     "altUrl": "URL Adicional",
     "optional": "(opcional)",
-    "submit": "Generar Mi Demo Gratis"
+    "submit": "Generar Mi Demo de IA",
+    "uploadDocs": "Subir Documentos",
+    "uploadOptional": "(opcional — hasta 3)",
+    "dragDrop": "Arrastra archivos aquí o",
+    "clickBrowse": "haz clic para elegir",
+    "filesSelected": "{{count}}/{{max}} archivos seleccionados — haz clic para agregar más",
+    "submitting": "Enviando...",
+    "requiredNote": "Obligatorio: nombre del dueño, nombre del negocio y URL del sitio. Correo y celular son opcionales, pero recomendados para resumen y agendamiento.",
+    "invalidFile": "Tipo de archivo inválido",
+    "invalidFileDesc": "{{file}} no es PDF, TXT ni documento Word.",
+    "fileTooLarge": "Archivo demasiado grande",
+    "fileTooLargeDesc": "{{file}} supera 20MB.",
+    "fixForm": "Revisa el formulario",
+    "reviewDetails": "Revisa tus datos e inténtalo de nuevo.",
+    "loadingBasicDemo": "Cargando una demo básica",
+    "loadingBasicDemoDesc": "El escaneo del sitio tardó demasiado, así que la demo se abrirá con los datos guardados del negocio.",
+    "errorTitle": "Algo salió mal",
+    "errorDesc": "Inténtalo de nuevo."
+  },
+  "tryDemo": {
+    "headline1": "Mira Tu Sitio Con",
+    "headline2": "— Demo En Vivo",
+    "sub": "Completa tus datos abajo y, en unos 90 segundos, mira tu sitio cobrar vida con Voz de IA y Chat de IA — personalizado para tu negocio.",
+    "payoff": "Captura solo uno o dos leads extra al mes y el sistema se paga solo.",
+    "namePlaceholder": "Tu Nombre Completo *",
+    "emailPlaceholder": "Correo (opcional)",
+    "submit": "Mostrar Mi Demo de IA",
+    "missingInfo": "Faltan datos",
+    "fixFields": "Completa los campos obligatorios e inténtalo de nuevo.",
+    "loadingDemo": "Cargando demo",
+    "openingSaved": "Abriendo con los datos guardados.",
+    "errorTitle": "Algo salió mal",
+    "errorDesc": "Inténtalo de nuevo.",
+    "goToProspects": "Ir a Prospects",
+    "disclaimerLead": "⚡ Aviso rápido de la demo:",
+    "disclaimer": " Esta es una simulación rápida generada por IA en unos 90 segundos — no es una base de conocimiento completa. Te da una muestra de cómo sonaría tu recepcionista de IA. La versión de producción que creamos para ti será mucho más detallada y precisa. ¡También puedes probar una transferencia en vivo durante la demo!",
+    "trusted": "Confiado por más de 500 negocios locales",
+    "free": "Gratis",
+    "noSignup": "Sin registro obligatorio",
+    "benefits": {
+      "transfer": { "label": "Transferencia En Vivo", "desc": "La IA transfiere leads calientes a ti con resumen completo" },
+      "sms": { "label": "SMS Después de Cada Llamada", "desc": "Recibe un texto instantáneo con detalles y resumen del lead" },
+      "email": { "label": "Resumen por Correo", "desc": "Recap completo enviado por correo después de cada conversación" },
+      "crm": { "label": "Captura de Leads y CRM", "desc": "Cada lead queda guardado — usa nuestro CRM o integra el tuyo" },
+      "receptionist": { "label": "Recepcionista IA 24/7", "desc": "Nunca pierdas llamadas — la IA responde y agenda citas" },
+      "capture": { "label": "Captura Instantánea", "desc": "Convierte visitantes del sitio en llamadas agendadas" }
+    }
+  },
+  "scan": {
+    "greetingWithName": "Hola {{name}}, ¡gracias por probar nuestra IA!",
+    "greeting": "¡Gracias por probar nuestra IA!",
+    "buildingPrefix": "Estamos creando una demo en vivo de",
+    "withAi": "con Voz de IA y Chat",
+    "buildingSuffix": "— personalizada para tu negocio. ¡Un momento!",
+    "eyebrow": "Creando tu demo en vivo",
+    "readyTitle": "¡Tu demo está lista!",
+    "readyDetail": "El sitio real con voz de IA, chat y transferencia en vivo.",
+    "complete": "Completado",
+    "progress": "{{progress}}% — Escaneando el sitio + preparando widgets…",
+    "stop": "Detener creación de la Demo En Vivo",
+    "questionsPrefix": "¿Tienes preguntas? Pídele a nuestra Voz de IA",
+    "transferSpecialist": "que te transfiera con un especialista de ventas",
+    "questionsSuffix": "en cualquier momento durante la demo.",
+    "steps": {
+      "content": { "label": "Escaneando el contenido del sitio", "detail": "Leyendo páginas, servicios e información de contacto…" },
+      "presence": { "label": "Analizando tu presencia online", "detail": "Capturando imágenes y detalles de marca…" },
+      "voice": { "label": "Preparando la demo de Voz de IA", "detail": "Una nueva forma de nunca perder una llamada de cliente." },
+      "chat": { "label": "Configurando el Chat de IA", "detail": "Respuestas instantáneas convierten visitantes en leads capturados." },
+      "transfer": { "label": "Activando transferencias en vivo", "detail": "Los leads calientes se conectan con una persona rápidamente." },
+      "final": { "label": "Finalizando tu demo en vivo", "detail": "Mira cómo la IA captura leads que hoy podrías estar perdiendo." }
+    },
+    "benefits": {
+      "missCall": { "headline": "Nunca Más Pierdas Una Llamada", "body": "Tu recepcionista de IA responde 24/7 — noches, fines de semana y feriados — para convertir cada llamada en oportunidad." },
+      "appointments": { "headline": "Citas Instantáneas", "body": "La IA agenda, reprograma y da seguimiento automáticamente. Se acabó perseguir clientes por teléfono." },
+      "moreLeads": { "headline": "Captura 2–5x Más Leads", "body": "Muchos negocios pierden 40% de llamadas. Con la IA respondiendo todo, 1–2 leads extra al mes pueden pagar el sistema." },
+      "liveFast": { "headline": "En Vivo en 1–2 Días", "body": "El setup es rápido y sencillo. Tu agente de IA se entrena en tu negocio y queda listo para responder en hasta 48 horas." },
+      "warmTransfer": { "headline": "Transferencia En Vivo Para Ti", "body": "Cuando un lead caliente está en línea, la IA lo transfiere en vivo a ti o a tu equipo con resumen completo." },
+      "chatAi": { "headline": "Chat de IA en Tu Sitio", "body": "Los visitantes reciben respuestas instantáneas sobre servicios, precios y disponibilidad — convirtiendo curiosos en citas." }
+    }
   },
   "footer": {
     "privacy": "Política de Privacidad",
