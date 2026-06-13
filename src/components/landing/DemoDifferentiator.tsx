@@ -1,7 +1,9 @@
 import { motion } from "framer-motion";
 import { Sparkles, ShieldCheck, Clock, DollarSign } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 const DemoDifferentiator = () => {
+  const { t } = useTranslation();
   return (
     <section className="py-14 sm:py-20 relative overflow-hidden">
       <div className="absolute inset-0">
@@ -18,14 +20,14 @@ const DemoDifferentiator = () => {
           >
             <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full border border-accent/20 bg-accent/5 mb-6">
               <Sparkles className="w-4 h-4 text-accent" />
-              <span className="text-sm sm:text-base font-medium text-accent">Why Businesses Choose Us</span>
+              <span className="text-sm sm:text-base font-medium text-accent">{t("diff.badge")}</span>
             </div>
             <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4">
-              Stop Losing Leads.{" "}
-              <span className="text-gradient-primary">Start Converting 24/7.</span>
+              {t("diff.title1")}{" "}
+              <span className="text-gradient-primary">{t("diff.title2")}</span>
             </h2>
             <p className="text-muted-foreground text-base sm:text-lg max-w-2xl mx-auto">
-              Most businesses lose 62% of calls after hours. Our AI answers every call, books appointments, and warm-transfers hot leads — so you never miss revenue again.
+              {t("diff.sub")}
             </p>
           </motion.div>
 
@@ -40,9 +42,9 @@ const DemoDifferentiator = () => {
               <div className="w-14 h-14 rounded-2xl bg-primary/10 border border-primary/20 flex items-center justify-center mx-auto mb-4">
                 <Clock className="w-7 h-7 text-primary" />
               </div>
-              <h3 className="text-lg sm:text-xl font-semibold mb-2">Live in 48 Hours</h3>
+              <h3 className="text-lg sm:text-xl font-semibold mb-2">{t("diff.c1.title")}</h3>
               <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-                No months of setup. We scan your website, train your AI agent on your services, and go live — all within 2 business days.
+                {t("diff.c1.desc")}
               </p>
             </motion.div>
 
@@ -56,9 +58,9 @@ const DemoDifferentiator = () => {
               <div className="w-14 h-14 rounded-2xl bg-primary/20 border border-primary/30 flex items-center justify-center mx-auto mb-4">
                 <ShieldCheck className="w-7 h-7 text-primary" />
               </div>
-              <h3 className="text-lg sm:text-xl font-semibold mb-2">No Hidden Costs</h3>
+              <h3 className="text-lg sm:text-xl font-semibold mb-2">{t("diff.c2.title")}</h3>
               <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-                Transparent pricing from day one. No setup fees, no long-term contracts. Cancel anytime. What you see is what you pay.
+                {t("diff.c2.desc")}
               </p>
             </motion.div>
 
@@ -72,9 +74,9 @@ const DemoDifferentiator = () => {
               <div className="w-14 h-14 rounded-2xl bg-accent/10 border border-accent/20 flex items-center justify-center mx-auto mb-4">
                 <DollarSign className="w-7 h-7 text-accent" />
               </div>
-              <h3 className="text-lg sm:text-xl font-semibold mb-2">Try Before You Buy</h3>
+              <h3 className="text-lg sm:text-xl font-semibold mb-2">{t("diff.c3.title")}</h3>
               <p className="text-sm sm:text-base text-muted-foreground leading-relaxed">
-                See AI running on YOUR website in under 2 minutes — free. Talk to it, test it, then decide. No credit card required.
+                {t("diff.c3.desc")}
               </p>
             </motion.div>
           </div>

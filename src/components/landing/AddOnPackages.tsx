@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Globe, Search, Sparkles, Wrench } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 
@@ -42,6 +43,7 @@ const addOns = [
 ];
 
 const AddOnPackages = () => {
+  const { t } = useTranslation();
   const scrollToDemo = () => {
     document.getElementById("demo-form")?.scrollIntoView({ behavior: "smooth" });
   };
@@ -57,13 +59,13 @@ const AddOnPackages = () => {
           className="text-center mb-12"
         >
           <Badge variant="outline" className="mb-4 border-primary/30 text-primary">
-            À La Carte
+            {t("addons.badge")}
           </Badge>
           <h2 className="text-3xl sm:text-4xl font-bold mb-4">
-            Add-On <span className="text-gradient-primary">Growth Packages</span>
+            {t("addons.title")} <span className="text-gradient-primary">{t("addons.titleAccent")}</span>
           </h2>
           <p className="text-muted-foreground text-lg max-w-2xl mx-auto">
-            Boost your results with these targeted services. Add to any plan, cancel anytime.
+            {t("addons.sub")}
           </p>
         </motion.div>
 
@@ -108,7 +110,7 @@ const AddOnPackages = () => {
                 size="sm"
                 className="w-full"
               >
-                Learn More
+                {t("addons.learnMore")}
               </Button>
             </motion.div>
           ))}
@@ -123,10 +125,8 @@ const AddOnPackages = () => {
         >
           <div className="rounded-xl border border-accent/20 bg-accent/5 p-5 text-center">
             <p className="text-sm text-muted-foreground leading-relaxed">
-              <span className="font-semibold text-foreground">🔮 The Future of Search:</span>{" "}
-              Google isn't the only way customers find you anymore. ChatGPT, Gemini, and Perplexity are answering questions like{" "}
-              <span className="italic">"best HVAC company near me"</span> — and citing businesses directly. 
-              Our AI Search Optimization (GEO) ensures your business shows up in these AI-powered results.
+              <span className="font-semibold text-foreground">{t("addons.futureTitle")}</span>{" "}
+              {t("addons.futureBody")}
             </p>
           </div>
         </motion.div>

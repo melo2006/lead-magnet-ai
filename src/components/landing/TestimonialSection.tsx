@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Star, ChevronLeft, ChevronRight, Quote } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import sarahImg from "@/assets/testimonial-sarah.png";
 import mikeImg from "@/assets/testimonial-mike.png";
@@ -39,6 +40,7 @@ const testimonials = [
 ];
 
 const TestimonialSection = () => {
+  const { t: tr } = useTranslation();
   const [current, setCurrent] = useState(0);
   const [direction, setDirection] = useState(1);
 
@@ -80,11 +82,11 @@ const TestimonialSection = () => {
           className="text-center mb-10"
         >
           <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-3">
-            <span className="text-foreground">Real People. </span>
-            <span className="text-gradient-primary">Real Results.</span>
+            <span className="text-foreground">{tr("testimonials.title1")}</span>
+            <span className="text-gradient-primary">{tr("testimonials.title2")}</span>
           </h2>
           <p className="text-muted-foreground text-base sm:text-lg max-w-xl mx-auto">
-            Business owners across every industry trust AI Hidden Leads to capture more customers.
+            {tr("testimonials.sub")}
           </p>
         </motion.div>
 
