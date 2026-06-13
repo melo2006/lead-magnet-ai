@@ -8,7 +8,20 @@ interface StatsSectionProps {
 }
 
 const StatsSection = ({ niche }: StatsSectionProps) => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isPT = i18n.language === "pt-BR";
+
+  // Brazilian Reais equivalents per niche, based on local SMB averages
+  const revenueBRLByNiche: Record<string, string> = {
+    realtors: "R$ 1.500",
+    medspa: "R$ 1.000",
+    autodetail: "R$ 450",
+    veterinary: "R$ 600",
+    marine: "R$ 2.200",
+  };
+  const revenueDisplay = isPT
+    ? (revenueBRLByNiche[niche.id] ?? niche.stats.revenuePerMissedCall)
+    : niche.stats.revenuePerMissedCall;
   const stats = [
     {
       icon: PhoneOff,
