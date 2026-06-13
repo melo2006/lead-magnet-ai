@@ -16,12 +16,15 @@ i18n
     resources: {
       en: { translation: en },
       "pt-BR": { translation: ptBR },
+      pt: { translation: ptBR },
       es: { translation: es },
     },
+    lng: localStorage.getItem("lang") || undefined,
     fallbackLng: "en",
-    supportedLngs: SUPPORTED as unknown as string[],
-    nonExplicitSupportedLngs: true, // 'pt' → 'pt-BR'
+    supportedLngs: ["en", "pt-BR", "pt", "es"],
+    load: "currentOnly",
     interpolation: { escapeValue: false },
+    react: { useSuspense: false },
     detection: {
       order: ["localStorage", "navigator", "htmlTag"],
       lookupLocalStorage: "lang",
@@ -34,6 +37,11 @@ const syncHtmlLang = (lng: string) => {
   document.documentElement.lang = lng;
 };
 syncHtmlLang(i18n.language || "en");
-i18n.on("languageChanged", syncHtmlLang);
+i18n.on("languageChanged", (lng) => {
+  syncHtmlLang(lng);
+  console.log("[i18n] languageChanged →", lng, "| hero.badge =", i18n.t("hero.badge"));
+});
+// expose for debugging
+(window as any).__i18n = i18n;
 
 export default i18n;
