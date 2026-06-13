@@ -107,6 +107,17 @@
       }
     }
   },
+  "stats": {
+    "title1": "El Costo del",
+    "title2": "Silencio",
+    "sub": "Cada llamada que cae al buzón es dinero que se va. Esto es lo que muestran los datos sobre tu industria.",
+    "cards": {
+      "unanswered": { "label": "de las llamadas quedan sin respuesta", "sublabel": "durante horario comercial" },
+      "lost": { "label": "perdidos por llamada no atendida", "sublabel": "impacto promedio en ingresos" },
+      "response": { "label": "tiempo promedio de respuesta", "sublabel": "sin asistente de IA" },
+      "firstResponder": { "label": "compran al primero que responde", "sublabel": "la velocidad siempre gana" }
+    }
+  },
   "how": {
     "title1": "De la Inscripción a los Resultados en",
     "title2": "4 Pasos Simples",
