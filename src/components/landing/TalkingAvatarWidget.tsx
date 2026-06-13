@@ -876,7 +876,7 @@ const TalkingAvatarWidget = () => {
                 className={`rounded-full p-1.5 transition-all ${
                   isMuted ? "bg-destructive/15 text-destructive" : "bg-muted text-foreground"
                 }`}
-                title={isMuted ? "Unmute" : "Mute"}
+                title={isMuted ? t("avatar.unmute") : t("avatar.mute")}
               >
                 {isMuted ? <MicOff className="h-3 w-3" /> : <Mic className="h-3 w-3" />}
               </button>
@@ -893,7 +893,7 @@ const TalkingAvatarWidget = () => {
               <button
                 onClick={endCall}
                 className="rounded-full bg-destructive p-1.5 text-destructive-foreground"
-                title="End call"
+                title={t("avatar.endCall")}
               >
                 <PhoneOff className="h-3 w-3" />
               </button>
