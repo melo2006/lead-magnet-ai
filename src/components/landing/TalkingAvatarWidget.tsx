@@ -489,6 +489,7 @@ const TalkingAvatarWidget = () => {
   }, [refreshBluetoothOutput]);
 
   const startCall = useCallback(async () => {
+    if (callStatus !== "idle" || retellClientRef.current) return;
     setCallStatus("connecting");
     try {
       const currentLang = (typeof document !== "undefined" && document.documentElement.lang) || "en";
