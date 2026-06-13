@@ -141,10 +141,10 @@ async function retellFetch(path: string, apiKey: string, options: RequestInit = 
   return payload;
 }
 
-async function ensureSharedPrompt(apiKey: string) {
+async function ensureSharedPrompt(apiKey: string, agentId: string) {
   const agents = await retellFetch("/list-agents", apiKey);
   const agent = Array.isArray(agents)
-    ? agents.find((entry: any) => entry?.agent_id === RETELL_AGENT_ID)
+    ? agents.find((entry: any) => entry?.agent_id === agentId)
     : null;
 
   const llmId = agent?.response_engine?.llm_id;
