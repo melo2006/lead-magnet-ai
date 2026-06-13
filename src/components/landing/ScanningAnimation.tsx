@@ -281,7 +281,7 @@ const ScanningAnimation = ({
               </p>
               <p className="mt-1 text-xs leading-relaxed text-muted-foreground sm:text-sm">
                 {isComplete
-                  ? "The real site with AI voice, chat & warm transfer."
+                  ? t("scan.readyDetail")
                   : t(`scan.steps.${activeStep.key}.detail`)}
               </p>
             </motion.div>
