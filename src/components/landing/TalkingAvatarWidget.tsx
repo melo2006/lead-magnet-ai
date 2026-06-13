@@ -1021,7 +1021,7 @@ const TalkingAvatarWidget = () => {
                 className={`rounded-full p-2 transition-all ${
                   isMuted ? "bg-destructive/15 text-destructive" : "bg-muted text-foreground hover:bg-muted/80"
                 }`}
-                title={isMuted ? "Unmute" : "Mute"}
+                title={isMuted ? t("avatar.unmute") : t("avatar.mute")}
               >
                 {isMuted ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
               </button>
@@ -1038,14 +1038,14 @@ const TalkingAvatarWidget = () => {
               <button
                 onClick={handleMinimize}
                 className="rounded-full bg-muted p-2 text-foreground hover:bg-muted/80"
-                title="Minimize"
+                title={t("avatar.minimize")}
               >
                 <Minimize2 className="h-3.5 w-3.5" />
               </button>
               <button
                 onClick={endCall}
                 className="rounded-full bg-destructive p-2.5 text-destructive-foreground transition-all hover:scale-110 active:scale-95"
-                title="End call"
+                title={t("avatar.endCall")}
               >
                 <PhoneOff className="h-3.5 w-3.5" />
               </button>
@@ -1061,7 +1061,7 @@ const TalkingAvatarWidget = () => {
           className="flex items-center justify-center gap-1.5 text-[10px] font-semibold text-primary hover:text-primary/80 transition-colors"
         >
           <ExternalLink className="h-2.5 w-2.5" />
-          🚀 Try Our Free Demo — Scroll Down!
+          {t("avatar.tryFree")}
         </a>
       </div>
     </div>
