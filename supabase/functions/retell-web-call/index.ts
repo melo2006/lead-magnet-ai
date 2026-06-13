@@ -403,6 +403,14 @@ const buildOpeningCompanyWelcome = ({
   return `${spokenBusinessName} welcomes customers with friendly, professional service. The team focuses on clear communication, quality work, and a smooth customer experience.`;
 };
 
+const sanitizeVoicePromptText = (value: string) =>
+  value
+    .replace(/reais\s+brasileir[oa]s?/gi, 'reais')
+    .replace(/real\s+brasileir[oa]/gi, 'real')
+    .replace(/moeda\s+brasileira/gi, 'reais')
+    .replace(/Brazilian\s+reais?/gi, 'reais')
+    .replace(/Brazilian\s+real/gi, 'real');
+
 const buildPhaseTwoNameLine = (callerName?: string, language: string = 'en') => {
   const cleanedName = typeof callerName === 'string' ? callerName.trim() : '';
   if (language === 'pt-BR') {
@@ -458,7 +466,9 @@ const buildPhaseTwoOpening = ({
   language?: string;
 }) => {
   if (language === 'pt-BR') {
-    return `Oi, ${timeOfDayGreeting.toLowerCase()}. Aqui é a Aspen, da ${spokenBusinessName}. ${openingCompanyWelcome} ${phaseTwoNameLine}${askHelpQuestion ? ' Como posso te ajudar hoje?' : ''}`;
+    return askHelpQuestion
+      ? `${timeOfDayGreeting}, ${phaseTwoNameLine.replace(/^Que bom falar com você,\s*/i, '').replace(/\.$/, '')}. Que bom ter você aqui com a ${spokenBusinessName}. Eu sou a Aspen. Antes de você me dizer o que precisa, deixa eu te mostrar rapidinho por que vale a pena falar com a gente: ${openingCompanyWelcome} A equipe foca em atendimento claro, soluções bem explicadas e uma experiência mais tranquila do começo ao fim. Me conta: você está procurando uma orientação, um orçamento, ou quer entender qual solução combina melhor com você?`
+      : `${timeOfDayGreeting}. Que bom ter você aqui com a ${spokenBusinessName}. Eu sou a Aspen. Antes de eu te ajudar, deixa eu te mostrar rapidinho por que vale a pena falar com a gente: ${openingCompanyWelcome} A equipe foca em atendimento claro, soluções bem explicadas e uma experiência mais tranquila do começo ao fim. Pra eu te atender melhor, como posso te chamar?`;
   }
   if (language === 'es') {
     return `Hola, ${timeOfDayGreeting.toLowerCase()}. Habla Aspen de ${spokenBusinessName}. ${openingCompanyWelcome} ${phaseTwoNameLine}${askHelpQuestion ? ' ¿En qué puedo ayudarte hoy?' : ''}`;
