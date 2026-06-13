@@ -266,6 +266,38 @@
       "capture": { "label": "Captura Instantânea", "desc": "Converte visitantes do site em chamadas agendadas" }
     }
   },
+  "scan": {
+    "greetingWithName": "Oi {{name}}, obrigado por testar nossa IA!",
+    "greeting": "Obrigado por testar nossa IA!",
+    "buildingPrefix": "Estamos criando uma demo ao vivo de",
+    "withAi": "com Voz de IA e Chat",
+    "buildingSuffix": "— personalizada para o seu negócio. Aguarde só um instante!",
+    "eyebrow": "Criando sua demo ao vivo",
+    "readyTitle": "Sua demo está pronta!",
+    "readyDetail": "O site real com voz de IA, chat e transferência ao vivo.",
+    "complete": "Concluído",
+    "progress": "{{progress}}% — Escaneando o site + preparando widgets…",
+    "stop": "Parar criação da Demo Ao Vivo",
+    "questionsPrefix": "Tem perguntas? Peça para nossa Voz de IA",
+    "transferSpecialist": "te transferir para um especialista de vendas",
+    "questionsSuffix": "a qualquer momento durante a demo.",
+    "steps": {
+      "content": { "label": "Escaneando o conteúdo do site", "detail": "Lendo páginas, serviços e informações de contato…" },
+      "presence": { "label": "Analisando sua presença online", "detail": "Capturando imagens e detalhes da marca…" },
+      "voice": { "label": "Preparando a demo de Voz de IA", "detail": "Uma nova forma de nunca perder uma ligação de cliente." },
+      "chat": { "label": "Configurando o Chat de IA", "detail": "Respostas instantâneas transformam visitantes em leads capturados." },
+      "transfer": { "label": "Ativando transferências ao vivo", "detail": "Leads quentes são conectados com uma pessoa rapidamente." },
+      "final": { "label": "Finalizando sua demo ao vivo", "detail": "Veja como a IA captura leads que você pode estar perdendo hoje." }
+    },
+    "benefits": {
+      "missCall": { "headline": "Nunca Mais Perca Uma Ligação", "body": "Sua recepcionista de IA atende 24/7 — noites, fins de semana e feriados — para transformar cada ligação em oportunidade." },
+      "appointments": { "headline": "Agendamentos Instantâneos", "body": "A IA agenda, remarca e faz follow-up automaticamente. Chega de ficar tentando falar por telefone." },
+      "moreLeads": { "headline": "Capture 2–5x Mais Leads", "body": "Muitos negócios perdem 40% das ligações. Com a IA atendendo tudo, 1–2 leads extras por mês já podem pagar o sistema." },
+      "liveFast": { "headline": "No Ar em 1–2 Dias", "body": "O setup é rápido e simples. Seu agente de IA é treinado no seu negócio e fica pronto para atender em até 48 horas." },
+      "warmTransfer": { "headline": "Transferência Ao Vivo Para Você", "body": "Quando um lead quente está na linha, a IA transfere ao vivo para você ou sua equipe com um resumo completo." },
+      "chatAi": { "headline": "Chat de IA no Seu Site", "body": "Visitantes recebem respostas instantâneas sobre serviços, preços e disponibilidade — convertendo curiosos em agendamentos." }
+    }
+  },
   "footer": {
     "privacy": "Política de Privacidade",
     "terms": "Termos de Uso",
