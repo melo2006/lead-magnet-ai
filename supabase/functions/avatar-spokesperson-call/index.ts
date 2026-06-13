@@ -249,7 +249,7 @@ Deno.serve(async (req) => {
         agent_id: agentId,
         retell_llm_dynamic_variables: {
           spokesperson_mode: "true",
-          spokesperson_prompt: prompt,
+          spokesperson_prompt: prompt + NO_TIME_RULE,
           begin_message: beginMessage,
         },
         metadata: {
