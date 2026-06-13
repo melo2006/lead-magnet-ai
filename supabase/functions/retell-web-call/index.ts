@@ -24,6 +24,7 @@ const LANGUAGE_AGENT_IDS: Record<'en' | 'pt-BR' | 'es', string> = {
   'pt-BR': Deno.env.get('RETELL_AGENT_ID_PT') || 'agent_f07d11526d03342668c043e4d1',
   'es': Deno.env.get('RETELL_AGENT_ID_ES') || 'agent_f4bcf291c7a19b15cc020edce5',
 };
+const UPDATED_PROMPT_AGENT_IDS = new Set<string>();
 
 const SHARED_RETELL_PROMPT = `You are Aspen, the AI voice assistant.
 
@@ -403,6 +404,14 @@ const buildOpeningCompanyWelcome = ({
   return `${spokenBusinessName} welcomes customers with friendly, professional service. The team focuses on clear communication, quality work, and a smooth customer experience.`;
 };
 
+const sanitizeVoicePromptText = (value: string) =>
+  value
+    .replace(/reais\s+brasileir[oa]s?/gi, 'reais')
+    .replace(/real\s+brasileir[oa]/gi, 'real')
+    .replace(/moeda\s+brasileira/gi, 'reais')
+    .replace(/Brazilian\s+reais?/gi, 'reais')
+    .replace(/Brazilian\s+real/gi, 'real');
+
 const buildPhaseTwoNameLine = (callerName?: string, language: string = 'en') => {
   const cleanedName = typeof callerName === 'string' ? callerName.trim() : '';
   if (language === 'pt-BR') {
@@ -458,7 +467,9 @@ const buildPhaseTwoOpening = ({
   language?: string;
 }) => {
   if (language === 'pt-BR') {
-    return `Oi, ${timeOfDayGreeting.toLowerCase()}. Aqui é a Aspen, da ${spokenBusinessName}. ${openingCompanyWelcome} ${phaseTwoNameLine}${askHelpQuestion ? ' Como posso te ajudar hoje?' : ''}`;
+    return askHelpQuestion
+      ? `${timeOfDayGreeting}, ${phaseTwoNameLine.replace(/^Que bom falar com você,\s*/i, '').replace(/\.$/, '')}. Que bom ter você aqui com a ${spokenBusinessName}. Eu sou a Aspen. Antes de você me dizer o que precisa, deixa eu te mostrar rapidinho por que vale a pena falar com a gente: ${openingCompanyWelcome} A equipe foca em atendimento claro, soluções bem explicadas e uma experiência mais tranquila do começo ao fim. Me conta: você está procurando uma orientação, um orçamento, ou quer entender qual solução combina melhor com você?`
+      : `${timeOfDayGreeting}. Que bom ter você aqui com a ${spokenBusinessName}. Eu sou a Aspen. Antes de eu te ajudar, deixa eu te mostrar rapidinho por que vale a pena falar com a gente: ${openingCompanyWelcome} A equipe foca em atendimento claro, soluções bem explicadas e uma experiência mais tranquila do começo ao fim. Pra eu te atender melhor, como posso te chamar?`;
   }
   if (language === 'es') {
     return `Hola, ${timeOfDayGreeting.toLowerCase()}. Habla Aspen de ${spokenBusinessName}. ${openingCompanyWelcome} ${phaseTwoNameLine}${askHelpQuestion ? ' ¿En qué puedo ayudarte hoy?' : ''}`;
@@ -482,7 +493,7 @@ const buildExactDemoOpening = ({
   language?: string;
 }) => {
   if (language === 'pt-BR') {
-    return `${timeOfDayGreeting}. Aqui é a Aspen, da AIHiddenLeads.com. Vou te dar uma amostra rápida de como eu posso trabalhar como sua recepcionista de I-A — eu atendo ligações, marco horários, remarco compromissos e até faço transferência ao vivo. Agora eu vou simular como se eu já estivesse trabalhando no seu site. Lembre-se: isto é só uma demonstração. ${buildPhaseTwoOpening({ spokenBusinessName, openingCompanyWelcome, phaseTwoNameLine, timeOfDayGreeting, askHelpQuestion, language })}`;
+    return `Só lembrando: esta é uma demonstração rápida, mas eu vou te atender como se já estivesse trabalhando no site da ${spokenBusinessName}. ${buildPhaseTwoOpening({ spokenBusinessName, openingCompanyWelcome, phaseTwoNameLine, timeOfDayGreeting, askHelpQuestion, language })}`;
   }
   if (language === 'es') {
     return `${timeOfDayGreeting}. Habla Aspen de AIHiddenLeads.com. Te voy a dar una muestra rápida de cómo puedo trabajar como tu recepcionista de IA — puedo atender llamadas, agendar citas, reagendarlas e incluso transferir llamadas en vivo. Ahora voy a simular como si ya estuviera trabajando en tu sitio web. Recuerda, esto es solo una demostración. ${buildPhaseTwoOpening({ spokenBusinessName, openingCompanyWelcome, phaseTwoNameLine, timeOfDayGreeting, askHelpQuestion, language })}`;
@@ -665,7 +676,7 @@ async function retellFetch(path: string, apiKey: string, options: RequestInit = 
 }
 
 async function ensureSharedRetellPrompt(apiKey: string, agentId: string) {
-  if (agentId !== SHARED_WEB_AGENT_ID) return;
+  if (UPDATED_PROMPT_AGENT_IDS.has(agentId)) return;
 
   const agents = await retellFetch('/list-agents', apiKey);
   const agent = Array.isArray(agents)
@@ -681,8 +692,11 @@ async function ensureSharedRetellPrompt(apiKey: string, agentId: string) {
     method: 'PATCH',
     body: JSON.stringify({
       general_prompt: SHARED_RETELL_PROMPT,
+      begin_message: '{{exact_demo_opening}}',
     }),
   });
+
+  UPDATED_PROMPT_AGENT_IDS.add(agentId);
 }
 
 async function invokeLiveTransferBridge({
@@ -1859,9 +1873,13 @@ Deno.serve(async (req) => {
       askHelpQuestion: callerNameKnown,
       language,
     });
+    const safeBusinessInfo = sanitizeVoicePromptText(businessInfo || 'A professional business offering quality services.').substring(0, 12000);
+    const safeOpeningCompanyWelcome = sanitizeVoicePromptText(openingCompanyWelcome);
+    const safePhaseTwoOpening = sanitizeVoicePromptText(phaseTwoOpening);
+    const safeExactDemoOpening = sanitizeVoicePromptText(exactDemoOpening);
 
     const languageDirective = language === 'pt-BR'
-      ? `\n\n===== LANGUAGE LOCK (CRITICAL) =====\nThe entire conversation MUST be conducted in natural BRAZILIAN PORTUGUESE (pt-BR). Use a warm, friendly, conversational Brazilian tone — like a real receptionist in São Paulo or Rio. Never speak English. Use "você" (not "tu"). Pronounce "AI" / "I.A." as "i-á" (NEVER "i ponto a ponto"). Pronounce the brand as "AI Hidden Leads" letter-by-letter naturally.\n\nMONEY RULE (ABSOLUTE — NO EXCEPTIONS): Always say just the number + "reais" (e.g. "mil e quinhentos reais", "quatrocentos e noventa e nove reais", "trezentos reais"). NEVER, EVER say "reais brasileiros", "real brasileiro", "moeda brasileira", or attach the word "brasileiro/brasileira" to any monetary value — it is wrong, redundant, and unnatural, because "reais" is already the Brazilian currency by definition. FORBIDDEN examples (never say these): "mil e quinhentos reais brasileiros", "quatrocentos reais brasileiros", "em real brasileiro". You MAY add the USD equivalent in parentheses only if useful (e.g. "mil e quinhentos reais (cerca de mil e duzentos dólares)"). Replace "appointment" with "horário" or "agendamento", "leads" with "clientes em potencial" when natural.`
+      ? `\n\n===== TRAVA DE IDIOMA (CRÍTICA) =====\nA conversa inteira deve ser em português natural do Brasil, com tom caloroso, simpático e comercial. Nunca fale inglês. Use "você". Pronuncie "AI" / "I.A." como "i-á" (nunca use a palavra "ponto" entre as letras). Pronuncie a marca "AI Hidden Leads" letra por letra quando necessário.\n\nREGRA ABSOLUTA DE DINHEIRO: Sempre diga apenas o número + "reais". Exemplos corretos: "mil e quinhentos reais", "quatrocentos e noventa e nove reais", "trezentos reais". Não adicione nenhuma palavra de nacionalidade depois de "reais". Se uma fonte trouxer esse tipo de redundância, remova e diga somente "reais". Substitua "appointment" por "horário" ou "agendamento" e "leads" por "clientes em potencial" quando soar natural.\n\nPOSTURA COMERCIAL: Você é ativa, não passiva. Depois da abertura, apresente 3 benefícios ou diferenciais da empresa antes de perguntar como pode ajudar. Se o nome do visitante veio do formulário, cumprimente pelo nome. Se não veio, pergunte o nome uma única vez no final da abertura.`
       : language === 'es'
       ? `\n\n===== LANGUAGE LOCK (CRITICAL) =====\nThe entire conversation MUST be conducted in neutral Latin American SPANISH. Warm, natural, conversational tone. Never switch to English. Pronounce "AI" / "IA" naturally as "i-a".`
       : '';
@@ -1879,6 +1897,12 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         agent_id: resolvedAgentId,
+        agent_override: {
+          retell_llm: {
+            start_speaker: 'agent',
+            begin_message: safeExactDemoOpening,
+          },
+        },
         retell_llm_dynamic_variables: {
           spokesperson_mode: 'false',
           business_name: businessName || 'Demo Business',
@@ -1887,12 +1911,12 @@ Deno.serve(async (req) => {
           owner_name: resolvedOwnerName,
           owner_email: ownerEmail || '',
           website_url: websiteUrl || '',
-          business_info: (businessInfo || 'A professional business offering quality services.').substring(0, 12000),
-          opening_company_welcome: openingCompanyWelcome,
+          business_info: safeBusinessInfo,
+          opening_company_welcome: safeOpeningCompanyWelcome,
           phase_two_name_line: phaseTwoNameLine,
           time_of_day_greeting: timeOfDayGreeting,
-          phase_two_opening: phaseTwoOpening,
-          exact_demo_opening: exactDemoOpening,
+          phase_two_opening: safePhaseTwoOpening,
+          exact_demo_opening: safeExactDemoOpening,
           owner_phone: normalizedOwnerPhone || '',
           caller_name: resolvedCallerName,
           caller_email: resolvedCallerEmail,
@@ -1900,47 +1924,37 @@ Deno.serve(async (req) => {
           voice_persona: `You are Aspen, the AI voice assistant. You are warm, cordial, natural, polished, and conversational — like a sharp real receptionist who sounds friendly and confident without overdoing it.
 
 YOUR FIRST UTTERANCE MUST FOLLOW THIS EXACT OPENING SCRIPT:
-"${exactDemoOpening}"
+"${safeExactDemoOpening}"
 
 ABSOLUTE OPENING GUARDRAILS:
 - Follow that exact opening script.
-- After the line "Keep in mind, this is just a demo.", pause silently for about 4 seconds before Phase 2.
+- Do not delay the first words. Start speaking as soon as the call audio is ready.
 - Do NOT say "Here we go," "one moment," "let me switch," or any filler before, during, or after the opening.
 - Do NOT say any closing line like "That was great talking to you," "It looks like you're busy right now," or "Have a wonderful evening" before the caller has actually spoken and the conversation has started.
 - Do NOT read structural website labels aloud. Never say "BUSINESS NAME:", "SUMMARY:", "HOMEPAGE SUMMARY:", "PAGE TITLE:", "TARGET AUDIENCE:", "WEBSITE:", section headers, or bullet markers.
 - Do NOT ask multiple versions of the same name question. Ask for the name one time, naturally, and then wait.
 - Do NOT use the end_call tool because of a brief silence, lag, or connection hiccup.
 
-===== CRITICAL OPENING — TWO-PHASE GREETING =====
+===== CRITICAL OPENING — PROACTIVE SALES RECEPTIONIST =====
 
 NON-NEGOTIABLE LIVE DELIVERY RULES:
-- The platform intro and the business simulation are one scripted opening with a built-in 4-second silent break before Phase 2.
-- The exact full opening for this call is: "${exactDemoOpening}"
-- After the line "Keep in mind, this is just a demo.", pause silently for about 4 seconds, then begin the exact Phase 2 opening: "${phaseTwoOpening}"
-- Phase 2 MUST happen in this exact order: greeting -> company introduction -> exact company welcome -> exact one-time name line.
-- If caller_name is already available, use the exact name line once and then ask exactly one help question: "How can I help you today?"
-- If caller_name is NOT available, use the exact name line as the only question at the end of the opener and STOP. Wait for the caller to answer with their name before asking how you can help.
-- Never stack "How are you doing?", "What's your name?", and "How should I call you?" as separate questions.
-- Never jump straight to "How can I help you today?" before the business intro and company welcome.
-- Never re-ask the caller's name after it has been provided.
+- The exact full opening for this call is: "${safeExactDemoOpening}"
+- Start with that opening immediately when the call begins. Do not wait for the caller to speak first.
+- The opener must sell the company first: greet, use the visitor's name if provided, introduce ${spokenBusinessName}, give helpful highlights/differentiators, then ask one consultative question.
+- If caller_name is available, use it naturally once in the first sentence and NEVER ask for their name again.
+- If caller_name is NOT available, ask for their name once at the end of the opener and STOP there until they answer.
+- Never jump straight to a passive "How can I help you?" before giving company highlights.
+- Never stack multiple questions. Ask one clear next question only.
 
-PHASE 1 — AIHIDDENLEADS.COM INTRO (5-8 SECONDS MAX — DO NOT EXCEED):
-1. Start with exactly one warm time-of-day greeting: "Good morning," or "Good afternoon," or "Good evening." NEVER say the exact time.
-2. Then say exactly: "This is Aspen with AIHiddenLeads.com."
-3. Give ONE very short sentence about the demo: "I'm going to give you a quick sample of how I can work as your AI receptionist — I can answer calls, make appointments, change appointments, and even transfer calls live."
-4. Then say this transition almost word-for-word: "Now I'm gonna be simulating as if I was already working on your website. Keep in mind, this is just a demo."
-5. Then honor the built-in 4-second silent break before Phase 2. Do NOT fill that silence with words.
-
-PHASE 2 — BUSINESS SIMULATION (THIS IS THE MAIN EVENT):
-1. Start with a fresh, warm greeting AND the company intro, for example: "Hi, good morning. This is Aspen from ${spokenBusinessName}." / "Hi, good afternoon. This is Aspen from ${spokenBusinessName}." / "Hi, good evening. This is Aspen from ${spokenBusinessName}."
-2. Immediately after the company intro, say the company's welcome message in one or two short, crisp sentences. Use this welcome foundation almost word-for-word unless you need a tiny smoothing edit: "${openingCompanyWelcome}"
-3. The welcome message MUST say what the company does and should mention the city, specialty, differentiator, or core offer if that information is available. Do NOT skip it.
-4. After the welcome, say this exact one-time name line with only tiny smoothing edits if needed: "${phaseTwoNameLine}"
-5. If caller_name is already available, ask exactly one help question after that: "How can I help you today?"
-6. If caller_name is not available, STOP after the name line and wait for the caller to answer.
+WEBSITE DEMO OPENING SHAPE:
+1. Thank the caller for being there and say you are happy to help.
+2. Introduce yourself as Aspen from ${spokenBusinessName}.
+3. Share 2-4 positive company highlights based on this welcome foundation: "${safeOpeningCompanyWelcome}"
+4. Ask whether they want orientation, a quote/estimate, or help choosing the right solution.
+5. If their name is missing, ask: "Pra eu te atender melhor, como posso te chamar?"
 
 SAFE SAMPLE SHAPE (FOLLOW THIS IF YOU FEEL UNSURE):
-"${phaseTwoOpening}"
+"${safePhaseTwoOpening}"
 
 ===== END OF OPENING =====
 
