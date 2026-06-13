@@ -205,8 +205,11 @@ const TalkingAvatarWidget = () => {
   const silentSinkAudioRef = useRef<HTMLAudioElement | null>(null);
   const speakerAudioRef = useRef<HTMLAudioElement | null>(null);
   const earpieceAudioRef = useRef<HTMLAudioElement | null>(null);
+  const speakerCloneTrackRef = useRef<MediaStreamTrack | null>(null);
 
   const retellClientRef = useRef<any>(null);
+  const startInProgressRef = useRef(false);
+  const audioRoutingInProgressRef = useRef(false);
   const talkingHeadRef = useRef<any>(null);
   const avatarContainerRef = useRef<HTMLDivElement | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -218,6 +221,38 @@ const TalkingAvatarWidget = () => {
   const setAudioRouteState = useCallback((route: AudioRoute) => {
     audioRouteRef.current = route;
     setAudioRoute(route);
+  }, []);
+
+  const detachTrackAudioElements = useCallback((track: any) => {
+    try {
+      track?.detach?.().forEach((element: HTMLAudioElement) => {
+        element.pause();
+        element.srcObject = null;
+        element.removeAttribute("src");
+        element.remove();
+      });
+    } catch {
+      /* noop */
+    }
+  }, []);
+
+  const cleanupAudioRouting = useCallback(() => {
+    try { audioSourceRef.current?.disconnect(); } catch { /* noop */ }
+    audioSourceRef.current = null;
+    try { audioCtxRef.current?.close(); } catch { /* noop */ }
+    audioCtxRef.current = null;
+    try { speakerCloneTrackRef.current?.stop(); } catch { /* noop */ }
+    speakerCloneTrackRef.current = null;
+    [silentSinkAudioRef, speakerAudioRef, earpieceAudioRef].forEach((audioRef) => {
+      if (!audioRef.current) return;
+      audioRef.current.pause();
+      audioRef.current.srcObject = null;
+      audioRef.current.removeAttribute("src");
+      try { audioRef.current.load(); } catch { /* noop */ }
+      audioRef.current.remove();
+      audioRef.current = null;
+    });
+    remoteTrackRef.current = null;
   }, []);
 
   const refreshBluetoothOutput = useCallback(async () => {
@@ -478,8 +513,11 @@ const TalkingAvatarWidget = () => {
       if (autoMinimizeTimerRef.current) clearTimeout(autoMinimizeTimerRef.current);
       cleanupAvatar();
       try { retellClientRef.current?.stopCall(); } catch { /* noop */ }
+      retellClientRef.current = null;
+      startInProgressRef.current = false;
+      cleanupAudioRouting();
     };
-  }, [cleanupAvatar]);
+  }, [cleanupAudioRouting, cleanupAvatar]);
 
   useEffect(() => {
     void refreshBluetoothOutput();
@@ -489,9 +527,11 @@ const TalkingAvatarWidget = () => {
   }, [refreshBluetoothOutput]);
 
   const startCall = useCallback(async () => {
-    if (callStatus !== "idle" || retellClientRef.current) return;
+    if (startInProgressRef.current || callStatus !== "idle" || retellClientRef.current) return;
+    startInProgressRef.current = true;
     setCallStatus("connecting");
     try {
+      cleanupAudioRouting();
       const currentLang = (typeof document !== "undefined" && document.documentElement.lang) || "en";
       const langCode = currentLang.startsWith("pt") ? "pt" : currentLang.startsWith("es") ? "es" : "en";
       const { data, error } = await supabase.functions.invoke("avatar-spokesperson-call", {
@@ -518,6 +558,8 @@ const TalkingAvatarWidget = () => {
         setCallStatus("idle");
         setIsAgentSpeaking(false);
         setIsMuted(false);
+        retellClientRef.current = null;
+        startInProgressRef.current = false;
         resetAvatarMotion();
         if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
       });
@@ -534,6 +576,9 @@ const TalkingAvatarWidget = () => {
         console.error("Retell error:", error);
         setCallStatus("idle");
         setIsAgentSpeaking(false);
+        retellClientRef.current = null;
+        startInProgressRef.current = false;
+        cleanupAudioRouting();
         resetAvatarMotion();
       });
 
@@ -575,13 +620,15 @@ const TalkingAvatarWidget = () => {
       };
 
       const routeToSpeaker = async () => {
+        if (audioRoutingInProgressRef.current) return;
+        audioRoutingInProgressRef.current = true;
         try {
           setIsRoutingAudio(true);
           const track = remoteTrackRef.current ?? findRemoteTrack();
           if (!track) return;
           remoteTrackRef.current = track;
-          // Detach the LiveKit-attached audio element (earpiece route).
-          try { track.detach().forEach((el: HTMLAudioElement) => el.remove()); } catch { /* noop */ }
+          try { track.setVolume?.(0); } catch { /* noop */ }
+          detachTrackAudioElements(track);
           if (earpieceAudioRef.current) {
             earpieceAudioRef.current.pause();
             earpieceAudioRef.current.srcObject = null;
@@ -589,7 +636,10 @@ const TalkingAvatarWidget = () => {
             earpieceAudioRef.current = null;
           }
 
-          const stream = new MediaStream([track.mediaStreamTrack.clone()]);
+          try { speakerCloneTrackRef.current?.stop(); } catch { /* noop */ }
+          const speakerCloneTrack = track.mediaStreamTrack.clone();
+          speakerCloneTrackRef.current = speakerCloneTrack;
+          const stream = new MediaStream([speakerCloneTrack]);
 
           // ── Android Chrome speakerphone fix ──
           // The key is creating the AudioContext with latencyHint: 'playback' which
@@ -633,12 +683,15 @@ const TalkingAvatarWidget = () => {
         } catch (e) {
           console.error("Failed to route audio to speaker:", e);
         } finally {
+          audioRoutingInProgressRef.current = false;
           setIsRoutingAudio(false);
         }
       };
 
 
       const routeToEarpiece = async () => {
+        if (audioRoutingInProgressRef.current) return;
+        audioRoutingInProgressRef.current = true;
         try {
           setIsRoutingAudio(true);
           // Tear down Web Audio (speaker) route
@@ -660,6 +713,9 @@ const TalkingAvatarWidget = () => {
           const track = remoteTrackRef.current ?? findRemoteTrack();
           remoteTrackRef.current = track;
           if (!track) return;
+          try { track.setVolume?.(1); } catch { /* noop */ }
+          try { speakerCloneTrackRef.current?.stop(); } catch { /* noop */ }
+          speakerCloneTrackRef.current = null;
           // LiveKit attach() returns an audio element; we MUST append it to DOM
           // and unmute it so Android routes via voice-communication (earpiece / BT-HSP).
           if (earpieceAudioRef.current) {
@@ -679,20 +735,27 @@ const TalkingAvatarWidget = () => {
         } catch (e) {
           console.error("Failed to route audio to earpiece:", e);
         } finally {
+          audioRoutingInProgressRef.current = false;
           setIsRoutingAudio(false);
         }
       };
 
       const routeToBluetooth = async () => {
+        if (audioRoutingInProgressRef.current) return;
+        audioRoutingInProgressRef.current = true;
         try {
           setIsRoutingAudio(true);
           const track = remoteTrackRef.current ?? findRemoteTrack();
           if (!track) return;
           remoteTrackRef.current = track;
-          try { track.detach().forEach((el: HTMLAudioElement) => el.remove()); } catch { /* noop */ }
+          try { track.setVolume?.(0); } catch { /* noop */ }
+          detachTrackAudioElements(track);
           try { audioSourceRef.current?.disconnect(); } catch { /* noop */ }
           audioSourceRef.current = null;
-          const stream = new MediaStream([track.mediaStreamTrack]);
+          try { speakerCloneTrackRef.current?.stop(); } catch { /* noop */ }
+          const speakerCloneTrack = track.mediaStreamTrack.clone();
+          speakerCloneTrackRef.current = speakerCloneTrack;
+          const stream = new MediaStream([speakerCloneTrack]);
           if (!speakerAudioRef.current) {
             const bluetoothAudio = document.createElement("audio");
             bluetoothAudio.autoplay = true;
@@ -708,39 +771,14 @@ const TalkingAvatarWidget = () => {
         } catch (e) {
           console.error("Failed to route audio to Bluetooth:", e);
         } finally {
+          audioRoutingInProgressRef.current = false;
           setIsRoutingAudio(false);
         }
         setAudioRouteState("bluetooth");
       };
 
-      // Wait briefly for the remote track to arrive, then default to speaker.
-      const speakerDefaultTimer = setTimeout(() => {
-        if (audioRouteRef.current === "bluetooth") routeToBluetooth();
-        else if (audioRouteRef.current === "speaker") routeToSpeaker();
-      }, 400);
-
       retellClient.on("call_ended", () => {
-        clearTimeout(speakerDefaultTimer);
-        try { audioSourceRef.current?.disconnect(); } catch { /* noop */ }
-        audioSourceRef.current = null;
-        remoteTrackRef.current = null;
-        if (silentSinkAudioRef.current) {
-          silentSinkAudioRef.current.srcObject = null;
-          silentSinkAudioRef.current.remove();
-          silentSinkAudioRef.current = null;
-        }
-        if (speakerAudioRef.current) {
-          speakerAudioRef.current.srcObject = null;
-          speakerAudioRef.current.remove();
-          speakerAudioRef.current = null;
-        }
-        if (earpieceAudioRef.current) {
-          earpieceAudioRef.current.srcObject = null;
-          earpieceAudioRef.current.remove();
-          earpieceAudioRef.current = null;
-        }
-        try { audioCtxRef.current?.close(); } catch { /* noop */ }
-        audioCtxRef.current = null;
+        cleanupAudioRouting();
       });
 
       // Expose helpers on the ref so the toggle button can call them.
@@ -750,17 +788,23 @@ const TalkingAvatarWidget = () => {
     } catch (err) {
       console.error("Failed to start spokesperson call:", err);
       setCallStatus("idle");
+      retellClientRef.current = null;
+      startInProgressRef.current = false;
+      cleanupAudioRouting();
     }
-  }, [callStatus, focusAvatarOnViewer, resetAvatarMotion, refreshBluetoothOutput, setAudioRouteState, setSinkIfSupported]);
+  }, [callStatus, cleanupAudioRouting, detachTrackAudioElements, focusAvatarOnViewer, resetAvatarMotion, refreshBluetoothOutput, setAudioRouteState, setSinkIfSupported]);
 
   const endCall = useCallback(() => {
     try { retellClientRef.current?.stopCall(); } catch { /* noop */ }
+    retellClientRef.current = null;
+    startInProgressRef.current = false;
+    cleanupAudioRouting();
     setCallStatus("idle");
     setIsAgentSpeaking(false);
     setIsMuted(false);
     resetAvatarMotion();
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
-  }, [resetAvatarMotion]);
+  }, [cleanupAudioRouting, resetAvatarMotion]);
 
   const toggleMute = useCallback(() => {
     try {
