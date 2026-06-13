@@ -151,12 +151,12 @@
     "mostPopular": "Mais Popular",
     "essentials": {
       "name": "I.A. Essencial",
-      "tag": "Voz + Chat — Nunca Mais Perca um Cliente",
+      "tag": "WhatsApp + Voz + Chat — Nunca Mais Perca um Cliente",
       "cta": "Começar por R$ 499/mês"
     },
     "growth": {
       "name": "Motor de Crescimento",
-      "tag": "Clientes + Prospecção + Reputação + Reativação",
+      "tag": "WhatsApp IA + Prospecção + Reputação + Reativação",
       "cta": "Crescer Meu Negócio"
     },
     "full": {
@@ -165,9 +165,9 @@
       "cta": "Quero o Full Service"
     },
     "transparencyTitle": "Total Transparência: Custos de Uso da IA",
-    "transparencyBody": "Todos os planos incluem uma cota base de interações por IA. Uso de voz e chat além do incluso é cobrado a custo conforme seu volume — normalmente <strong>$30–$90/mês</strong> pra maioria das pequenas empresas. A gente repassa o custo do provedor de IA sem nenhuma margem. Você vê o seu consumo no painel antes de qualquer cobrança. <strong>O uso varia conforme o volume — não nos responsabilizamos por excedentes além dos minutos inclusos.</strong>",
+    "transparencyBody": "Todos os planos incluem uma cota base de interações por IA (voz, chat do site e WhatsApp). Uso além do incluso é cobrado a custo conforme seu volume — normalmente <strong>R$ 150–R$ 450/mês</strong> pra maioria das pequenas empresas. A gente repassa o custo do provedor de IA sem nenhuma margem. Você vê o seu consumo no painel antes de qualquer cobrança. <strong>O uso varia conforme o volume — não nos responsabilizamos por excedentes além do incluso.</strong>",
     "compareTitle": "Como a gente se compara:",
-    "compareBody": "Agentes básicos de voz com IA começam em $75–$150+/mês por aí — e SÓ atendem ligação. A gente entrega voz + chat + captura de lead + agendamento + transferência ao vivo a partir de <strong>$99/mês</strong>. Sem taxa por usuário, sem cobrança escondida de API."
+    "compareBody": "Plataformas básicas de WhatsApp IA no Brasil cobram <strong>R$ 299–R$ 899/mês</strong> — e SÓ atendem no Zap. A gente entrega WhatsApp + Voz + Chat no site + captura de lead + agendamento + transferência ao vivo a partir de <strong>R$ 499/mês</strong>. Sem taxa por usuário, sem cobrança escondida de API."
   },
   "addons": {
     "badge": "À La Carte",
