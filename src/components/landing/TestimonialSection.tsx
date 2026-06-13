@@ -10,31 +10,23 @@ import carlosImg from "@/assets/testimonial-carlos.png";
 
 const testimonials = [
   {
-    quote:
-      "We never miss a call anymore. The AI voice agent picks up every single inquiry — evenings, weekends, holidays. Our bookings are up 40% since we started using AI Hidden Leads.",
+    key: "sarah",
     name: "Sarah Mitchell",
-    title: "Real Estate Broker · RE/MAX South Florida",
     image: sarahImg,
   },
   {
-    quote:
-      "I was skeptical at first, but the personalized demo blew me away. They showed me my own website with AI on it — I signed up that same day. Best decision for my business.",
+    key: "mike",
     name: "Mike Thompson",
-    title: "Owner · Thompson Plumbing & HVAC",
     image: mikeImg,
   },
   {
-    quote:
-      "Our front desk used to miss half the calls during busy hours. Now the AI handles overflow, books consultations, and even follows up with leads we would've lost.",
+    key: "jessica",
     name: "Dr. Jessica Reyes",
-    title: "Founder · Glow Aesthetic Med Spa",
     image: jessicaImg,
   },
   {
-    quote:
-      "The speed-to-lead feature is a game-changer. A customer views our demo and within a minute they get a call from our AI — it's like having a tireless sales team.",
+    key: "carlos",
     name: "Carlos Gutierrez",
-    title: "Owner · Prestige Auto Detail",
     image: carlosImg,
   },
 ];
@@ -59,7 +51,7 @@ const TestimonialSection = () => {
     return () => clearInterval(id);
   }, [next]);
 
-  const t = testimonials[current];
+  const active = testimonials[current];
 
   const variants = {
     enter: (d: number) => ({ x: d > 0 ? 120 : -120, opacity: 0 }),
@@ -95,14 +87,14 @@ const TestimonialSection = () => {
           {/* Nav arrows */}
           <button
             onClick={prev}
-            aria-label="Previous testimonial"
+            aria-label={tr("testimonials.previous")}
             className="absolute left-0 top-1/2 -translate-y-1/2 -translate-x-4 sm:-translate-x-12 z-20 w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors"
           >
             <ChevronLeft className="w-5 h-5" />
           </button>
           <button
             onClick={next}
-            aria-label="Next testimonial"
+            aria-label={tr("testimonials.next")}
             className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-4 sm:translate-x-12 z-20 w-10 h-10 rounded-full bg-card border border-border flex items-center justify-center text-muted-foreground hover:text-foreground hover:border-primary/50 transition-colors"
           >
             <ChevronRight className="w-5 h-5" />
@@ -128,21 +120,21 @@ const TestimonialSection = () => {
               </div>
 
               <blockquote className="text-lg sm:text-xl font-medium leading-relaxed mb-8 text-foreground text-center">
-                "{t.quote}"
+                "{tr(`testimonials.items.${active.key}.quote`)}"
               </blockquote>
 
               <div className="flex items-center justify-center gap-4">
                 <img
-                  src={t.image}
-                  alt={t.name}
+                  src={active.image}
+                  alt={active.name}
                   loading="lazy"
                   width={56}
                   height={56}
                   className="w-14 h-14 rounded-full object-cover border-2 border-primary/30"
                 />
                 <div className="text-left">
-                  <p className="font-semibold text-foreground">{t.name}</p>
-                  <p className="text-sm text-muted-foreground">{t.title}</p>
+                  <p className="font-semibold text-foreground">{active.name}</p>
+                  <p className="text-sm text-muted-foreground">{tr(`testimonials.items.${active.key}.title`)}</p>
                 </div>
               </div>
             </motion.div>
@@ -157,7 +149,7 @@ const TestimonialSection = () => {
                   setDirection(i > current ? 1 : -1);
                   setCurrent(i);
                 }}
-                aria-label={`Go to testimonial ${i + 1}`}
+                aria-label={tr("testimonials.goTo", { number: i + 1 })}
                 className={`w-2.5 h-2.5 rounded-full transition-all ${
                   i === current
                     ? "bg-primary w-6"
