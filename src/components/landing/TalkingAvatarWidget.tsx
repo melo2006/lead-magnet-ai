@@ -205,8 +205,10 @@ const TalkingAvatarWidget = () => {
   const silentSinkAudioRef = useRef<HTMLAudioElement | null>(null);
   const speakerAudioRef = useRef<HTMLAudioElement | null>(null);
   const earpieceAudioRef = useRef<HTMLAudioElement | null>(null);
+  const speakerCloneTrackRef = useRef<MediaStreamTrack | null>(null);
 
   const retellClientRef = useRef<any>(null);
+  const startInProgressRef = useRef(false);
   const talkingHeadRef = useRef<any>(null);
   const avatarContainerRef = useRef<HTMLDivElement | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -218,6 +220,38 @@ const TalkingAvatarWidget = () => {
   const setAudioRouteState = useCallback((route: AudioRoute) => {
     audioRouteRef.current = route;
     setAudioRoute(route);
+  }, []);
+
+  const detachTrackAudioElements = useCallback((track: any) => {
+    try {
+      track?.detach?.().forEach((element: HTMLAudioElement) => {
+        element.pause();
+        element.srcObject = null;
+        element.removeAttribute("src");
+        element.remove();
+      });
+    } catch {
+      /* noop */
+    }
+  }, []);
+
+  const cleanupAudioRouting = useCallback(() => {
+    try { audioSourceRef.current?.disconnect(); } catch { /* noop */ }
+    audioSourceRef.current = null;
+    try { audioCtxRef.current?.close(); } catch { /* noop */ }
+    audioCtxRef.current = null;
+    try { speakerCloneTrackRef.current?.stop(); } catch { /* noop */ }
+    speakerCloneTrackRef.current = null;
+    [silentSinkAudioRef, speakerAudioRef, earpieceAudioRef].forEach((audioRef) => {
+      if (!audioRef.current) return;
+      audioRef.current.pause();
+      audioRef.current.srcObject = null;
+      audioRef.current.removeAttribute("src");
+      try { audioRef.current.load(); } catch { /* noop */ }
+      audioRef.current.remove();
+      audioRef.current = null;
+    });
+    remoteTrackRef.current = null;
   }, []);
 
   const refreshBluetoothOutput = useCallback(async () => {
@@ -478,8 +512,11 @@ const TalkingAvatarWidget = () => {
       if (autoMinimizeTimerRef.current) clearTimeout(autoMinimizeTimerRef.current);
       cleanupAvatar();
       try { retellClientRef.current?.stopCall(); } catch { /* noop */ }
+      retellClientRef.current = null;
+      startInProgressRef.current = false;
+      cleanupAudioRouting();
     };
-  }, [cleanupAvatar]);
+  }, [cleanupAudioRouting, cleanupAvatar]);
 
   useEffect(() => {
     void refreshBluetoothOutput();
