@@ -237,6 +237,35 @@
     "errorTitle": "Something went wrong",
     "errorDesc": "Please try again."
   },
+  "tryDemo": {
+    "headline1": "See Your Website With",
+    "headline2": "— Live Demo",
+    "sub": "Enter your info below and within ~90 seconds, watch your website come alive with Voice AI and Chat AI — personalized for your business.",
+    "payoff": "Capture just one or two extra leads a month and the system pays for itself.",
+    "namePlaceholder": "Your Full Name *",
+    "emailPlaceholder": "Email (optional)",
+    "submit": "Show Me My AI Demo",
+    "missingInfo": "Missing info",
+    "fixFields": "Please complete the required fields and try again.",
+    "loadingDemo": "Loading demo",
+    "openingSaved": "Opening with saved details.",
+    "errorTitle": "Something went wrong",
+    "errorDesc": "Please try again.",
+    "goToProspects": "Go to Prospects",
+    "disclaimerLead": "⚡ Quick demo disclaimer:",
+    "disclaimer": " This is a rapid AI-generated simulation built in about 90 seconds — not a full knowledge base. It gives you a taste of what your AI receptionist will sound like. The production version we build for you will be much more detailed and accurate. You can even test a live warm transfer during the demo!",
+    "trusted": "Trusted by 500+ local businesses",
+    "free": "Free",
+    "noSignup": "No signup required",
+    "benefits": {
+      "transfer": { "label": "Warm Transfer", "desc": "AI transfers hot leads live to you with a full summary" },
+      "sms": { "label": "SMS After Every Call", "desc": "Get an instant text with the lead details & summary" },
+      "email": { "label": "Email Summary", "desc": "Full call recap emailed to you after every conversation" },
+      "crm": { "label": "Lead Capture & CRM", "desc": "Every lead is saved — use our CRM or integrate yours" },
+      "receptionist": { "label": "24/7 AI Receptionist", "desc": "Never miss a call — AI answers & books appointments" },
+      "capture": { "label": "Instant Lead Capture", "desc": "Converts website visitors into booked calls" }
+    }
+  },
   "footer": {
     "privacy": "Privacy Policy",
     "terms": "Terms of Service",
