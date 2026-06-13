@@ -237,6 +237,35 @@
     "errorTitle": "Algo salió mal",
     "errorDesc": "Inténtalo de nuevo."
   },
+  "tryDemo": {
+    "headline1": "Mira Tu Sitio Con",
+    "headline2": "— Demo En Vivo",
+    "sub": "Completa tus datos abajo y, en unos 90 segundos, mira tu sitio cobrar vida con Voz de IA y Chat de IA — personalizado para tu negocio.",
+    "payoff": "Captura solo uno o dos leads extra al mes y el sistema se paga solo.",
+    "namePlaceholder": "Tu Nombre Completo *",
+    "emailPlaceholder": "Correo (opcional)",
+    "submit": "Mostrar Mi Demo de IA",
+    "missingInfo": "Faltan datos",
+    "fixFields": "Completa los campos obligatorios e inténtalo de nuevo.",
+    "loadingDemo": "Cargando demo",
+    "openingSaved": "Abriendo con los datos guardados.",
+    "errorTitle": "Algo salió mal",
+    "errorDesc": "Inténtalo de nuevo.",
+    "goToProspects": "Ir a Prospects",
+    "disclaimerLead": "⚡ Aviso rápido de la demo:",
+    "disclaimer": " Esta es una simulación rápida generada por IA en unos 90 segundos — no es una base de conocimiento completa. Te da una muestra de cómo sonaría tu recepcionista de IA. La versión de producción que creamos para ti será mucho más detallada y precisa. ¡También puedes probar una transferencia en vivo durante la demo!",
+    "trusted": "Confiado por más de 500 negocios locales",
+    "free": "Gratis",
+    "noSignup": "Sin registro obligatorio",
+    "benefits": {
+      "transfer": { "label": "Transferencia En Vivo", "desc": "La IA transfiere leads calientes a ti con resumen completo" },
+      "sms": { "label": "SMS Después de Cada Llamada", "desc": "Recibe un texto instantáneo con detalles y resumen del lead" },
+      "email": { "label": "Resumen por Correo", "desc": "Recap completo enviado por correo después de cada conversación" },
+      "crm": { "label": "Captura de Leads y CRM", "desc": "Cada lead queda guardado — usa nuestro CRM o integra el tuyo" },
+      "receptionist": { "label": "Recepcionista IA 24/7", "desc": "Nunca pierdas llamadas — la IA responde y agenda citas" },
+      "capture": { "label": "Captura Instantánea", "desc": "Convierte visitantes del sitio en llamadas agendadas" }
+    }
+  },
   "footer": {
     "privacy": "Política de Privacidad",
     "terms": "Términos de Servicio",
