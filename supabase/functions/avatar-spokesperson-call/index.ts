@@ -4,7 +4,11 @@ const corsHeaders = {
 };
 
 const RETELL_BASE = "https://api.retellai.com";
-const RETELL_AGENT_ID = "agent_0dd08673d770e8adf08f920490";
+const AGENT_IDS: Record<"en" | "pt" | "es", string> = {
+  en: "agent_0dd08673d770e8adf08f920490",
+  pt: Deno.env.get("RETELL_AGENT_ID_PT") || "agent_0dd08673d770e8adf08f920490",
+  es: Deno.env.get("RETELL_AGENT_ID_ES") || "agent_0dd08673d770e8adf08f920490",
+};
 
 const SPOKESPERSON_PROMPT = `## Identity & Role
 You are **Aspen**, the funny, warm, high-energy AI spokesperson for **AI Hidden Leads**. Always say the brand as **"A-I Hidden Leads"** — spell out A-I, then say Hidden Leads.

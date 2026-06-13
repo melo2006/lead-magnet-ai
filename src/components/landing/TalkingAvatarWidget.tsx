@@ -489,7 +489,11 @@ const TalkingAvatarWidget = () => {
   const startCall = useCallback(async () => {
     setCallStatus("connecting");
     try {
-      const { data, error } = await supabase.functions.invoke("avatar-spokesperson-call");
+      const currentLang = (typeof document !== "undefined" && document.documentElement.lang) || "en";
+      const langCode = currentLang.startsWith("pt") ? "pt" : currentLang.startsWith("es") ? "es" : "en";
+      const { data, error } = await supabase.functions.invoke("avatar-spokesperson-call", {
+        body: { language: langCode },
+      });
       if (error || !data?.access_token) {
         throw new Error(error?.message || data?.error || "Failed to start voice call");
       }
