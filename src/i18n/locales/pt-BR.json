@@ -107,6 +107,17 @@
       }
     }
   },
+  "stats": {
+    "title1": "O Custo do",
+    "title2": "Silêncio",
+    "sub": "Cada ligação que cai na caixa postal é dinheiro indo embora. Veja o que os dados mostram sobre o seu setor.",
+    "cards": {
+      "unanswered": { "label": "das ligações ficam sem resposta", "sublabel": "durante o horário comercial" },
+      "lost": { "label": "perdidos por ligação não atendida", "sublabel": "impacto médio na receita" },
+      "response": { "label": "tempo médio de resposta", "sublabel": "sem assistente de IA" },
+      "firstResponder": { "label": "compram de quem responde primeiro", "sublabel": "velocidade ganha sempre" }
+    }
+  },
   "how": {
     "title1": "Da Assinatura aos Resultados em",
     "title2": "4 Passos Simples",
