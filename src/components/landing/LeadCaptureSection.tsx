@@ -154,11 +154,11 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
     const newFiles = Array.from(e.target.files || []);
     const valid = newFiles.filter((f) => {
       if (!ALLOWED_TYPES.includes(f.type)) {
-        toast({ title: "Invalid file type", description: `${f.name} is not a PDF, TXT, or Word document.`, variant: "destructive" });
+        toast({ title: t("leadForm.invalidFile"), description: t("leadForm.invalidFileDesc", { file: f.name }), variant: "destructive" });
         return false;
       }
       if (f.size > MAX_FILE_SIZE) {
-        toast({ title: "File too large", description: `${f.name} exceeds 20MB.`, variant: "destructive" });
+        toast({ title: t("leadForm.fileTooLarge"), description: t("leadForm.fileTooLargeDesc", { file: f.name }), variant: "destructive" });
         return false;
       }
       return true;
@@ -192,8 +192,8 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
     const parsed = leadFormSchema.safeParse(formData);
     if (!parsed.success) {
       toast({
-        title: "Please fix the form",
-        description: parsed.error.issues[0]?.message ?? "Please review your details and try again.",
+        title: t("leadForm.fixForm"),
+        description: t("leadForm.reviewDetails"),
         variant: "destructive",
       });
       return;
@@ -244,8 +244,8 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
       if (scanResult.error) {
         console.error("Scan error:", scanResult.error);
         toast({
-          title: "Loading a basic demo",
-          description: "The site scan took too long, so the demo is opening with the saved business details.",
+          title: t("leadForm.loadingBasicDemo"),
+          description: t("leadForm.loadingBasicDemoDesc"),
         });
       } else {
         console.log("Scan completed:", scanResult.data);
@@ -307,7 +307,7 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
       }
     } catch (err) {
       console.error("Error submitting lead:", err);
-      toast({ title: "Something went wrong", description: "Please try again.", variant: "destructive" });
+      toast({ title: t("leadForm.errorTitle"), description: t("leadForm.errorDesc"), variant: "destructive" });
       setViewState("form");
     } finally {
       setIsSubmitting(false);
