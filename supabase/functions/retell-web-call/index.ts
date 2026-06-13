@@ -18,6 +18,12 @@ const DEFAULT_TRANSFER_NUMBER = '+19547706622';
 const TWILIO_CALLER_ID = '+15612755757';
 const TRANSFER_TITLE = 'AI Solutions Specialist';
 const SHARED_WEB_AGENT_ID = 'agent_0dd08673d770e8adf08f920490';
+// Language-specific Retell agents (must match the homepage spokesperson voices)
+const LANGUAGE_AGENT_IDS: Record<'en' | 'pt-BR' | 'es', string> = {
+  'en': 'agent_0dd08673d770e8adf08f920490',
+  'pt-BR': Deno.env.get('RETELL_AGENT_ID_PT') || 'agent_f07d11526d03342668c043e4d1',
+  'es': Deno.env.get('RETELL_AGENT_ID_ES') || 'agent_f4bcf291c7a19b15cc020edce5',
+};
 
 const SHARED_RETELL_PROMPT = `You are Aspen, the AI voice assistant.
 
