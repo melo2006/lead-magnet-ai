@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { Mic, MicOff, Phone, PhoneOff, Loader2, Maximize2, Minimize2, X, Volume2, VolumeX, Bluetooth, Speaker, Smartphone, Pause, Play, RotateCcw, Mail } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
@@ -22,8 +23,10 @@ interface VoiceAgentWidgetProps {
   callerName?: string;
   callerEmail?: string;
   callerPhone?: string;
+  language?: string;
   onClose?: () => void;
 }
+
 
 type CallStatus = "idle" | "connecting" | "active" | "ending";
 
