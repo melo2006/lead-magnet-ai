@@ -24,6 +24,7 @@ const LANGUAGE_AGENT_IDS: Record<'en' | 'pt-BR' | 'es', string> = {
   'pt-BR': Deno.env.get('RETELL_AGENT_ID_PT') || 'agent_f07d11526d03342668c043e4d1',
   'es': Deno.env.get('RETELL_AGENT_ID_ES') || 'agent_f4bcf291c7a19b15cc020edce5',
 };
+const UPDATED_PROMPT_AGENT_IDS = new Set<string>();
 
 const SHARED_RETELL_PROMPT = `You are Aspen, the AI voice assistant.
 
@@ -675,6 +676,8 @@ async function retellFetch(path: string, apiKey: string, options: RequestInit = 
 }
 
 async function ensureSharedRetellPrompt(apiKey: string, agentId: string) {
+  if (UPDATED_PROMPT_AGENT_IDS.has(agentId)) return;
+
   const agents = await retellFetch('/list-agents', apiKey);
   const agent = Array.isArray(agents)
     ? agents.find((entry: any) => entry?.agent_id === agentId)
@@ -692,6 +695,8 @@ async function ensureSharedRetellPrompt(apiKey: string, agentId: string) {
       begin_message: '{{exact_demo_opening}}',
     }),
   });
+
+  UPDATED_PROMPT_AGENT_IDS.add(agentId);
 }
 
 async function invokeLiveTransferBridge({
