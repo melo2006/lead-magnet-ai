@@ -1892,6 +1892,12 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         agent_id: resolvedAgentId,
+        agent_override: {
+          retell_llm: {
+            start_speaker: 'agent',
+            begin_message: safeExactDemoOpening,
+          },
+        },
         retell_llm_dynamic_variables: {
           spokesperson_mode: 'false',
           business_name: businessName || 'Demo Business',
