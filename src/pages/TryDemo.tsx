@@ -358,7 +358,7 @@ const TryDemo = () => {
             <div className="relative">
               <User className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="Your Full Name *"
+                placeholder={t("tryDemo.namePlaceholder")}
                 value={fullName}
                 onChange={(e) => setFullName(e.target.value)}
                 className="pl-9 h-12 text-sm bg-card border-border rounded-xl focus-visible:ring-primary"
@@ -461,7 +461,7 @@ const TryDemo = () => {
           </div>
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
             <span className="flex items-center gap-1">
-              <Shield className="w-3.5 h-3.5 text-primary" /> Free
+              <Shield className="w-3.5 h-3.5 text-primary" /> {t("tryDemo.free")}
             </span>
             <span>·</span>
             <span>{t("tryDemo.noSignup")}</span>
