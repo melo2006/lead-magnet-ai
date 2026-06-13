@@ -42,5 +42,8 @@ verify_jwt = false
 [functions.geo-grid-scan]
 verify_jwt = false
 
+[functions.whatsapp-webhook]
+verify_jwt = false
+
 
 
