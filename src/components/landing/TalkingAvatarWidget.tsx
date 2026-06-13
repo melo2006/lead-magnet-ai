@@ -187,7 +187,7 @@ const NEUTRAL_MORPHS: Record<LipSyncMorphName, number> = {
 };
 
 const TalkingAvatarWidget = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const [widgetState, setWidgetState] = useState<WidgetState>("collapsed");
   const [callStatus, setCallStatus] = useState<CallStatus>("idle");
   const [isMuted, setIsMuted] = useState(false);
@@ -532,7 +532,7 @@ const TalkingAvatarWidget = () => {
     setCallStatus("connecting");
     try {
       cleanupAudioRouting();
-      const currentLang = (typeof document !== "undefined" && document.documentElement.lang) || "en";
+      const currentLang = i18n.resolvedLanguage || i18n.language || (typeof document !== "undefined" && document.documentElement.lang) || "en";
       const langCode = currentLang.startsWith("pt") ? "pt" : currentLang.startsWith("es") ? "es" : "en";
       const localHour = new Date().getHours();
       const { data, error } = await supabase.functions.invoke("avatar-spokesperson-call", {
@@ -793,7 +793,7 @@ const TalkingAvatarWidget = () => {
       startInProgressRef.current = false;
       cleanupAudioRouting();
     }
-  }, [callStatus, cleanupAudioRouting, detachTrackAudioElements, focusAvatarOnViewer, resetAvatarMotion, refreshBluetoothOutput, setAudioRouteState, setSinkIfSupported]);
+  }, [callStatus, cleanupAudioRouting, detachTrackAudioElements, focusAvatarOnViewer, i18n.language, i18n.resolvedLanguage, resetAvatarMotion, refreshBluetoothOutput, setAudioRouteState, setSinkIfSupported]);
 
   const endCall = useCallback(() => {
     try { retellClientRef.current?.stopCall(); } catch { /* noop */ }
