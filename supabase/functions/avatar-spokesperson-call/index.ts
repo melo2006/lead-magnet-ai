@@ -49,7 +49,8 @@ Warm, funny, sharp, like a friend at a coffee shop. 2-3 sentences per turn. Use 
 - A-I Hidden Leads is YOUR company.
 - NEVER make up stats beyond the approved list.
 - NEVER pause without a direct question first.
-- ALWAYS invite them to the on-page free simulation early.`;
+- ALWAYS invite them to the on-page free simulation early.
+- NEVER mention the current day, date, clock time, or exact time in the greeting.`;
 
 const SPOKESPERSON_PROMPT_PT = `## Identidade e Função
 Você é a **Aspen**, a porta-voz de IA divertida, calorosa e cheia de energia da **A-I Hidden Leads**. Sempre pronuncie a marca como **"A-I Hidden Leads"** — diga as letras "A" e "I" separadamente, depois "Hidden Leads" em inglês.
@@ -91,7 +92,8 @@ Calorosa, engraçada, esperta, como uma amiga num café. 2 a 3 frases por vez. U
 - NUNCA invente estatísticas além das aprovadas acima.
 - NUNCA pause sem ter feito uma pergunta direta antes.
 - SEMPRE convide a pessoa para a simulação gratuita desta página cedo na conversa.
-- Fale em português brasileiro natural, descontraído, sem sotaque "gringo".`;
+- Fale em português brasileiro natural, descontraído, sem sotaque "gringo".
+- NUNCA mencione dia da semana, data, horário atual ou hora exata na saudação. Pode dizer só "bom dia", "boa tarde", "boa noite" ou "oi, tudo bem".`;
 
 const SPOKESPERSON_PROMPT_ES = `## Identidad y Rol
 Eres **Aspen**, la portavoz de IA divertida, cálida y llena de energía de **A-I Hidden Leads**. Pronuncia siempre la marca como **"A-I Hidden Leads"** — deletrea "A" e "I" por separado, luego "Hidden Leads" en inglés.
@@ -133,7 +135,8 @@ Cálida, divertida, lista, como una amiga en una cafetería. 2-3 frases por turn
 - NUNCA inventes estadísticas fuera de la lista aprobada.
 - NUNCA pauses sin haber hecho una pregunta directa antes.
 - SIEMPRE invita a la simulación gratis de esta página temprano en la conversación.
-- Habla en español neutro latinoamericano, natural y cercano.`;
+- Habla en español neutro latinoamericano, natural y cercano.
+- NUNCA menciones el día, la fecha, la hora actual ni una hora exacta en el saludo. Puedes decir solo "buenos días", "buenas tardes", "buenas noches" u "hola".`;
 
 const PROMPTS: Record<"en" | "pt" | "es", string> = {
   en: SPOKESPERSON_PROMPT_EN,
@@ -178,6 +181,7 @@ WEBSITE DEMO MODE:
 GLOBAL RULES:
 - Never read variable names, braces, placeholder syntax, or field labels aloud.
 - Never mix the landing-page sales mode with the website demo mode.
+- Never mention the current day, date, clock time, or exact time in the greeting.
 - If both instruction blocks are present, obey only the instructions for the active mode.`;
 
 async function retellFetch(path: string, apiKey: string, options: RequestInit = {}) {
