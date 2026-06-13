@@ -16,12 +16,15 @@ i18n
     resources: {
       en: { translation: en },
       "pt-BR": { translation: ptBR },
+      pt: { translation: ptBR },
       es: { translation: es },
     },
+    lng: localStorage.getItem("lang") || undefined,
     fallbackLng: "en",
-    supportedLngs: SUPPORTED as unknown as string[],
-    nonExplicitSupportedLngs: true, // 'pt' → 'pt-BR'
+    supportedLngs: ["en", "pt-BR", "pt", "es"],
+    load: "currentOnly",
     interpolation: { escapeValue: false },
+    react: { useSuspense: false },
     detection: {
       order: ["localStorage", "navigator", "htmlTag"],
       lookupLocalStorage: "lang",
