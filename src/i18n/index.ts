@@ -34,6 +34,11 @@ const syncHtmlLang = (lng: string) => {
   document.documentElement.lang = lng;
 };
 syncHtmlLang(i18n.language || "en");
-i18n.on("languageChanged", syncHtmlLang);
+i18n.on("languageChanged", (lng) => {
+  syncHtmlLang(lng);
+  console.log("[i18n] languageChanged →", lng, "| hero.badge =", i18n.t("hero.badge"));
+});
+// expose for debugging
+(window as any).__i18n = i18n;
 
 export default i18n;
