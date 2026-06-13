@@ -902,14 +902,14 @@ const TalkingAvatarWidget = () => {
           <button
             onClick={handleMaximize}
             className="rounded-full p-1.5 bg-muted text-foreground hover:bg-muted/80"
-            title="Expand"
+            title={t("avatar.expand")}
           >
             <Maximize2 className="h-3 w-3" />
           </button>
           <button
             onClick={handleClose}
             className="rounded-full p-1.5 hover:bg-muted text-muted-foreground"
-            title="Close"
+            title={t("avatar.close")}
           >
             <X className="h-3 w-3" />
           </button>
