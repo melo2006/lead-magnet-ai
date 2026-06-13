@@ -107,6 +107,17 @@
       }
     }
   },
+  "stats": {
+    "title1": "The Cost of",
+    "title2": "Silence",
+    "sub": "Every ring that goes to voicemail is money walking out the door. Here's what the data says about your industry.",
+    "cards": {
+      "unanswered": { "label": "of calls go unanswered", "sublabel": "during business hours" },
+      "lost": { "label": "lost per missed call", "sublabel": "average revenue impact" },
+      "response": { "label": "average response time", "sublabel": "without AI assistant" },
+      "firstResponder": { "label": "buy from first responder", "sublabel": "speed wins every time" }
+    }
+  },
   "how": {
     "title1": "From Sign-Up to Results in",
     "title2": "4 Simple Steps",
