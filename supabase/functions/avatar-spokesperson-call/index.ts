@@ -146,9 +146,11 @@ const PROMPTS: Record<"en" | "pt" | "es", string> = {
 
 const BEGIN_MESSAGES: Record<"en" | "pt" | "es", string> = {
   en: "Hey there! Welcome to A-I Hidden Leads! I'm Aspen — so happy you're here. Before I show you something really exciting, what's your name?",
-  pt: "Oi, tudo bem? Bem-vindo à A-I Hidden Leads! Eu sou a Aspen — que bom te ver por aqui! Antes de eu te mostrar algo bem legal, qual é o seu nome?",
+  pt: "Oi, tudo bem? Bem-vinda à A-I Hidden Leads! Eu sou a Aspen — que bom te ver por aqui! Antes de eu te mostrar algo bem legal, qual é o seu nome?",
   es: "¡Hola! ¡Bienvenido a A-I Hidden Leads! Soy Aspen — qué gusto tenerte aquí. Antes de mostrarte algo muy interesante, ¿cómo te llamas?",
 };
+
+const NO_TIME_RULE = `\n\nHARD GREETING RULE: Your very first utterance must be EXACTLY the begin_message text provided — nothing before it, nothing after it. NEVER say the day of the week, the date, the month, the year, the clock time, "hoje é", "são X horas", "today is", "it's X o'clock", "hoy es", or any time/date reference. No "good morning / bom dia / buenos días" unless it is already inside the begin_message text. Just say the begin_message verbatim and then wait for the user.`;
 
 const SHARED_RETELL_PROMPT = `You are Aspen, the AI voice assistant.
 
