@@ -1867,9 +1867,9 @@ Deno.serve(async (req) => {
       : '';
 
 
-    console.log('Creating web call for agent:', agentId, 'niche:', businessNiche, 'callbackPhone:', normalizedOwnerPhone);
+    console.log('Creating web call for agent:', resolvedAgentId, 'niche:', businessNiche, 'callbackPhone:', normalizedOwnerPhone);
 
-    await ensureSharedRetellPrompt(retellApiKey, agentId);
+    await ensureSharedRetellPrompt(retellApiKey, resolvedAgentId);
 
     const response = await fetch(`${RETELL_BASE}/v2/create-web-call`, {
       method: 'POST',
@@ -1878,7 +1878,7 @@ Deno.serve(async (req) => {
         'Content-Type': 'application/json',
       },
       body: JSON.stringify({
-        agent_id: agentId,
+        agent_id: resolvedAgentId,
         retell_llm_dynamic_variables: {
           spokesperson_mode: 'false',
           business_name: businessName || 'Demo Business',
