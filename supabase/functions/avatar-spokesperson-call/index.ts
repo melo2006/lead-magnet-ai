@@ -259,7 +259,7 @@ Deno.serve(async (req) => {
       langRaw.startsWith("pt") ? "pt" : langRaw.startsWith("es") ? "es" : "en";
     const agentId = AGENT_IDS[langKey];
     const prompt = PROMPTS[langKey];
-    const beginMessage = BEGIN_MESSAGES[langKey];
+    const beginMessage = buildBeginMessage(langKey, body?.localHour);
 
     await ensureSharedPrompt(RETELL_API_KEY, agentId, beginMessage);
 
@@ -280,6 +280,7 @@ Deno.serve(async (req) => {
           source: "avatar-spokesperson",
           type: "landing-page-pitch",
           language: langKey,
+          local_hour: body?.localHour ?? null,
         },
       }),
     });
