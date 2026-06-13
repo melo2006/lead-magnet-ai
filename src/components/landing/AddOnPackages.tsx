@@ -35,7 +35,8 @@ const addOns = [
 ];
 
 const AddOnPackages = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
+  const isPT = i18n.language === "pt-BR";
   const scrollToDemo = () => {
     document.getElementById("demo-form")?.scrollIntoView({ behavior: "smooth" });
   };
