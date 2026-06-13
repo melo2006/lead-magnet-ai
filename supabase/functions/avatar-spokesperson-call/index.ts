@@ -6,8 +6,8 @@ const corsHeaders = {
 const RETELL_BASE = "https://api.retellai.com";
 const AGENT_IDS: Record<"en" | "pt" | "es", string> = {
   en: "agent_0dd08673d770e8adf08f920490",
-  pt: Deno.env.get("RETELL_AGENT_ID_PT") || "agent_0dd08673d770e8adf08f920490",
-  es: Deno.env.get("RETELL_AGENT_ID_ES") || "agent_0dd08673d770e8adf08f920490",
+  pt: Deno.env.get("RETELL_AGENT_ID_PT") || "agent_f07d11526d03342668c043e4d1",
+  es: Deno.env.get("RETELL_AGENT_ID_ES") || "agent_f4bcf291c7a19b15cc020edce5",
 };
 
 const SPOKESPERSON_PROMPT = `## Identity & Role
