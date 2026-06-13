@@ -84,12 +84,15 @@ const AddOnPackages = () => {
               </div>
 
               <h3 className="text-lg font-semibold mb-1">{t(`addons.items.${addon.key}.title`)}</h3>
-              <div className="flex items-baseline gap-1 mb-3">
-                <span className="text-2xl font-extrabold text-primary">{addon.price}</span>
+              <div className="flex items-baseline gap-1 mb-1">
+                <span className="text-2xl font-extrabold text-primary">{isPT ? addon.priceBRL : addon.price}</span>
                 {addon.priceNote && (
                   <span className="text-sm text-muted-foreground">{t("pricing.perMo")}</span>
                 )}
               </div>
+              {isPT && addon.price !== "FREE" && (
+                <p className="text-[11px] text-muted-foreground mb-3">(≈ {addon.price} USD{addon.priceNote ? t("pricing.perMo") : ""})</p>
+              )}
 
               <p className="text-sm text-muted-foreground leading-relaxed flex-1 mb-4">
                 {t(`addons.items.${addon.key}.description`)}
