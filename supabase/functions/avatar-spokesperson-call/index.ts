@@ -253,6 +253,11 @@ Deno.serve(async (req) => {
     const beginMessage = buildBeginMessage(langKey, body?.localHour);
 
     await ensureSharedPrompt(RETELL_API_KEY, agentId, beginMessage);
+    console.log("Creating Aspen spokesperson call", {
+      language: langKey,
+      agent_id: agentId,
+      opening: beginMessage.slice(0, 140),
+    });
 
     const response = await fetch(`${RETELL_BASE}/v2/create-web-call`, {
       method: "POST",
@@ -262,6 +267,13 @@ Deno.serve(async (req) => {
       },
       body: JSON.stringify({
         agent_id: agentId,
+        agent_override: {
+          retell_llm: {
+            start_speaker: "agent",
+            begin_message: beginMessage,
+            begin_after_user_silence_ms: 0,
+          },
+        },
         retell_llm_dynamic_variables: {
           spokesperson_mode: "true",
           spokesperson_prompt: prompt + NO_TIME_RULE,
