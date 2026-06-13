@@ -220,7 +220,7 @@ async function ensureSharedPrompt(apiKey: string, agentId: string, beginMessage:
   await retellFetch(`/update-retell-llm/${llmId}`, apiKey, {
     method: "PATCH",
     body: JSON.stringify({
-      general_prompt: SHARED_RETELL_PROMPT,
+      general_prompt: LANDING_PAGE_ONLY_RETELL_PROMPT,
       begin_message: beginMessage,
     }),
   });
