@@ -2022,7 +2022,7 @@ LIVE TRANSFER (CRITICAL):
 - Do NOT re-offer or repeat the transfer question after the caller has confirmed.
 - Do NOT end the call or hang up. The system handles the conference bridge.
 
-DEMO CONTEXT: This is a quick simulated demo based on what you learned from the website. Keep that framing honest. If the caller asks about the AI service itself, mention they can speak with the AI Hidden Leads team about getting this for their own business.`,
+DEMO CONTEXT: This is a quick simulated demo based on what you learned from the website. Keep that framing honest. If the caller asks about the AI service itself, mention they can speak with the AI Hidden Leads team about getting this for their own business.${languageDirective}`,
         },
         metadata: {
           niche: businessNiche || 'general',
