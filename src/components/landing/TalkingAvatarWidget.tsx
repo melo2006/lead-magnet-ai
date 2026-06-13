@@ -209,6 +209,7 @@ const TalkingAvatarWidget = () => {
 
   const retellClientRef = useRef<any>(null);
   const startInProgressRef = useRef(false);
+  const audioRoutingInProgressRef = useRef(false);
   const talkingHeadRef = useRef<any>(null);
   const avatarContainerRef = useRef<HTMLDivElement | null>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
@@ -619,6 +620,8 @@ const TalkingAvatarWidget = () => {
       };
 
       const routeToSpeaker = async () => {
+        if (audioRoutingInProgressRef.current) return;
+        audioRoutingInProgressRef.current = true;
         try {
           setIsRoutingAudio(true);
           const track = remoteTrackRef.current ?? findRemoteTrack();
@@ -680,12 +683,15 @@ const TalkingAvatarWidget = () => {
         } catch (e) {
           console.error("Failed to route audio to speaker:", e);
         } finally {
+          audioRoutingInProgressRef.current = false;
           setIsRoutingAudio(false);
         }
       };
 
 
       const routeToEarpiece = async () => {
+        if (audioRoutingInProgressRef.current) return;
+        audioRoutingInProgressRef.current = true;
         try {
           setIsRoutingAudio(true);
           // Tear down Web Audio (speaker) route
@@ -729,11 +735,14 @@ const TalkingAvatarWidget = () => {
         } catch (e) {
           console.error("Failed to route audio to earpiece:", e);
         } finally {
+          audioRoutingInProgressRef.current = false;
           setIsRoutingAudio(false);
         }
       };
 
       const routeToBluetooth = async () => {
+        if (audioRoutingInProgressRef.current) return;
+        audioRoutingInProgressRef.current = true;
         try {
           setIsRoutingAudio(true);
           const track = remoteTrackRef.current ?? findRemoteTrack();
@@ -762,6 +771,7 @@ const TalkingAvatarWidget = () => {
         } catch (e) {
           console.error("Failed to route audio to Bluetooth:", e);
         } finally {
+          audioRoutingInProgressRef.current = false;
           setIsRoutingAudio(false);
         }
         setAudioRouteState("bluetooth");
