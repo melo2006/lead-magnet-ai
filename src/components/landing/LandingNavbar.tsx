@@ -1,10 +1,13 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Menu, X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 
 const LandingNavbar = () => {
   const [open, setOpen] = useState(false);
+  const { t } = useTranslation();
 
   const scrollTo = (id: string) => {
     setOpen(false);
@@ -14,7 +17,6 @@ const LandingNavbar = () => {
   return (
     <nav className="sticky top-0 z-[90] bg-background/80 backdrop-blur-xl border-b border-border">
       <div className="container mx-auto px-4 sm:px-6 flex items-center justify-between h-14 sm:h-16">
-        {/* Logo — double-click to go to admin dashboard */}
         <Link to="/" className="flex items-center gap-2" onDoubleClick={(e) => { e.preventDefault(); window.location.href = "/dashboard"; }}>
           <img src="/logo.png" alt="AI Hidden Leads" className="w-8 h-8 sm:w-9 sm:h-9" />
           <span className="text-base sm:text-lg font-extrabold tracking-tight text-foreground">
@@ -22,22 +24,22 @@ const LandingNavbar = () => {
           </span>
         </Link>
 
-        {/* Desktop links — use lg breakpoint so tablet doesn't cram */}
         <div className="hidden lg:flex items-center gap-6">
           <button onClick={() => scrollTo("services")} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-            Services
+            {t("nav.services")}
           </button>
           <button onClick={() => scrollTo("how-it-works")} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-            How It Works
+            {t("nav.howItWorks")}
           </button>
           <button onClick={() => scrollTo("pricing")} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-            Pricing
+            {t("nav.pricing")}
           </button>
           <button onClick={() => scrollTo("testimonials")} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-            Testimonials
+            {t("nav.testimonials")}
           </button>
+          <LanguageSwitcher />
           <Button size="sm" onClick={() => scrollTo("demo-form")}>
-            Get Your Free Demo
+            {t("nav.getFreeDemo")}
           </Button>
           <Link to="/marketing" className="text-xs text-muted-foreground/40 hover:text-muted-foreground transition-colors ml-2" title="Marketing Hub">
             📣
@@ -47,20 +49,21 @@ const LandingNavbar = () => {
           </Link>
         </div>
 
-        {/* Mobile toggle */}
-        <button onClick={() => setOpen(!open)} className="lg:hidden p-2 text-muted-foreground hover:text-foreground">
-          {open ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
-        </button>
+        <div className="lg:hidden flex items-center gap-1">
+          <LanguageSwitcher />
+          <button onClick={() => setOpen(!open)} className="p-2 text-muted-foreground hover:text-foreground">
+            {open ? <X className="w-6 h-6" /> : <Menu className="w-6 h-6" />}
+          </button>
+        </div>
       </div>
 
-      {/* Mobile menu */}
       {open && (
         <div className="lg:hidden border-t border-border bg-background/95 backdrop-blur-xl px-4 py-3 space-y-1">
           {[
-            { id: "services", label: "Services" },
-            { id: "how-it-works", label: "How It Works" },
-            { id: "pricing", label: "Pricing" },
-            { id: "testimonials", label: "Testimonials" },
+            { id: "services", label: t("nav.services") },
+            { id: "how-it-works", label: t("nav.howItWorks") },
+            { id: "pricing", label: t("nav.pricing") },
+            { id: "testimonials", label: t("nav.testimonials") },
           ].map((item) => (
             <button
               key={item.id}
@@ -71,7 +74,7 @@ const LandingNavbar = () => {
             </button>
           ))}
           <Button size="lg" className="w-full mt-2 text-base" onClick={() => scrollTo("demo-form")}>
-            Get Your Free Demo
+            {t("nav.getFreeDemo")}
           </Button>
         </div>
       )}

@@ -1,6 +1,8 @@
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 
 const Footer = () => {
+  const { t } = useTranslation();
   return (
     <footer className="py-10 border-t border-border">
       <div className="container mx-auto px-4 sm:px-6">
@@ -14,21 +16,21 @@ const Footer = () => {
             </div>
             <div className="flex items-center gap-6">
               <Link to="/privacy" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Privacy Policy
+                {t("footer.privacy")}
               </Link>
               <Link to="/terms" className="text-sm text-muted-foreground hover:text-foreground transition-colors">
-                Terms of Service
+                {t("footer.terms")}
               </Link>
             </div>
           </div>
           <div className="text-center">
             <p className="text-xs text-muted-foreground max-w-2xl mx-auto leading-relaxed">
-              By using our services, you consent to receive SMS/text messages from AI Hidden Leads. Message frequency varies. Reply STOP to opt out. Reply HELP for help. Message and data rates may apply. Consent is not a condition of purchase.
+              {t("footer.smsConsent")}
             </p>
           </div>
           <div className="text-center">
             <p className="text-sm text-muted-foreground">
-              © {new Date().getFullYear()} AI Hidden Leads. AI-powered lead generation & sales automation.
+              © {new Date().getFullYear()} AI Hidden Leads. {t("footer.copyright")}
             </p>
           </div>
         </div>
@@ -38,3 +40,4 @@ const Footer = () => {
 };
 
 export default Footer;
+

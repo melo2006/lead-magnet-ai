@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { Phone, PhoneOff, Zap, TrendingUp, MessageCircle } from "lucide-react";
+import { useTranslation, Trans } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { useNavigate } from "react-router-dom";
 import type { NicheData } from "@/data/nicheData";
@@ -12,6 +13,7 @@ interface HeroSectionProps {
 
 const HeroSection = ({ niche, onGetDemo }: HeroSectionProps) => {
   const navigate = useNavigate();
+  const { t } = useTranslation();
 
   return (
     <section className="relative overflow-hidden pt-20 sm:pt-24 pb-8 sm:pb-10">
@@ -39,7 +41,7 @@ const HeroSection = ({ niche, onGetDemo }: HeroSectionProps) => {
                 <span className="relative inline-flex rounded-full h-2 w-2 bg-primary" />
               </span>
               <span className="text-xs sm:text-base font-medium text-primary">
-                Try Your Own Website With AI Voice — Free in 2 Minutes
+                {t("hero.badge")}
               </span>
             </motion.div>
 
@@ -50,11 +52,11 @@ const HeroSection = ({ niche, onGetDemo }: HeroSectionProps) => {
               transition={{ duration: 0.6, delay: 0.1 }}
               className="text-3xl sm:text-5xl lg:text-6xl font-bold leading-tight mb-5"
             >
-              <span className="text-foreground">Missing Calls =</span>
+              <span className="text-foreground">{t("hero.headline1")}</span>
               <br />
-              <span className="text-gradient-primary glow-text">Losing Money.</span>
+              <span className="text-gradient-primary glow-text">{t("hero.headline2")}</span>
               <br />
-              <span className="text-foreground text-xl sm:text-3xl lg:text-4xl">We Fix That — Starting at $99/mo.</span>
+              <span className="text-foreground text-xl sm:text-3xl lg:text-4xl">{t("hero.headline3")}</span>
             </motion.h1>
 
             {/* Subheadline */}
@@ -64,8 +66,7 @@ const HeroSection = ({ niche, onGetDemo }: HeroSectionProps) => {
               transition={{ duration: 0.6, delay: 0.2 }}
               className="text-base sm:text-lg text-muted-foreground max-w-xl mx-auto lg:mx-0 mb-6"
             >
-              AI voice receptionist + chat widget + lead generation — all in one platform. 
-              See it working on YOUR website in 90 seconds. No credit card, no sales pitch.
+              {t("hero.sub")}
             </motion.p>
 
             {/* CTAs */}
@@ -80,7 +81,7 @@ const HeroSection = ({ niche, onGetDemo }: HeroSectionProps) => {
                 size="lg"
                 className="text-base sm:text-lg px-8 py-6 bg-primary text-primary-foreground hover:bg-primary/90 glow-border rounded-xl font-semibold"
               >
-                🎙️ Try AI Voice on Your Website — Free
+                {t("hero.ctaPrimary")}
               </Button>
               <Button
                 onClick={onGetDemo}
@@ -88,7 +89,7 @@ const HeroSection = ({ niche, onGetDemo }: HeroSectionProps) => {
                 size="lg"
                 className="text-base sm:text-lg px-6 py-6 border-border hover:bg-secondary rounded-xl"
               >
-                See Plans & Pricing
+                {t("hero.ctaSecondary")}
               </Button>
             </motion.div>
 
@@ -99,7 +100,7 @@ const HeroSection = ({ niche, onGetDemo }: HeroSectionProps) => {
               transition={{ duration: 0.5, delay: 0.4 }}
               className="text-sm sm:text-base text-muted-foreground mb-8"
             >
-              No credit card · 90-second setup · Works for any business
+              {t("hero.trust")}
             </motion.p>
 
             {/* Stats - 2x2 */}
@@ -113,28 +114,28 @@ const HeroSection = ({ niche, onGetDemo }: HeroSectionProps) => {
                 <PhoneOff className="w-5 h-5 text-destructive shrink-0" />
                 <div className="text-left">
                   <p className="text-xl sm:text-2xl font-bold text-destructive">78%</p>
-                  <p className="text-xs sm:text-sm text-muted-foreground leading-tight">Leads Go to First Responder</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground leading-tight">{t("hero.stat1")}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3 rounded-xl border border-primary/30 bg-primary/5">
                 <Phone className="w-5 h-5 text-primary shrink-0" />
                 <div className="text-left">
                   <p className="text-xl sm:text-2xl font-bold text-primary">27%</p>
-                  <p className="text-xs sm:text-sm text-muted-foreground leading-tight">Of Leads Ever Get Contacted</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground leading-tight">{t("hero.stat2")}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3 rounded-xl border border-accent/30 bg-accent/5">
                 <TrendingUp className="w-5 h-5 text-accent shrink-0" />
                 <div className="text-left">
                   <p className="text-xl sm:text-2xl font-bold text-accent">$1,200</p>
-                  <p className="text-xs sm:text-sm text-muted-foreground leading-tight">Lost Per Missed Opportunity</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground leading-tight">{t("hero.stat3")}</p>
                 </div>
               </div>
               <div className="flex items-center gap-2 sm:gap-3 px-3 sm:px-4 py-3 rounded-xl border border-primary/30 bg-primary/5">
                 <Zap className="w-5 h-5 text-primary shrink-0" />
                 <div className="text-left">
                   <p className="text-xl sm:text-2xl font-bold text-primary">97%</p>
-                  <p className="text-xs sm:text-sm text-muted-foreground leading-tight">Report Increased Revenue With AI</p>
+                  <p className="text-xs sm:text-sm text-muted-foreground leading-tight">{t("hero.stat4")}</p>
                 </div>
               </div>
             </motion.div>
@@ -160,7 +161,7 @@ const HeroSection = ({ niche, onGetDemo }: HeroSectionProps) => {
               </div>
               {/* Name badge */}
               <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 px-5 py-2 bg-primary rounded-full shadow-lg">
-                <span className="text-base font-bold text-primary-foreground">Meet Aspen</span>
+                <span className="text-base font-bold text-primary-foreground">{t("hero.meetAspen")}</span>
               </div>
             </div>
 
@@ -171,13 +172,11 @@ const HeroSection = ({ niche, onGetDemo }: HeroSectionProps) => {
               <div className="absolute -top-[10px] left-1/2 -translate-x-1/2 w-0 h-0 border-l-[11px] border-r-[11px] border-b-[11px] border-l-transparent border-r-transparent border-b-card/80" />
               
               <p className="text-base sm:text-lg text-foreground italic leading-relaxed">
-                "Voice AI can do so much more than you think — let me show you. Click{" "}
-                <span className="text-primary font-semibold">Talk to Aspen</span> below and I'll walk you through how 
-                to turn missed calls into booked appointments and generate leads from your existing customers. Try it free, right now!"
+                <Trans i18nKey="hero.aspenQuote" components={{ strong: <span className="text-primary font-semibold" /> }} />
               </p>
               <div className="flex items-center gap-2 mt-3 pt-3 border-t border-border/50">
                 <MessageCircle className="w-4 h-4 text-primary" />
-                <span className="text-sm text-muted-foreground">Click the "Talk to Aspen" button on the left to chat live</span>
+                <span className="text-sm text-muted-foreground">{t("hero.aspenHint")}</span>
               </div>
             </div>
           </motion.div>
