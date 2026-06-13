@@ -266,6 +266,38 @@
       "capture": { "label": "Instant Lead Capture", "desc": "Converts website visitors into booked calls" }
     }
   },
+  "scan": {
+    "greetingWithName": "Hi {{name}}, thanks for trying our AI!",
+    "greeting": "Thanks for trying our AI!",
+    "buildingPrefix": "We're building a live demo of",
+    "withAi": "with AI Voice & Chat",
+    "buildingSuffix": "— personalized for your business. Hang tight!",
+    "eyebrow": "Building your live demo",
+    "readyTitle": "Your demo is ready!",
+    "readyDetail": "The real site with AI voice, chat & warm transfer.",
+    "complete": "Complete",
+    "progress": "{{progress}}% — Scanning website + preparing widgets…",
+    "stop": "Stop creating Live Demo",
+    "questionsPrefix": "Have questions? Ask our Voice AI to",
+    "transferSpecialist": "transfer you to a sales specialist",
+    "questionsSuffix": "anytime during the demo.",
+    "steps": {
+      "content": { "label": "Scanning website content", "detail": "Reading pages, services, and contact info…" },
+      "presence": { "label": "Analyzing your online presence", "detail": "Capturing screenshots and brand details…" },
+      "voice": { "label": "Preparing Voice AI demo", "detail": "A new way to never miss a customer call." },
+      "chat": { "label": "Setting up Chat AI", "detail": "Instant answers turn visitors into captured leads." },
+      "transfer": { "label": "Enabling warm transfers", "detail": "Hot leads get connected to a human—fast." },
+      "final": { "label": "Finalizing your live demo", "detail": "See how AI captures leads you're missing today." }
+    },
+    "benefits": {
+      "missCall": { "headline": "Never Miss Another Call", "body": "Your AI receptionist answers 24/7 — nights, weekends, and holidays — so every caller becomes a potential customer." },
+      "appointments": { "headline": "Instant Appointments", "body": "AI books, reschedules, and follows up automatically. No more phone tag — your calendar fills itself." },
+      "moreLeads": { "headline": "Capture 2–5x More Leads", "body": "Most businesses miss 40% of calls. With AI answering every one, just 1–2 extra leads per month pays for itself." },
+      "liveFast": { "headline": "Live in 1–2 Days", "body": "Setup is fast and painless. Your custom AI agent is trained on your business and ready to take calls within 48 hours." },
+      "warmTransfer": { "headline": "Warm Transfer to You", "body": "When a hot lead is on the line, AI transfers them live to you or your team with a full summary — no context lost." },
+      "chatAi": { "headline": "Chat AI on Your Website", "body": "Visitors get instant answers about services, pricing, and availability — converting browsers into booked appointments." }
+    }
+  },
   "footer": {
     "privacy": "Privacy Policy",
     "terms": "Terms of Service",
