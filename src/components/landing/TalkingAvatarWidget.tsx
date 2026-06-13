@@ -980,7 +980,7 @@ const TalkingAvatarWidget = () => {
 
         {callStatus === "active" && (
           <div className="pointer-events-none absolute right-2 top-2 rounded-full border border-border bg-card/80 px-2 py-0.5 text-[9px] font-semibold text-foreground shadow-sm backdrop-blur-sm">
-            {isAgentSpeaking ? "Speaking" : isMuted ? "Muted" : "Listening"}
+            {isAgentSpeaking ? t("avatar.speaking") : isMuted ? t("avatar.muted") : t("avatar.listening")}
           </div>
         )}
       </div>
@@ -990,13 +990,13 @@ const TalkingAvatarWidget = () => {
         {callStatus === "idle" && (
           <div className="text-center space-y-2">
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Hey! I'm <span className="font-bold text-foreground">Aspen</span> from <span className="font-bold text-primary">A-I Hidden Leads</span>. Let me show you how we help businesses stop losing leads and make more money!
+              {t("avatar.introLeadIn")} <span className="font-bold text-foreground">Aspen</span> {t("avatar.introMid")} <span className="font-bold text-primary">A-I Hidden Leads</span>. {t("avatar.introTail")}
             </p>
             <button
               onClick={startCall}
               className="bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-2 rounded-full text-xs font-semibold flex items-center gap-2 mx-auto transition-all hover:scale-105 active:scale-95"
             >
-              <Phone className="h-3.5 w-3.5" /> Talk to Aspen
+              <Phone className="h-3.5 w-3.5" /> {t("avatar.talkButton")}
             </button>
           </div>
         )}
@@ -1005,7 +1005,7 @@ const TalkingAvatarWidget = () => {
           <div className="text-center py-1.5">
             <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
               <div className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-              Connecting…
+              {t("avatar.connecting")}
             </div>
           </div>
         )}
@@ -1013,7 +1013,7 @@ const TalkingAvatarWidget = () => {
         {callStatus === "active" && (
           <div className="space-y-2">
             <p className="text-[10px] text-center text-muted-foreground">
-              {isAgentSpeaking ? "🗣️ Aspen is speaking — jump in anytime!" : "🎙️ Listening..."}
+              {isAgentSpeaking ? t("avatar.agentSpeaking") : t("avatar.agentListening")}
             </p>
             <div className="flex items-center justify-center gap-2">
               <button
