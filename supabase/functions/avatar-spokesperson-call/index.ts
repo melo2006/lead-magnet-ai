@@ -65,9 +65,8 @@ REGRAS CRÍTICAS DE PRONÚNCIA E SEGURANÇA:
 
 ## Abertura (OBRIGATÓRIA)
 Abra a ligação você mesma, imediatamente, com energia. NÃO espere o visitante falar primeiro.
-Diga a abertura de forma natural, sem falar dia, data ou horário. Comece com: "Oba, tudo bem? Eu sou a Aspen, da A-I Hidden Leads..."
-Faça uma introdução de aproximadamente 45 a 60 segundos explicando que a IA atende ligações 24/7, responde chat, captura leads, agenda, transfere lead quente ao vivo, manda resumo por SMS/e-mail e ajuda o dono a economizar tempo e dinheiro. Depois convide a pessoa para clicar em "Testar Meu Site Agora" e preencher nome, empresa, e-mail e endereço do site para ver a demonstração grátis.
-Termine a primeira fala com uma pergunta simples, tipo: "Qual é o seu nome?" ou "Posso te mostrar como isso funcionaria no seu negócio?" Então espere a pessoa responder.
+A sua primeira fala deve ser EXATAMENTE o texto de begin_message. Não acrescente nada antes ou depois na primeira fala.
+Depois que a pessoa responder, continue vendendo os benefícios de forma natural e faça perguntas simples.
 
 ## Missão
 Ajudar pequenos e médios negócios a parar de perder leads, capturar mais ligações e transformar tráfego em vendas reais com a A-I Hidden Leads.
@@ -94,7 +93,7 @@ Calorosa, engraçada, esperta, como uma amiga num café. 2 a 3 frases por vez. U
 - NUNCA pause sem ter feito uma pergunta direta antes.
 - SEMPRE convide a pessoa para a simulação gratuita desta página cedo na conversa.
 - Fale em português brasileiro natural, descontraído, sem sotaque "gringo".
-- NUNCA mencione dia da semana, data, horário atual ou hora exata na saudação. Pode dizer só "bom dia", "boa tarde", "boa noite" ou "oi, tudo bem".`;
+- NUNCA mencione dia da semana, data, mês, ano, horário atual ou hora exata. Pode dizer só a saudação simples que já veio pronta no begin_message: "bom dia", "boa tarde" ou "boa noite". Nunca diga "hoje é", "agora são", "são X horas", nem o nome do dia.`;
 
 const SPOKESPERSON_PROMPT_ES = `## Identidad y Rol
 Eres **Aspen**, la portavoz de IA divertida, cálida y llena de energía de **A-I Hidden Leads**. Pronuncia siempre la marca como **"A-I Hidden Leads"** — deletrea "A" e "I" por separado, luego "Hidden Leads" en inglés.
@@ -146,13 +145,36 @@ const PROMPTS: Record<"en" | "pt" | "es", string> = {
   es: SPOKESPERSON_PROMPT_ES,
 };
 
-const BEGIN_MESSAGES: Record<"en" | "pt" | "es", string> = {
-  en: "Hey there! Welcome to A-I Hidden Leads! I'm Aspen — so happy you're here. Before I show you something really exciting, what's your name?",
-  pt: "Oba, tudo bem? Eu sou a Aspen, da A-I Hidden Leads. Eu estou aqui pra te mostrar como uma agente de voz e chat com IA pode ajudar o seu negócio a atender clientes 24 horas por dia, capturar mais leads, agendar, transferir clientes quentes ao vivo e ainda mandar resumo por SMS e e-mail. Muitos donos perdem dinheiro porque não conseguem responder rápido; com a nossa IA, você economiza horas por semana, reduz ligação perdida e transforma visitante do site em oportunidade real. E se você quiser ver isso no seu próprio site, é grátis: é só clicar em Testar Meu Site Agora, preencher seu nome, e-mail, empresa e o endereço do site. Eu posso te mostrar como ficaria. Qual é o seu nome?",
-  es: "¡Hola! ¿Todo bien? Soy Aspen, de A-I Hidden Leads. Estoy aquí para mostrarte cómo un agente de voz y chat con IA puede ayudar a tu negocio a atender clientes 24 horas al día, capturar más leads, agendar citas, transferir prospectos calientes en vivo y enviar resúmenes por SMS y correo. Muchos dueños pierden dinero porque no responden rápido; con nuestra IA ahorras horas por semana, reduces llamadas perdidas y conviertes visitantes del sitio en oportunidades reales. Y si quieres verlo en tu propio sitio, es gratis: haz clic en Probar Mi Sitio Ahora y completa tu nombre, correo, empresa y sitio web. Te puedo mostrar cómo se vería. ¿Cómo te llamas?",
+const getGreeting = (langKey: "en" | "pt" | "es", localHourRaw: unknown) => {
+  const parsedHour = Number(localHourRaw);
+  const hour = Number.isFinite(parsedHour) ? Math.max(0, Math.min(23, Math.floor(parsedHour))) : 13;
+  if (langKey === "pt") {
+    if (hour < 12) return "Bom dia";
+    if (hour < 18) return "Boa tarde";
+    return "Boa noite";
+  }
+  if (langKey === "es") {
+    if (hour < 12) return "Buenos días";
+    if (hour < 18) return "Buenas tardes";
+    return "Buenas noches";
+  }
+  if (hour < 12) return "Good morning";
+  if (hour < 18) return "Good afternoon";
+  return "Good evening";
 };
 
-const NO_TIME_RULE = `\n\nABSOLUTE NO DATE/TIME RULE: Your first utterance must be EXACTLY the begin_message text provided — nothing before it, nothing after it. NEVER mention the day of the week, date, month, year, clock time, current time, timezone, "hoje é", "são X horas", "agora são", "today is", "it's X o'clock", "right now it is", "hoy es", "son las", or any date/time reference anywhere in the greeting. Do not infer time of day. Do not say good morning, good afternoon, good evening, bom dia, boa tarde, boa noite, buenos días, buenas tardes, or buenas noches unless that exact phrase is already written inside begin_message. Just say begin_message verbatim and then wait for the user.`;
+const buildBeginMessage = (langKey: "en" | "pt" | "es", localHourRaw: unknown) => {
+  const greeting = getGreeting(langKey, localHourRaw);
+  if (langKey === "pt") {
+    return `${greeting}! Espero que esteja bem. Que bom ter você aqui. Eu sou a Aspen, da A-I Hidden Leads, e quero te mostrar as grandes vantagens que uma agente de voz e chat com IA pode trazer para o seu negócio. Você sabe quantas pessoas ligam para empresas todos os dias e acabam sem resposta porque o dono está ocupado, atendendo cliente, dirigindo ou resolvendo outra coisa? Estatisticamente, muitos pequenos negócios perdem perto de 60% das ligações, 78% dos clientes compram de quem responde primeiro, cada lead perdido pode valer mais de 1.200 dólares, e responder rápido pode gerar cerca de 40% mais agendamentos. A nossa IA atende 24 horas por dia, conversa com voz natural como eu, captura o lead, agenda, transfere clientes quentes ao vivo para você e ainda manda resumo por SMS e e-mail. Isso economiza horas por semana e ajuda a transformar visitantes do site em dinheiro real. Quer testar no seu próprio site? É bem rápido, grátis e não precisa de cartão. Clica em Testar Meu Site Agora aqui embaixo, coloca seu nome, e-mail, empresa e a URL do seu site, e eu aprendo com o seu site para simular uma ligação como se eu já estivesse instalada no seu negócio. Você quer testar?`;
+  }
+  if (langKey === "es") {
+    return `${greeting}. Espero que estés bien. Qué bueno tenerte aquí. Soy Aspen, de A-I Hidden Leads, y quiero mostrarte las grandes ventajas que un agente de voz y chat con IA puede traer a tu negocio. Muchas empresas pierden llamadas porque el dueño está ocupado, atendiendo clientes o resolviendo otras cosas. Cerca del 60% de llamadas de pequeños negocios quedan sin respuesta, 78% de clientes compran al primero que responde, cada lead perdido puede valer más de 1.200 dólares, y responder rápido puede generar alrededor de 40% más citas. Nuestra IA atiende 24/7, habla con voz natural, captura leads, agenda, transfiere prospectos calientes en vivo y envía resúmenes por SMS y correo. ¿Quieres probarlo en tu propio sitio? Es rápido, gratis y no requiere tarjeta. Haz clic en Probar Mi Sitio Ahora, completa tu nombre, correo, empresa y URL del sitio, y simulo una llamada como si ya estuviera instalada en tu negocio. ¿Quieres probar?`;
+  }
+  return `${greeting}! Welcome to A-I Hidden Leads. I'm Aspen, and I can show you how AI voice and chat help businesses stop missing calls, capture more leads, book appointments, warm-transfer hot prospects, and send instant SMS and email recaps. About 78% of customers buy from the first responder, many small businesses miss around 60% of calls, and fast response can book about 40% more appointments. Want to test it on your own website? Click the free demo form, enter your name, company, email, and website URL, and I'll simulate what it could sound like if I were already installed for your business. Want to try it?`;
+};
+
+const NO_TIME_RULE = `\n\nABSOLUTE DATE/TIME BAN: The greeting word may be only the exact greeting already written inside begin_message, such as bom dia, boa tarde, boa noite, buenos días, buenas tardes, buenas noches, good morning, good afternoon, or good evening. NEVER say the day of the week, today's date, month, year, clock time, current hour, timezone, "hoje é", "que dia é hoje", "são X horas", "agora são", "today is", "it's X o'clock", "right now it is", "hoy es", "son las", or any date/time reference. The user only wants the general time-of-day greeting, not the date or exact time. Your first utterance must be EXACTLY begin_message — no extra date/time sentence.`;
 
 const SHARED_RETELL_PROMPT = `You are Aspen, the AI voice assistant.
 
@@ -237,7 +259,7 @@ Deno.serve(async (req) => {
       langRaw.startsWith("pt") ? "pt" : langRaw.startsWith("es") ? "es" : "en";
     const agentId = AGENT_IDS[langKey];
     const prompt = PROMPTS[langKey];
-    const beginMessage = BEGIN_MESSAGES[langKey];
+    const beginMessage = buildBeginMessage(langKey, body?.localHour);
 
     await ensureSharedPrompt(RETELL_API_KEY, agentId, beginMessage);
 
@@ -258,6 +280,7 @@ Deno.serve(async (req) => {
           source: "avatar-spokesperson",
           type: "landing-page-pitch",
           language: langKey,
+          local_hour: body?.localHour ?? null,
         },
       }),
     });
