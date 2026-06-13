@@ -851,7 +851,13 @@ const TalkingAvatarWidget = () => {
 
 
 
-  const handleExpand = () => setWidgetState("expanded");
+  const handleExpand = () => {
+    setWidgetState("expanded");
+    // Auto-start the call so the user doesn't have to click twice
+    if (callStatus === "idle") {
+      void startCall();
+    }
+  };
   const handleMinimize = () => setWidgetState("minimized");
   const handleMaximize = () => {
     setWidgetState("expanded");
