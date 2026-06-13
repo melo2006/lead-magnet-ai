@@ -1861,7 +1861,7 @@ Deno.serve(async (req) => {
     });
 
     const languageDirective = language === 'pt-BR'
-      ? `\n\n===== LANGUAGE LOCK (CRITICAL) =====\nThe entire conversation MUST be conducted in natural BRAZILIAN PORTUGUESE (pt-BR). Use a warm, friendly, conversational Brazilian tone — like a real receptionist in São Paulo or Rio. Never speak English. Use "você" (not "tu"). Pronounce "AI" / "I.A." as "i-á" (NEVER "i ponto a ponto"). Pronounce the brand as "AI Hidden Leads" letter-by-letter naturally. Money in Brazilian reais (R$) when relevant; you may mention USD equivalents in parentheses. Replace "appointment" with "horário" or "agendamento", "leads" with "clientes em potencial" when natural.`
+      ? `\n\n===== LANGUAGE LOCK (CRITICAL) =====\nThe entire conversation MUST be conducted in natural BRAZILIAN PORTUGUESE (pt-BR). Use a warm, friendly, conversational Brazilian tone — like a real receptionist in São Paulo or Rio. Never speak English. Use "você" (not "tu"). Pronounce "AI" / "I.A." as "i-á" (NEVER "i ponto a ponto"). Pronounce the brand as "AI Hidden Leads" letter-by-letter naturally. MONEY: always say just "reais" (e.g. "mil e quinhentos reais", "quatrocentos e noventa e nove reais"). NEVER say "reais brasileiros" — it's redundant. You MAY add the USD equivalent in parentheses only if useful. Replace "appointment" with "horário" or "agendamento", "leads" with "clientes em potencial" when natural.`
       : language === 'es'
       ? `\n\n===== LANGUAGE LOCK (CRITICAL) =====\nThe entire conversation MUST be conducted in neutral Latin American SPANISH. Warm, natural, conversational tone. Never switch to English. Pronounce "AI" / "IA" naturally as "i-a".`
       : '';
