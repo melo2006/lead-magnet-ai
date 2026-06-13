@@ -1,64 +1,88 @@
+# Multi-language site (EN / PT-BR / ES) + Retell voice routing
 
-# Ad Hijack v3: Nationwide search, approval flow, instant demos
+## Phase 1 — i18n foundation (this round)
 
-## 1. Search form (`src/pages/AdHijack.tsx`)
-- Make **City/State optional** (placeholder: "Leave blank for nationwide").
-- Add **Country multi-select** (default checked): US, CA, UK, AU. Pass as array.
-- Add **Language filter** (default: English only) — checkbox.
-- Keep niche dropdowns + custom query.
-- "Top N results" slider (10 / 25 / 50 / 100).
+### Stack
+- `react-i18next` + `i18next` + `i18next-browser-languagedetector`
+- Translation files: `src/i18n/locales/{en,pt-BR,es}.json`
+- Init in `src/i18n/index.ts`, imported once in `src/main.tsx`
+- Language persisted to `localStorage` (key: `lang`) and `<html lang="..">`
 
-## 2. Scraper (`supabase/functions/scrape-social-ads/index.ts`)
-- Accept `countries: string[]`, `languages: string[]`, `city?: string` (optional), `limit: number`.
-- Pass `countries` array to Apify Meta Ad Library actor (it supports multi-country).
-- Filter results by `ad_creative_text` language (simple English heuristic via langdetect-style char check; reject Korean/Arabic/CJK ranges).
-- Continue extracting `fb_post_url` / `ig_post_url` / contact-page fallback.
-- Persist `engagement_status`: `commentable` | `contact_form` | `dark_post`.
-- Store `approval_status: 'pending'` on each `scraped_ads` row.
+### Language switcher
+- Added to `LandingNavbar.tsx` (desktop + mobile)
+- Compact dropdown: 🇺🇸 EN · 🇧🇷 PT · 🌎 ES
+- Auto-detects browser language on first visit, defaults to EN
 
-## 3. Approval workflow (UI)
-- Results table gets a new **Status column** + per-row **Approve / Reject** buttons + **Bulk approve** toolbar.
-- Only ads with `approval_status='approved'` show the live **Copy + Open** action buttons.
-- Pending rows show preview-only: ad text, AI comment draft (editable inline), platform badge, link preview.
-- Filter dropdown: Pending / Approved / Rejected / All.
+### Pages translated (round 1 — public marketing surface only)
+Conversion-critical strings only — CRM/admin stays English:
+- `LandingNavbar`, `Footer`
+- `HeroSection`, `StatsSection`, `ServicesGrid`
+- `HowItWorksSection`, `PricingSection`, `AddOnPackages`
+- `TestimonialSection`, `LeadCaptureSection`, `TryWebsiteCTA`
+- `DemoDifferentiator`, `BeforeAfterSection`
+- `PrivacyPolicy`, `TermsOfService` (compliance — required translated for LatAm carriers)
 
-## 4. Instant Demo link (no homepage detour)
-- Short link target stays `/demo-site?url=...&name=...&niche=...&source=ad_hijack&autostart=1`.
-- `DemoSite.tsx`:
-  - When `autostart=1`, kick off scrape immediately on mount, show existing "Building your live demo now" loader (88% cap).
-  - Once scrape resolves, auto-render iframe + voice/chat widgets + top banner CTA.
-  - Voice agent auto-greets after 1.5s (uses existing proactive teaser hook).
-- Banner CTA already present — verify it links to pricing, not homepage.
+Strings I'll pull from current copy, then auto-translate to PT-BR / neutral-LatAm ES via Lovable AI Gateway and you review before going live.
 
-## 5. Transfer target for ad-hijack demos
-- When demo session originates from `source=ad_hijack` (no form filled), set Retell transfer target to **+1 954-770-6622** (sales director).
-- Add `AD_HIJACK_TRANSFER_PHONE` constant in `retell-web-call/index.ts` and select it when `metadata.source === 'ad_hijack'`.
-- Agent prompt: explicit instruction that transfer goes to "our AI specialist" since no caller form was completed.
+### Out of scope this round
+- CRM (`/dashboard/*`) — stays English (internal tool)
+- Demo site dynamic content (uses scanned business data, not static copy)
+- Marketing Hub, Ad Previews
 
-## 6. DB migration
-```sql
-ALTER TABLE scraped_ads
-  ADD COLUMN approval_status text NOT NULL DEFAULT 'pending',
-  ADD COLUMN engagement_status text,
-  ADD COLUMN detected_language text,
-  ADD COLUMN ad_country text;
+## Phase 2 — Retell multi-language voice (this round, partial)
 
-ALTER TABLE ad_scan_jobs
-  ADD COLUMN countries text[] DEFAULT '{US}',
-  ADD COLUMN languages text[] DEFAULT '{en}',
-  ADD COLUMN result_limit integer DEFAULT 25;
+### Architecture
+Three agents, one per language. Site language → agent ID mapping in edge function:
+
+```text
+en-US  → agent_0dd08673d770e8adf08f920490  (current Aspen, already exists)
+pt-BR  → agent_TBD_PTBR  (you create in Retell dashboard)
+es-419 → agent_TBD_ES    (you create in Retell dashboard)
 ```
 
-## 7. Files touched
-- `supabase/migrations/<new>.sql`
-- `supabase/functions/scrape-social-ads/index.ts`
-- `supabase/functions/retell-web-call/index.ts`
-- `src/pages/AdHijack.tsx`
-- `src/pages/DemoSite.tsx` (autostart wiring)
-- `src/integrations/supabase/types.ts` (auto-regen)
+### What I'll ship now
+- Update `avatar-spokesperson-call/index.ts` to accept `{ language: 'en' | 'pt' | 'es' }` from the client
+- Route to the correct `RETELL_AGENT_ID` based on language
+- Translate `SPOKESPERSON_PROMPT` into PT-BR and ES versions (full Aspen sales script, native idioms, "A-I Hidden Leads" pronunciation rules)
+- `TalkingAvatarWidget` reads current `i18n.language` and passes it to the edge function
+- Graceful fallback: if PT/ES agent IDs aren't set yet, show toast "Portuguese voice agent coming soon" and keep English
 
-## 8. Out of scope (deferred)
-- Auto-posting comments via Browserbase agent (separate large effort).
-- Auto-filling website Contact Us forms via agentic browser (separate effort — flagged in Status column as "contact_form" with manual link for now).
+### What you need to do in Retell dashboard
+For each new agent (PT-BR and ES):
+1. Create agent, copy the agent ID
+2. **TTS provider: ElevenLabs**
+3. **Model: `eleven_multilingual_v2`**
+4. **Voice (PT-BR):** Camila (warm female) or Thiago (friendly male) — both native Brazilian
+5. **Voice (ES neutral LatAm):** Valentina or Mateo
+6. **Language:** `pt-BR` / `es` (NOT `multi`)
+7. Paste in the prompt I'll generate (saved in `supabase/functions/avatar-spokesperson-call/prompts/`)
+8. Send me the two agent IDs — I'll drop them into the edge function as `RETELL_AGENT_ID_PT` and `RETELL_AGENT_ID_ES` secrets
 
-Approve and I'll implement in this order: migration → scraper → UI → demo autostart → transfer routing.
+### Out of scope this round
+- Chat widget translation (separate ticket — it already adapts to the visitor)
+- Outbound call agents (scan-website voice demo) — language-aware routing for that comes after we validate the spokesperson PT voice sounds natural to you
+
+## Files touched
+
+**New**
+- `src/i18n/index.ts`
+- `src/i18n/locales/en.json`, `pt-BR.json`, `es.json`
+- `src/components/LanguageSwitcher.tsx`
+- `supabase/functions/avatar-spokesperson-call/prompts/pt-BR.ts`
+- `supabase/functions/avatar-spokesperson-call/prompts/es.ts`
+
+**Edited**
+- `src/main.tsx` (import i18n)
+- `src/components/landing/LandingNavbar.tsx` (switcher)
+- All landing components listed above (replace hardcoded strings with `t('...')`)
+- `src/components/landing/Footer.tsx`
+- `src/pages/PrivacyPolicy.tsx`, `src/pages/TermsOfService.tsx`
+- `src/components/landing/TalkingAvatarWidget.tsx` (pass language)
+- `supabase/functions/avatar-spokesperson-call/index.ts` (language routing)
+- `package.json` (3 new deps)
+
+## After approval, I'll verify
+- Build passes
+- Switching language re-renders the page instantly without reload
+- `<html lang>` updates correctly (SEO)
+- Edge function deploys and falls back gracefully if PT/ES agent IDs aren't set
