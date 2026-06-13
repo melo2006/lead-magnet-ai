@@ -204,7 +204,28 @@
   "testimonials": {
     "title1": "Real People. ",
     "title2": "Real Results.",
-    "sub": "Business owners across every industry trust AI Hidden Leads to capture more customers."
+    "sub": "Business owners across every industry trust AI Hidden Leads to capture more customers.",
+    "previous": "Previous testimonial",
+    "next": "Next testimonial",
+    "goTo": "Go to testimonial {{number}}",
+    "items": {
+      "sarah": {
+        "quote": "We never miss a call anymore. The AI voice agent picks up every single inquiry — evenings, weekends, holidays. Our bookings are up 40% since we started using AI Hidden Leads.",
+        "title": "Real Estate Broker · RE/MAX South Florida"
+      },
+      "mike": {
+        "quote": "I was skeptical at first, but the personalized demo blew me away. They showed me my own website with AI on it — I signed up that same day. Best decision for my business.",
+        "title": "Owner · Thompson Plumbing & HVAC"
+      },
+      "jessica": {
+        "quote": "Our front desk used to miss half the calls during busy hours. Now the AI handles overflow, books consultations, and even follows up with leads we would've lost.",
+        "title": "Founder · Glow Aesthetic Med Spa"
+      },
+      "carlos": {
+        "quote": "The speed-to-lead feature is a game-changer. A customer views our demo and within a minute they get a call from our AI — it's like having a tireless sales team.",
+        "title": "Owner · Prestige Auto Detail"
+      }
+    }
   },
   "leadForm": {
     "badge": "Free personalized demo",

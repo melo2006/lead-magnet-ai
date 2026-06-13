@@ -204,7 +204,28 @@
   "testimonials": {
     "title1": "Gente de Verdade. ",
     "title2": "Resultado de Verdade.",
-    "sub": "Donos de negócio de todos os setores confiam na AI Hidden Leads pra conquistar mais clientes."
+    "sub": "Donos de negócio de todos os setores confiam na AI Hidden Leads pra conquistar mais clientes.",
+    "previous": "Depoimento anterior",
+    "next": "Próximo depoimento",
+    "goTo": "Ir para o depoimento {{number}}",
+    "items": {
+      "sarah": {
+        "quote": "A gente não perde mais ligação. O agente de voz com IA atende cada pedido — à noite, fins de semana e feriados. Nossos agendamentos subiram 40% desde que começamos com a AI Hidden Leads.",
+        "title": "Corretora de Imóveis · RE/MAX South Florida"
+      },
+      "mike": {
+        "quote": "Eu estava desconfiado no começo, mas a demo personalizada me impressionou. Eles mostraram meu próprio site com IA — fechei no mesmo dia. Melhor decisão para o meu negócio.",
+        "title": "Dono · Thompson Plumbing & HVAC"
+      },
+      "jessica": {
+        "quote": "Nossa recepção perdia metade das ligações nos horários cheios. Agora a IA atende o excesso, agenda consultas e ainda faz follow-up com leads que a gente perderia.",
+        "title": "Fundadora · Glow Aesthetic Med Spa"
+      },
+      "carlos": {
+        "quote": "O speed-to-lead mudou o jogo. O cliente vê nossa demo e, em menos de um minuto, recebe uma ligação da nossa IA — é como ter uma equipe de vendas incansável.",
+        "title": "Dono · Prestige Auto Detail"
+      }
+    }
   },
   "leadForm": {
     "badge": "Demo personalizada e grátis",
