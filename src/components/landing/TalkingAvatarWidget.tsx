@@ -187,6 +187,7 @@ const NEUTRAL_MORPHS: Record<LipSyncMorphName, number> = {
 };
 
 const TalkingAvatarWidget = () => {
+  const { t } = useTranslation();
   const [widgetState, setWidgetState] = useState<WidgetState>("collapsed");
   const [callStatus, setCallStatus] = useState<CallStatus>("idle");
   const [isMuted, setIsMuted] = useState(false);
