@@ -1,0 +1,128 @@
+{
+  "nav": {
+    "services": "Services",
+    "howItWorks": "How It Works",
+    "pricing": "Pricing",
+    "testimonials": "Testimonials",
+    "getFreeDemo": "Get Your Free Demo"
+  },
+  "lang": {
+    "label": "Language",
+    "en": "English",
+    "pt-BR": "Português (Brasil)",
+    "es": "Español"
+  },
+  "hero": {
+    "badge": "Try Your Own Website With AI Voice — Free in 2 Minutes",
+    "headline1": "Missing Calls =",
+    "headline2": "Losing Money.",
+    "headline3": "We Fix That — Starting at $99/mo.",
+    "sub": "AI voice receptionist + chat widget + lead generation — all in one platform. See it working on YOUR website in 90 seconds. No credit card, no sales pitch.",
+    "ctaPrimary": "🎙️ Try AI Voice on Your Website — Free",
+    "ctaSecondary": "See Plans & Pricing",
+    "trust": "No credit card · 90-second setup · Works for any business",
+    "stat1": "Leads Go to First Responder",
+    "stat2": "Of Leads Ever Get Contacted",
+    "stat3": "Lost Per Missed Opportunity",
+    "stat4": "Report Increased Revenue With AI",
+    "meetAspen": "Meet Aspen",
+    "aspenQuote": "\"Voice AI can do so much more than you think — let me show you. Click <strong>Talk to Aspen</strong> below and I'll walk you through how to turn missed calls into booked appointments and generate leads from your existing customers. Try it free, right now!\"",
+    "aspenHint": "Click the \"Talk to Aspen\" button on the left to chat live"
+  },
+  "tryCta": {
+    "kicker": "Free Live Demo",
+    "title": "Hear YOUR Website Come Alive With AI — In Under 2 Minutes",
+    "sub": "Enter your website URL and hear what your Voice AI receptionist & Chat AI widget would sound like — totally free, no credit card needed.",
+    "cta": "🎙️ Try Your Website Now — Free"
+  },
+  "services": {
+    "title": "We Know What You Need —",
+    "titleAccent": "We've Heard It All",
+    "sub": "\"I want more leads.\" \"I want better reviews.\" \"I want to be on the first page of Google.\" \"I need better customer support.\"",
+    "subStrong": "We do all of it — but here's what we recommend you start with.",
+    "core": "Core Service",
+    "quickWins": "Quick Wins",
+    "alsoAvailable": "Also available:",
+    "alsoList": "Website redesign & modernization · SEO & Google Maps ranking · AI Search Optimization (GEO) · Speed-to-lead instant callbacks · Custom AI agent training",
+    "items": {
+      "voice": { "title": "AI Voice Agent", "desc": "Your 24/7 receptionist. Answers every call in a natural voice, qualifies leads, books appointments, and warm-transfers hot prospects to your phone — live. Never miss a call again." },
+      "chat": { "title": "AI Chat Widget", "desc": "Instant website chat trained on YOUR business. Captures leads, answers FAQs, books appointments, and converts visitors into customers while you sleep." },
+      "reactivation": { "title": "Database Reactivation", "desc": "Your old CRM is a goldmine. We reactivate stale leads sitting untouched for months — AI outbound calls, emails & texts that turn forgotten contacts into paying customers again." },
+      "leadgen": { "title": "Lead Generation", "desc": "We find businesses and customers actively looking for your services. Intent-based prospecting across Google, directories, and social media — delivered to your CRM daily." },
+      "reviews": { "title": "Reputation & Reviews", "desc": "Get more 5-star Google reviews automatically. We help you respond to reviews, manage your online reputation, and climb Google Maps rankings." },
+      "outreach": { "title": "Outreach & Nurturing", "desc": "Automated email + SMS sequences that follow up with leads for days or weeks. Personalized messages, scheduled drips, and AI-powered callbacks when they engage." },
+      "social": { "title": "Social Media Management", "desc": "Consistent social media posts across your platforms. We create and schedule content so you stay visible without lifting a finger." }
+    }
+  },
+  "how": {
+    "title1": "From Sign-Up to Results in",
+    "title2": "4 Simple Steps",
+    "sub": "No tech skills needed. No long contracts. We handle the setup — you get the leads.",
+    "s1": { "title": "We Set Up Your AI", "desc": "In under 48 hours, we install a custom AI voice agent and chat widget on your website — trained on YOUR business, services, and FAQs." },
+    "s2": { "title": "AI Answers Every Call & Chat", "desc": "24/7 — no missed calls, no hold times. Your AI books appointments, answers questions, and captures every lead automatically." },
+    "s3": { "title": "Hot Leads Get Warm-Transferred", "desc": "When a caller is ready to buy, AI warm-transfers them directly to your phone. You pick up a qualified, ready-to-close lead." },
+    "s4": { "title": "You Grow — We Handle the Rest", "desc": "Automated follow-ups, review requests, and lead nurturing run on autopilot. You focus on your business while we drive growth." }
+  },
+  "pricing": {
+    "badge": "Launch Special — 50% Off First 3 Months",
+    "title": "Honest,",
+    "titleAccent": "Transparent Pricing",
+    "sub": "No hidden fees. No 12-month contracts. Cancel anytime.",
+    "perMo": "/mo",
+    "launchPrice": "Launch price",
+    "setup": "Setup:",
+    "free": "FREE",
+    "mostPopular": "Most Popular",
+    "essentials": { "name": "AI Essentials", "tag": "Voice + Chat — Never Miss a Lead Again", "cta": "Start for $99/mo" },
+    "growth": { "name": "Growth Engine", "tag": "Leads + Outreach + Reputation + Reactivation", "cta": "Grow My Business" },
+    "full": { "name": "Full Service", "tag": "We Run Your Entire Marketing Machine", "cta": "Go Full Service" },
+    "transparencyTitle": "Full Transparency: AI Usage Costs",
+    "transparencyBody": "All plans include a base number of AI interactions. Voice and chat usage beyond included minutes is billed at cost depending on your call volume — typically <strong>$30–$90/mo</strong> for most small businesses. We pass through the AI provider cost with no markup. You'll always see your usage in your dashboard before you're billed. <strong>Usage varies by volume — we are not responsible for overage charges beyond included minutes.</strong>",
+    "compareTitle": "How we compare:",
+    "compareBody": "Basic AI voice agents start at $75–$150+/mo elsewhere — but they ONLY answer calls. We bundle voice + chat + lead capture + booking + warm transfers starting at <strong>$99/mo</strong>. No per-seat fees, no hidden API charges."
+  },
+  "addons": {
+    "badge": "À La Carte",
+    "title": "Add-On",
+    "titleAccent": "Growth Packages",
+    "sub": "Boost your results with these targeted services. Add to any plan, cancel anytime.",
+    "learnMore": "Learn More",
+    "comingSoon": "Coming Soon",
+    "futureTitle": "🔮 The Future of Search:",
+    "futureBody": "Google isn't the only way customers find you anymore. ChatGPT, Gemini, and Perplexity are answering questions like \"best HVAC company near me\" — and citing businesses directly. Our AI Search Optimization (GEO) ensures your business shows up in these AI-powered results."
+  },
+  "testimonials": {
+    "title1": "Real People. ",
+    "title2": "Real Results.",
+    "sub": "Business owners across every industry trust AI Hidden Leads to capture more customers."
+  },
+  "leadForm": {
+    "badge": "Free personalized demo",
+    "title1": "See Your AI Assistant",
+    "title2": "In Action",
+    "sub": "Enter your info below. In 60 seconds, you'll see your website with live AI chat and voice assistants.",
+    "name": "Your Name",
+    "business": "Business Name",
+    "website": "Website URL",
+    "email": "Email",
+    "phone": "Cell Phone",
+    "altUrl": "Additional URL",
+    "optional": "(optional)",
+    "submit": "Generate My Free Demo"
+  },
+  "footer": {
+    "privacy": "Privacy Policy",
+    "terms": "Terms of Service",
+    "smsConsent": "By using our services, you consent to receive SMS/text messages from AI Hidden Leads. Message frequency varies. Reply STOP to opt out. Reply HELP for help. Message and data rates may apply. Consent is not a condition of purchase.",
+    "copyright": "AI-powered lead generation & sales automation."
+  },
+  "diff": {
+    "badge": "Why Businesses Choose Us",
+    "title1": "Stop Losing Leads.",
+    "title2": "Start Converting 24/7.",
+    "sub": "Most businesses lose 62% of calls after hours. Our AI answers every call, books appointments, and warm-transfers hot leads — so you never miss revenue again.",
+    "c1": { "title": "Live in 48 Hours", "desc": "No months of setup. We scan your website, train your AI agent on your services, and go live — all within 2 business days." },
+    "c2": { "title": "No Hidden Costs", "desc": "Transparent pricing from day one. No setup fees, no long-term contracts. Cancel anytime. What you see is what you pay." },
+    "c3": { "title": "Try Before You Buy", "desc": "See AI running on YOUR website in under 2 minutes — free. Talk to it, test it, then decide. No credit card required." }
+  }
+}
