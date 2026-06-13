@@ -932,16 +932,16 @@ const TalkingAvatarWidget = () => {
             <h3 className="text-primary-foreground text-xs font-bold">Aspen</h3>
             <p className="text-primary-foreground/70 text-[9px]">
               {callStatus === "active"
-                ? `Live • ${formatDuration(duration)}`
+                ? `${t("avatar.live")} • ${formatDuration(duration)}`
                 : callStatus === "connecting"
-                  ? "Connecting..."
-                  : "AI Hidden Leads"}
+                  ? t("avatar.connecting")
+                  : t("avatar.tagline")}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-1">
           {callStatus === "active" && (
-            <button onClick={handleMinimize} className="p-1 rounded-full hover:bg-white/20 transition-colors" title="Minimize">
+            <button onClick={handleMinimize} className="p-1 rounded-full hover:bg-white/20 transition-colors" title={t("avatar.minimize")}>
               <Minimize2 className="h-3 w-3 text-primary-foreground" />
             </button>
           )}
