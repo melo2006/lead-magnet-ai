@@ -127,12 +127,14 @@ const ScanningAnimation = ({
       const progressId = window.setInterval(() => {
         setProgress((p) => {
           if (p >= 88) return 88;
-          if (p < 35) return p + 0.35;
-          if (p < 60) return p + 0.2;
-          if (p < 78) return p + 0.12;
-          return p + 0.06;
+          // Aim ~120s to reach 88% so the bar stays in sync with backend scans
+          if (p < 30) return p + 0.18;
+          if (p < 55) return p + 0.10;
+          if (p < 75) return p + 0.06;
+          return p + 0.03;
         });
       }, 120);
+
       return () => {
         window.clearInterval(intervalId);
         window.clearInterval(progressId);
