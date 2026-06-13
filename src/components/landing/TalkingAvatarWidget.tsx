@@ -1,4 +1,5 @@
 import { useState, useCallback, useRef, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { X, Mic, MicOff, Phone, PhoneOff, ExternalLink, Loader2, Minimize2, Maximize2, Volume2, Bluetooth } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import realisticAvatar from "@/assets/aspen_blonde_avatar.jpg";
@@ -186,6 +187,7 @@ const NEUTRAL_MORPHS: Record<LipSyncMorphName, number> = {
 };
 
 const TalkingAvatarWidget = () => {
+  const { t } = useTranslation();
   const [widgetState, setWidgetState] = useState<WidgetState>("collapsed");
   const [callStatus, setCallStatus] = useState<CallStatus>("idle");
   const [isMuted, setIsMuted] = useState(false);
@@ -839,7 +841,7 @@ const TalkingAvatarWidget = () => {
           </div>
           <div className="absolute inset-0 rounded-full border-2 border-primary/50 animate-ping" />
           <div className="absolute -top-8 left-1/2 -translate-x-1/2 whitespace-nowrap bg-primary text-primary-foreground text-xs font-bold px-3 py-1 rounded-full shadow-md">
-            Talk to Aspen 🎙️
+            {t("avatar.talkCta")}
           </div>
         </div>
       </button>
@@ -874,7 +876,7 @@ const TalkingAvatarWidget = () => {
                 className={`rounded-full p-1.5 transition-all ${
                   isMuted ? "bg-destructive/15 text-destructive" : "bg-muted text-foreground"
                 }`}
-                title={isMuted ? "Unmute" : "Mute"}
+                title={isMuted ? t("avatar.unmute") : t("avatar.mute")}
               >
                 {isMuted ? <MicOff className="h-3 w-3" /> : <Mic className="h-3 w-3" />}
               </button>
@@ -891,7 +893,7 @@ const TalkingAvatarWidget = () => {
               <button
                 onClick={endCall}
                 className="rounded-full bg-destructive p-1.5 text-destructive-foreground"
-                title="End call"
+                title={t("avatar.endCall")}
               >
                 <PhoneOff className="h-3 w-3" />
               </button>
@@ -900,14 +902,14 @@ const TalkingAvatarWidget = () => {
           <button
             onClick={handleMaximize}
             className="rounded-full p-1.5 bg-muted text-foreground hover:bg-muted/80"
-            title="Expand"
+            title={t("avatar.expand")}
           >
             <Maximize2 className="h-3 w-3" />
           </button>
           <button
             onClick={handleClose}
             className="rounded-full p-1.5 hover:bg-muted text-muted-foreground"
-            title="Close"
+            title={t("avatar.close")}
           >
             <X className="h-3 w-3" />
           </button>
@@ -930,16 +932,16 @@ const TalkingAvatarWidget = () => {
             <h3 className="text-primary-foreground text-xs font-bold">Aspen</h3>
             <p className="text-primary-foreground/70 text-[9px]">
               {callStatus === "active"
-                ? `Live • ${formatDuration(duration)}`
+                ? `${t("avatar.live")} • ${formatDuration(duration)}`
                 : callStatus === "connecting"
-                  ? "Connecting..."
-                  : "AI Hidden Leads"}
+                  ? t("avatar.connecting")
+                  : t("avatar.tagline")}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-1">
           {callStatus === "active" && (
-            <button onClick={handleMinimize} className="p-1 rounded-full hover:bg-white/20 transition-colors" title="Minimize">
+            <button onClick={handleMinimize} className="p-1 rounded-full hover:bg-white/20 transition-colors" title={t("avatar.minimize")}>
               <Minimize2 className="h-3 w-3 text-primary-foreground" />
             </button>
           )}
@@ -978,7 +980,7 @@ const TalkingAvatarWidget = () => {
 
         {callStatus === "active" && (
           <div className="pointer-events-none absolute right-2 top-2 rounded-full border border-border bg-card/80 px-2 py-0.5 text-[9px] font-semibold text-foreground shadow-sm backdrop-blur-sm">
-            {isAgentSpeaking ? "Speaking" : isMuted ? "Muted" : "Listening"}
+            {isAgentSpeaking ? t("avatar.speaking") : isMuted ? t("avatar.muted") : t("avatar.listening")}
           </div>
         )}
       </div>
@@ -988,13 +990,13 @@ const TalkingAvatarWidget = () => {
         {callStatus === "idle" && (
           <div className="text-center space-y-2">
             <p className="text-xs text-muted-foreground leading-relaxed">
-              Hey! I'm <span className="font-bold text-foreground">Aspen</span> from <span className="font-bold text-primary">A-I Hidden Leads</span>. Let me show you how we help businesses stop losing leads and make more money!
+              {t("avatar.introLeadIn")} <span className="font-bold text-foreground">Aspen</span> {t("avatar.introMid")} <span className="font-bold text-primary">A-I Hidden Leads</span>. {t("avatar.introTail")}
             </p>
             <button
               onClick={startCall}
               className="bg-primary hover:bg-primary/90 text-primary-foreground px-5 py-2 rounded-full text-xs font-semibold flex items-center gap-2 mx-auto transition-all hover:scale-105 active:scale-95"
             >
-              <Phone className="h-3.5 w-3.5" /> Talk to Aspen
+              <Phone className="h-3.5 w-3.5" /> {t("avatar.talkButton")}
             </button>
           </div>
         )}
@@ -1003,7 +1005,7 @@ const TalkingAvatarWidget = () => {
           <div className="text-center py-1.5">
             <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
               <div className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
-              Connecting…
+              {t("avatar.connecting")}
             </div>
           </div>
         )}
@@ -1011,7 +1013,7 @@ const TalkingAvatarWidget = () => {
         {callStatus === "active" && (
           <div className="space-y-2">
             <p className="text-[10px] text-center text-muted-foreground">
-              {isAgentSpeaking ? "🗣️ Aspen is speaking — jump in anytime!" : "🎙️ Listening..."}
+              {isAgentSpeaking ? t("avatar.agentSpeaking") : t("avatar.agentListening")}
             </p>
             <div className="flex items-center justify-center gap-2">
               <button
@@ -1019,7 +1021,7 @@ const TalkingAvatarWidget = () => {
                 className={`rounded-full p-2 transition-all ${
                   isMuted ? "bg-destructive/15 text-destructive" : "bg-muted text-foreground hover:bg-muted/80"
                 }`}
-                title={isMuted ? "Unmute" : "Mute"}
+                title={isMuted ? t("avatar.unmute") : t("avatar.mute")}
               >
                 {isMuted ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
               </button>
@@ -1036,14 +1038,14 @@ const TalkingAvatarWidget = () => {
               <button
                 onClick={handleMinimize}
                 className="rounded-full bg-muted p-2 text-foreground hover:bg-muted/80"
-                title="Minimize"
+                title={t("avatar.minimize")}
               >
                 <Minimize2 className="h-3.5 w-3.5" />
               </button>
               <button
                 onClick={endCall}
                 className="rounded-full bg-destructive p-2.5 text-destructive-foreground transition-all hover:scale-110 active:scale-95"
-                title="End call"
+                title={t("avatar.endCall")}
               >
                 <PhoneOff className="h-3.5 w-3.5" />
               </button>
@@ -1059,7 +1061,7 @@ const TalkingAvatarWidget = () => {
           className="flex items-center justify-center gap-1.5 text-[10px] font-semibold text-primary hover:text-primary/80 transition-colors"
         >
           <ExternalLink className="h-2.5 w-2.5" />
-          🚀 Try Our Free Demo — Scroll Down!
+          {t("avatar.tryFree")}
         </a>
       </div>
     </div>
