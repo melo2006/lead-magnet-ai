@@ -230,7 +230,7 @@ Deno.serve(async (req) => {
     const prompt = PROMPTS[langKey];
     const beginMessage = BEGIN_MESSAGES[langKey];
 
-    await ensureSharedPrompt(RETELL_API_KEY, agentId, beginMessage);
+    await ensureSharedPrompt(RETELL_API_KEY, agentId);
 
     const response = await fetch(`${RETELL_BASE}/v2/create-web-call`, {
       method: "POST",
