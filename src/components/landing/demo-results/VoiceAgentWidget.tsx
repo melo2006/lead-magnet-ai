@@ -643,6 +643,8 @@ const VoiceAgentWidget = ({
           callerName: callerName || "",
           callerEmail: callerEmail || "",
           callerPhone: isLikelyCallablePhoneNumber(callerPhone) ? normalizePhoneNumber(callerPhone || "") : "",
+          language: callLanguage,
+
         },
       });
 
