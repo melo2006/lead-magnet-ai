@@ -177,7 +177,29 @@
     "learnMore": "Saber Mais",
     "comingSoon": "Em Breve",
     "futureTitle": "🔮 O Futuro da Busca:",
-    "futureBody": "Google não é mais o único jeito de te encontrarem. ChatGPT, Gemini e Perplexity já respondem perguntas tipo \"melhor empresa de ar-condicionado perto de mim\" — e citam empresas diretamente. Nossa Otimização para Busca por IA (GEO) garante que seu negócio apareça nesses resultados."
+    "futureBody": "Google não é mais o único jeito de te encontrarem. ChatGPT, Gemini e Perplexity já respondem perguntas tipo \"melhor empresa de ar-condicionado perto de mim\" — e citam empresas diretamente. Nossa Otimização para Busca por IA (GEO) garante que seu negócio apareça nesses resultados.",
+    "items": {
+      "websiteRefresh": {
+        "title": "Atualização do Site",
+        "description": "Redesign moderno do seu site atual com tecnologia recente. Otimizado para celular, rápido e pronto para converter visitantes em leads.",
+        "note": "Taxa única"
+      },
+      "seoAudit": {
+        "title": "Relatório de Auditoria SEO",
+        "description": "Auditoria completa da saúde de SEO do seu site — o que está quebrado, o que falta e exatamente o que corrigir para ranquear melhor no Google.",
+        "note": "Incluso em qualquer plano"
+      },
+      "aiSearch": {
+        "title": "Otimização para Busca por IA",
+        "description": "Faça seu negócio ser citado por ChatGPT, Gemini e Perplexity. O futuro da busca não é só Google — é IA. Otimizamos sua presença para resultados com IA.",
+        "note": "Novo — preço de early adopter"
+      },
+      "mapsBoost": {
+        "title": "Impulso no Google Maps",
+        "description": "Suba no pacote local do Google Maps. Otimizamos seu Perfil da Empresa, criamos citações e gerenciamos avaliações para dominar localmente.",
+        "note": "Resultados em 60–90 dias"
+      }
+    }
   },
   "testimonials": {
     "title1": "Gente de Verdade. ",
