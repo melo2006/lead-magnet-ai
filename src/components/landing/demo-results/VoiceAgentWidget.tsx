@@ -183,9 +183,13 @@ const VoiceAgentWidget = ({
   callerName,
   callerEmail,
   callerPhone,
+  language,
   onClose,
 }: VoiceAgentWidgetProps) => {
   const { toast } = useToast();
+  const { t, i18n } = useTranslation();
+  const callLanguage = language || i18n.resolvedLanguage || i18n.language || "en";
+
   const [callStatus, setCallStatus] = useState<CallStatus>("idle");
   const [isMuted, setIsMuted] = useState(false);
   const [isPaused, setIsPaused] = useState(false);
