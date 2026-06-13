@@ -492,7 +492,7 @@ const buildExactDemoOpening = ({
   language?: string;
 }) => {
   if (language === 'pt-BR') {
-    return `${timeOfDayGreeting}. Aqui é a Aspen, da AIHiddenLeads.com. Vou te dar uma amostra rápida de como eu posso trabalhar como sua recepcionista de I-A — eu atendo ligações, marco horários, remarco compromissos e até faço transferência ao vivo. Agora eu vou simular como se eu já estivesse trabalhando no seu site. Lembre-se: isto é só uma demonstração. ${buildPhaseTwoOpening({ spokenBusinessName, openingCompanyWelcome, phaseTwoNameLine, timeOfDayGreeting, askHelpQuestion, language })}`;
+    return `Só lembrando: esta é uma demonstração rápida, mas eu vou te atender como se já estivesse trabalhando no site da ${spokenBusinessName}. ${buildPhaseTwoOpening({ spokenBusinessName, openingCompanyWelcome, phaseTwoNameLine, timeOfDayGreeting, askHelpQuestion, language })}`;
   }
   if (language === 'es') {
     return `${timeOfDayGreeting}. Habla Aspen de AIHiddenLeads.com. Te voy a dar una muestra rápida de cómo puedo trabajar como tu recepcionista de IA — puedo atender llamadas, agendar citas, reagendarlas e incluso transferir llamadas en vivo. Ahora voy a simular como si ya estuviera trabajando en tu sitio web. Recuerda, esto es solo una demostración. ${buildPhaseTwoOpening({ spokenBusinessName, openingCompanyWelcome, phaseTwoNameLine, timeOfDayGreeting, askHelpQuestion, language })}`;
