@@ -35,6 +35,38 @@
     "sub": "Coloca o endereço do seu site e ouve como ficaria sua recepcionista de voz e seu chat de IA — totalmente grátis, sem cartão.",
     "cta": "🎙️ Testar Meu Site Agora — Grátis"
   },
+  "beforeAfter": {
+    "titleStart": "De",
+    "outdated": "Ultrapassado",
+    "to": "para",
+    "aiPowered": "Com IA",
+    "after": "Com AI Hidden Leads ✨",
+    "desktopBefore": "Desktop — Antes",
+    "desktopAfter": "Desktop — Com AI Hidden Leads ✨",
+    "cta": "Transformar Meu Site Agora",
+    "niches": {
+      "realtors": {
+        "subtitle": "Seu site de imóveis pode ficar assim — com agente de voz por IA e chat inteligente que nunca perde um comprador",
+        "before": "Seu Site de Corretor Hoje"
+      },
+      "medspa": {
+        "subtitle": "Seu site de estética pode ficar assim — com agendamento por IA e uma assistente de voz que captura toda consulta",
+        "before": "Seu Site de Estética Hoje"
+      },
+      "autodetail": {
+        "subtitle": "Seu site de estética automotiva pode ficar assim — com uma assistente de IA que agenda serviços enquanto você trabalha",
+        "before": "Seu Site de Detailing Hoje"
+      },
+      "veterinary": {
+        "subtitle": "Seu site veterinário pode ficar assim — com triagem por IA e agente de voz que atende tutores 24/7",
+        "before": "Seu Site Veterinário Hoje"
+      },
+      "marine": {
+        "subtitle": "Seu site de serviços náuticos pode ficar assim — com agendamento por IA e agente de voz que reserva serviços enquanto você está no cais",
+        "before": "Seu Site Náutico Hoje"
+      }
+    }
+  },
   "services": {
     "title": "A Gente Sabe o que Você Precisa —",
     "titleAccent": "Já Ouvimos de Tudo",
