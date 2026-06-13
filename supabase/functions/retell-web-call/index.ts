@@ -1819,6 +1819,13 @@ Deno.serve(async (req) => {
         ? 'es'
         : 'en';
 
+    // Route to the language-native Retell agent so the voice matches the homepage spokesperson
+    // (avoids American voice speaking broken Portuguese/Spanish).
+    const resolvedAgentId = LANGUAGE_AGENT_IDS[language] || agentId;
+    if (resolvedAgentId !== agentId) {
+      console.log(`[language-routing] Overriding agentId ${agentId} -> ${resolvedAgentId} for language ${language}`);
+    }
+
     const resolvedOwnerName = typeof ownerName === 'string' && ownerName.trim() ? ownerName.trim() : DEFAULT_OWNER_NAME;
     const normalizedOwnerPhone = normalizePhoneNumber(ownerPhone);
     const resolvedCallerName = typeof callerName === 'string' ? callerName.trim() : '';
