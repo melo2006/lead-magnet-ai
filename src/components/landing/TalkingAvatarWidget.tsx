@@ -562,8 +562,10 @@ const TalkingAvatarWidget = () => {
       const currentLang = i18n.resolvedLanguage || i18n.language || (typeof document !== "undefined" && document.documentElement.lang) || "en";
       const langCode = currentLang.startsWith("pt") ? "pt" : currentLang.startsWith("es") ? "es" : "en";
       const localHour = new Date().getHours();
+      const isReturning = typeof window !== "undefined" && window.localStorage?.getItem(HAS_CALLED_KEY) === "1";
+      const previousName = typeof window !== "undefined" ? (window.localStorage?.getItem(VISITOR_NAME_KEY) || null) : null;
       const { data, error } = await supabase.functions.invoke("avatar-spokesperson-call", {
-        body: { language: langCode, localHour },
+        body: { language: langCode, localHour, isReturning, previousName },
       });
       if (error || !data?.access_token) {
         throw new Error(error?.message || data?.error || "Failed to start voice call");
