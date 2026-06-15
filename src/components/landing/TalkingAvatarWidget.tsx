@@ -945,6 +945,32 @@ const TalkingAvatarWidget = () => {
       clearTimeout(autoMinimizeTimerRef.current);
       autoMinimizeTimerRef.current = null;
     }
+    // One-tap re-engagement: if the previous call has already ended (idle)
+    // a tap on the minimized bubble should start a brand-new call instead
+    // of forcing the visitor to tap a second time on the "Talk" button.
+    if (callStatus === "idle") {
+      // Prime audio gesture context (same trick as handleExpand) so mobile
+      // browsers keep autoplay permission through the async startCall flow.
+      try {
+        const primer = document.createElement("audio");
+        primer.src = SILENT_WAV_DATA_URI;
+        primer.autoplay = true;
+        (primer as any).playsInline = true;
+        primer.muted = false;
+        primer.volume = 0.001;
+        primer.style.display = "none";
+        document.body.appendChild(primer);
+        void primer.play().catch(() => {});
+        setTimeout(() => { try { primer.remove(); } catch { /* noop */ } }, 2000);
+        const AC = (window.AudioContext || (window as any).webkitAudioContext) as typeof AudioContext | undefined;
+        if (AC) {
+          const ctx = new AC({ latencyHint: "playback" } as AudioContextOptions);
+          void ctx.resume().catch(() => {});
+          setTimeout(() => { try { void ctx.close(); } catch { /* noop */ } }, 1500);
+        }
+      } catch { /* noop */ }
+      void startCall();
+    }
   };
 
   const handleClose = () => {
