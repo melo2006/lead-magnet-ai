@@ -602,6 +602,7 @@ const TalkingAvatarWidget = () => {
         retellClientRef.current = null;
         startInProgressRef.current = false;
         resetAvatarMotion();
+        try { window.localStorage?.setItem(HAS_CALLED_KEY, "1"); } catch { /* noop */ }
         if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
         if (initialMuteTimerRef.current) { clearTimeout(initialMuteTimerRef.current); initialMuteTimerRef.current = null; }
       });
