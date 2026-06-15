@@ -881,6 +881,33 @@ const TalkingAvatarWidget = () => {
 
 
   const handleExpand = () => {
+    // ── Preserve the user-gesture context for autoplay ──
+    // The Retell SDK takes several seconds to connect, and by the time it
+    // tries to play remote audio, browsers (especially mobile Chrome) have
+    // forgotten the original click. We play a silent <audio> element and
+    // resume an AudioContext SYNCHRONOUSLY here, while we still hold the
+    // gesture, so subsequent audio playback is allowed.
+    try {
+      const primer = document.createElement("audio");
+      primer.src = SILENT_WAV_DATA_URI;
+      primer.autoplay = true;
+      (primer as any).playsInline = true;
+      primer.muted = false;
+      primer.volume = 0.001;
+      primer.style.display = "none";
+      document.body.appendChild(primer);
+      void primer.play().catch(() => {});
+      setTimeout(() => { try { primer.remove(); } catch { /* noop */ } }, 2000);
+
+      const AC = (window.AudioContext || (window as any).webkitAudioContext) as typeof AudioContext | undefined;
+      if (AC) {
+        const ctx = new AC({ latencyHint: "playback" } as AudioContextOptions);
+        void ctx.resume().catch(() => {});
+        // Close shortly after — the real AudioContext is created inside startCall.
+        setTimeout(() => { try { void ctx.close(); } catch { /* noop */ } }, 1500);
+      }
+    } catch { /* noop */ }
+
     setWidgetState("expanded");
     // Auto-start the call so the user doesn't have to click twice
     if (callStatus === "idle") {
