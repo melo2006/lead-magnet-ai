@@ -561,6 +561,18 @@ const TalkingAvatarWidget = () => {
         focusAvatarOnViewer(300000);
         if (timerRef.current) clearInterval(timerRef.current);
         timerRef.current = setInterval(() => setDuration((prev) => prev + 1), 1000);
+
+        // Auto-mute the mic for the first few seconds so Aspen's opening
+        // greeting isn't cut off by background noise (especially in noisy
+        // environments where ambient sound can trigger interruption logic).
+        try { retellClient.mute(); } catch { /* noop */ }
+        setIsMuted(true);
+        if (initialMuteTimerRef.current) clearTimeout(initialMuteTimerRef.current);
+        initialMuteTimerRef.current = setTimeout(() => {
+          try { retellClient.unmute(); } catch { /* noop */ }
+          setIsMuted(false);
+          initialMuteTimerRef.current = null;
+        }, INITIAL_MIC_MUTE_MS);
       });
 
       retellClient.on("call_ended", () => {
