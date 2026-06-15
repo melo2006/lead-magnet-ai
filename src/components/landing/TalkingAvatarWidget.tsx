@@ -265,6 +265,12 @@ const TalkingAvatarWidget = () => {
     remoteTrackRef.current = null;
   }, []);
 
+  const cancelInitialMuteTimer = useCallback(() => {
+    if (!initialMuteTimerRef.current) return;
+    clearTimeout(initialMuteTimerRef.current);
+    initialMuteTimerRef.current = null;
+  }, []);
+
   const refreshBluetoothOutput = useCallback(async () => {
     try {
       if (!navigator.mediaDevices?.enumerateDevices) return false;
@@ -540,6 +546,7 @@ const TalkingAvatarWidget = () => {
     if (startInProgressRef.current || callStatus !== "idle" || retellClientRef.current) return;
     startInProgressRef.current = true;
     setCallStatus("connecting");
+    setIsMuted(true);
     try {
       cleanupAudioRouting();
       const currentLang = i18n.resolvedLanguage || i18n.language || (typeof document !== "undefined" && document.documentElement.lang) || "en";
@@ -599,6 +606,8 @@ const TalkingAvatarWidget = () => {
         console.error("Retell error:", error);
         setCallStatus("idle");
         setIsAgentSpeaking(false);
+        setIsMuted(false);
+        cancelInitialMuteTimer();
         retellClientRef.current = null;
         startInProgressRef.current = false;
         cleanupAudioRouting();
@@ -811,11 +820,13 @@ const TalkingAvatarWidget = () => {
     } catch (err) {
       console.error("Failed to start spokesperson call:", err);
       setCallStatus("idle");
+      setIsMuted(false);
+      cancelInitialMuteTimer();
       retellClientRef.current = null;
       startInProgressRef.current = false;
       cleanupAudioRouting();
     }
-  }, [callStatus, cleanupAudioRouting, detachTrackAudioElements, focusAvatarOnViewer, i18n.language, i18n.resolvedLanguage, resetAvatarMotion, refreshBluetoothOutput, setAudioRouteState, setSinkIfSupported]);
+  }, [callStatus, cancelInitialMuteTimer, cleanupAudioRouting, detachTrackAudioElements, focusAvatarOnViewer, i18n.language, i18n.resolvedLanguage, resetAvatarMotion, refreshBluetoothOutput, setAudioRouteState, setSinkIfSupported]);
 
   const endCall = useCallback(() => {
     try { retellClientRef.current?.stopCall(); } catch { /* noop */ }
