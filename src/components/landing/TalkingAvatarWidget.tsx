@@ -827,10 +827,17 @@ const TalkingAvatarWidget = () => {
     setIsMuted(false);
     resetAvatarMotion();
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+    if (initialMuteTimerRef.current) { clearTimeout(initialMuteTimerRef.current); initialMuteTimerRef.current = null; }
   }, [cleanupAudioRouting, resetAvatarMotion]);
 
   const toggleMute = useCallback(() => {
     try {
+      // Any manual mute toggle cancels the initial auto-unmute timer so we
+      // respect the user's choice and don't surprise them by unmuting later.
+      if (initialMuteTimerRef.current) {
+        clearTimeout(initialMuteTimerRef.current);
+        initialMuteTimerRef.current = null;
+      }
       if (isMuted) retellClientRef.current?.unmute();
       else retellClientRef.current?.mute();
       setIsMuted((prev) => !prev);
