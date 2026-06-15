@@ -551,7 +551,6 @@ const TalkingAvatarWidget = () => {
         throw new Error(error?.message || data?.error || "Failed to start voice call");
       }
 
-      const { RetellWebClient } = await import("retell-client-js-sdk");
       const retellClient = new RetellWebClient();
       retellClientRef.current = retellClient;
 
