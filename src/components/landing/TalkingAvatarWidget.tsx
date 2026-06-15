@@ -584,6 +584,7 @@ const TalkingAvatarWidget = () => {
         startInProgressRef.current = false;
         resetAvatarMotion();
         if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+        if (initialMuteTimerRef.current) { clearTimeout(initialMuteTimerRef.current); initialMuteTimerRef.current = null; }
       });
 
       retellClient.on("call_ready", () => {
