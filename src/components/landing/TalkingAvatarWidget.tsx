@@ -247,6 +247,10 @@ const TalkingAvatarWidget = () => {
   }, []);
 
   const cleanupAudioRouting = useCallback(() => {
+    if (initialMuteTimerRef.current) {
+      clearTimeout(initialMuteTimerRef.current);
+      initialMuteTimerRef.current = null;
+    }
     try { audioSourceRef.current?.disconnect(); } catch { /* noop */ }
     audioSourceRef.current = null;
     try { audioCtxRef.current?.close(); } catch { /* noop */ }
@@ -1128,6 +1132,9 @@ const TalkingAvatarWidget = () => {
           <div className="text-center py-1.5">
             <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
               <div className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-destructive/15 text-destructive" title={t("avatar.muted")}>
+                <MicOff className="h-3.5 w-3.5" />
+              </span>
               {t("avatar.connecting")}
             </div>
           </div>
