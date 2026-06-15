@@ -247,6 +247,10 @@ const TalkingAvatarWidget = () => {
   }, []);
 
   const cleanupAudioRouting = useCallback(() => {
+    if (initialMuteTimerRef.current) {
+      clearTimeout(initialMuteTimerRef.current);
+      initialMuteTimerRef.current = null;
+    }
     try { audioSourceRef.current?.disconnect(); } catch { /* noop */ }
     audioSourceRef.current = null;
     try { audioCtxRef.current?.close(); } catch { /* noop */ }
@@ -263,6 +267,12 @@ const TalkingAvatarWidget = () => {
       audioRef.current = null;
     });
     remoteTrackRef.current = null;
+  }, []);
+
+  const cancelInitialMuteTimer = useCallback(() => {
+    if (!initialMuteTimerRef.current) return;
+    clearTimeout(initialMuteTimerRef.current);
+    initialMuteTimerRef.current = null;
   }, []);
 
   const refreshBluetoothOutput = useCallback(async () => {
@@ -540,6 +550,7 @@ const TalkingAvatarWidget = () => {
     if (startInProgressRef.current || callStatus !== "idle" || retellClientRef.current) return;
     startInProgressRef.current = true;
     setCallStatus("connecting");
+    setIsMuted(true);
     try {
       cleanupAudioRouting();
       const currentLang = i18n.resolvedLanguage || i18n.language || (typeof document !== "undefined" && document.documentElement.lang) || "en";
@@ -599,6 +610,8 @@ const TalkingAvatarWidget = () => {
         console.error("Retell error:", error);
         setCallStatus("idle");
         setIsAgentSpeaking(false);
+        setIsMuted(false);
+        cancelInitialMuteTimer();
         retellClientRef.current = null;
         startInProgressRef.current = false;
         cleanupAudioRouting();
@@ -811,11 +824,13 @@ const TalkingAvatarWidget = () => {
     } catch (err) {
       console.error("Failed to start spokesperson call:", err);
       setCallStatus("idle");
+      setIsMuted(false);
+      cancelInitialMuteTimer();
       retellClientRef.current = null;
       startInProgressRef.current = false;
       cleanupAudioRouting();
     }
-  }, [callStatus, cleanupAudioRouting, detachTrackAudioElements, focusAvatarOnViewer, i18n.language, i18n.resolvedLanguage, resetAvatarMotion, refreshBluetoothOutput, setAudioRouteState, setSinkIfSupported]);
+  }, [callStatus, cancelInitialMuteTimer, cleanupAudioRouting, detachTrackAudioElements, focusAvatarOnViewer, i18n.language, i18n.resolvedLanguage, resetAvatarMotion, refreshBluetoothOutput, setAudioRouteState, setSinkIfSupported]);
 
   const endCall = useCallback(() => {
     try { retellClientRef.current?.stopCall(); } catch { /* noop */ }
@@ -1117,6 +1132,9 @@ const TalkingAvatarWidget = () => {
           <div className="text-center py-1.5">
             <div className="flex items-center justify-center gap-2 text-xs text-muted-foreground">
               <div className="w-3.5 h-3.5 border-2 border-primary border-t-transparent rounded-full animate-spin" />
+              <span className="inline-flex h-6 w-6 items-center justify-center rounded-full bg-destructive/15 text-destructive" title={t("avatar.muted")}>
+                <MicOff className="h-3.5 w-3.5" />
+              </span>
               {t("avatar.connecting")}
             </div>
           </div>
