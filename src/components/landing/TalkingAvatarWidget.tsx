@@ -1028,7 +1028,11 @@ const TalkingAvatarWidget = () => {
 
   // ── EXPANDED: smaller widget with 3D avatar ──
   return (
-    <DraggableFloating initialX={window.innerWidth - 340} initialY={window.innerHeight - 500} dragLabel="Move Aspen">
+    <DraggableFloating
+      initialX={Math.max(12, window.innerWidth - 300)}
+      initialY={Math.max(12, window.innerHeight - 440)}
+      dragLabel="Move Aspen"
+    >
     <div className="flex w-72 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl animate-scale-in">
       {/* Header */}
       <div className="bg-gradient-to-r from-primary to-primary/80 px-3 py-2 flex items-center justify-between">
