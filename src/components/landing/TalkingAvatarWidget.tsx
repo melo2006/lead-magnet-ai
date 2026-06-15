@@ -1,9 +1,18 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { X, Mic, MicOff, Phone, PhoneOff, ExternalLink, Loader2, Minimize2, Maximize2, Volume2, Bluetooth } from "lucide-react";
+import { RetellWebClient } from "retell-client-js-sdk";
 import { supabase } from "@/integrations/supabase/client";
 import realisticAvatar from "@/assets/aspen_blonde_avatar.jpg";
 import DraggableFloating from "@/components/landing/demo-results/DraggableFloating";
+
+// Silent 1s WAV used to keep autoplay/audio-output unlocked across awaits.
+const SILENT_WAV_DATA_URI =
+  "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=";
+
+// How long to keep the mic muted at the start of a call so the user can
+// hear Aspen's opening greeting without background noise interrupting her.
+const INITIAL_MIC_MUTE_MS = 15000;
 
 type WidgetState = "collapsed" | "expanded" | "minimized";
 type CallStatus = "idle" | "connecting" | "active" | "ending";
