@@ -288,7 +288,11 @@ Deno.serve(async (req) => {
       langRaw.startsWith("pt") ? "pt" : langRaw.startsWith("es") ? "es" : "en";
     const agentId = AGENT_IDS[langKey];
     const prompt = PROMPTS[langKey];
-    const beginMessage = buildBeginMessage(langKey, body?.localHour);
+    const isReturning = Boolean(body?.isReturning);
+    const previousName = typeof body?.previousName === "string" ? body.previousName : null;
+    const beginMessage = isReturning
+      ? buildReturningBeginMessage(langKey, body?.localHour, previousName)
+      : buildBeginMessage(langKey, body?.localHour);
 
     await ensureSharedPrompt(RETELL_API_KEY, agentId, beginMessage);
     console.log("Creating Aspen spokesperson call", {
