@@ -225,6 +225,7 @@ const TalkingAvatarWidget = () => {
   const avatarAnimationFrameRef = useRef<number | null>(null);
   const motionTickRef = useRef(0);
   const autoMinimizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initialMuteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const morphStateRef = useRef<Record<LipSyncMorphName, number>>({ ...NEUTRAL_MORPHS });
 
   const setAudioRouteState = useCallback((route: AudioRoute) => {
