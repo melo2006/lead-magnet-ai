@@ -325,6 +325,8 @@ Deno.serve(async (req) => {
           type: "landing-page-pitch",
           language: langKey,
           local_hour: body?.localHour ?? null,
+          is_returning: isReturning,
+          previous_name: previousName,
         },
       }),
     });
