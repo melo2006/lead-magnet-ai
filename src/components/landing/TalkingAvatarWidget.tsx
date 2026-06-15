@@ -12,7 +12,13 @@ const SILENT_WAV_DATA_URI =
 
 // How long to keep the mic muted at the start of a call so the user can
 // hear Aspen's opening greeting without background noise interrupting her.
-const INITIAL_MIC_MUTE_MS = 15000;
+// 30s covers noisy environments (cafés, cars, restaurants) where ambient
+// sound would otherwise trigger Retell's barge-in / VAD and cut her off.
+const INITIAL_MIC_MUTE_MS = 30000;
+// Persist the visitor's name across calls so a re-connect feels like a
+// continuation, not a fresh introduction.
+const VISITOR_NAME_KEY = "aspen_visitor_name";
+const HAS_CALLED_KEY = "aspen_has_called_before";
 
 type WidgetState = "collapsed" | "expanded" | "minimized";
 type CallStatus = "idle" | "connecting" | "active" | "ending";
@@ -556,8 +562,10 @@ const TalkingAvatarWidget = () => {
       const currentLang = i18n.resolvedLanguage || i18n.language || (typeof document !== "undefined" && document.documentElement.lang) || "en";
       const langCode = currentLang.startsWith("pt") ? "pt" : currentLang.startsWith("es") ? "es" : "en";
       const localHour = new Date().getHours();
+      const isReturning = typeof window !== "undefined" && window.localStorage?.getItem(HAS_CALLED_KEY) === "1";
+      const previousName = typeof window !== "undefined" ? (window.localStorage?.getItem(VISITOR_NAME_KEY) || null) : null;
       const { data, error } = await supabase.functions.invoke("avatar-spokesperson-call", {
-        body: { language: langCode, localHour },
+        body: { language: langCode, localHour, isReturning, previousName },
       });
       if (error || !data?.access_token) {
         throw new Error(error?.message || data?.error || "Failed to start voice call");
@@ -594,6 +602,7 @@ const TalkingAvatarWidget = () => {
         retellClientRef.current = null;
         startInProgressRef.current = false;
         resetAvatarMotion();
+        try { window.localStorage?.setItem(HAS_CALLED_KEY, "1"); } catch { /* noop */ }
         if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
         if (initialMuteTimerRef.current) { clearTimeout(initialMuteTimerRef.current); initialMuteTimerRef.current = null; }
       });
@@ -935,6 +944,32 @@ const TalkingAvatarWidget = () => {
     if (autoMinimizeTimerRef.current) {
       clearTimeout(autoMinimizeTimerRef.current);
       autoMinimizeTimerRef.current = null;
+    }
+    // One-tap re-engagement: if the previous call has already ended (idle)
+    // a tap on the minimized bubble should start a brand-new call instead
+    // of forcing the visitor to tap a second time on the "Talk" button.
+    if (callStatus === "idle") {
+      // Prime audio gesture context (same trick as handleExpand) so mobile
+      // browsers keep autoplay permission through the async startCall flow.
+      try {
+        const primer = document.createElement("audio");
+        primer.src = SILENT_WAV_DATA_URI;
+        primer.autoplay = true;
+        (primer as any).playsInline = true;
+        primer.muted = false;
+        primer.volume = 0.001;
+        primer.style.display = "none";
+        document.body.appendChild(primer);
+        void primer.play().catch(() => {});
+        setTimeout(() => { try { primer.remove(); } catch { /* noop */ } }, 2000);
+        const AC = (window.AudioContext || (window as any).webkitAudioContext) as typeof AudioContext | undefined;
+        if (AC) {
+          const ctx = new AC({ latencyHint: "playback" } as AudioContextOptions);
+          void ctx.resume().catch(() => {});
+          setTimeout(() => { try { void ctx.close(); } catch { /* noop */ } }, 1500);
+        }
+      } catch { /* noop */ }
+      void startCall();
     }
   };
 

@@ -196,7 +196,29 @@ const buildBeginMessage = (langKey: "en" | "pt" | "es", localHourRaw: unknown) =
   if (langKey === "es") {
     return `${greeting}. Hola, ¿todo bien? Espero que estés bien. Soy Aspen, de A-I Hidden Leads. Qué bueno tenerte aquí. Quiero mostrarte rápido las grandes ventajas que un agente de voz y chat con IA puede traer a tu negocio. Muchas empresas invierten en anuncios, Google, Instagram, SEO, volantes y letreros... pero cuando un cliente llama y nadie responde rápido, ese dinero se escapa. Cerca del 60% de llamadas de pequeños negocios quedan sin respuesta, 78% de clientes compran al primero que responde, cada lead perdido puede valer más de 1.200 dólares, y responder rápido puede generar alrededor de 40% más citas. Nuestra IA atiende con voz natural, captura leads, responde preguntas, agenda, transfiere prospectos calientes en vivo y envía resúmenes por SMS y correo. Abajo puedes probarlo gratis en tu propio sitio, sin tarjeta: completa tu nombre, correo, empresa y URL del sitio, y te muestro una simulación en vivo de cómo funcionaría para tu negocio. Antes de continuar, ¿cómo te llamas?`;
   }
-  return `${greeting}! Hey, welcome to A-I Hidden Leads — I'm Aspen, and I promise this is not one of those robotic “press one for sadness” calls. Quick mini wake-up call: lead-response research often shows about 78% of customers buy from the company that answers first. Seventy-eight percent! That's basically the business version of musical chairs — if you answer late, the chair is gone, and so is the money. And it gets worse: many small businesses miss around 6 out of 10 calls. Six out of ten! That's not a phone system; that's a lead donation program for your competitors. That's where I come in. I answer 24/7, capture leads, book and reschedule appointments, send SMS and email recaps, and when someone is hot, I can transfer them live to a human — no awkward hold music, no “please enjoy this flute solo.” Pretty cool, right? You can test it free right here on your own website: enter your name, company, email, and website URL, and we'll build a live simulation so you can feel it. Before I keep going, what should I call you?`;
+  return `${greeting}! Hey, welcome to A-I Hidden Leads — I'm Aspen, and I promise this is not one of those robotic "press one for sadness" calls. Quick mini wake-up call: lead-response research often shows about 78% of customers buy from the company that answers first. Seventy-eight percent! That's basically the business version of musical chairs — if you answer late, the chair is gone, and so is the money. And it gets worse: many small businesses miss around 6 out of 10 calls. Six out of ten! That's not a phone system; that's a lead donation program for your competitors. That's where I come in. I answer 24/7, capture leads, book and reschedule appointments, send SMS and email recaps, and when someone is hot, I can transfer them live to a human — no awkward hold music, no "please enjoy this flute solo." Pretty cool, right? You can test it free right here on your own website: enter your name, company, email, and website URL, and we'll build a live simulation so you can feel it. Before I keep going, what should I call you?`;
+};
+
+// Shorter, warmer greeting for a returning visitor (second+ click in the same
+// browser session/tab). Skips the long pitch — picks up the conversation,
+// uses their name if we have it, and pushes them toward the form/simulation.
+const buildReturningBeginMessage = (
+  langKey: "en" | "pt" | "es",
+  localHourRaw: unknown,
+  previousName: string | null,
+) => {
+  const greeting = getGreeting(langKey, localHourRaw);
+  const safeName = (previousName || "").trim().slice(0, 40);
+  if (langKey === "pt") {
+    const nameBit = safeName ? `${safeName}, ` : "";
+    return `${greeting}! Oi de novo, ${nameBit}aqui é a Aspen. Parece que a gente foi interrompido — sem stress, eu estou aqui. Você teve uma chance de dar uma olhada na página? Quer que eu te ajude a preencher aquele formulário ali embaixo com seu nome, seu e-mail e o endereço do seu site pra gente rodar a simulação ao vivo no seu próprio site? Ou se preferir, me diz qual é a sua maior dúvida e a gente continua daí.`;
+  }
+  if (langKey === "es") {
+    const nameBit = safeName ? `${safeName}, ` : "";
+    return `${greeting}. ¡Hola de nuevo, ${nameBit}soy Aspen otra vez! Parece que se nos cortó — no pasa nada, sigo aquí. ¿Pudiste echarle un ojo a la página? ¿Quieres que te guíe para llenar el formulario de abajo con tu nombre, correo y sitio web y armemos la simulación en vivo en tu propio sitio? O si prefieres, cuéntame tu mayor duda y seguimos desde ahí.`;
+  }
+  const nameBit = safeName ? `${safeName}, ` : "";
+  return `${greeting}! Hey ${nameBit}it's Aspen again — looks like we got cut off, no worries, I'm right here. Did you get a chance to scroll around the page? Want me to walk you through the quick form below so we can run a live simulation on your own website? Just your name, email, and your site — takes about 90 seconds. Or, if you'd rather, tell me your biggest question about leads or missed calls and we'll pick up right there.`;
 };
 
 const NO_TIME_RULE = `\n\nABSOLUTE DATE/TIME BAN: The greeting word may be only the exact greeting already written inside begin_message, such as bom dia, boa tarde, boa noite, buenos días, buenas tardes, buenas noches, good morning, good afternoon, or good evening. NEVER say the day of the week, today's date, month, year, clock time, current hour, timezone, "hoje é", "que dia é hoje", "são X horas", "agora são", "today is", "it's X o'clock", "right now it is", "hoy es", "son las", or any date/time reference. The user only wants the general time-of-day greeting, not the date or exact time. Your first utterance must be EXACTLY begin_message — no extra date/time sentence.`;
@@ -266,7 +288,11 @@ Deno.serve(async (req) => {
       langRaw.startsWith("pt") ? "pt" : langRaw.startsWith("es") ? "es" : "en";
     const agentId = AGENT_IDS[langKey];
     const prompt = PROMPTS[langKey];
-    const beginMessage = buildBeginMessage(langKey, body?.localHour);
+    const isReturning = Boolean(body?.isReturning);
+    const previousName = typeof body?.previousName === "string" ? body.previousName : null;
+    const beginMessage = isReturning
+      ? buildReturningBeginMessage(langKey, body?.localHour, previousName)
+      : buildBeginMessage(langKey, body?.localHour);
 
     await ensureSharedPrompt(RETELL_API_KEY, agentId, beginMessage);
     console.log("Creating Aspen spokesperson call", {
@@ -299,6 +325,8 @@ Deno.serve(async (req) => {
           type: "landing-page-pitch",
           language: langKey,
           local_hour: body?.localHour ?? null,
+          is_returning: isReturning,
+          previous_name: previousName,
         },
       }),
     });
