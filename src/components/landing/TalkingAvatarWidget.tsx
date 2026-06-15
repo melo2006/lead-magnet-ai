@@ -1,9 +1,18 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
 import { X, Mic, MicOff, Phone, PhoneOff, ExternalLink, Loader2, Minimize2, Maximize2, Volume2, Bluetooth } from "lucide-react";
+import { RetellWebClient } from "retell-client-js-sdk";
 import { supabase } from "@/integrations/supabase/client";
 import realisticAvatar from "@/assets/aspen_blonde_avatar.jpg";
 import DraggableFloating from "@/components/landing/demo-results/DraggableFloating";
+
+// Silent 1s WAV used to keep autoplay/audio-output unlocked across awaits.
+const SILENT_WAV_DATA_URI =
+  "data:audio/wav;base64,UklGRiQAAABXQVZFZm10IBAAAAABAAEAQB8AAEAfAAABAAgAZGF0YQAAAAA=";
+
+// How long to keep the mic muted at the start of a call so the user can
+// hear Aspen's opening greeting without background noise interrupting her.
+const INITIAL_MIC_MUTE_MS = 15000;
 
 type WidgetState = "collapsed" | "expanded" | "minimized";
 type CallStatus = "idle" | "connecting" | "active" | "ending";
@@ -216,6 +225,7 @@ const TalkingAvatarWidget = () => {
   const avatarAnimationFrameRef = useRef<number | null>(null);
   const motionTickRef = useRef(0);
   const autoMinimizeTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const initialMuteTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
   const morphStateRef = useRef<Record<LipSyncMorphName, number>>({ ...NEUTRAL_MORPHS });
 
   const setAudioRouteState = useCallback((route: AudioRoute) => {
@@ -542,7 +552,6 @@ const TalkingAvatarWidget = () => {
         throw new Error(error?.message || data?.error || "Failed to start voice call");
       }
 
-      const { RetellWebClient } = await import("retell-client-js-sdk");
       const retellClient = new RetellWebClient();
       retellClientRef.current = retellClient;
 
@@ -553,6 +562,18 @@ const TalkingAvatarWidget = () => {
         focusAvatarOnViewer(300000);
         if (timerRef.current) clearInterval(timerRef.current);
         timerRef.current = setInterval(() => setDuration((prev) => prev + 1), 1000);
+
+        // Auto-mute the mic for the first few seconds so Aspen's opening
+        // greeting isn't cut off by background noise (especially in noisy
+        // environments where ambient sound can trigger interruption logic).
+        try { retellClient.mute(); } catch { /* noop */ }
+        setIsMuted(true);
+        if (initialMuteTimerRef.current) clearTimeout(initialMuteTimerRef.current);
+        initialMuteTimerRef.current = setTimeout(() => {
+          try { retellClient.unmute(); } catch { /* noop */ }
+          setIsMuted(false);
+          initialMuteTimerRef.current = null;
+        }, INITIAL_MIC_MUTE_MS);
       });
 
       retellClient.on("call_ended", () => {
@@ -563,6 +584,7 @@ const TalkingAvatarWidget = () => {
         startInProgressRef.current = false;
         resetAvatarMotion();
         if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+        if (initialMuteTimerRef.current) { clearTimeout(initialMuteTimerRef.current); initialMuteTimerRef.current = null; }
       });
 
       retellClient.on("call_ready", () => {
@@ -805,10 +827,17 @@ const TalkingAvatarWidget = () => {
     setIsMuted(false);
     resetAvatarMotion();
     if (timerRef.current) { clearInterval(timerRef.current); timerRef.current = null; }
+    if (initialMuteTimerRef.current) { clearTimeout(initialMuteTimerRef.current); initialMuteTimerRef.current = null; }
   }, [cleanupAudioRouting, resetAvatarMotion]);
 
   const toggleMute = useCallback(() => {
     try {
+      // Any manual mute toggle cancels the initial auto-unmute timer so we
+      // respect the user's choice and don't surprise them by unmuting later.
+      if (initialMuteTimerRef.current) {
+        clearTimeout(initialMuteTimerRef.current);
+        initialMuteTimerRef.current = null;
+      }
       if (isMuted) retellClientRef.current?.unmute();
       else retellClientRef.current?.mute();
       setIsMuted((prev) => !prev);
@@ -852,6 +881,33 @@ const TalkingAvatarWidget = () => {
 
 
   const handleExpand = () => {
+    // ── Preserve the user-gesture context for autoplay ──
+    // The Retell SDK takes several seconds to connect, and by the time it
+    // tries to play remote audio, browsers (especially mobile Chrome) have
+    // forgotten the original click. We play a silent <audio> element and
+    // resume an AudioContext SYNCHRONOUSLY here, while we still hold the
+    // gesture, so subsequent audio playback is allowed.
+    try {
+      const primer = document.createElement("audio");
+      primer.src = SILENT_WAV_DATA_URI;
+      primer.autoplay = true;
+      (primer as any).playsInline = true;
+      primer.muted = false;
+      primer.volume = 0.001;
+      primer.style.display = "none";
+      document.body.appendChild(primer);
+      void primer.play().catch(() => {});
+      setTimeout(() => { try { primer.remove(); } catch { /* noop */ } }, 2000);
+
+      const AC = (window.AudioContext || (window as any).webkitAudioContext) as typeof AudioContext | undefined;
+      if (AC) {
+        const ctx = new AC({ latencyHint: "playback" } as AudioContextOptions);
+        void ctx.resume().catch(() => {});
+        // Close shortly after — the real AudioContext is created inside startCall.
+        setTimeout(() => { try { void ctx.close(); } catch { /* noop */ } }, 1500);
+      }
+    } catch { /* noop */ }
+
     setWidgetState("expanded");
     // Auto-start the call so the user doesn't have to click twice
     if (callStatus === "idle") {
@@ -972,7 +1028,11 @@ const TalkingAvatarWidget = () => {
 
   // ── EXPANDED: smaller widget with 3D avatar ──
   return (
-    <DraggableFloating initialX={window.innerWidth - 340} initialY={window.innerHeight - 500} dragLabel="Move Aspen">
+    <DraggableFloating
+      initialX={Math.max(12, window.innerWidth - 300)}
+      initialY={Math.max(12, window.innerHeight - 440)}
+      dragLabel="Move Aspen"
+    >
     <div className="flex w-72 flex-col overflow-hidden rounded-2xl border border-border bg-card shadow-2xl animate-scale-in">
       {/* Header */}
       <div className="bg-gradient-to-r from-primary to-primary/80 px-3 py-2 flex items-center justify-between">
