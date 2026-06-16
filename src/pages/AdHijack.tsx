@@ -685,15 +685,6 @@ export default function AdHijack() {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h1 className="text-2xl font-extrabold tracking-tight">
-          Ad <span className="text-primary">Hijack</span> Engine
-        </h1>
-        <p className="text-xs text-muted-foreground mt-1">
-          Scrape active competitor ads, auto-generate personalized demo links, post smarter comments instead of paying for ads.
-        </p>
-      </div>
-
       <Card className="p-4 border-primary/30 bg-primary/5">
         <div className="flex items-start gap-3">
           <div className="rounded-md bg-primary/15 p-2 shrink-0">
@@ -751,6 +742,16 @@ export default function AdHijack() {
           </div>
         </div>
       </Card>
+
+      <div>
+        <h1 className="text-2xl font-extrabold tracking-tight">
+          Ad <span className="text-primary">Hijack</span> Engine
+        </h1>
+        <p className="text-xs text-muted-foreground mt-1">
+          Scrape active competitor ads, auto-generate personalized demo links, post smarter comments instead of paying for ads.
+        </p>
+      </div>
+
 
 
       <Card className="p-4">
