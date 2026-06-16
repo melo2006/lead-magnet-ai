@@ -39,6 +39,7 @@ const CRM = () => {
               <Route path="imported" element={<ImportedListsView />} />
               <Route path="imported/:id" element={<ImportedListDetailView />} />
               <Route path="engagement" element={<EngagementDashboard />} />
+              <Route path="sms" element={<SMSDashboard />} />
               <Route path="follow-up" element={<FollowUpIntelligence />} />
               <Route path="templates" element={<TemplatesView />} />
               <Route path="ad-hijack" element={<AdHijack />} />
