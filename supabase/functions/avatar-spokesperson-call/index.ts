@@ -37,7 +37,7 @@ Help small and mid-size businesses stop losing leads, capture more calls, and tu
 5. Explain services conversationally: 24/7 AI voice agent, AI chat widget, warm transfers for hot leads, SMS+email recaps, CRM/dashboard/pipeline.
 6. Within the first minute or two, INVITE THEM TO THE FREE SIMULATION on this page: "Scroll down on this page, type in your name, your company name, and your website — we'll scan it and build a live simulation so you can actually feel what it's like when a lead calls in."
 7. Then mention speed-to-lead (under 60s), database reactivation, new lead generation, and Google Reviews management.
-8. Only LATER mention pricing: normally ~$299/mo, launch promo $149/mo for first 3 months, $99 setup, live in 2-3 business days.
+8. Only LATER mention pricing — match the website exactly, three tiers, ALWAYS lead with the lowest: "AI Essentials starts at just $99 a month, the Growth Engine is $199 a month, and the Full Service plan is $349 a month. Live in 2-3 business days." Never quote $149 or $299 — those are old numbers.
 9. Near the end, offer a live transfer to a human sales specialist.
 
 ## Personality
@@ -148,7 +148,7 @@ Ayudar a pequeñas y medianas empresas a dejar de perder leads, capturar más ll
 5. Explica los servicios de forma conversacional: agente de voz de IA contestando 24/7 como una recepcionista real, chat de IA en el sitio, transferencia en vivo para leads calientes, resumen por SMS y email después de cada llamada, CRM/dashboard/pipeline.
 6. En el primer minuto, INVÍTALO A LA SIMULACIÓN GRATIS de esta página: "Haz clic en Probar Mi Sitio Ahora, completa tu nombre, correo, nombre de empresa y sitio web. Es gratis. Escaneamos tu sitio y armamos una simulación en vivo para que sientas cómo funciona cuando un cliente llama."
 7. Luego menciona speed-to-lead (respuesta en menos de 60 segundos), reactivación de base, generación de nuevos leads y gestión de reseñas de Google.
-8. Solo MÁS ADELANTE menciona el precio: normalmente ~299 dólares al mes, promo de lanzamiento 149 al mes los primeros 3 meses, 99 de setup, activo en 2 a 3 días hábiles.
+8. Solo MÁS ADELANTE menciona el precio — coincide con la página web, tres planes, SIEMPRE empieza por el más bajo: "AI Essentials desde solo 99 dólares al mes, el plan Growth Engine 199 al mes, y el plan Full Service 349 al mes. Activo en 2 a 3 días hábiles." Nunca menciones 149 ni 299 — son cifras viejas.
 9. Cerca del final, ofrece transferir a un especialista humano de ventas.
 
 ## Personalidad
@@ -238,7 +238,8 @@ AUTHORITATIVE INSTRUCTIONS:
 - Do NOT say you are from any visitor business; you are only from A-I Hidden Leads.
 - Do NOT use demo-mode openings, receptionist scripts, or website-demo instructions.
 - Do NOT mention the current day, date, month, year, clock time, timezone, or exact time. Only use the general greeting already inside {{begin_message}}.
-- Start with the sales intro, then ask for the visitor's name after the intro, exactly as {{begin_message}} does.`;
+- Start with the sales intro, then ask for the visitor's name after the intro, exactly as {{begin_message}} does.
+- PRICING (must match the website exactly, three tiers, ALWAYS lead with the lowest): AI Essentials $99/month, Growth Engine $199/month, Full Service $349/month. NEVER quote $149, $249, or $299 — those are obsolete. If asked "how much", answer with the $99 entry tier first.`;
 
 async function retellFetch(path: string, apiKey: string, options: RequestInit = {}) {
   const response = await fetch(`${RETELL_BASE}${path}`, {
