@@ -1314,6 +1314,98 @@ export type Database = {
         }
         Relationships: []
       }
+      sms_delivery_log: {
+        Row: {
+          body: string | null
+          created_at: string
+          delivered_at: string | null
+          error_code: string | null
+          error_message: string | null
+          from_phone: string | null
+          id: string
+          is_opt_out: boolean
+          is_test: boolean
+          message_sid: string | null
+          price_usd: number | null
+          prospect_id: string | null
+          segments: number | null
+          sent_at: string
+          status: string
+          template_id: string | null
+          to_phone: string
+          updated_at: string
+        }
+        Insert: {
+          body?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          from_phone?: string | null
+          id?: string
+          is_opt_out?: boolean
+          is_test?: boolean
+          message_sid?: string | null
+          price_usd?: number | null
+          prospect_id?: string | null
+          segments?: number | null
+          sent_at?: string
+          status?: string
+          template_id?: string | null
+          to_phone: string
+          updated_at?: string
+        }
+        Update: {
+          body?: string | null
+          created_at?: string
+          delivered_at?: string | null
+          error_code?: string | null
+          error_message?: string | null
+          from_phone?: string | null
+          id?: string
+          is_opt_out?: boolean
+          is_test?: boolean
+          message_sid?: string | null
+          price_usd?: number | null
+          prospect_id?: string | null
+          segments?: number | null
+          sent_at?: string
+          status?: string
+          template_id?: string | null
+          to_phone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "sms_delivery_log_prospect_id_fkey"
+            columns: ["prospect_id"]
+            isOneToOne: false
+            referencedRelation: "prospects"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      sms_opt_outs: {
+        Row: {
+          created_at: string
+          id: string
+          phone: string
+          reason: string | null
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          phone: string
+          reason?: string | null
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          phone?: string
+          reason?: string | null
+        }
+        Relationships: []
+      }
       subscriptions: {
         Row: {
           cancel_at_period_end: boolean | null
