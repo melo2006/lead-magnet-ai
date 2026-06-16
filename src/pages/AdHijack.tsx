@@ -694,6 +694,65 @@ export default function AdHijack() {
         </p>
       </div>
 
+      <Card className="p-4 border-primary/30 bg-primary/5">
+        <div className="flex items-start gap-3">
+          <div className="rounded-md bg-primary/15 p-2 shrink-0">
+            <Sparkles className="h-4 w-4 text-primary" />
+          </div>
+          <div className="flex-1 space-y-3">
+            <div>
+              <h2 className="text-sm font-bold">How it works + estimated cost</h2>
+              <p className="text-[11px] text-muted-foreground mt-0.5">
+                Intercept warm traffic from competitors already paying for ads — instead of buying your own.
+              </p>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-3 text-[11px]">
+              <div className="rounded-md border border-border/50 bg-background/40 p-2.5">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary/20 text-primary text-[10px] font-bold">1</span>
+                  <span className="font-semibold">Scan</span>
+                  <Badge variant="outline" className="ml-auto text-[9px] h-4 px-1">~$0.10–$0.25</Badge>
+                </div>
+                <p className="text-muted-foreground leading-snug">
+                  Pulls active ads on Meta, TikTok, LinkedIn & Google for your niche + country. Typical scan returns 20–80 ads.
+                </p>
+              </div>
+
+              <div className="rounded-md border border-border/50 bg-background/40 p-2.5">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary/20 text-primary text-[10px] font-bold">2</span>
+                  <span className="font-semibold">Generate Comment</span>
+                  <Badge variant="outline" className="ml-auto text-[9px] h-4 px-1">~$0.001 / ad</Badge>
+                </div>
+                <p className="text-muted-foreground leading-snug">
+                  Gemini writes a soft-sell comment tailored to each ad's creative & CTA — pending your approval before posting.
+                </p>
+              </div>
+
+              <div className="rounded-md border border-border/50 bg-background/40 p-2.5">
+                <div className="flex items-center gap-1.5 mb-1">
+                  <span className="inline-flex h-4 w-4 items-center justify-center rounded-full bg-primary/20 text-primary text-[10px] font-bold">3</span>
+                  <span className="font-semibold">CRM + Hijack</span>
+                  <Badge variant="outline" className="ml-auto text-[9px] h-4 px-1">Free</Badge>
+                </div>
+                <p className="text-muted-foreground leading-snug">
+                  Advertiser auto-added as a prospect. Approve comments to redirect their ad traffic to your demo link.
+                </p>
+              </div>
+            </div>
+
+            <div className="flex items-center gap-2 text-[10px] text-muted-foreground pt-1 border-t border-border/40">
+              <ShieldCheck className="h-3 w-3 text-primary shrink-0" />
+              <span>
+                Full multi-platform scan + 50 generated comments ≈ <span className="text-primary font-semibold">$0.15–$0.30</span>. Actual spend per scan is shown in the job history below.
+              </span>
+            </div>
+          </div>
+        </div>
+      </Card>
+
+
       <Card className="p-4">
         <div className="flex items-center gap-2 mb-3">
           <Radar className="h-4 w-4 text-primary" />
