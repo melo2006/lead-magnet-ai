@@ -9,6 +9,7 @@ import HowItWorksSection from "@/components/landing/HowItWorksSection";
 import DemoDifferentiator from "@/components/landing/DemoDifferentiator";
 import PricingSection from "@/components/landing/PricingSection";
 import AddOnPackages from "@/components/landing/AddOnPackages";
+import FAQSection from "@/components/landing/FAQSection";
 import TestimonialSection from "@/components/landing/TestimonialSection";
 import LeadCaptureSection from "@/components/landing/LeadCaptureSection";
 import Footer from "@/components/landing/Footer";
@@ -35,6 +36,7 @@ const Index = () => {
       <DemoDifferentiator />
       <PricingSection />
       <AddOnPackages />
+      <FAQSection />
       <TestimonialSection />
       <TryWebsiteCTA />
       <LeadCaptureSection selectedNiche={selectedNiche} />

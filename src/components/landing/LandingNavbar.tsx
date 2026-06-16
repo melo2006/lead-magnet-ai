@@ -37,6 +37,9 @@ const LandingNavbar = () => {
           <button onClick={() => scrollTo("testimonials")} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             {t("nav.testimonials")}
           </button>
+          <button onClick={() => scrollTo("faq")} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
+            {t("nav.faq", "Help / FAQ")}
+          </button>
           <LanguageSwitcher />
           <Button size="sm" onClick={() => scrollTo("demo-form")}>
             {t("nav.getFreeDemo")}
@@ -64,6 +67,7 @@ const LandingNavbar = () => {
             { id: "how-it-works", label: t("nav.howItWorks") },
             { id: "pricing", label: t("nav.pricing") },
             { id: "testimonials", label: t("nav.testimonials") },
+            { id: "faq", label: t("nav.faq", "Help / FAQ") },
           ].map((item) => (
             <button
               key={item.id}
