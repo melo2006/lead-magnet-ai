@@ -13,6 +13,7 @@ import CallHistoryView from "@/components/crm/CallHistoryView";
 import ImportedListsView from "@/components/crm/ImportedListsView";
 import ImportedListDetailView from "@/components/crm/ImportedListDetailView";
 import EngagementDashboard from "@/components/crm/EngagementDashboard";
+import SMSDashboard from "@/components/crm/SMSDashboard";
 import AdHijack from "@/pages/AdHijack";
 
 const CRM = () => {
