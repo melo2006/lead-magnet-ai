@@ -141,10 +141,12 @@ Deno.serve(async (req) => {
         : template.body(prospect, demoUrl);
 
       try {
+        const statusCallbackUrl = `${supabaseUrl}/functions/v1/twilio-sms-status`;
         const params: Record<string, string> = {
           To: destinationPhone,
           From: TWILIO_CALLER_ID,
           Body: smsBody,
+          StatusCallback: statusCallbackUrl,
         };
 
         // Attach screenshot as MMS if template is MMS and screenshot exists
@@ -164,6 +166,17 @@ Deno.serve(async (req) => {
 
         const data = await response.json().catch(() => null);
         if (!response.ok) {
+          await supabase.from('sms_delivery_log').insert({
+            prospect_id: prospect.id,
+            to_phone: destinationPhone,
+            from_phone: TWILIO_CALLER_ID,
+            body: smsBody,
+            template_id: smsTemplateId,
+            status: 'failed',
+            error_code: data?.code ? String(data.code) : null,
+            error_message: data?.message || `Twilio error ${response.status}`,
+            is_test: testMode,
+          });
           results.push({
             id: prospect.id,
             success: false,
@@ -173,6 +186,19 @@ Deno.serve(async (req) => {
         }
 
         console.log(`SMS sent to ${destinationPhone} for ${prospect.business_name}: ${data?.sid}${testMode ? ' [TEST]' : ''}`);
+
+        await supabase.from('sms_delivery_log').insert({
+          prospect_id: prospect.id,
+          message_sid: data?.sid || null,
+          to_phone: destinationPhone,
+          from_phone: TWILIO_CALLER_ID,
+          body: smsBody,
+          template_id: smsTemplateId,
+          status: (data?.status || 'queued').toLowerCase(),
+          segments: data?.num_segments ? Number(data.num_segments) : null,
+          price_usd: data?.price ? Math.abs(Number(data.price)) : null,
+          is_test: testMode,
+        });
 
         // Only update prospect in non-test mode
         if (!testMode) {
@@ -190,6 +216,16 @@ Deno.serve(async (req) => {
         results.push({ id: prospect.id, success: true, messageSid: data?.sid });
       } catch (err) {
         const msg = err instanceof Error ? err.message : 'SMS send failed';
+        await supabase.from('sms_delivery_log').insert({
+          prospect_id: prospect.id,
+          to_phone: destinationPhone,
+          from_phone: TWILIO_CALLER_ID,
+          body: smsBody,
+          template_id: smsTemplateId,
+          status: 'failed',
+          error_message: msg,
+          is_test: testMode,
+        });
         results.push({ id: prospect.id, success: false, error: msg });
       }
     }
