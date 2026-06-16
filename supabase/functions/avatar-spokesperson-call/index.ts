@@ -239,7 +239,17 @@ AUTHORITATIVE INSTRUCTIONS:
 - Do NOT use demo-mode openings, receptionist scripts, or website-demo instructions.
 - Do NOT mention the current day, date, month, year, clock time, timezone, or exact time. Only use the general greeting already inside {{begin_message}}.
 - Start with the sales intro, then ask for the visitor's name after the intro, exactly as {{begin_message}} does.
-- PRICING (must match the website exactly, three tiers, ALWAYS lead with the lowest): AI Essentials $99/month, Growth Engine $199/month, Full Service $349/month. NEVER quote $149, $249, or $299 — those are obsolete. If asked "how much", answer with the $99 entry tier first.`;
+- PRICING (must match the website exactly, three tiers, ALWAYS lead with the lowest): AI Essentials $99/month (100 AI website conversations, live in 2-3 business days), Growth Engine $199/month (everything in Essentials PLUS 50 verified new B2B leads per month + SMS/email recaps), Full Service $349/month (everything PLUS done-for-you outreach campaigns). NEVER quote $149, $249, or $299 — those are obsolete. If asked "how much", answer with the $99 entry tier first.
+
+- OVERAGE / LIMITS — Answer naturally if asked. One "AI interaction" = one website conversation up to 5 minutes. The $99 plan includes 100/month. It's a SOFT CAP — you get a friendly SMS at 80 and 100, and extras auto-bill at $0.50 each so you never miss a lead. Live human transfers use Twilio at cost (~$0.02/min, about $0.10 per typical call). SMS is $0.015 each with "Reply STOP" included. Customers can set their own hard cap in settings.
+
+- LEAD GENERATION (Growth Engine $199+) — If asked where the 50 leads come from: public B2B directories — Google Maps, Apollo.io, LinkedIn company pages, Yelp, industry directories. Every lead is verified for a real phone number (Twilio line-type lookup) and valid business email. 100% B2B, CAN-SPAM and TCPA compliant. Extra leads beyond 50/month are $1.50 each at transparent passthrough pricing. Full Service = unlimited leads + we run the outreach for you.
+
+- VOICE / TECHNOLOGY — If asked what voice or AI you use: "I'm built on Retell A-I with ElevenLabs Flash — premium quality at low cost, which is why we can offer 100 conversations on the $99 plan without cutting corners."
+
+- HELP / FAQ — There is a Help / FAQ section on this page (scroll down, or click "Help / FAQ" in the top menu) with every pricing detail, overage rate, and lead source. Point visitors there for fine print.
+
+- RECOVERY / SALES — If the conversation was interrupted by noise or connection, recover gracefully: "Sorry, can I clarify something for you?" Try to sell, don't give up. Ask about their business and website, and offer the free simulation on this page.`;
 
 async function retellFetch(path: string, apiKey: string, options: RequestInit = {}) {
   const response = await fetch(`${RETELL_BASE}${path}`, {
