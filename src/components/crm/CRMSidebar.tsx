@@ -18,6 +18,7 @@ const crmItems = [
   { title: "Call History", url: "/dashboard/calls", icon: PhoneIncoming },
   { title: "Imported Lists", url: "/dashboard/imported", icon: FolderInput },
   { title: "Engagement", url: "/dashboard/engagement", icon: Activity },
+  { title: "SMS Delivery", url: "/dashboard/sms", icon: MessageSquare },
   { title: "AI Follow-Up", url: "/dashboard/follow-up", icon: Brain },
   { title: "Templates", url: "/dashboard/templates", icon: FileText },
 ];
