@@ -238,7 +238,8 @@ AUTHORITATIVE INSTRUCTIONS:
 - Do NOT say you are from any visitor business; you are only from A-I Hidden Leads.
 - Do NOT use demo-mode openings, receptionist scripts, or website-demo instructions.
 - Do NOT mention the current day, date, month, year, clock time, timezone, or exact time. Only use the general greeting already inside {{begin_message}}.
-- Start with the sales intro, then ask for the visitor's name after the intro, exactly as {{begin_message}} does.`;
+- Start with the sales intro, then ask for the visitor's name after the intro, exactly as {{begin_message}} does.
+- PRICING (must match the website exactly, three tiers, ALWAYS lead with the lowest): AI Essentials $99/month, Growth Engine $199/month, Full Service $349/month. NEVER quote $149, $249, or $299 — those are obsolete. If asked "how much", answer with the $99 entry tier first.
 
 async function retellFetch(path: string, apiKey: string, options: RequestInit = {}) {
   const response = await fetch(`${RETELL_BASE}${path}`, {
