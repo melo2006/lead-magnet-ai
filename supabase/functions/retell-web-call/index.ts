@@ -1747,6 +1747,40 @@ Deno.serve(async (req) => {
       }
     }
 
+    // ── refresh-recording: re-fetch a call's recording URL from Retell ──
+    if (action === 'refresh-recording') {
+      const retellApiKey = Deno.env.get('RETELL_API_KEY');
+      if (!retellApiKey) return jsonResponse({ error: 'RETELL_API_KEY not configured' }, 500);
+
+      const supabaseUrl = Deno.env.get('SUPABASE_URL');
+      const supabaseServiceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY');
+      if (!supabaseUrl || !supabaseServiceRoleKey) return jsonResponse({ error: 'Missing Supabase config' }, 500);
+
+      const callHistoryId = typeof body.callHistoryId === 'string' ? body.callHistoryId.trim() : '';
+      if (!callHistoryId) return jsonResponse({ error: 'callHistoryId is required' }, 400);
+
+      const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey);
+      const { data: record, error: fetchErr } = await adminClient
+        .from('call_history')
+        .select('id, retell_call_id')
+        .eq('id', callHistoryId)
+        .single();
+      if (fetchErr || !record) return jsonResponse({ error: 'Call record not found' }, 404);
+
+      try {
+        const callData = await retellFetch(`/v2/get-call/${record.retell_call_id}`, retellApiKey, { method: 'GET' });
+        const recordingUrl = callData?.recording_url || callData?.recording_multi_channel_url || null;
+        if (!recordingUrl) {
+          return jsonResponse({ success: false, recordingUrl: null, message: 'Recording is not yet available from Retell.' });
+        }
+        await adminClient.from('call_history').update({ recording_url: recordingUrl }).eq('id', callHistoryId);
+        return jsonResponse({ success: true, recordingUrl });
+      } catch (err) {
+        return jsonResponse({ success: false, error: err instanceof Error ? err.message : 'Failed to fetch recording' }, 500);
+      }
+    }
+
+
     if (action === 'warm-transfer') {
       const lovableApiKey = Deno.env.get('LOVABLE_API_KEY');
       if (!lovableApiKey) {
