@@ -402,10 +402,8 @@ const DemoSite = () => {
     let cancelled = false;
 
     const loadExistingLead = async () => {
-      const { data, error } = await supabase
-        .from("leads")
-        .select("id, updated_at, full_name, business_name, email, phone, niche, website_url, website_screenshot, screenshot_tablet, screenshot_mobile, website_title, website_description, website_content, brand_colors, brand_logo, scan_status")
-        .eq("id", leadIdParam)
+      const { data, error } = await (supabase as any)
+        .rpc("get_demo_lead", { _lead_id: leadIdParam })
         .maybeSingle();
 
       if (error || !data || cancelled) return;
@@ -455,10 +453,8 @@ const DemoSite = () => {
     let cancelled = false;
 
     const syncLeadRecord = async () => {
-      const { data, error } = await supabase
-        .from("leads")
-        .select("id, full_name, business_name, email, phone, niche, website_url, website_screenshot, screenshot_tablet, screenshot_mobile, website_title, website_description, website_content, brand_colors, brand_logo, scan_status")
-        .eq("id", leadId)
+      const { data, error } = await (supabase as any)
+        .rpc("get_demo_lead", { _lead_id: leadId })
         .maybeSingle();
 
       if (error || !data || cancelled) return;
