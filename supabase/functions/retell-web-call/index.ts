@@ -682,8 +682,10 @@ async function retellFetch(path: string, apiKey: string, options: RequestInit = 
 }
 
 async function ensureSharedRetellPrompt(apiKey: string, agentId: string) {
-  if (UPDATED_PROMPT_AGENT_IDS.has(agentId)) return;
-
+  // Always restore the shared mode-switching prompt before a demo call. The homepage
+  // spokesperson flow uses the same Retell agents and can overwrite the LLM prompt
+  // with landing-page-only instructions, so caching this caused website demos to
+  // sometimes start with the generic AI Hidden Leads greeting.
   const agents = await retellFetch('/list-agents', apiKey);
   const agent = Array.isArray(agents)
     ? agents.find((entry: any) => entry?.agent_id === agentId)
