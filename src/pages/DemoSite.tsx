@@ -11,6 +11,7 @@ import GeoGridWidget from "@/components/landing/demo-results/GeoGridWidget";
 import DemoWatermark from "@/components/landing/demo-results/DemoWatermark";
 import DraggableFloating from "@/components/landing/demo-results/DraggableFloating";
 import ScanningAnimation from "@/components/landing/ScanningAnimation";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -223,6 +224,7 @@ const DemoSite = () => {
   const [hasIframeLoaded, setHasIframeLoaded] = useState(false);
   const [hasScreenshotLoaded, setHasScreenshotLoaded] = useState(false);
   const liveViewSessionRef = useRef<string | null>(null);
+  const startedScanLeadRef = useRef<string | null>(null);
   const [prospectOwner, setProspectOwner] = useState<{name?: string; email?: string; phone?: string} | null>(null);
   const [showTestOverride, setShowTestOverride] = useState(false);
   const [testPhoneOverride, setTestPhoneOverride] = useState(() => {
@@ -293,6 +295,57 @@ const DemoSite = () => {
     const rawPhone = searchParams.get("callerPhone");
     return isLikelyCallablePhoneNumber(rawPhone) ? normalizePhoneNumber(rawPhone) : undefined;
   })();
+
+  useEffect(() => {
+    const requestedLang = searchParams.get("lang");
+    if (requestedLang && requestedLang !== i18n.language) {
+      void i18n.changeLanguage(requestedLang);
+    }
+  }, [i18n, searchParams]);
+
+  useEffect(() => {
+    if (searchParams.get("scan") !== "1" || !leadData?.leadId || !leadData.websiteUrl) return;
+    if (startedScanLeadRef.current === leadData.leadId) return;
+
+    startedScanLeadRef.current = leadData.leadId;
+    let cancelled = false;
+
+    const runScan = async () => {
+      setIsScanning(true);
+      try {
+        const { error } = await supabase.functions.invoke("scan-website", {
+          body: {
+            leadId: leadData.leadId,
+            websiteUrl: leadData.websiteUrl,
+            businessName: leadData.businessName || getSiteName(leadData.websiteUrl),
+            initialNiche: leadData.niche || "general",
+            language: i18n.resolvedLanguage || i18n.language || "en",
+          },
+        });
+        if (error) throw error;
+
+        const { data: fullLead, error: fetchError } = await (supabase as any)
+          .rpc("get_demo_lead", { _lead_id: leadData.leadId })
+          .maybeSingle();
+
+        if (!cancelled && !fetchError && fullLead) {
+          setLeadData((current) => (current ? mergeLeadRecordIntoDemoData(fullLead, current) : current));
+        }
+      } catch (err) {
+        console.error("Scan error:", err);
+        if (!cancelled) {
+          toast.error("The live demo opened, but the site scan is still gathering details in the background.");
+          setIsScanning(false);
+        }
+      }
+    };
+
+    void runScan();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [i18n.language, i18n.resolvedLanguage, leadData?.businessName, leadData?.leadId, leadData?.niche, leadData?.websiteUrl, searchParams]);
 
   // Handle URL params from CRM (e.g. /demo?url=...&name=...&niche=...)
   useEffect(() => {
@@ -443,8 +496,8 @@ const DemoSite = () => {
     setHasLiveViewLoaded(false);
     setHasIframeLoaded(false);
     setProspectOwner(null);
-    setIsScanning(false);
-  }, [latestLeadData]);
+    setIsScanning(searchParams.get("scan") === "1");
+  }, [latestLeadData, searchParams]);
 
   useEffect(() => {
     const leadId = leadData?.leadId;
@@ -771,18 +824,21 @@ const DemoSite = () => {
             </button>
           </div>
 
-          {/* Right: CTA info button */}
-          <button
-            onClick={() => navigate("/#pricing")}
-            className="group relative shrink-0 overflow-hidden rounded-xl border border-primary/50 bg-primary px-3 py-1.5 text-left text-primary-foreground transition-all hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20 sm:px-4 sm:py-2"
-          >
-            <p className="text-[10px] font-extrabold uppercase leading-tight tracking-wide sm:text-xs">
-              {t("demo.getMoreInfo")}
-            </p>
-            <p className="text-[8px] font-medium leading-tight text-primary-foreground/80 sm:text-[9px]">
-              {t("demo.brandTag")}
-            </p>
-          </button>
+          {/* Right: language + CTA */}
+          <div className="flex shrink-0 items-center gap-1.5">
+            <LanguageSwitcher variant="full" className="h-9 border border-border/50 bg-background/60" />
+            <button
+              onClick={() => navigate("/#pricing")}
+              className="group relative hidden overflow-hidden rounded-xl border border-primary/50 bg-primary px-3 py-1.5 text-left text-primary-foreground transition-all hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20 sm:block sm:px-4 sm:py-2"
+            >
+              <p className="text-[10px] font-extrabold uppercase leading-tight tracking-wide sm:text-xs">
+                {t("demo.getMoreInfo")}
+              </p>
+              <p className="text-[8px] font-medium leading-tight text-primary-foreground/80 sm:text-[9px]">
+                {t("demo.brandTag")}
+              </p>
+            </button>
+          </div>
 
         </div>
 
