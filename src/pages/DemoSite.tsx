@@ -18,6 +18,7 @@ import { toast } from "sonner";
 
 const DEFAULT_DEMO_OWNER_NAME = "your dedicated specialist";
 const LAST_DEMO_STORAGE_KEY = "lastDemoLeadData";
+const TERMINAL_SCAN_STATUSES = new Set(["completed", "enriched", "failed"]);
 
 const getHomepageUrl = (websiteUrl: string) => {
   try {
@@ -160,6 +161,7 @@ const ScanFallbackPreview = ({ leadData, siteName, homepageUrl }: ScanFallbackPr
 type DemoLeadRecord = Partial<{
   id: string;
   updated_at: string;
+  scan_status: string;
   full_name: string;
   business_name: string;
   email: string;
@@ -185,6 +187,7 @@ const mergeLeadRecordIntoDemoData = (record: DemoLeadRecord, current: DemoLeadDa
   ...current,
   leadId: record.id || current.leadId,
   previewVersion: record.updated_at || current.previewVersion,
+  scanStatus: record.scan_status || current.scanStatus,
   fullName: record.full_name || current.fullName,
   businessName: record.business_name || current.businessName,
   email: record.email || current.email,
