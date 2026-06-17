@@ -496,8 +496,8 @@ const DemoSite = () => {
     setHasLiveViewLoaded(false);
     setHasIframeLoaded(false);
     setProspectOwner(null);
-    setIsScanning(false);
-  }, [latestLeadData]);
+    setIsScanning(searchParams.get("scan") === "1");
+  }, [latestLeadData, searchParams]);
 
   useEffect(() => {
     const leadId = leadData?.leadId;
