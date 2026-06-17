@@ -202,29 +202,25 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
     setIsSubmitting(true);
     setScanAnimationDone(false);
     try {
-      const { data: lead, error } = await supabase
-        .from("leads")
-        .insert([
-          {
-            business_name: parsed.data.businessName,
-            full_name: parsed.data.name,
-            email: parsed.data.email || null,
-            website_url: parsed.data.website,
-            phone: parsed.data.phone || null,
-            secondary_url: parsed.data.secondaryUrl || null,
-            niche: selectedNiche.id,
-          },
-        ])
-        .select("id")
-        .single();
+      const { data: leadId, error } = await (supabase as any).rpc("create_demo_lead", {
+        _business_name: parsed.data.businessName,
+        _full_name: parsed.data.name,
+        _phone: parsed.data.phone || null,
+        _email: parsed.data.email || null,
+        _website_url: parsed.data.website,
+        _niche: selectedNiche.id,
+        _secondary_url: parsed.data.secondaryUrl || null,
+        _scan_status: "pending",
+      });
 
       if (error) throw error;
+      if (!leadId) throw new Error("Demo lead was not created");
 
       let filePaths: string[] = [];
       if (files.length > 0) {
-        filePaths = await uploadFiles(lead.id);
+        filePaths = await uploadFiles(leadId);
         if (filePaths.length > 0) {
-          await supabase.from("leads").update({ uploaded_files: filePaths }).eq("id", lead.id);
+          await (supabase as any).rpc("set_demo_lead_uploads", { _lead_id: leadId, _uploaded_files: filePaths });
         }
       }
 
@@ -232,7 +228,7 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
 
       const scanResult = await supabase.functions.invoke("scan-website", {
         body: {
-          leadId: lead.id,
+          leadId,
           websiteUrl: parsed.data.website,
           businessName: parsed.data.businessName,
           secondaryUrl: parsed.data.secondaryUrl || null,
@@ -252,7 +248,7 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
       }
 
       const fallbackScanData: DemoLeadData = {
-        leadId: lead.id,
+        leadId,
         previewVersion: new Date().toISOString(),
         fullName: parsed.data.name,
         businessName: parsed.data.businessName,
@@ -270,11 +266,9 @@ const LeadCaptureSection = ({ selectedNiche }: LeadCaptureSectionProps) => {
         logo: undefined,
       };
 
-      const { data: updatedLead } = await supabase
-        .from("leads")
-        .select("*")
-        .eq("id", lead.id)
-        .single();
+      const { data: updatedLead } = await (supabase as any)
+        .rpc("get_demo_lead", { _lead_id: leadId })
+        .maybeSingle();
 
       if (updatedLead) {
         const normalizedColors =
