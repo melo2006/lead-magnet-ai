@@ -1498,6 +1498,7 @@ Deno.serve(async (req) => {
               next_step: aiSummary.nextStep,
               transcript: transcript || null,
               key_points: aiSummary.keyPoints || [],
+              recording_url: callData?.recording_url || callData?.recording_multi_channel_url || null,
               duration_seconds: callDurationSeconds,
               started_at: callData?.start_timestamp ? new Date(callData.start_timestamp).toISOString() : new Date().toISOString(),
               ended_at: callData?.end_timestamp ? new Date(callData.end_timestamp).toISOString() : new Date().toISOString(),
