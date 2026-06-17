@@ -16,6 +16,7 @@ const crmItems = [
   { title: "Campaigns", url: "/dashboard/campaigns", icon: Megaphone },
   { title: "Pipeline", url: "/dashboard/pipeline", icon: LayoutGrid },
   { title: "Call History", url: "/dashboard/calls", icon: PhoneIncoming },
+  { title: "Demo Sessions", url: "/dashboard/sessions", icon: Presentation },
   { title: "Imported Lists", url: "/dashboard/imported", icon: FolderInput },
   { title: "Engagement", url: "/dashboard/engagement", icon: Activity },
   { title: "SMS Delivery", url: "/dashboard/sms", icon: MessageSquare },
