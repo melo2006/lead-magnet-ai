@@ -84,7 +84,31 @@ const isLikelyCallablePhoneNumber = (value?: string | null) => {
 
 const CallRow = ({ call }: { call: CallRecord }) => {
   const [expanded, setExpanded] = useState(false);
+  const [refreshing, setRefreshing] = useState(false);
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
+
+  const handleRefreshRecording = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    setRefreshing(true);
+    try {
+      const { data, error } = await supabase.functions.invoke("retell-web-call", {
+        body: { action: "refresh-recording", callHistoryId: call.id },
+      });
+      if (error) throw error;
+      if (data?.recordingUrl) {
+        toast.success("Recording loaded");
+        queryClient.invalidateQueries({ queryKey: ["call-history"] });
+      } else {
+        toast.info(data?.message || "Recording not yet available from Retell.");
+      }
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to refresh recording");
+    } finally {
+      setRefreshing(false);
+    }
+  };
+
 
   const handleRedemo = (e: React.MouseEvent) => {
     e.stopPropagation();
