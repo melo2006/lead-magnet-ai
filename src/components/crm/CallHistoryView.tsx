@@ -185,6 +185,32 @@ const CallRow = ({ call }: { call: CallRecord }) => {
 
       {expanded && (
         <div className="px-4 pb-4 space-y-3 border-t border-border pt-3">
+          {/* Recording */}
+          <div>
+            <div className="flex items-center justify-between mb-1">
+              <p className="text-[10px] uppercase tracking-wider text-muted-foreground">Recording</p>
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={handleRefreshRecording}
+                disabled={refreshing}
+                className="h-6 px-2 text-[10px]"
+              >
+                <RefreshCw className={`h-3 w-3 mr-1 ${refreshing ? "animate-spin" : ""}`} />
+                {call.recording_url ? "Refresh" : "Fetch recording"}
+              </Button>
+            </div>
+            {call.recording_url ? (
+              <audio controls preload="none" src={call.recording_url} className="w-full h-8">
+                Your browser does not support audio playback.
+              </audio>
+            ) : (
+              <p className="text-[11px] text-muted-foreground italic">
+                No recording saved yet. Click "Fetch recording" to pull it from Retell (available shortly after the call ends).
+              </p>
+            )}
+          </div>
+
           {/* Summary */}
           {call.summary && (
             <div>
@@ -192,6 +218,7 @@ const CallRow = ({ call }: { call: CallRecord }) => {
               <p className="text-sm text-foreground">{call.summary}</p>
             </div>
           )}
+
 
           {/* Contact details */}
           <div className="grid grid-cols-2 gap-3">
