@@ -145,34 +145,22 @@ const TryDemo = () => {
         .gte("updated_at", cacheThreshold)
         .order("updated_at", { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (cachedLead) {
         console.log("Cache hit — reusing existing scan for", websiteUrl);
 
-        // Insert a new lead row referencing the visitor's info but skip re-scanning
-        const { data: newLead } = await supabase
-          .from("leads")
-          .insert([{
-            business_name: cachedLead.business_name || businessName,
-            full_name: name,
-            phone: ph,
-            email: em || null,
-            website_url: websiteUrl,
-            niche: cachedLead.niche || "general",
-            scan_status: "complete",
-            website_content: cachedLead.website_content,
-            website_title: cachedLead.website_title,
-            website_description: cachedLead.website_description,
-            website_screenshot: cachedLead.website_screenshot,
-            brand_colors: cachedLead.brand_colors,
-            brand_logo: cachedLead.brand_logo,
-            brand_fonts: cachedLead.brand_fonts,
-          }])
-          .select("id")
-          .single();
+        // Insert through a safe backend helper; public users cannot read the private leads table directly.
+        const { data: newLeadId } = await (supabase as any).rpc("create_demo_lead", {
+          _business_name: cachedLead.business_name || businessName,
+          _full_name: name,
+          _phone: ph,
+          _email: em || null,
+          _website_url: websiteUrl,
+          _niche: cachedLead.niche || "general",
+        });
 
-        const leadId = newLead?.id || cachedLead.id;
+        const leadId = newLeadId || cachedLead.id;
 
         const leadData: DemoLeadData = {
           leadId,
@@ -202,26 +190,23 @@ const TryDemo = () => {
       }
 
       // No cache — full scan flow
-      const { data: lead, error } = await supabase
-        .from("leads")
-        .insert([{
-          business_name: businessName,
-          full_name: name,
-          phone: ph,
-          email: em || null,
-          website_url: websiteUrl,
-          niche: "general",
-        }])
-        .select("id")
-        .single();
+      const { data: leadId, error } = await (supabase as any).rpc("create_demo_lead", {
+        _business_name: businessName,
+        _full_name: name,
+        _phone: ph,
+        _email: em || null,
+        _website_url: websiteUrl,
+        _niche: "general",
+      });
 
       if (error) throw error;
+      if (!leadId) throw new Error("Demo lead was not created");
 
       setIsScanning(true);
 
       const scanResult = await supabase.functions.invoke("scan-website", {
         body: {
-          leadId: lead.id,
+          leadId,
           websiteUrl,
           businessName,
           initialNiche: "general",
@@ -236,11 +221,11 @@ const TryDemo = () => {
       const { data: updatedLead } = await supabase
         .from("leads")
         .select("*")
-        .eq("id", lead.id)
+        .eq("id", leadId)
         .single();
 
       const leadData: DemoLeadData = {
-        leadId: lead.id,
+        leadId,
         previewVersion: updatedLead?.updated_at ?? new Date().toISOString(),
         fullName: name,
         phone: ph,
