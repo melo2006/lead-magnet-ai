@@ -113,10 +113,22 @@
     "title2": "Silence",
     "sub": "Every ring that goes to voicemail is money walking out the door. Here's what the data says about your industry.",
     "cards": {
-      "unanswered": { "label": "of calls go unanswered", "sublabel": "during business hours" },
-      "lost": { "label": "lost per missed call", "sublabel": "average revenue impact" },
-      "response": { "label": "average response time", "sublabel": "without AI assistant" },
-      "firstResponder": { "label": "buy from first responder", "sublabel": "speed wins every time" }
+      "unanswered": {
+        "label": "of calls go unanswered",
+        "sublabel": "during business hours"
+      },
+      "lost": {
+        "label": "lost per missed call",
+        "sublabel": "average revenue impact"
+      },
+      "response": {
+        "label": "average response time",
+        "sublabel": "without AI assistant"
+      },
+      "firstResponder": {
+        "label": "buy from first responder",
+        "sublabel": "speed wins every time"
+      }
     }
   },
   "how": {
@@ -280,12 +292,30 @@
     "free": "Free",
     "noSignup": "No signup required",
     "benefits": {
-      "transfer": { "label": "Warm Transfer", "desc": "AI transfers hot leads live to you with a full summary" },
-      "sms": { "label": "SMS After Every Call", "desc": "Get an instant text with the lead details & summary" },
-      "email": { "label": "Email Summary", "desc": "Full call recap emailed to you after every conversation" },
-      "crm": { "label": "Lead Capture & CRM", "desc": "Every lead is saved — use our CRM or integrate yours" },
-      "receptionist": { "label": "24/7 AI Receptionist", "desc": "Never miss a call — AI answers & books appointments" },
-      "capture": { "label": "Instant Lead Capture", "desc": "Converts website visitors into booked calls" }
+      "transfer": {
+        "label": "Warm Transfer",
+        "desc": "AI transfers hot leads live to you with a full summary"
+      },
+      "sms": {
+        "label": "SMS After Every Call",
+        "desc": "Get an instant text with the lead details & summary"
+      },
+      "email": {
+        "label": "Email Summary",
+        "desc": "Full call recap emailed to you after every conversation"
+      },
+      "crm": {
+        "label": "Lead Capture & CRM",
+        "desc": "Every lead is saved — use our CRM or integrate yours"
+      },
+      "receptionist": {
+        "label": "24/7 AI Receptionist",
+        "desc": "Never miss a call — AI answers & books appointments"
+      },
+      "capture": {
+        "label": "Instant Lead Capture",
+        "desc": "Converts website visitors into booked calls"
+      }
     }
   },
   "scan": {
@@ -304,20 +334,56 @@
     "transferSpecialist": "transfer you to a sales specialist",
     "questionsSuffix": "anytime during the demo.",
     "steps": {
-      "content": { "label": "Scanning website content", "detail": "Reading pages, services, and contact info…" },
-      "presence": { "label": "Analyzing your online presence", "detail": "Capturing screenshots and brand details…" },
-      "voice": { "label": "Preparing Voice AI demo", "detail": "A new way to never miss a customer call." },
-      "chat": { "label": "Setting up Chat AI", "detail": "Instant answers turn visitors into captured leads." },
-      "transfer": { "label": "Enabling warm transfers", "detail": "Hot leads get connected to a human—fast." },
-      "final": { "label": "Finalizing your live demo", "detail": "See how AI captures leads you're missing today." }
+      "content": {
+        "label": "Scanning website content",
+        "detail": "Reading pages, services, and contact info…"
+      },
+      "presence": {
+        "label": "Analyzing your online presence",
+        "detail": "Capturing screenshots and brand details…"
+      },
+      "voice": {
+        "label": "Preparing Voice AI demo",
+        "detail": "A new way to never miss a customer call."
+      },
+      "chat": {
+        "label": "Setting up Chat AI",
+        "detail": "Instant answers turn visitors into captured leads."
+      },
+      "transfer": {
+        "label": "Enabling warm transfers",
+        "detail": "Hot leads get connected to a human—fast."
+      },
+      "final": {
+        "label": "Finalizing your live demo",
+        "detail": "See how AI captures leads you're missing today."
+      }
     },
     "benefits": {
-      "missCall": { "headline": "Never Miss Another Call", "body": "Your AI receptionist answers 24/7 — nights, weekends, and holidays — so every caller becomes a potential customer." },
-      "appointments": { "headline": "Instant Appointments", "body": "AI books, reschedules, and follows up automatically. No more phone tag — your calendar fills itself." },
-      "moreLeads": { "headline": "Capture 2–5x More Leads", "body": "Most businesses miss 40% of calls. With AI answering every one, just 1–2 extra leads per month pays for itself." },
-      "liveFast": { "headline": "Live in 1–2 Days", "body": "Setup is fast and painless. Your custom AI agent is trained on your business and ready to take calls within 48 hours." },
-      "warmTransfer": { "headline": "Warm Transfer to You", "body": "When a hot lead is on the line, AI transfers them live to you or your team with a full summary — no context lost." },
-      "chatAi": { "headline": "Chat AI on Your Website", "body": "Visitors get instant answers about services, pricing, and availability — converting browsers into booked appointments." }
+      "missCall": {
+        "headline": "Never Miss Another Call",
+        "body": "Your AI receptionist answers 24/7 — nights, weekends, and holidays — so every caller becomes a potential customer."
+      },
+      "appointments": {
+        "headline": "Instant Appointments",
+        "body": "AI books, reschedules, and follows up automatically. No more phone tag — your calendar fills itself."
+      },
+      "moreLeads": {
+        "headline": "Capture 2–5x More Leads",
+        "body": "Most businesses miss 40% of calls. With AI answering every one, just 1–2 extra leads per month pays for itself."
+      },
+      "liveFast": {
+        "headline": "Live in 1–2 Days",
+        "body": "Setup is fast and painless. Your custom AI agent is trained on your business and ready to take calls within 48 hours."
+      },
+      "warmTransfer": {
+        "headline": "Warm Transfer to You",
+        "body": "When a hot lead is on the line, AI transfers them live to you or your team with a full summary — no context lost."
+      },
+      "chatAi": {
+        "headline": "Chat AI on Your Website",
+        "body": "Visitors get instant answers about services, pricing, and availability — converting browsers into booked appointments."
+      }
     }
   },
   "footer": {
@@ -400,5 +466,53 @@
     "dismiss": "Dismiss",
     "transferConnecting": "Connecting you with {{owner}}... Your phone will ring shortly.",
     "transferHint": "Answer the incoming call to join the live conference."
+  },
+  "faqSection": {
+    "badge": "HELP & FAQ",
+    "title": "Questions? We have answers.",
+    "subtitle": "Pricing, limits, overages, lead sources, and how everything works — clearly explained.",
+    "footer": "Still have questions? Talk to Aspen (bottom-right) or scroll up to book a live demo.",
+    "items": [
+      {
+        "q": "What exactly counts as an 'AI interaction' in the $99 plan?",
+        "a": "One AI interaction = one conversation on your website (voice or chat) up to 5 minutes long. The $99 AI Essentials plan includes 100 of these per month — enough to cover most small-business website traffic. If you go over, additional conversations are billed at just $0.50 each so you never miss a lead. You'll get a friendly SMS warning at 80 and again at 100 conversations."
+      },
+      {
+        "q": "What happens if I go over my monthly limits?",
+        "a": "We use a soft cap with SMS warnings, not a hard shut-off. At 80% usage you get a heads-up, at 100% another SMS, and any extra usage is auto-billed at the end of the month at transparent passthrough rates: $0.50 per extra AI conversation, ~$0.02/min for live human phone transfers via Twilio, $0.015 per SMS. You can set your own hard cap in settings if you prefer predictability over coverage."
+      },
+      {
+        "q": "How much does a live transfer to a human cost?",
+        "a": "Live phone transfers use Twilio at our cost — approximately $0.02 per minute. A typical 4–5 minute live transfer call adds about $0.10. Even with heavy usage this rarely adds more than $30–$90/month, and we bill it transparently at cost, not marked up."
+      },
+      {
+        "q": "Where do the 50 new leads in the Growth Engine plan come from?",
+        "a": "We source B2B leads from public business directories — Google Maps, Apollo.io, LinkedIn company pages, Yelp, and industry-specific directories. Every lead is verified for a real phone number using Twilio line-type lookup and a valid business email before delivery. These are 100% B2B leads (businesses, not consumers), fully compliant with CAN-SPAM and TCPA, with opt-out language built into every outbound message. No gray-market data, no scraping of private info."
+      },
+      {
+        "q": "What if I need more than 50 leads per month?",
+        "a": "Additional verified B2B leads are available at $1.50 each (our cost is $0.30–$0.80, billed at honest passthrough margins). Just let us know your target volume and we'll set up overage billing or move you to the Full Service plan, where lead generation is unlimited and we run the outreach for you."
+      },
+      {
+        "q": "What voice does Aspen use? Is it expensive AI?",
+        "a": "Aspen uses Retell AI with ElevenLabs Flash v2.5 — a premium-sounding voice at a low cost (~$0.06/minute total). That's why we can offer 100 conversations on the $99 plan and still keep margins healthy without cutting quality."
+      },
+      {
+        "q": "How long does the AI conversation typically last?",
+        "a": "Most lead conversations on a website last 2–4 minutes. A live human transfer call typically lasts 4–6 minutes. We budget 5 minutes per interaction in your plan, which fits the vast majority of real conversations."
+      },
+      {
+        "q": "Is SMS included? What about the 1 SMS/second carrier limit?",
+        "a": "Yes — SMS is included for outbound recaps, lead replies, and overage warnings. We use Twilio with A2P 10DLC registration so your messages are properly registered with carriers, deliver reliably, and stay under the per-second throughput caps. Every outbound SMS includes 'Reply STOP to opt out' as required by TCPA."
+      },
+      {
+        "q": "How fast do you go live?",
+        "a": "2–3 business days for AI Essentials and Growth Engine. Full Service is 5–7 business days because we also set up your outreach sequences, CRM imports, and live transfer routing."
+      },
+      {
+        "q": "Can I cancel anytime?",
+        "a": "Yes. Month-to-month, cancel anytime from your dashboard. No long-term contracts, no cancellation fees."
+      }
+    ]
   }
 }
