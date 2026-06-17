@@ -25,6 +25,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { formatPhoneNumber, sanitizeUrlInput } from "@/lib/formatters";
 import ScanningAnimation from "@/components/landing/ScanningAnimation";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import type { DemoLeadData } from "@/components/landing/demo-results/demoResultsUtils";
 
 const LAST_DEMO_STORAGE_KEY = "lastDemoLeadData";
@@ -76,7 +77,7 @@ const benefits = [
 
 const TryDemo = () => {
   const { toast } = useToast();
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const [fullName, setFullName] = useState("");
@@ -85,7 +86,6 @@ const TryDemo = () => {
   const [url, setUrl] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
-  const [scanData, setScanData] = useState<DemoLeadData | null>(null);
   // Pre-fill form fields from URL params (e.g. coming from CRM prospect table)
   useEffect(() => {
     const urlParam = searchParams.get("url");
@@ -101,20 +101,6 @@ const TryDemo = () => {
     if (phoneParam && !phone) setPhone(phoneParam);
     if (emailParam && !email) setEmail(emailParam);
   }, []);
-
-  // Navigate to demo as soon as scan data is ready (animation stays in continuous mode)
-  useEffect(() => {
-    if (!isScanning || !scanData) return;
-    const params = new URLSearchParams({
-      url: scanData.websiteUrl,
-      leadId: scanData.leadId || "",
-      name: scanData.businessName || "",
-      callerName: scanData.fullName || "",
-    });
-    if (scanData.email) params.set("callerEmail", scanData.email);
-    if (scanData.phone) params.set("callerPhone", scanData.phone);
-    navigate(`/demo-site?${params.toString()}`, { state: { leadData: scanData } });
-  }, [isScanning, scanData, navigate]);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -144,49 +130,31 @@ const TryDemo = () => {
       if (error) throw error;
       if (!leadId) throw new Error("Demo lead was not created");
 
-      setIsScanning(true);
-
-      const scanResult = await supabase.functions.invoke("scan-website", {
-        body: {
-          leadId,
-          websiteUrl,
-          businessName,
-          initialNiche: "general",
-        },
-      });
-
-      if (scanResult.error) {
-        console.error("Scan error:", scanResult.error);
-        toast({ title: t("tryDemo.loadingDemo"), description: t("tryDemo.openingSaved") });
-      }
-
-      const { data: updatedLead } = await (supabase as any)
-        .rpc("get_demo_lead", { _lead_id: leadId })
-        .maybeSingle();
-
       const leadData: DemoLeadData = {
         leadId,
-        previewVersion: updatedLead?.updated_at ?? new Date().toISOString(),
+        previewVersion: new Date().toISOString(),
         fullName: name,
         phone: ph,
         email: em || undefined,
-        businessName: updatedLead?.business_name || businessName,
+        businessName,
         websiteUrl,
-        niche: updatedLead?.niche || "general",
-        screenshot: updatedLead?.website_screenshot ?? undefined,
-        screenshotTablet: (updatedLead as any)?.screenshot_tablet ?? undefined,
-        screenshotMobile: (updatedLead as any)?.screenshot_mobile ?? undefined,
-        title: updatedLead?.website_title ?? undefined,
-        description: updatedLead?.website_description ?? undefined,
-        websiteContent: updatedLead?.website_content ?? undefined,
-        colors: updatedLead?.brand_colors && typeof updatedLead.brand_colors === "object" && !Array.isArray(updatedLead.brand_colors)
-          ? (updatedLead.brand_colors as Record<string, string | undefined>)
-          : undefined,
-        logo: updatedLead?.brand_logo ?? undefined,
+        niche: "general",
       };
 
-      setScanData(leadData);
       try { localStorage.setItem(LAST_DEMO_STORAGE_KEY, JSON.stringify(leadData)); } catch {}
+      setIsScanning(true);
+
+      const params = new URLSearchParams({
+        url: websiteUrl,
+        leadId,
+        name: businessName,
+        callerName: name,
+        scan: "1",
+        lang: i18n.resolvedLanguage || i18n.language || "en",
+      });
+      if (em) params.set("callerEmail", em);
+      if (ph) params.set("callerPhone", ph);
+      navigate(`/demo-site?${params.toString()}`, { state: { leadData } });
     } catch (err) {
       console.error("Error:", err);
       toast({ title: t("tryDemo.errorTitle"), description: t("tryDemo.errorDesc"), variant: "destructive" });
@@ -237,6 +205,7 @@ const TryDemo = () => {
             >
               <Home className="w-3.5 h-3.5" /> Home
             </Button>
+            <LanguageSwitcher variant="full" className="h-8 border border-border/60 bg-card/60" />
           </div>
         </div>
       </header>
