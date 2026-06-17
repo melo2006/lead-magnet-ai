@@ -1507,6 +1507,28 @@ export type Database = {
             }
             Returns: string
           }
+      get_demo_lead: {
+        Args: { _lead_id: string }
+        Returns: {
+          brand_colors: Json
+          brand_logo: string
+          business_name: string
+          email: string
+          full_name: string
+          id: string
+          niche: string
+          phone: string
+          scan_status: string
+          screenshot_mobile: string
+          screenshot_tablet: string
+          updated_at: string
+          website_content: string
+          website_description: string
+          website_screenshot: string
+          website_title: string
+          website_url: string
+        }[]
+      }
       refresh_prospect_enrichment_job: {
         Args: { _job_id: string }
         Returns: {
