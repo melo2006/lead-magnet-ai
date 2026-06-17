@@ -316,7 +316,7 @@ const TryDemo = () => {
             <div className="relative">
               <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="(954) 555-1234 *"
+                placeholder="(954) 555-1234 (optional)"
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(formatPhoneNumber(e.target.value))}
