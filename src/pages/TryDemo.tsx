@@ -145,7 +145,7 @@ const TryDemo = () => {
         .gte("updated_at", cacheThreshold)
         .order("updated_at", { ascending: false })
         .limit(1)
-        .single();
+        .maybeSingle();
 
       if (cachedLead) {
         console.log("Cache hit — reusing existing scan for", websiteUrl);
