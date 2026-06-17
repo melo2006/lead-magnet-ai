@@ -11,6 +11,7 @@ import GeoGridWidget from "@/components/landing/demo-results/GeoGridWidget";
 import DemoWatermark from "@/components/landing/demo-results/DemoWatermark";
 import DraggableFloating from "@/components/landing/demo-results/DraggableFloating";
 import ScanningAnimation from "@/components/landing/ScanningAnimation";
+import LanguageSwitcher from "@/components/LanguageSwitcher";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 
@@ -223,6 +224,7 @@ const DemoSite = () => {
   const [hasIframeLoaded, setHasIframeLoaded] = useState(false);
   const [hasScreenshotLoaded, setHasScreenshotLoaded] = useState(false);
   const liveViewSessionRef = useRef<string | null>(null);
+  const startedScanLeadRef = useRef<string | null>(null);
   const [prospectOwner, setProspectOwner] = useState<{name?: string; email?: string; phone?: string} | null>(null);
   const [showTestOverride, setShowTestOverride] = useState(false);
   const [testPhoneOverride, setTestPhoneOverride] = useState(() => {
@@ -293,6 +295,57 @@ const DemoSite = () => {
     const rawPhone = searchParams.get("callerPhone");
     return isLikelyCallablePhoneNumber(rawPhone) ? normalizePhoneNumber(rawPhone) : undefined;
   })();
+
+  useEffect(() => {
+    const requestedLang = searchParams.get("lang");
+    if (requestedLang && requestedLang !== i18n.language) {
+      void i18n.changeLanguage(requestedLang);
+    }
+  }, [i18n, searchParams]);
+
+  useEffect(() => {
+    if (searchParams.get("scan") !== "1" || !leadData?.leadId || !leadData.websiteUrl) return;
+    if (startedScanLeadRef.current === leadData.leadId) return;
+
+    startedScanLeadRef.current = leadData.leadId;
+    let cancelled = false;
+
+    const runScan = async () => {
+      setIsScanning(true);
+      try {
+        const { error } = await supabase.functions.invoke("scan-website", {
+          body: {
+            leadId: leadData.leadId,
+            websiteUrl: leadData.websiteUrl,
+            businessName: leadData.businessName || getSiteName(leadData.websiteUrl),
+            initialNiche: leadData.niche || "general",
+            language: i18n.resolvedLanguage || i18n.language || "en",
+          },
+        });
+        if (error) throw error;
+
+        const { data: fullLead, error: fetchError } = await (supabase as any)
+          .rpc("get_demo_lead", { _lead_id: leadData.leadId })
+          .maybeSingle();
+
+        if (!cancelled && !fetchError && fullLead) {
+          setLeadData((current) => (current ? mergeLeadRecordIntoDemoData(fullLead, current) : current));
+        }
+      } catch (err) {
+        console.error("Scan error:", err);
+        if (!cancelled) {
+          toast.error("The live demo opened, but the site scan is still gathering details in the background.");
+          setIsScanning(false);
+        }
+      }
+    };
+
+    void runScan();
+
+    return () => {
+      cancelled = true;
+    };
+  }, [i18n.language, i18n.resolvedLanguage, leadData?.businessName, leadData?.leadId, leadData?.niche, leadData?.websiteUrl, searchParams]);
 
   // Handle URL params from CRM (e.g. /demo?url=...&name=...&niche=...)
   useEffect(() => {
