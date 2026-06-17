@@ -1482,17 +1482,31 @@ export type Database = {
           isSetofReturn: true
         }
       }
-      create_demo_lead: {
-        Args: {
-          _business_name: string
-          _email: string
-          _full_name: string
-          _niche?: string
-          _phone: string
-          _website_url: string
-        }
-        Returns: string
-      }
+      create_demo_lead:
+        | {
+            Args: {
+              _business_name: string
+              _email: string
+              _full_name: string
+              _niche?: string
+              _phone: string
+              _website_url: string
+            }
+            Returns: string
+          }
+        | {
+            Args: {
+              _business_name: string
+              _email: string
+              _full_name: string
+              _niche?: string
+              _phone: string
+              _scan_status?: string
+              _secondary_url?: string
+              _website_url: string
+            }
+            Returns: string
+          }
       refresh_prospect_enrichment_job: {
         Args: { _job_id: string }
         Returns: {
@@ -1531,6 +1545,10 @@ export type Database = {
       requeue_stalled_prospect_enrichment_items: {
         Args: { _stale_minutes?: number }
         Returns: number
+      }
+      set_demo_lead_uploads: {
+        Args: { _lead_id: string; _uploaded_files: string[] }
+        Returns: boolean
       }
     }
     Enums: {
