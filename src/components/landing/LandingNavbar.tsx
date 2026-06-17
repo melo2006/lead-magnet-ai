@@ -85,6 +85,8 @@ const LandingNavbar = () => {
         </div>
       )}
     </nav>
+    </>
+  );
   );
 };
 
