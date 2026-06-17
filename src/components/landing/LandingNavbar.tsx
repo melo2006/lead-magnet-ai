@@ -15,7 +15,9 @@ const LandingNavbar = () => {
   };
 
   return (
-    <nav className="sticky top-0 z-[90] bg-background/80 backdrop-blur-xl border-b border-border">
+    <>
+    <div aria-hidden className="h-14 sm:h-16" />
+    <nav className="fixed top-0 inset-x-0 z-[90] bg-background/80 backdrop-blur-xl border-b border-border">
       <div className="container mx-auto px-4 sm:px-6 flex items-center justify-between h-14 sm:h-16">
         <Link to="/" className="flex items-center gap-2" onDoubleClick={(e) => { e.preventDefault(); window.location.href = "/dashboard"; }}>
           <img src="/logo.png" alt="AI Hidden Leads" className="w-8 h-8 sm:w-9 sm:h-9" />
