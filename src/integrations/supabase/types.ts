@@ -1482,6 +1482,17 @@ export type Database = {
           isSetofReturn: true
         }
       }
+      create_demo_lead: {
+        Args: {
+          _business_name: string
+          _email: string
+          _full_name: string
+          _niche?: string
+          _phone: string
+          _website_url: string
+        }
+        Returns: string
+      }
       refresh_prospect_enrichment_job: {
         Args: { _job_id: string }
         Returns: {
