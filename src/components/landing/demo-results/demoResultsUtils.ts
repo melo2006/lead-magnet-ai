@@ -4,6 +4,7 @@ export interface DemoLeadData {
   leadId?: string;
   prospectId?: string;
   previewVersion?: string;
+  scanStatus?: string;
   fullName: string;
   businessName?: string;
   email?: string;

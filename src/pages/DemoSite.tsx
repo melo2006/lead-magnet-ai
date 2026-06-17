@@ -18,6 +18,14 @@ import { toast } from "sonner";
 
 const DEFAULT_DEMO_OWNER_NAME = "your dedicated specialist";
 const LAST_DEMO_STORAGE_KEY = "lastDemoLeadData";
+const TERMINAL_SCAN_STATUSES = new Set(["completed", "enriched", "failed"]);
+const ACTIVE_SCAN_REUSE_MS = 5 * 60 * 1000;
+
+const isRecentlyScanning = (record: DemoLeadRecord) => {
+  if (record.scan_status !== "scanning" || !record.updated_at) return false;
+  const updatedAt = new Date(record.updated_at).getTime();
+  return Number.isFinite(updatedAt) && Date.now() - updatedAt < ACTIVE_SCAN_REUSE_MS;
+};
 
 const getHomepageUrl = (websiteUrl: string) => {
   try {
@@ -160,6 +168,7 @@ const ScanFallbackPreview = ({ leadData, siteName, homepageUrl }: ScanFallbackPr
 type DemoLeadRecord = Partial<{
   id: string;
   updated_at: string;
+  scan_status: string;
   full_name: string;
   business_name: string;
   email: string;
@@ -185,6 +194,7 @@ const mergeLeadRecordIntoDemoData = (record: DemoLeadRecord, current: DemoLeadDa
   ...current,
   leadId: record.id || current.leadId,
   previewVersion: record.updated_at || current.previewVersion,
+  scanStatus: record.scan_status || current.scanStatus,
   fullName: record.full_name || current.fullName,
   businessName: record.business_name || current.businessName,
   email: record.email || current.email,
@@ -313,6 +323,21 @@ const DemoSite = () => {
     const runScan = async () => {
       setIsScanning(true);
       try {
+        const { data: existingLead, error: existingError } = await (supabase as any)
+          .rpc("get_demo_lead", { _lead_id: leadData.leadId })
+          .maybeSingle();
+
+        if (!cancelled && !existingError && existingLead) {
+          setLeadData((current) => (current ? mergeLeadRecordIntoDemoData(existingLead, current) : current));
+          if (TERMINAL_SCAN_STATUSES.has(existingLead.scan_status || "")) {
+            setIsScanning(false);
+            return;
+          }
+          if (isRecentlyScanning(existingLead)) {
+            return;
+          }
+        }
+
         const { error } = await supabase.functions.invoke("scan-website", {
           body: {
             leadId: leadData.leadId,
@@ -330,6 +355,9 @@ const DemoSite = () => {
 
         if (!cancelled && !fetchError && fullLead) {
           setLeadData((current) => (current ? mergeLeadRecordIntoDemoData(fullLead, current) : current));
+          if (TERMINAL_SCAN_STATUSES.has(fullLead.scan_status || "")) {
+            setIsScanning(false);
+          }
         }
       } catch (err) {
         console.error("Scan error:", err);
@@ -353,7 +381,7 @@ const DemoSite = () => {
     const nameParam = searchParams.get("name");
     const nicheParam = searchParams.get("niche");
 
-    if (!urlParam || latestLeadData) return;
+    if (!urlParam || latestLeadData || leadIdParam) return;
 
     let cancelled = false;
     const seededLeadData = buildSeedLeadData({
@@ -411,7 +439,7 @@ const DemoSite = () => {
 
           setLeadData((current) => (current ? mergeLeadRecordIntoDemoData(fullLead, current) : current));
 
-          if (["completed", "enriched", "failed"].includes(fullLead.scan_status || "")) {
+          if (TERMINAL_SCAN_STATUSES.has(fullLead.scan_status || "")) {
             setIsScanning(false);
           }
         };
@@ -447,7 +475,7 @@ const DemoSite = () => {
     return () => {
       cancelled = true;
     };
-  }, [callerPhoneParam, latestLeadData, prospectIdParam, searchParams.toString()]);
+  }, [callerPhoneParam, latestLeadData, leadIdParam, prospectIdParam, searchParams.toString()]);
 
   useEffect(() => {
     if (latestLeadData || !leadIdParam) return;
@@ -469,7 +497,7 @@ const DemoSite = () => {
         callerPhone: callerPhoneParam,
       })));
 
-      if (!["completed", "enriched", "failed"].includes(data.scan_status || "")) {
+      if (!TERMINAL_SCAN_STATUSES.has(data.scan_status || "")) {
         setIsScanning(true);
       }
     };
@@ -514,7 +542,7 @@ const DemoSite = () => {
 
       setLeadData((current) => (current ? mergeLeadRecordIntoDemoData(data, current) : current));
 
-      if (["completed", "enriched", "failed"].includes(data.scan_status || "")) {
+      if (TERMINAL_SCAN_STATUSES.has(data.scan_status || "")) {
         setIsScanning(false);
       }
     };
