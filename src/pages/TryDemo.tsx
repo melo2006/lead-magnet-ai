@@ -218,11 +218,9 @@ const TryDemo = () => {
         toast({ title: t("tryDemo.loadingDemo"), description: t("tryDemo.openingSaved") });
       }
 
-      const { data: updatedLead } = await supabase
-        .from("leads")
-        .select("*")
-        .eq("id", leadId)
-        .single();
+      const { data: updatedLead } = await (supabase as any)
+        .rpc("get_demo_lead", { _lead_id: leadId })
+        .maybeSingle();
 
       const leadData: DemoLeadData = {
         leadId,

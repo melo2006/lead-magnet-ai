@@ -328,32 +328,30 @@ const DemoSite = () => {
 
     const scanWebsite = async () => {
       try {
-        const { data: insertedLead, error: insertError } = await supabase
-          .from("leads")
-          .insert({
-            full_name: "CRM Prospect",
-            business_name: nameParam || "Business",
-            website_url: urlParam,
-            niche: nicheParam || "general",
-            scan_status: "pending",
-          })
-          .select("id")
-          .single();
+        const { data: insertedLeadId, error: insertError } = await (supabase as any).rpc("create_demo_lead", {
+          _business_name: nameParam || "Business",
+          _full_name: "CRM Prospect",
+          _phone: null,
+          _email: null,
+          _website_url: urlParam,
+          _niche: nicheParam || "general",
+          _secondary_url: null,
+          _scan_status: "pending",
+        });
 
         if (insertError) throw insertError;
+        if (!insertedLeadId) throw new Error("Demo lead was not created");
 
         if (cancelled) return;
 
         setLeadData((current) => ({
           ...(current || seededLeadData),
-          leadId: insertedLead.id,
+          leadId: insertedLeadId,
         }));
 
         const syncLeadRecord = async () => {
-          const { data: fullLead, error: fetchError } = await supabase
-            .from("leads")
-            .select("id, full_name, business_name, email, phone, niche, website_url, website_screenshot, screenshot_tablet, screenshot_mobile, website_title, website_description, website_content, brand_colors, brand_logo, scan_status")
-            .eq("id", insertedLead.id)
+          const { data: fullLead, error: fetchError } = await (supabase as any)
+            .rpc("get_demo_lead", { _lead_id: insertedLeadId })
             .maybeSingle();
 
           if (fetchError || !fullLead || cancelled) return;
@@ -368,7 +366,7 @@ const DemoSite = () => {
         void supabase.functions.invoke("scan-website", {
           body: {
             websiteUrl: urlParam,
-            leadId: insertedLead.id,
+            leadId: insertedLeadId,
             initialNiche: nicheParam || "general",
             businessName: nameParam || "",
           },
@@ -404,10 +402,8 @@ const DemoSite = () => {
     let cancelled = false;
 
     const loadExistingLead = async () => {
-      const { data, error } = await supabase
-        .from("leads")
-        .select("id, updated_at, full_name, business_name, email, phone, niche, website_url, website_screenshot, screenshot_tablet, screenshot_mobile, website_title, website_description, website_content, brand_colors, brand_logo, scan_status")
-        .eq("id", leadIdParam)
+      const { data, error } = await (supabase as any)
+        .rpc("get_demo_lead", { _lead_id: leadIdParam })
         .maybeSingle();
 
       if (error || !data || cancelled) return;
@@ -457,10 +453,8 @@ const DemoSite = () => {
     let cancelled = false;
 
     const syncLeadRecord = async () => {
-      const { data, error } = await supabase
-        .from("leads")
-        .select("id, full_name, business_name, email, phone, niche, website_url, website_screenshot, screenshot_tablet, screenshot_mobile, website_title, website_description, website_content, brand_colors, brand_logo, scan_status")
-        .eq("id", leadId)
+      const { data, error } = await (supabase as any)
+        .rpc("get_demo_lead", { _lead_id: leadId })
         .maybeSingle();
 
       if (error || !data || cancelled) return;
