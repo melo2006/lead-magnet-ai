@@ -205,28 +205,50 @@ const TryDemo = () => {
   }
 
   return (
-    <div className="min-h-screen bg-background flex flex-col items-center justify-center px-4 py-8 relative overflow-hidden">
+    <div className="min-h-screen bg-background flex flex-col items-center px-4 pt-20 pb-8 relative overflow-hidden">
+      {/* Sticky header */}
+      <header className="fixed top-0 inset-x-0 z-50 bg-background/80 backdrop-blur-md border-b border-border/60">
+        <div className="max-w-6xl mx-auto flex items-center justify-between px-4 h-14">
+          <button
+            type="button"
+            onClick={() => navigate("/")}
+            className="inline-flex items-center gap-2 hover:opacity-80 transition-opacity"
+            aria-label="Back to home"
+          >
+            <img src="/favicon.png" alt="AI Hidden Leads" className="w-6 h-6" />
+            <span className="text-sm font-extrabold tracking-tight text-foreground">
+              AI <span className="text-primary">Hidden</span> Leads
+            </span>
+          </button>
+          <div className="flex items-center gap-1">
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate(-1)}
+              className="h-8 px-2 text-xs gap-1"
+            >
+              <ArrowLeft className="w-3.5 h-3.5" /> Back
+            </Button>
+            <Button
+              variant="ghost"
+              size="sm"
+              onClick={() => navigate("/")}
+              className="h-8 px-2 text-xs gap-1"
+            >
+              <Home className="w-3.5 h-3.5" /> Home
+            </Button>
+          </div>
+        </div>
+      </header>
+
       {/* Background glow */}
       <div className="absolute inset-0 pointer-events-none">
         <div className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] rounded-full bg-primary/8 blur-[120px]" />
         <div className="absolute bottom-0 right-0 w-[300px] h-[300px] rounded-full bg-accent/5 blur-[100px]" />
       </div>
 
-      <div className="relative z-10 w-full max-w-lg mx-auto text-center">
-        {/* Logo */}
-        <motion.div
-          initial={{ opacity: 0, y: -10 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.4 }}
-          className="mb-4"
-        >
-          <div className="inline-flex items-center gap-2">
-            <img src="/favicon.png" alt="AI Hidden Leads" className="w-7 h-7" />
-            <span className="text-sm font-semibold tracking-tight text-muted-foreground">
-              AI <span className="text-primary">Hidden</span> Leads
-            </span>
-          </div>
-        </motion.div>
+      <div className="relative z-10 w-full max-w-lg mx-auto text-center my-auto">
+
 
         {/* Headline */}
         <motion.div
