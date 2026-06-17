@@ -54,7 +54,7 @@ const extractBusinessName = (url: string): string => {
 
 const formSchema = z.object({
   fullName: z.string().trim().min(1, "Enter your name"),
-  phone: z.string().trim().min(7, "Enter a valid phone number"),
+  phone: z.string().trim().max(30).optional().or(z.literal("")),
   email: z.string().trim().email("Enter a valid email").optional().or(z.literal("")),
   url: z
     .string()
