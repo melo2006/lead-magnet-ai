@@ -361,7 +361,7 @@ const TryDemo = () => {
           <Button
             type="submit"
             size="lg"
-            disabled={isSubmitting || !url.trim() || !fullName.trim() || !phone.trim()}
+            disabled={isSubmitting || !url.trim() || !fullName.trim()}
             className="w-full h-14 text-base font-bold rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-[0_0_30px_-5px_hsl(var(--primary)/0.4)] hover:shadow-[0_0_40px_-5px_hsl(var(--primary)/0.6)] transition-all"
           >
             {isSubmitting ? (
