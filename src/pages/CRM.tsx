@@ -4,6 +4,7 @@ import type { Session } from "@supabase/supabase-js";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { CRMSidebar } from "@/components/crm/CRMSidebar";
 import { supabase } from "@/integrations/supabase/client";
+import { lovable } from "@/integrations/lovable";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -28,6 +29,18 @@ const AdminLogin = () => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+
+  const handleGoogleLogin = async () => {
+    setLoading(true);
+    const result = await lovable.auth.signInWithOAuth("google", {
+      redirect_uri: `${window.location.origin}/dashboard/calls`,
+    });
+    setLoading(false);
+
+    if (result.error) {
+      toast.error("Google sign-in failed", { description: result.error.message });
+    }
+  };
 
   const handleLogin = async (event: FormEvent) => {
     event.preventDefault();
@@ -56,7 +69,17 @@ const AdminLogin = () => {
           <CardTitle className="text-lg">Admin sign in</CardTitle>
         </CardHeader>
         <CardContent>
-          <form onSubmit={handleLogin} className="space-y-3">
+          <div className="space-y-3">
+            <Button type="button" className="w-full" onClick={handleGoogleLogin} disabled={loading}>
+              Continue with Google
+            </Button>
+            <div className="flex items-center gap-3 text-[10px] uppercase tracking-wider text-muted-foreground">
+              <div className="h-px flex-1 bg-border" />
+              Or email
+              <div className="h-px flex-1 bg-border" />
+            </div>
+          </div>
+          <form onSubmit={handleLogin} className="mt-3 space-y-3">
             <Input
               type="email"
               autoComplete="email"
