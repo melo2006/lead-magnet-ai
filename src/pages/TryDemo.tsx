@@ -54,7 +54,7 @@ const extractBusinessName = (url: string): string => {
 
 const formSchema = z.object({
   fullName: z.string().trim().min(1, "Enter your name"),
-  phone: z.string().trim().min(7, "Enter a valid phone number"),
+  phone: z.string().trim().max(30).optional().or(z.literal("")),
   email: z.string().trim().email("Enter a valid email").optional().or(z.literal("")),
   url: z
     .string()
@@ -316,7 +316,7 @@ const TryDemo = () => {
             <div className="relative">
               <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
-                placeholder="(954) 555-1234 *"
+                placeholder="(954) 555-1234 (optional)"
                 type="tel"
                 value={phone}
                 onChange={(e) => setPhone(formatPhoneNumber(e.target.value))}
@@ -325,6 +325,10 @@ const TryDemo = () => {
               />
             </div>
           </div>
+          <p className="text-[11px] text-muted-foreground -mt-1 pl-1">
+            Phone is optional — try Aspen instantly in your browser (free, works worldwide). Add a number only if you want a live phone call too.
+          </p>
+
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* Website */}
@@ -361,7 +365,7 @@ const TryDemo = () => {
           <Button
             type="submit"
             size="lg"
-            disabled={isSubmitting || !url.trim() || !fullName.trim() || !phone.trim()}
+            disabled={isSubmitting || !url.trim() || !fullName.trim()}
             className="w-full h-14 text-base font-bold rounded-xl bg-primary hover:bg-primary/90 text-primary-foreground shadow-[0_0_30px_-5px_hsl(var(--primary)/0.4)] hover:shadow-[0_0_40px_-5px_hsl(var(--primary)/0.6)] transition-all"
           >
             {isSubmitting ? (
