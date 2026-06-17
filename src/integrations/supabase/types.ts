@@ -1517,6 +1517,7 @@ export type Database = {
           website_url: string
         }[]
       }
+      is_admin_email: { Args: { _email: string }; Returns: boolean }
       refresh_prospect_enrichment_job: {
         Args: { _job_id: string }
         Returns: {
