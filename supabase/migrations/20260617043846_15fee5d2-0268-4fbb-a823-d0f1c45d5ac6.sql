@@ -1,0 +1,1 @@
+DROP FUNCTION IF EXISTS public.create_demo_lead(text, text, text, text, text, text);

@@ -1482,31 +1482,19 @@ export type Database = {
           isSetofReturn: true
         }
       }
-      create_demo_lead:
-        | {
-            Args: {
-              _business_name: string
-              _email: string
-              _full_name: string
-              _niche?: string
-              _phone: string
-              _website_url: string
-            }
-            Returns: string
-          }
-        | {
-            Args: {
-              _business_name: string
-              _email: string
-              _full_name: string
-              _niche?: string
-              _phone: string
-              _scan_status?: string
-              _secondary_url?: string
-              _website_url: string
-            }
-            Returns: string
-          }
+      create_demo_lead: {
+        Args: {
+          _business_name: string
+          _email: string
+          _full_name: string
+          _niche?: string
+          _phone: string
+          _scan_status?: string
+          _secondary_url?: string
+          _website_url: string
+        }
+        Returns: string
+      }
       get_demo_lead: {
         Args: { _lead_id: string }
         Returns: {

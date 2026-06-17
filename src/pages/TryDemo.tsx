@@ -129,67 +129,7 @@ const TryDemo = () => {
     setIsSubmitting(true);
 
     try {
-      // Check for a cached scan of this URL (scanned within last 7 days with content)
-      const CACHE_MAX_AGE_DAYS = 7;
-      const cacheThreshold = new Date(Date.now() - CACHE_MAX_AGE_DAYS * 86400000).toISOString();
-
-      const { data: cachedLead } = await supabase
-        .from("leads")
-        .select("*")
-        .eq("website_url", websiteUrl)
-        .in("scan_status", ["complete", "completed", "enriched"])
-        .not("website_content", "is", null)
-        .not("website_screenshot", "is", null)
-        .not("screenshot_tablet", "is", null)
-        .not("screenshot_mobile", "is", null)
-        .gte("updated_at", cacheThreshold)
-        .order("updated_at", { ascending: false })
-        .limit(1)
-        .maybeSingle();
-
-      if (cachedLead) {
-        console.log("Cache hit — reusing existing scan for", websiteUrl);
-
-        // Insert through a safe backend helper; public users cannot read the private leads table directly.
-        const { data: newLeadId } = await (supabase as any).rpc("create_demo_lead", {
-          _business_name: cachedLead.business_name || businessName,
-          _full_name: name,
-          _phone: ph,
-          _email: em || null,
-          _website_url: websiteUrl,
-          _niche: cachedLead.niche || "general",
-        });
-
-        const leadId = newLeadId || cachedLead.id;
-
-        const leadData: DemoLeadData = {
-          leadId,
-          previewVersion: cachedLead.updated_at ?? new Date().toISOString(),
-          fullName: name,
-          phone: ph,
-          email: em || undefined,
-          businessName: cachedLead.business_name || businessName,
-          websiteUrl,
-          niche: cachedLead.niche || "general",
-          screenshot: cachedLead.website_screenshot ?? undefined,
-          screenshotTablet: (cachedLead as any).screenshot_tablet ?? undefined,
-          screenshotMobile: (cachedLead as any).screenshot_mobile ?? undefined,
-          title: cachedLead.website_title ?? undefined,
-          description: cachedLead.website_description ?? undefined,
-          websiteContent: cachedLead.website_content ?? undefined,
-          colors: cachedLead.brand_colors && typeof cachedLead.brand_colors === "object" && !Array.isArray(cachedLead.brand_colors)
-            ? (cachedLead.brand_colors as Record<string, string | undefined>)
-            : undefined,
-          logo: cachedLead.brand_logo ?? undefined,
-        };
-
-        setScanData(leadData);
-        setIsScanning(true);
-        try { localStorage.setItem(LAST_DEMO_STORAGE_KEY, JSON.stringify(leadData)); } catch {}
-        return;
-      }
-
-      // No cache — full scan flow
+      // Always use the safe public demo helper. Public visitors cannot query the private leads table directly.
       const { data: leadId, error } = await (supabase as any).rpc("create_demo_lead", {
         _business_name: businessName,
         _full_name: name,
