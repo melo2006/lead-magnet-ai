@@ -824,18 +824,21 @@ const DemoSite = () => {
             </button>
           </div>
 
-          {/* Right: CTA info button */}
-          <button
-            onClick={() => navigate("/#pricing")}
-            className="group relative shrink-0 overflow-hidden rounded-xl border border-primary/50 bg-primary px-3 py-1.5 text-left text-primary-foreground transition-all hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20 sm:px-4 sm:py-2"
-          >
-            <p className="text-[10px] font-extrabold uppercase leading-tight tracking-wide sm:text-xs">
-              {t("demo.getMoreInfo")}
-            </p>
-            <p className="text-[8px] font-medium leading-tight text-primary-foreground/80 sm:text-[9px]">
-              {t("demo.brandTag")}
-            </p>
-          </button>
+          {/* Right: language + CTA */}
+          <div className="flex shrink-0 items-center gap-1.5">
+            <LanguageSwitcher variant="full" className="h-9 border border-border/50 bg-background/60" />
+            <button
+              onClick={() => navigate("/#pricing")}
+              className="group relative hidden overflow-hidden rounded-xl border border-primary/50 bg-primary px-3 py-1.5 text-left text-primary-foreground transition-all hover:bg-primary/90 hover:shadow-lg hover:shadow-primary/20 sm:block sm:px-4 sm:py-2"
+            >
+              <p className="text-[10px] font-extrabold uppercase leading-tight tracking-wide sm:text-xs">
+                {t("demo.getMoreInfo")}
+              </p>
+              <p className="text-[8px] font-medium leading-tight text-primary-foreground/80 sm:text-[9px]">
+                {t("demo.brandTag")}
+              </p>
+            </button>
+          </div>
 
         </div>
 
