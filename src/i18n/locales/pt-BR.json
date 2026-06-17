@@ -113,10 +113,22 @@
     "title2": "Silêncio",
     "sub": "Cada ligação que cai na caixa postal é dinheiro indo embora. Veja o que os dados mostram sobre o seu setor.",
     "cards": {
-      "unanswered": { "label": "das ligações ficam sem resposta", "sublabel": "durante o horário comercial" },
-      "lost": { "label": "perdidos por ligação não atendida", "sublabel": "impacto médio na receita" },
-      "response": { "label": "tempo médio de resposta", "sublabel": "sem assistente de IA" },
-      "firstResponder": { "label": "compram de quem responde primeiro", "sublabel": "velocidade ganha sempre" }
+      "unanswered": {
+        "label": "das ligações ficam sem resposta",
+        "sublabel": "durante o horário comercial"
+      },
+      "lost": {
+        "label": "perdidos por ligação não atendida",
+        "sublabel": "impacto médio na receita"
+      },
+      "response": {
+        "label": "tempo médio de resposta",
+        "sublabel": "sem assistente de IA"
+      },
+      "firstResponder": {
+        "label": "compram de quem responde primeiro",
+        "sublabel": "velocidade ganha sempre"
+      }
     }
   },
   "how": {
@@ -280,12 +292,30 @@
     "free": "Grátis",
     "noSignup": "Sem cadastro obrigatório",
     "benefits": {
-      "transfer": { "label": "Transferência Ao Vivo", "desc": "A IA transfere leads quentes para você com resumo completo" },
-      "sms": { "label": "SMS Após Cada Ligação", "desc": "Receba uma mensagem instantânea com detalhes e resumo do lead" },
-      "email": { "label": "Resumo por E-mail", "desc": "Recap completo da ligação enviado por e-mail após cada conversa" },
-      "crm": { "label": "Captura de Leads e CRM", "desc": "Todo lead fica salvo — use nosso CRM ou integre o seu" },
-      "receptionist": { "label": "Recepcionista IA 24/7", "desc": "Nunca perca ligação — a IA atende e agenda horários" },
-      "capture": { "label": "Captura Instantânea", "desc": "Converte visitantes do site em chamadas agendadas" }
+      "transfer": {
+        "label": "Transferência Ao Vivo",
+        "desc": "A IA transfere leads quentes para você com resumo completo"
+      },
+      "sms": {
+        "label": "SMS Após Cada Ligação",
+        "desc": "Receba uma mensagem instantânea com detalhes e resumo do lead"
+      },
+      "email": {
+        "label": "Resumo por E-mail",
+        "desc": "Recap completo da ligação enviado por e-mail após cada conversa"
+      },
+      "crm": {
+        "label": "Captura de Leads e CRM",
+        "desc": "Todo lead fica salvo — use nosso CRM ou integre o seu"
+      },
+      "receptionist": {
+        "label": "Recepcionista IA 24/7",
+        "desc": "Nunca perca ligação — a IA atende e agenda horários"
+      },
+      "capture": {
+        "label": "Captura Instantânea",
+        "desc": "Converte visitantes do site em chamadas agendadas"
+      }
     }
   },
   "scan": {
@@ -304,20 +334,56 @@
     "transferSpecialist": "te transferir para um especialista de vendas",
     "questionsSuffix": "a qualquer momento durante a demo.",
     "steps": {
-      "content": { "label": "Escaneando o conteúdo do site", "detail": "Lendo páginas, serviços e informações de contato…" },
-      "presence": { "label": "Analisando sua presença online", "detail": "Capturando imagens e detalhes da marca…" },
-      "voice": { "label": "Preparando a demo de Voz de IA", "detail": "Uma nova forma de nunca perder uma ligação de cliente." },
-      "chat": { "label": "Configurando o Chat de IA", "detail": "Respostas instantâneas transformam visitantes em leads capturados." },
-      "transfer": { "label": "Ativando transferências ao vivo", "detail": "Leads quentes são conectados com uma pessoa rapidamente." },
-      "final": { "label": "Finalizando sua demo ao vivo", "detail": "Veja como a IA captura leads que você pode estar perdendo hoje." }
+      "content": {
+        "label": "Escaneando o conteúdo do site",
+        "detail": "Lendo páginas, serviços e informações de contato…"
+      },
+      "presence": {
+        "label": "Analisando sua presença online",
+        "detail": "Capturando imagens e detalhes da marca…"
+      },
+      "voice": {
+        "label": "Preparando a demo de Voz de IA",
+        "detail": "Uma nova forma de nunca perder uma ligação de cliente."
+      },
+      "chat": {
+        "label": "Configurando o Chat de IA",
+        "detail": "Respostas instantâneas transformam visitantes em leads capturados."
+      },
+      "transfer": {
+        "label": "Ativando transferências ao vivo",
+        "detail": "Leads quentes são conectados com uma pessoa rapidamente."
+      },
+      "final": {
+        "label": "Finalizando sua demo ao vivo",
+        "detail": "Veja como a IA captura leads que você pode estar perdendo hoje."
+      }
     },
     "benefits": {
-      "missCall": { "headline": "Nunca Mais Perca Uma Ligação", "body": "Sua recepcionista de IA atende 24/7 — noites, fins de semana e feriados — para transformar cada ligação em oportunidade." },
-      "appointments": { "headline": "Agendamentos Instantâneos", "body": "A IA agenda, remarca e faz follow-up automaticamente. Chega de ficar tentando falar por telefone." },
-      "moreLeads": { "headline": "Capture 2–5x Mais Leads", "body": "Muitos negócios perdem 40% das ligações. Com a IA atendendo tudo, 1–2 leads extras por mês já podem pagar o sistema." },
-      "liveFast": { "headline": "No Ar em 1–2 Dias", "body": "O setup é rápido e simples. Seu agente de IA é treinado no seu negócio e fica pronto para atender em até 48 horas." },
-      "warmTransfer": { "headline": "Transferência Ao Vivo Para Você", "body": "Quando um lead quente está na linha, a IA transfere ao vivo para você ou sua equipe com um resumo completo." },
-      "chatAi": { "headline": "Chat de IA no Seu Site", "body": "Visitantes recebem respostas instantâneas sobre serviços, preços e disponibilidade — convertendo curiosos em agendamentos." }
+      "missCall": {
+        "headline": "Nunca Mais Perca Uma Ligação",
+        "body": "Sua recepcionista de IA atende 24/7 — noites, fins de semana e feriados — para transformar cada ligação em oportunidade."
+      },
+      "appointments": {
+        "headline": "Agendamentos Instantâneos",
+        "body": "A IA agenda, remarca e faz follow-up automaticamente. Chega de ficar tentando falar por telefone."
+      },
+      "moreLeads": {
+        "headline": "Capture 2–5x Mais Leads",
+        "body": "Muitos negócios perdem 40% das ligações. Com a IA atendendo tudo, 1–2 leads extras por mês já podem pagar o sistema."
+      },
+      "liveFast": {
+        "headline": "No Ar em 1–2 Dias",
+        "body": "O setup é rápido e simples. Seu agente de IA é treinado no seu negócio e fica pronto para atender em até 48 horas."
+      },
+      "warmTransfer": {
+        "headline": "Transferência Ao Vivo Para Você",
+        "body": "Quando um lead quente está na linha, a IA transfere ao vivo para você ou sua equipe com um resumo completo."
+      },
+      "chatAi": {
+        "headline": "Chat de IA no Seu Site",
+        "body": "Visitantes recebem respostas instantâneas sobre serviços, preços e disponibilidade — convertendo curiosos em agendamentos."
+      }
     }
   },
   "footer": {
@@ -399,5 +465,53 @@
     "dismiss": "Dispensar",
     "transferConnecting": "Conectando você com {{owner}}... Seu telefone vai tocar em instantes.",
     "transferHint": "Atenda a ligação para entrar na conferência ao vivo."
+  },
+  "faqSection": {
+    "badge": "AJUDA E PERGUNTAS",
+    "title": "Perguntas? Temos respostas.",
+    "subtitle": "Preços, limites, excedentes, fontes de leads e como tudo funciona — explicado de forma clara.",
+    "footer": "Ainda tem dúvidas? Fale com a Aspen (canto inferior direito) ou role para cima para agendar uma demo ao vivo.",
+    "items": [
+      {
+        "q": "O que exatamente conta como uma 'interação de IA' no plano de $99?",
+        "a": "Uma interação de IA = uma conversa no seu site (voz ou chat) de até 5 minutos. O plano AI Essentials de $99 inclui 100 interações por mês — suficiente para cobrir o tráfego da maioria dos pequenos negócios. Se ultrapassar, conversas adicionais custam apenas $0,50 cada, para que você nunca perca um lead. Você recebe um aviso amigável por SMS aos 80 e novamente aos 100 atendimentos."
+      },
+      {
+        "q": "O que acontece se eu ultrapassar meus limites mensais?",
+        "a": "Usamos um limite flexível com avisos por SMS, sem corte total. Aos 80% de uso você recebe um aviso, aos 100% outro SMS, e qualquer uso extra é cobrado automaticamente no fim do mês com tarifas transparentes: $0,50 por conversa de IA extra, ~$0,02/min para transferências telefônicas humanas via Twilio, $0,015 por SMS. Você pode definir seu próprio teto fixo nas configurações se preferir previsibilidade em vez de cobertura."
+      },
+      {
+        "q": "Quanto custa uma transferência ao vivo para um humano?",
+        "a": "Transferências telefônicas ao vivo usam a Twilio a custo — aproximadamente $0,02 por minuto. Uma ligação típica de 4–5 minutos adiciona cerca de $0,10. Mesmo com uso intenso, raramente passa de $30–$90/mês, e cobramos de forma transparente a custo, sem markup."
+      },
+      {
+        "q": "De onde vêm os 50 novos leads do plano Growth Engine?",
+        "a": "Buscamos leads B2B em diretórios públicos de empresas — Google Maps, Apollo.io, páginas de empresas do LinkedIn, Yelp e diretórios setoriais. Cada lead é verificado com telefone real via Twilio line-type lookup e e-mail comercial válido antes da entrega. São 100% B2B (empresas, não consumidores), em total conformidade com CAN-SPAM e TCPA, com opção de descadastro em cada mensagem. Sem dados de mercado cinza, sem scraping de informações privadas."
+      },
+      {
+        "q": "E se eu precisar de mais de 50 leads por mês?",
+        "a": "Leads B2B verificados adicionais custam $1,50 cada (nosso custo é $0,30–$0,80, cobrados com margem honesta). Basta nos informar seu volume desejado e configuramos a cobrança de excedente ou movemos você para o plano Full Service, onde a geração de leads é ilimitada e cuidamos da prospecção para você."
+      },
+      {
+        "q": "Que voz a Aspen usa? É uma IA cara?",
+        "a": "A Aspen usa Retell AI com ElevenLabs Flash v2.5 — uma voz premium a baixo custo (~$0,06/minuto no total). Por isso conseguimos oferecer 100 conversas no plano de $99 mantendo margens saudáveis sem perder qualidade."
+      },
+      {
+        "q": "Quanto tempo dura uma conversa típica com a IA?",
+        "a": "A maioria das conversas com leads no site dura 2–4 minutos. Uma transferência ao vivo para humano normalmente dura 4–6 minutos. Reservamos 5 minutos por interação no seu plano, o que cobre a grande maioria das conversas reais."
+      },
+      {
+        "q": "O SMS está incluído? E o limite da operadora de 1 SMS/segundo?",
+        "a": "Sim — SMS é incluído para recapitulações, respostas de leads e avisos de excedente. Usamos Twilio com registro A2P 10DLC para que suas mensagens sejam devidamente registradas nas operadoras, entreguem de forma confiável e respeitem o limite por segundo. Todo SMS inclui 'Responda STOP para sair', conforme exigido pelo TCPA."
+      },
+      {
+        "q": "Em quanto tempo entram no ar?",
+        "a": "2–3 dias úteis para AI Essentials e Growth Engine. Full Service em 5–7 dias úteis porque também configuramos suas sequências de prospecção, importações de CRM e roteamento de transferências ao vivo."
+      },
+      {
+        "q": "Posso cancelar a qualquer momento?",
+        "a": "Sim. Mensal, cancele quando quiser pelo painel. Sem contratos de longo prazo, sem multas."
+      }
+    ]
   }
 }
