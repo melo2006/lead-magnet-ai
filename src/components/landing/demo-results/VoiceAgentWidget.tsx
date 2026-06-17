@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { Mic, MicOff, Phone, PhoneOff, Loader2, Maximize2, Minimize2, X, Volume2, VolumeX, Bluetooth, Speaker, Smartphone, Pause, Play, RotateCcw, Mail } from "lucide-react";
+import { Mic, MicOff, Phone, PhoneOff, Loader2, Maximize2, Minimize2, X, Volume2, VolumeX, Bluetooth, Speaker, Smartphone, Pause, Play, RotateCcw, Mail, MessageCircle } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Slider } from "@/components/ui/slider";
@@ -589,10 +589,33 @@ const VoiceAgentWidget = ({
       if (error || !data?.success) {
         throw new Error(data?.error || "Failed to send recap email");
       }
+
+      const whatsappPhone = isLikelyCallablePhoneNumber(callerPhone) ? normalizePhoneNumber(callerPhone || "") : "";
+      let whatsappWarning = "";
+      if (whatsappPhone) {
+        const { data: whatsappData, error: whatsappError } = await supabase.functions.invoke("send-demo-recap-whatsapp", {
+          body: {
+            leadId,
+            phone: whatsappPhone,
+            fullName: callerName || "",
+            businessName,
+            websiteUrl,
+            demoUrl: typeof window !== "undefined" ? window.location.href : websiteUrl,
+          },
+        });
+        if (whatsappError || !whatsappData?.success) {
+          whatsappWarning = whatsappData?.error || whatsappError?.message || "WhatsApp was not delivered.";
+        }
+      }
+
       setRecapSent(true);
       toast({
-        title: "📧 Recap sent!",
-        description: `Delivered to ${data.emailDeliveredTo?.join(", ") || "your inbox"}.`,
+        title: whatsappPhone && !whatsappWarning ? "📧 WhatsApp recap sent!" : "📧 Recap sent!",
+        description: whatsappWarning
+          ? `Email delivered to ${data.emailDeliveredTo?.join(", ") || "your inbox"}. WhatsApp: ${whatsappWarning}`
+          : whatsappPhone
+            ? `Delivered to ${data.emailDeliveredTo?.join(", ") || "your inbox"} and WhatsApp ${whatsappPhone}.`
+            : `Delivered to ${data.emailDeliveredTo?.join(", ") || "your inbox"}.`,
       });
     } catch (err) {
       toast({
@@ -603,7 +626,7 @@ const VoiceAgentWidget = ({
     } finally {
       setIsSendingRecap(false);
     }
-  }, [lastCallHistoryId, isSendingRecap, recapSent, toast]);
+  }, [businessName, callerName, callerPhone, lastCallHistoryId, isSendingRecap, leadId, recapSent, toast, websiteUrl]);
 
   useEffect(() => {
     return () => {
@@ -945,8 +968,8 @@ const VoiceAgentWidget = ({
                   disabled={isSendingRecap}
                   className="flex w-full items-center justify-center gap-2 rounded-xl border border-primary/20 bg-primary/5 px-4 py-2.5 text-xs font-medium text-primary transition-colors hover:bg-primary/10"
                 >
-                  {isSendingRecap ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Mail className="h-3.5 w-3.5" />}
-                  {isSendingRecap ? t("demo.sendingRecap") : t("demo.sendRecap")}
+                  {isSendingRecap ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : isLikelyCallablePhoneNumber(callerPhone) ? <MessageCircle className="h-3.5 w-3.5" /> : <Mail className="h-3.5 w-3.5" />}
+                  {isSendingRecap ? t("demo.sendingRecap") : isLikelyCallablePhoneNumber(callerPhone) ? "Send email + WhatsApp recap" : t("demo.sendRecap")}
                 </button>
               )}
               {recapSent && (

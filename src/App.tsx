@@ -1,4 +1,5 @@
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { Suspense, lazy } from "react";
 import { BrowserRouter, Navigate, Route, Routes } from "react-router-dom";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { Toaster } from "@/components/ui/toaster";
@@ -10,12 +11,12 @@ import CRM from "./pages/CRM.tsx";
 import TryDemo from "./pages/TryDemo.tsx";
 import PrivacyPolicy from "./pages/PrivacyPolicy.tsx";
 import TermsOfService from "./pages/TermsOfService.tsx";
-import AdPreviews from "./pages/AdPreviews.tsx";
 import Checkout from "./pages/Checkout.tsx";
 import CheckoutReturn from "./pages/CheckoutReturn.tsx";
-import MarketingHub from "./pages/MarketingHub.tsx";
 import ShortLinkRedirect from "./pages/ShortLinkRedirect.tsx";
 
+const AdPreviews = lazy(() => import("./pages/AdPreviews.tsx"));
+const MarketingHub = lazy(() => import("./pages/MarketingHub.tsx"));
 
 const queryClient = new QueryClient();
 
@@ -39,23 +40,25 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <ScrollToTop />
-        <Routes>
-          <Route path="/" element={<Index />} />
-          <Route path="/demo-site" element={<DemoSite />} />
-          <Route path="/demo" element={<TryDemo />} />
-          <Route path="/privacy" element={<PrivacyPolicy />} />
-          <Route path="/terms" element={<TermsOfService />} />
-          <Route path="/ad-previews" element={<AdPreviews />} />
-          <Route path="/marketing" element={<MarketingHub />} />
-          <Route path="/checkout" element={<Checkout />} />
-          <Route path="/checkout/return" element={<CheckoutReturn />} />
-          <Route path="/d/:slug" element={<ShortLinkRedirect />} />
-          <Route path="/dashboard/*" element={<CRM />} />
-          {legacyCrmRedirects.map(({ path, to }) => (
-            <Route key={path} path={path} element={<Navigate to={to} replace />} />
-          ))}
-          <Route path="*" element={<Navigate to="/" replace />} />
-        </Routes>
+        <Suspense fallback={<div className="min-h-screen bg-background" />}>
+          <Routes>
+            <Route path="/" element={<Index />} />
+            <Route path="/demo-site" element={<DemoSite />} />
+            <Route path="/demo" element={<TryDemo />} />
+            <Route path="/privacy" element={<PrivacyPolicy />} />
+            <Route path="/terms" element={<TermsOfService />} />
+            <Route path="/ad-previews" element={<AdPreviews />} />
+            <Route path="/marketing" element={<MarketingHub />} />
+            <Route path="/checkout" element={<Checkout />} />
+            <Route path="/checkout/return" element={<CheckoutReturn />} />
+            <Route path="/d/:slug" element={<ShortLinkRedirect />} />
+            <Route path="/dashboard/*" element={<CRM />} />
+            {legacyCrmRedirects.map(({ path, to }) => (
+              <Route key={path} path={path} element={<Navigate to={to} replace />} />
+            ))}
+            <Route path="*" element={<Navigate to="/" replace />} />
+          </Routes>
+        </Suspense>
       </BrowserRouter>
     </TooltipProvider>
   </QueryClientProvider>
