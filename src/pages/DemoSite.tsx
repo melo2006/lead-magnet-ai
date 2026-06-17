@@ -316,6 +316,18 @@ const DemoSite = () => {
     const runScan = async () => {
       setIsScanning(true);
       try {
+        const { data: existingLead, error: existingError } = await (supabase as any)
+          .rpc("get_demo_lead", { _lead_id: leadData.leadId })
+          .maybeSingle();
+
+        if (!cancelled && !existingError && existingLead) {
+          setLeadData((current) => (current ? mergeLeadRecordIntoDemoData(existingLead, current) : current));
+          if (TERMINAL_SCAN_STATUSES.has(existingLead.scan_status || "")) {
+            setIsScanning(false);
+            return;
+          }
+        }
+
         const { error } = await supabase.functions.invoke("scan-website", {
           body: {
             leadId: leadData.leadId,
@@ -333,6 +345,9 @@ const DemoSite = () => {
 
         if (!cancelled && !fetchError && fullLead) {
           setLeadData((current) => (current ? mergeLeadRecordIntoDemoData(fullLead, current) : current));
+          if (TERMINAL_SCAN_STATUSES.has(fullLead.scan_status || "")) {
+            setIsScanning(false);
+          }
         }
       } catch (err) {
         console.error("Scan error:", err);
@@ -356,7 +371,7 @@ const DemoSite = () => {
     const nameParam = searchParams.get("name");
     const nicheParam = searchParams.get("niche");
 
-    if (!urlParam || latestLeadData) return;
+    if (!urlParam || latestLeadData || leadIdParam) return;
 
     let cancelled = false;
     const seededLeadData = buildSeedLeadData({
@@ -414,7 +429,7 @@ const DemoSite = () => {
 
           setLeadData((current) => (current ? mergeLeadRecordIntoDemoData(fullLead, current) : current));
 
-          if (["completed", "enriched", "failed"].includes(fullLead.scan_status || "")) {
+          if (TERMINAL_SCAN_STATUSES.has(fullLead.scan_status || "")) {
             setIsScanning(false);
           }
         };
@@ -450,7 +465,7 @@ const DemoSite = () => {
     return () => {
       cancelled = true;
     };
-  }, [callerPhoneParam, latestLeadData, prospectIdParam, searchParams.toString()]);
+  }, [callerPhoneParam, latestLeadData, leadIdParam, prospectIdParam, searchParams.toString()]);
 
   useEffect(() => {
     if (latestLeadData || !leadIdParam) return;
