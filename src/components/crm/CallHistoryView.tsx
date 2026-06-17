@@ -28,11 +28,13 @@ interface CallRecord {
   transfer_error: string | null;
   summary: string | null;
   transcript: string | null;
+  recording_url: string | null;
   duration_seconds: number | null;
   started_at: string;
   ended_at: string | null;
   created_at: string;
 }
+
 
 const statusColor = (status: string) => {
   switch (status) {
