@@ -325,6 +325,10 @@ const TryDemo = () => {
               />
             </div>
           </div>
+          <p className="text-[11px] text-muted-foreground -mt-1 pl-1">
+            Phone is optional — try Aspen instantly in your browser (free, works worldwide). Add a number only if you want a live phone call too.
+          </p>
+
 
           <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
             {/* Website */}
