@@ -19,6 +19,13 @@ import { toast } from "sonner";
 const DEFAULT_DEMO_OWNER_NAME = "your dedicated specialist";
 const LAST_DEMO_STORAGE_KEY = "lastDemoLeadData";
 const TERMINAL_SCAN_STATUSES = new Set(["completed", "enriched", "failed"]);
+const ACTIVE_SCAN_REUSE_MS = 5 * 60 * 1000;
+
+const isRecentlyScanning = (record: DemoLeadRecord) => {
+  if (record.scan_status !== "scanning" || !record.updated_at) return false;
+  const updatedAt = new Date(record.updated_at).getTime();
+  return Number.isFinite(updatedAt) && Date.now() - updatedAt < ACTIVE_SCAN_REUSE_MS;
+};
 
 const getHomepageUrl = (websiteUrl: string) => {
   try {
@@ -326,6 +333,9 @@ const DemoSite = () => {
             setIsScanning(false);
             return;
           }
+          if (isRecentlyScanning(existingLead)) {
+            return;
+          }
         }
 
         const { error } = await supabase.functions.invoke("scan-website", {
@@ -487,7 +497,7 @@ const DemoSite = () => {
         callerPhone: callerPhoneParam,
       })));
 
-      if (!["completed", "enriched", "failed"].includes(data.scan_status || "")) {
+      if (!TERMINAL_SCAN_STATUSES.has(data.scan_status || "")) {
         setIsScanning(true);
       }
     };
@@ -532,7 +542,7 @@ const DemoSite = () => {
 
       setLeadData((current) => (current ? mergeLeadRecordIntoDemoData(data, current) : current));
 
-      if (["completed", "enriched", "failed"].includes(data.scan_status || "")) {
+      if (TERMINAL_SCAN_STATUSES.has(data.scan_status || "")) {
         setIsScanning(false);
       }
     };
