@@ -168,7 +168,7 @@ const canChooseAudioOutput = () =>
   !isAndroidBrowser();
 
 const withTimeout = async <T,>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> => {
-  let timeoutId: ReturnType<typeof window.setTimeout> | undefined;
+  let timeoutId: number | undefined;
 
   try {
     return await Promise.race([
