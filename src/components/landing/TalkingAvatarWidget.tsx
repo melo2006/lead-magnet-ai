@@ -921,6 +921,7 @@ const TalkingAvatarWidget = () => {
   }, [isMuted]);
 
   const toggleAudioRoute = useCallback(async () => {
+    if (isAndroidBrowser()) return;
     const client = retellClientRef.current as any;
     if (!client) return;
     if (isRoutingAudio) return;
@@ -964,6 +965,7 @@ const TalkingAvatarWidget = () => {
     // resume an AudioContext SYNCHRONOUSLY here, while we still hold the
     // gesture, so subsequent audio playback is allowed.
     try {
+      if (isAndroidBrowser()) throw new Error("Use default Android audio route");
       const primer = document.createElement("audio");
       primer.src = SILENT_WAV_DATA_URI;
       primer.autoplay = true;
@@ -1004,6 +1006,7 @@ const TalkingAvatarWidget = () => {
       // Prime audio gesture context (same trick as handleExpand) so mobile
       // browsers keep autoplay permission through the async startCall flow.
       try {
+        if (isAndroidBrowser()) throw new Error("Use default Android audio route");
         const primer = document.createElement("audio");
         primer.src = SILENT_WAV_DATA_URI;
         primer.autoplay = true;
