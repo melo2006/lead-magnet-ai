@@ -324,7 +324,7 @@ const TalkingAvatarWidget = () => {
 
   const refreshBluetoothOutput = useCallback(async () => {
     try {
-      if (!navigator.mediaDevices?.enumerateDevices) return false;
+      if (!supportsAudioOutputSelection() || !navigator.mediaDevices?.enumerateDevices) return false;
       const devices = await navigator.mediaDevices.enumerateDevices();
       const hasBluetooth = devices.some((device) =>
         device.kind === "audiooutput" && /bluetooth|airpods|buds|headset/i.test(device.label || ""),
@@ -337,7 +337,7 @@ const TalkingAvatarWidget = () => {
   }, []);
 
   const pickOutputSinkId = useCallback(async (route: "speaker" | "bluetooth") => {
-    if (!navigator.mediaDevices?.enumerateDevices) return null;
+    if (!supportsAudioOutputSelection() || !navigator.mediaDevices?.enumerateDevices) return null;
     const outputs = (await navigator.mediaDevices.enumerateDevices()).filter((device) => device.kind === "audiooutput");
     const isBluetooth = (label = "") => /bluetooth|airpods|buds|headset/i.test(label);
     const isSpeaker = (label = "") => /speaker|loudspeaker|built.?in|phone/i.test(label) && !/earpiece|bluetooth|airpods|buds|headset|headphone/i.test(label);
@@ -349,7 +349,7 @@ const TalkingAvatarWidget = () => {
   }, []);
 
   const setSinkIfSupported = useCallback(async (element: HTMLAudioElement, route: "speaker" | "bluetooth") => {
-    if (typeof (element as any).setSinkId !== "function") return false;
+    if (!supportsAudioOutputSelection() || typeof (element as any).setSinkId !== "function") return false;
     const sinkId = await pickOutputSinkId(route);
     if (!sinkId) return false;
     try {
