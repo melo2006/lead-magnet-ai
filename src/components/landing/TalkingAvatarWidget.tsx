@@ -20,6 +20,47 @@ const INITIAL_MIC_MUTE_MS = 30000;
 const VISITOR_NAME_KEY = "aspen_visitor_name";
 const HAS_CALLED_KEY = "aspen_has_called_before";
 
+const isAndroidBrowser = () =>
+  typeof navigator !== "undefined" && /Android/i.test(navigator.userAgent || "");
+
+const supportsAudioOutputSelection = () =>
+  typeof HTMLMediaElement !== "undefined" &&
+  typeof (HTMLMediaElement.prototype as unknown as { setSinkId?: unknown }).setSinkId === "function" &&
+  !isAndroidBrowser();
+
+const withTimeout = async <T,>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> => {
+  let timeoutId: number | undefined;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timeoutId = window.setTimeout(() => reject(new Error(message)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) window.clearTimeout(timeoutId);
+  }
+};
+
+const requestMicrophoneAccess = async () => {
+  if (!window.isSecureContext) throw new Error("Microphone access needs HTTPS.");
+  if (!navigator.mediaDevices?.getUserMedia) throw new Error("This browser does not support live microphone calls.");
+
+  const stream = await withTimeout(
+    navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
+    }),
+    12000,
+    "Microphone permission timed out. Close other apps using the mic and try again.",
+  );
+  stream.getTracks().forEach((track) => track.stop());
+};
+
 type WidgetState = "collapsed" | "expanded" | "minimized";
 type CallStatus = "idle" | "connecting" | "active" | "ending";
 type AudioRoute = "speaker" | "earpiece" | "bluetooth";
