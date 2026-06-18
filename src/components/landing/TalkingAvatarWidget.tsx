@@ -587,10 +587,12 @@ const TalkingAvatarWidget = () => {
   }, [cleanupAudioRouting, cleanupAvatar]);
 
   useEffect(() => {
+    if (!supportsAudioOutputSelection() || !navigator.mediaDevices?.addEventListener) return;
+
     void refreshBluetoothOutput();
     const handleDeviceChange = () => void refreshBluetoothOutput();
-    navigator.mediaDevices?.addEventListener?.("devicechange", handleDeviceChange);
-    return () => navigator.mediaDevices?.removeEventListener?.("devicechange", handleDeviceChange);
+    navigator.mediaDevices.addEventListener("devicechange", handleDeviceChange);
+    return () => navigator.mediaDevices.removeEventListener("devicechange", handleDeviceChange);
   }, [refreshBluetoothOutput]);
 
   const startCall = useCallback(async () => {
@@ -599,6 +601,7 @@ const TalkingAvatarWidget = () => {
     setCallStatus("connecting");
     setIsMuted(true);
     try {
+      await requestMicrophoneAccess();
       cleanupAudioRouting();
       const currentLang = i18n.resolvedLanguage || i18n.language || (typeof document !== "undefined" && document.documentElement.lang) || "en";
       const langCode = currentLang.startsWith("pt") ? "pt" : currentLang.startsWith("es") ? "es" : "en";
@@ -668,18 +671,26 @@ const TalkingAvatarWidget = () => {
         resetAvatarMotion();
       });
 
-      await retellClient.startCall({
-        accessToken: data.access_token,
-        sampleRate: 24000,
-        emitRawAudioSamples: true,
-      });
-      await retellClient.startAudioPlayback?.().catch(() => {});
+      await withTimeout(
+        retellClient.startCall({
+          accessToken: data.access_token,
+          sampleRate: isAndroidBrowser() ? 16000 : 24000,
+          emitRawAudioSamples: !isAndroidBrowser(),
+        }),
+        15000,
+        "Voice connection timed out. Please close other mic apps, refresh the page, and try again.",
+      );
+      if (!isAndroidBrowser()) {
+        await retellClient.startAudioPlayback?.().catch(() => {});
+      }
 
       const analyser = retellClient.analyzerComponent?.analyser as AnalyserNode | undefined;
       if (analyser) {
         analyser.fftSize = 1024;
         analyser.smoothingTimeConstant = 0.18;
       }
+
+      if (isAndroidBrowser()) return;
 
       const bluetoothAvailable = await refreshBluetoothOutput();
       if (bluetoothAvailable && audioRouteRef.current === "speaker") {
