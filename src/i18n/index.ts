@@ -9,6 +9,24 @@ import es from "./locales/es.json";
 const SUPPORTED = ["en", "pt-BR", "es"] as const;
 export type SupportedLang = (typeof SUPPORTED)[number];
 
+// Default to English unless the user previously chose a language OR the
+// browser explicitly prefers Portuguese/Spanish.
+const getInitialLang = (): string => {
+  try {
+    const stored = localStorage.getItem("lang");
+    if (stored) return stored;
+    const navLangs = (navigator.languages && navigator.languages.length
+      ? navigator.languages
+      : [navigator.language || "en"]).map((l) => l.toLowerCase());
+    for (const l of navLangs) {
+      if (l.startsWith("pt")) return "pt-BR";
+      if (l.startsWith("es")) return "es";
+      if (l.startsWith("en")) return "en";
+    }
+  } catch {}
+  return "en";
+};
+
 i18n
   .use(LanguageDetector)
   .use(initReactI18next)
@@ -19,14 +37,14 @@ i18n
       pt: { translation: ptBR },
       es: { translation: es },
     },
-    lng: localStorage.getItem("lang") || undefined,
+    lng: getInitialLang(),
     fallbackLng: "en",
     supportedLngs: ["en", "pt-BR", "pt", "es"],
     load: "currentOnly",
     interpolation: { escapeValue: false },
     react: { useSuspense: false },
     detection: {
-      order: ["localStorage", "navigator", "htmlTag"],
+      order: ["localStorage"],
       lookupLocalStorage: "lang",
       caches: ["localStorage"],
     },
