@@ -335,7 +335,7 @@ const VoiceAgentWidget = ({
   }, []);
 
   const applyAudioOutputDevice = useCallback(async (deviceId: string) => {
-    if (!deviceId) return;
+    if (!deviceId || !canChooseAudioOutput()) return;
 
     const room = retellClientRef.current?.room;
 
@@ -721,6 +721,8 @@ const VoiceAgentWidget = ({
     setRecapSent(false);
 
     try {
+      await requestMicrophoneAccess();
+
       const { data, error } = await supabase.functions.invoke("retell-web-call", {
         body: {
           agentId: RETELL_AGENT_ID,
@@ -822,19 +824,30 @@ const VoiceAgentWidget = ({
         toast({ title: "Call error", description: "Something went wrong.", variant: "destructive" });
       });
 
-      await retellClient.startCall({
-        accessToken: data.access_token,
-        sampleRate: 24000,
-        emitRawAudioSamples: false,
-        playbackDeviceId: selectedDevice || undefined,
-      });
-      await retellClient.startAudioPlayback?.().catch(() => {});
+      await withTimeout(
+        retellClient.startCall({
+          accessToken: data.access_token,
+          sampleRate: isAndroidBrowser() ? 16000 : 24000,
+          emitRawAudioSamples: false,
+          playbackDeviceId: canChooseAudioOutput() ? selectedDevice || undefined : undefined,
+        }),
+        15000,
+        "Voice connection timed out. Please close other mic apps, refresh the page, and try again.",
+      );
+      if (!isAndroidBrowser()) {
+        await retellClient.startAudioPlayback?.().catch(() => {});
+      }
     } catch (err) {
       console.error("Failed to start call:", err);
       toast({ title: "Could not start call", description: err instanceof Error ? err.message : "Please try again.", variant: "destructive" });
       setCallStatus("idle");
       setTransferState(false);
       clearTimer();
+      try {
+        retellClientRef.current?.stopCall?.();
+      } catch {
+        /* noop */
+      }
     }
   }, [applyAudioOutputDevice, applyLiveCallVolume, businessInfo, businessName, businessNiche, callerEmail, callerName, callerPhone, clearTimer, ownerEmail, ownerPhone, resolvedOwnerName, toast, websiteUrl, queueCallSummary, volume, selectedDevice, maybeStartTransferFromLiveCall, setTransferState]);
 
