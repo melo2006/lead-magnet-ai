@@ -159,6 +159,67 @@ const extractLatestAgentUtterance = (event: unknown) => {
   return "";
 };
 
+const isAndroidBrowser = () =>
+  typeof navigator !== "undefined" && /Android/i.test(navigator.userAgent || "");
+
+const canChooseAudioOutput = () =>
+  typeof HTMLMediaElement !== "undefined" &&
+  typeof (HTMLMediaElement.prototype as unknown as { setSinkId?: unknown }).setSinkId === "function" &&
+  !isAndroidBrowser();
+
+const withTimeout = async <T,>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> => {
+  let timeoutId: number | undefined;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timeoutId = window.setTimeout(() => reject(new Error(message)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) window.clearTimeout(timeoutId);
+  }
+};
+
+const requestMicrophoneAccess = async () => {
+  if (!window.isSecureContext) {
+    throw new Error("Microphone access needs a secure connection. Please open the HTTPS site.");
+  }
+
+  if (!navigator.mediaDevices?.getUserMedia) {
+    throw new Error("This browser does not support microphone access for live voice calls.");
+  }
+
+  try {
+    const stream = await withTimeout(
+      navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      }),
+      12000,
+      "Microphone permission timed out. Close other apps using the mic and try again.",
+    );
+
+    stream.getTracks().forEach((track) => track.stop());
+  } catch (error) {
+    const name = error instanceof DOMException ? error.name : "";
+    if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+      throw new Error("Microphone is blocked. Allow microphone access in Chrome settings and try again.");
+    }
+    if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+      throw new Error("No microphone was found on this device.");
+    }
+    if (name === "NotReadableError" || name === "TrackStartError") {
+      throw new Error("The microphone is already being used by another app. Close it and try again.");
+    }
+    throw error;
+  }
+};
+
 const isTransferStartUtterance = (value: string) => {
   const normalized = value.toLowerCase().trim();
   if (!normalized) return false;
@@ -274,7 +335,7 @@ const VoiceAgentWidget = ({
   }, []);
 
   const applyAudioOutputDevice = useCallback(async (deviceId: string) => {
-    if (!deviceId) return;
+    if (!deviceId || !canChooseAudioOutput()) return;
 
     const room = retellClientRef.current?.room;
 
@@ -304,6 +365,11 @@ const VoiceAgentWidget = ({
 
   // Enumerate audio output devices
   const refreshAudioDevices = useCallback(async () => {
+    if (!canChooseAudioOutput() || !navigator.mediaDevices?.enumerateDevices) {
+      setAudioDevices([]);
+      return;
+    }
+
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
       const outputs = devices
@@ -323,10 +389,12 @@ const VoiceAgentWidget = ({
   }, [selectedDevice]);
 
   useEffect(() => {
+    if (!canChooseAudioOutput() || !navigator.mediaDevices?.addEventListener) return;
+
     refreshAudioDevices();
-    navigator.mediaDevices?.addEventListener?.("devicechange", refreshAudioDevices);
+    navigator.mediaDevices.addEventListener("devicechange", refreshAudioDevices);
     return () => {
-      navigator.mediaDevices?.removeEventListener?.("devicechange", refreshAudioDevices);
+      navigator.mediaDevices.removeEventListener("devicechange", refreshAudioDevices);
     };
   }, [refreshAudioDevices]);
 
@@ -340,7 +408,7 @@ const VoiceAgentWidget = ({
   }, [applyAudioOutputDevice]);
 
   useEffect(() => {
-    if (!selectedDevice) return;
+    if (!selectedDevice || !canChooseAudioOutput()) return;
     void applyAudioOutputDevice(selectedDevice);
   }, [applyAudioOutputDevice, selectedDevice]);
 
@@ -653,6 +721,8 @@ const VoiceAgentWidget = ({
     setRecapSent(false);
 
     try {
+      await requestMicrophoneAccess();
+
       const { data, error } = await supabase.functions.invoke("retell-web-call", {
         body: {
           agentId: RETELL_AGENT_ID,
@@ -754,19 +824,30 @@ const VoiceAgentWidget = ({
         toast({ title: "Call error", description: "Something went wrong.", variant: "destructive" });
       });
 
-      await retellClient.startCall({
-        accessToken: data.access_token,
-        sampleRate: 24000,
-        emitRawAudioSamples: false,
-        playbackDeviceId: selectedDevice || undefined,
-      });
-      await retellClient.startAudioPlayback?.().catch(() => {});
+      await withTimeout(
+        retellClient.startCall({
+          accessToken: data.access_token,
+          sampleRate: isAndroidBrowser() ? 16000 : 24000,
+          emitRawAudioSamples: false,
+          playbackDeviceId: canChooseAudioOutput() ? selectedDevice || undefined : undefined,
+        }),
+        15000,
+        "Voice connection timed out. Please close other mic apps, refresh the page, and try again.",
+      );
+      if (!isAndroidBrowser()) {
+        await retellClient.startAudioPlayback?.().catch(() => {});
+      }
     } catch (err) {
       console.error("Failed to start call:", err);
       toast({ title: "Could not start call", description: err instanceof Error ? err.message : "Please try again.", variant: "destructive" });
       setCallStatus("idle");
       setTransferState(false);
       clearTimer();
+      try {
+        retellClientRef.current?.stopCall?.();
+      } catch {
+        /* noop */
+      }
     }
   }, [applyAudioOutputDevice, applyLiveCallVolume, businessInfo, businessName, businessNiche, callerEmail, callerName, callerPhone, clearTimer, ownerEmail, ownerPhone, resolvedOwnerName, toast, websiteUrl, queueCallSummary, volume, selectedDevice, maybeStartTransferFromLiveCall, setTransferState]);
 

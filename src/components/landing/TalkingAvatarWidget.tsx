@@ -20,6 +20,47 @@ const INITIAL_MIC_MUTE_MS = 30000;
 const VISITOR_NAME_KEY = "aspen_visitor_name";
 const HAS_CALLED_KEY = "aspen_has_called_before";
 
+const isAndroidBrowser = () =>
+  typeof navigator !== "undefined" && /Android/i.test(navigator.userAgent || "");
+
+const supportsAudioOutputSelection = () =>
+  typeof HTMLMediaElement !== "undefined" &&
+  typeof (HTMLMediaElement.prototype as unknown as { setSinkId?: unknown }).setSinkId === "function" &&
+  !isAndroidBrowser();
+
+const withTimeout = async <T,>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> => {
+  let timeoutId: number | undefined;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timeoutId = window.setTimeout(() => reject(new Error(message)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) window.clearTimeout(timeoutId);
+  }
+};
+
+const requestMicrophoneAccess = async () => {
+  if (!window.isSecureContext) throw new Error("Microphone access needs HTTPS.");
+  if (!navigator.mediaDevices?.getUserMedia) throw new Error("This browser does not support live microphone calls.");
+
+  const stream = await withTimeout(
+    navigator.mediaDevices.getUserMedia({
+      audio: {
+        echoCancellation: true,
+        noiseSuppression: true,
+        autoGainControl: true,
+      },
+    }),
+    12000,
+    "Microphone permission timed out. Close other apps using the mic and try again.",
+  );
+  stream.getTracks().forEach((track) => track.stop());
+};
+
 type WidgetState = "collapsed" | "expanded" | "minimized";
 type CallStatus = "idle" | "connecting" | "active" | "ending";
 type AudioRoute = "speaker" | "earpiece" | "bluetooth";
@@ -283,7 +324,7 @@ const TalkingAvatarWidget = () => {
 
   const refreshBluetoothOutput = useCallback(async () => {
     try {
-      if (!navigator.mediaDevices?.enumerateDevices) return false;
+      if (!supportsAudioOutputSelection() || !navigator.mediaDevices?.enumerateDevices) return false;
       const devices = await navigator.mediaDevices.enumerateDevices();
       const hasBluetooth = devices.some((device) =>
         device.kind === "audiooutput" && /bluetooth|airpods|buds|headset/i.test(device.label || ""),
@@ -296,7 +337,7 @@ const TalkingAvatarWidget = () => {
   }, []);
 
   const pickOutputSinkId = useCallback(async (route: "speaker" | "bluetooth") => {
-    if (!navigator.mediaDevices?.enumerateDevices) return null;
+    if (!supportsAudioOutputSelection() || !navigator.mediaDevices?.enumerateDevices) return null;
     const outputs = (await navigator.mediaDevices.enumerateDevices()).filter((device) => device.kind === "audiooutput");
     const isBluetooth = (label = "") => /bluetooth|airpods|buds|headset/i.test(label);
     const isSpeaker = (label = "") => /speaker|loudspeaker|built.?in|phone/i.test(label) && !/earpiece|bluetooth|airpods|buds|headset|headphone/i.test(label);
@@ -308,7 +349,7 @@ const TalkingAvatarWidget = () => {
   }, []);
 
   const setSinkIfSupported = useCallback(async (element: HTMLAudioElement, route: "speaker" | "bluetooth") => {
-    if (typeof (element as any).setSinkId !== "function") return false;
+    if (!supportsAudioOutputSelection() || typeof (element as any).setSinkId !== "function") return false;
     const sinkId = await pickOutputSinkId(route);
     if (!sinkId) return false;
     try {
@@ -546,10 +587,12 @@ const TalkingAvatarWidget = () => {
   }, [cleanupAudioRouting, cleanupAvatar]);
 
   useEffect(() => {
+    if (!supportsAudioOutputSelection() || !navigator.mediaDevices?.addEventListener) return;
+
     void refreshBluetoothOutput();
     const handleDeviceChange = () => void refreshBluetoothOutput();
-    navigator.mediaDevices?.addEventListener?.("devicechange", handleDeviceChange);
-    return () => navigator.mediaDevices?.removeEventListener?.("devicechange", handleDeviceChange);
+    navigator.mediaDevices.addEventListener("devicechange", handleDeviceChange);
+    return () => navigator.mediaDevices.removeEventListener("devicechange", handleDeviceChange);
   }, [refreshBluetoothOutput]);
 
   const startCall = useCallback(async () => {
@@ -558,6 +601,7 @@ const TalkingAvatarWidget = () => {
     setCallStatus("connecting");
     setIsMuted(true);
     try {
+      await requestMicrophoneAccess();
       cleanupAudioRouting();
       const currentLang = i18n.resolvedLanguage || i18n.language || (typeof document !== "undefined" && document.documentElement.lang) || "en";
       const langCode = currentLang.startsWith("pt") ? "pt" : currentLang.startsWith("es") ? "es" : "en";
@@ -627,18 +671,26 @@ const TalkingAvatarWidget = () => {
         resetAvatarMotion();
       });
 
-      await retellClient.startCall({
-        accessToken: data.access_token,
-        sampleRate: 24000,
-        emitRawAudioSamples: true,
-      });
-      await retellClient.startAudioPlayback?.().catch(() => {});
+      await withTimeout(
+        retellClient.startCall({
+          accessToken: data.access_token,
+          sampleRate: isAndroidBrowser() ? 16000 : 24000,
+          emitRawAudioSamples: !isAndroidBrowser(),
+        }),
+        15000,
+        "Voice connection timed out. Please close other mic apps, refresh the page, and try again.",
+      );
+      if (!isAndroidBrowser()) {
+        await retellClient.startAudioPlayback?.().catch(() => {});
+      }
 
       const analyser = retellClient.analyzerComponent?.analyser as AnalyserNode | undefined;
       if (analyser) {
         analyser.fftSize = 1024;
         analyser.smoothingTimeConstant = 0.18;
       }
+
+      if (isAndroidBrowser()) return;
 
       const bluetoothAvailable = await refreshBluetoothOutput();
       if (bluetoothAvailable && audioRouteRef.current === "speaker") {
@@ -869,6 +921,7 @@ const TalkingAvatarWidget = () => {
   }, [isMuted]);
 
   const toggleAudioRoute = useCallback(async () => {
+    if (isAndroidBrowser()) return;
     const client = retellClientRef.current as any;
     if (!client) return;
     if (isRoutingAudio) return;
@@ -912,6 +965,7 @@ const TalkingAvatarWidget = () => {
     // resume an AudioContext SYNCHRONOUSLY here, while we still hold the
     // gesture, so subsequent audio playback is allowed.
     try {
+      if (isAndroidBrowser()) throw new Error("Use default Android audio route");
       const primer = document.createElement("audio");
       primer.src = SILENT_WAV_DATA_URI;
       primer.autoplay = true;
@@ -952,6 +1006,7 @@ const TalkingAvatarWidget = () => {
       // Prime audio gesture context (same trick as handleExpand) so mobile
       // browsers keep autoplay permission through the async startCall flow.
       try {
+        if (isAndroidBrowser()) throw new Error("Use default Android audio route");
         const primer = document.createElement("audio");
         primer.src = SILENT_WAV_DATA_URI;
         primer.autoplay = true;
@@ -1038,16 +1093,18 @@ const TalkingAvatarWidget = () => {
               >
                 {isMuted ? <MicOff className="h-3 w-3" /> : <Mic className="h-3 w-3" />}
               </button>
-              <button
-                onClick={toggleAudioRoute}
-                disabled={isRoutingAudio}
-                className={`rounded-full p-1.5 transition-all ${
-                  audioRoute !== "earpiece" ? "bg-primary/15 text-primary" : "bg-muted text-foreground"
-                }`}
-                title={audioRouteTitle}
-              >
-                <AudioRouteIcon className="h-3 w-3" />
-              </button>
+              {!isAndroidBrowser() && (
+                <button
+                  onClick={toggleAudioRoute}
+                  disabled={isRoutingAudio}
+                  className={`rounded-full p-1.5 transition-all ${
+                    audioRoute !== "earpiece" ? "bg-primary/15 text-primary" : "bg-muted text-foreground"
+                  }`}
+                  title={audioRouteTitle}
+                >
+                  <AudioRouteIcon className="h-3 w-3" />
+                </button>
+              )}
               <button
                 onClick={endCall}
                 className="rounded-full bg-destructive p-1.5 text-destructive-foreground"
@@ -1190,16 +1247,18 @@ const TalkingAvatarWidget = () => {
               >
                 {isMuted ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
               </button>
-              <button
-                onClick={toggleAudioRoute}
-                disabled={isRoutingAudio}
-                className={`rounded-full p-2 transition-all flex items-center gap-1 ${
-                  audioRoute !== "earpiece" ? "bg-primary/15 text-primary" : "bg-muted text-foreground hover:bg-muted/80"
-                }`}
-                title={audioRouteTitle}
-              >
-                <AudioRouteIcon className="h-3.5 w-3.5" />
-              </button>
+              {!isAndroidBrowser() && (
+                <button
+                  onClick={toggleAudioRoute}
+                  disabled={isRoutingAudio}
+                  className={`rounded-full p-2 transition-all flex items-center gap-1 ${
+                    audioRoute !== "earpiece" ? "bg-primary/15 text-primary" : "bg-muted text-foreground hover:bg-muted/80"
+                  }`}
+                  title={audioRouteTitle}
+                >
+                  <AudioRouteIcon className="h-3.5 w-3.5" />
+                </button>
+              )}
               <button
                 onClick={handleMinimize}
                 className="rounded-full bg-muted p-2 text-foreground hover:bg-muted/80"
