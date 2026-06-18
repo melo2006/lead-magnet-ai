@@ -159,6 +159,67 @@ const extractLatestAgentUtterance = (event: unknown) => {
   return "";
 };
 
+const isAndroidBrowser = () =>
+  typeof navigator !== "undefined" && /Android/i.test(navigator.userAgent || "");
+
+const canChooseAudioOutput = () =>
+  typeof HTMLMediaElement !== "undefined" &&
+  typeof (HTMLMediaElement.prototype as unknown as { setSinkId?: unknown }).setSinkId === "function" &&
+  !isAndroidBrowser();
+
+const withTimeout = async <T,>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> => {
+  let timeoutId: ReturnType<typeof window.setTimeout> | undefined;
+
+  try {
+    return await Promise.race([
+      promise,
+      new Promise<T>((_, reject) => {
+        timeoutId = window.setTimeout(() => reject(new Error(message)), timeoutMs);
+      }),
+    ]);
+  } finally {
+    if (timeoutId) window.clearTimeout(timeoutId);
+  }
+};
+
+const requestMicrophoneAccess = async () => {
+  if (!window.isSecureContext) {
+    throw new Error("Microphone access needs a secure connection. Please open the HTTPS site.");
+  }
+
+  if (!navigator.mediaDevices?.getUserMedia) {
+    throw new Error("This browser does not support microphone access for live voice calls.");
+  }
+
+  try {
+    const stream = await withTimeout(
+      navigator.mediaDevices.getUserMedia({
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+        },
+      }),
+      12000,
+      "Microphone permission timed out. Close other apps using the mic and try again.",
+    );
+
+    stream.getTracks().forEach((track) => track.stop());
+  } catch (error) {
+    const name = error instanceof DOMException ? error.name : "";
+    if (name === "NotAllowedError" || name === "PermissionDeniedError") {
+      throw new Error("Microphone is blocked. Allow microphone access in Chrome settings and try again.");
+    }
+    if (name === "NotFoundError" || name === "DevicesNotFoundError") {
+      throw new Error("No microphone was found on this device.");
+    }
+    if (name === "NotReadableError" || name === "TrackStartError") {
+      throw new Error("The microphone is already being used by another app. Close it and try again.");
+    }
+    throw error;
+  }
+};
+
 const isTransferStartUtterance = (value: string) => {
   const normalized = value.toLowerCase().trim();
   if (!normalized) return false;
