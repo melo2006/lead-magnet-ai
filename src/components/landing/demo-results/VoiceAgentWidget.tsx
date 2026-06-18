@@ -365,6 +365,11 @@ const VoiceAgentWidget = ({
 
   // Enumerate audio output devices
   const refreshAudioDevices = useCallback(async () => {
+    if (!canChooseAudioOutput() || !navigator.mediaDevices?.enumerateDevices) {
+      setAudioDevices([]);
+      return;
+    }
+
     try {
       const devices = await navigator.mediaDevices.enumerateDevices();
       const outputs = devices
@@ -384,10 +389,12 @@ const VoiceAgentWidget = ({
   }, [selectedDevice]);
 
   useEffect(() => {
+    if (!canChooseAudioOutput() || !navigator.mediaDevices?.addEventListener) return;
+
     refreshAudioDevices();
-    navigator.mediaDevices?.addEventListener?.("devicechange", refreshAudioDevices);
+    navigator.mediaDevices.addEventListener("devicechange", refreshAudioDevices);
     return () => {
-      navigator.mediaDevices?.removeEventListener?.("devicechange", refreshAudioDevices);
+      navigator.mediaDevices.removeEventListener("devicechange", refreshAudioDevices);
     };
   }, [refreshAudioDevices]);
 
@@ -401,7 +408,7 @@ const VoiceAgentWidget = ({
   }, [applyAudioOutputDevice]);
 
   useEffect(() => {
-    if (!selectedDevice) return;
+    if (!selectedDevice || !canChooseAudioOutput()) return;
     void applyAudioOutputDevice(selectedDevice);
   }, [applyAudioOutputDevice, selectedDevice]);
 
