@@ -1761,6 +1761,39 @@ Deno.serve(async (req) => {
         autoRecapWarning = 'Caller phone not captured — recap not auto-sent.';
       }
 
+      // Persist auto-recap debug info to call_history.metadata so the CRM
+      // debug panel can show what happened on each call.
+      if (callHistoryId && supabaseUrl && supabaseServiceRoleKey) {
+        try {
+          const adminClient = createClient(supabaseUrl, supabaseServiceRoleKey);
+          const recapMeta = {
+            autoRecap: {
+              attempted: Boolean(resolvedCallerPhone),
+              sent: autoRecapSent,
+              sid: autoRecapSid,
+              warning: autoRecapWarning,
+              normalizedPhone: resolvedCallerPhone || null,
+              attemptedAt: new Date().toISOString(),
+            },
+          };
+          // Merge into existing metadata (jsonb concatenation preserves keys)
+          await adminClient.rpc('jsonb_merge_call_metadata' as any, {
+            _id: callHistoryId,
+            _patch: recapMeta,
+          }).then(() => {}, async () => {
+            // Fallback: fetch + patch + update (in case the RPC doesn't exist)
+            const { data: existing } = await adminClient
+              .from('call_history').select('metadata').eq('id', callHistoryId).maybeSingle();
+            await adminClient.from('call_history').update({
+              metadata: { ...(existing?.metadata ?? {}), ...recapMeta },
+            }).eq('id', callHistoryId);
+          });
+        } catch (metaErr) {
+          console.warn('Failed to persist auto-recap metadata (non-fatal):', metaErr);
+        }
+      }
+
+
       return jsonResponse({
         success: true,
         callHistoryId,
