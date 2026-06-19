@@ -35,7 +35,30 @@ interface CallRecord {
   started_at: string;
   ended_at: string | null;
   created_at: string;
+  metadata: Record<string, any> | null;
 }
+
+interface AutoRecapMeta {
+  attempted?: boolean;
+  sent?: boolean;
+  sid?: string | null;
+  warning?: string | null;
+  normalizedPhone?: string | null;
+  attemptedAt?: string | null;
+}
+
+interface SmsLogRow {
+  id: string;
+  to_phone: string;
+  body: string | null;
+  status: string;
+  message_sid: string | null;
+  error_code: string | null;
+  error_message: string | null;
+  sent_at: string;
+  delivered_at: string | null;
+}
+
 
 
 const statusColor = (status: string) => {
