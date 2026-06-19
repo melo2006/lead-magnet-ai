@@ -410,7 +410,11 @@ const CallRow = ({ call }: { call: CallRecord }) => {
             </div>
           )}
 
+          {/* SMS/WhatsApp debug */}
+          <RecapDebugPanel call={call} enabled={expanded} />
+
           {/* Transcript */}
+
           {call.transcript && (
             <div>
               <p className="text-[10px] uppercase tracking-wider text-muted-foreground mb-1">Transcript</p>
