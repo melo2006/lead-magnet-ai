@@ -1517,6 +1517,14 @@ export type Database = {
           website_url: string
         }[]
       }
+      get_demo_prospect_owner: {
+        Args: { _id: string }
+        Returns: {
+          owner_email: string
+          owner_name: string
+          owner_phone: string
+        }[]
+      }
       is_admin_email: { Args: { _email: string }; Returns: boolean }
       refresh_prospect_enrichment_job: {
         Args: { _job_id: string }
