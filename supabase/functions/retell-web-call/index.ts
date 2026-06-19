@@ -790,6 +790,25 @@ const getTranscriptText = (callData: any) => {
   return '';
 };
 
+// Strict-validate an email address. Returns '' when the candidate is
+// implausible (too long, missing TLD, junk concatenated transcript, etc.)
+const ALLOWED_TLDS = new Set([
+  'com','net','org','io','co','ai','app','dev','me','us','uk','ca','au',
+  'biz','info','tv','xyz','online','site','store','tech','shop','pro',
+  'edu','gov','mil','br','mx','de','fr','es','it','nl','jp','cn','in',
+]);
+
+const isValidEmail = (value: string): boolean => {
+  if (!value) return false;
+  if (value.length < 6 || value.length > 80) return false;
+  const m = value.match(/^([a-z0-9._%+-]{1,40})@([a-z0-9-]{1,40}(?:\.[a-z0-9-]{1,40})*)\.([a-z]{2,12})$/i);
+  if (!m) return false;
+  const [, local, , tld] = m;
+  if (local.startsWith('.') || local.endsWith('.') || local.includes('..')) return false;
+  if (!ALLOWED_TLDS.has(tld.toLowerCase())) return false;
+  return true;
+};
+
 const normalizeEmailCandidate = (value?: string | null) => {
   if (!value) return '';
 
@@ -800,8 +819,9 @@ const normalizeEmailCandidate = (value?: string | null) => {
     .replace(/\(dot\)|\[dot\]/g, '.')
     .replace(/@+/g, '@');
 
-  const match = normalized.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,}/i);
-  return match ? match[0] : '';
+  const match = normalized.match(/[a-z0-9._%+-]+@[a-z0-9.-]+\.[a-z]{2,12}/);
+  if (!match) return '';
+  return isValidEmail(match[0]) ? match[0] : '';
 };
 
 const sanitizeCallerPhone = (value?: string | null) => {
@@ -850,21 +870,43 @@ const escapeXml = (value: string) =>
     .replace(/"/g, '&quot;')
     .replace(/'/g, '&apos;');
 
+// Strict transcript email extraction. Only accepts:
+//   1. A literal "name@domain.tld" match in the raw transcript, OR
+//   2. A spoken-form match found in a TIGHT window (≤80 chars) around the
+//      word "email" — e.g. "my email is john at gmail dot com".
+// The previous version flattened the ENTIRE transcript and ran " at " → "@"
+// globally, which dumped random transcript text into the email field.
 const extractCallerEmailFromTranscript = (transcript: string) => {
   if (!transcript) return '';
 
-  const directMatches = Array.from(transcript.matchAll(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,}/gi)).map((match) => normalizeEmailCandidate(match[0]));
+  // 1. Direct literal matches (strongest signal)
+  const directMatches = Array.from(
+    transcript.matchAll(/[A-Z0-9._%+-]+@[A-Z0-9.-]+\.[A-Z]{2,12}/gi),
+  )
+    .map((m) => normalizeEmailCandidate(m[0]))
+    .filter(Boolean);
   if (directMatches.length > 0) return directMatches[directMatches.length - 1];
 
-  const flattened = transcript
-    .toLowerCase()
-    .replace(/\bg\s*mail\b/g, 'gmail')
-    .replace(/\s+at\s+/g, '@')
-    .replace(/\s+dot\s+/g, '.')
-    .replace(/[^a-z0-9@._%+-]/g, ' ')
-    .replace(/\s+/g, '');
+  // 2. Spoken-form: scan windows that follow the word "email"
+  const lower = transcript.toLowerCase();
+  const windowMatches: string[] = [];
+  const re = /\bemail\b[^.\n]{0,80}/g;
+  let m: RegExpExecArray | null;
+  while ((m = re.exec(lower)) !== null) {
+    const window = m[0]
+      .replace(/\bg\s*mail\b/g, 'gmail')
+      .replace(/\bhot\s*mail\b/g, 'hotmail')
+      .replace(/\byahoo\b/g, 'yahoo')
+      .replace(/\bout\s*look\b/g, 'outlook')
+      .replace(/\s+at\s+/g, '@')
+      .replace(/\s+dot\s+/g, '.')
+      .replace(/[^a-z0-9@._%+-]/g, '')
+      .replace(/@+/g, '@');
 
-  return normalizeEmailCandidate(flattened);
+    const candidate = window.match(/[a-z0-9._%+-]{2,40}@[a-z0-9.-]{2,40}\.[a-z]{2,12}/);
+    if (candidate && isValidEmail(candidate[0])) windowMatches.push(candidate[0]);
+  }
+  return windowMatches.length > 0 ? windowMatches[windowMatches.length - 1] : '';
 };
 
 const extractCallerNameFromTranscript = (transcript: string) => {
@@ -1507,6 +1549,11 @@ Deno.serve(async (req) => {
                 appointmentRequested: aiSummary.appointmentRequested,
                 appointmentTimeText: aiSummary.appointmentTimeText || null,
                 contactPersisted,
+                captureFailed: !resolvedCallerEmail && !resolvedCallerPhone,
+                captureFailedReason:
+                  !resolvedCallerEmail && !resolvedCallerPhone
+                    ? 'No valid caller email or phone could be extracted from the transcript.'
+                    : null,
               },
             })
             .select('id')
@@ -1672,6 +1719,48 @@ Deno.serve(async (req) => {
         console.log('Email skipped (skipEmail flag set) — call history ID:', callHistoryId);
       }
 
+      // Auto-send WhatsApp/SMS recap when caller phone is verified E.164 +
+      // SMS-capable. Keeps the spam guard (sanitizeCallerPhone already
+      // rejects junk), removes the manual button step for clean leads.
+      let autoRecapSent = false;
+      let autoRecapWarning: string | null = null;
+      let autoRecapSid: string | null = null;
+      if (resolvedCallerPhone && supabaseUrl && supabaseServiceRoleKey) {
+        try {
+          const recapResp = await fetch(`${supabaseUrl}/functions/v1/send-demo-recap-whatsapp`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${supabaseServiceRoleKey}`,
+            },
+            body: JSON.stringify({
+              leadId: leadId || undefined,
+              phone: resolvedCallerPhone,
+              fullName: resolvedCallerName || '',
+              businessName,
+              websiteUrl,
+              customMessage:
+                `Hi ${(resolvedCallerName || 'there').split(' ')[0]}! Thanks for the Aspen demo for ${businessName}.\n\n` +
+                `${aiSummary.summary}\n\nNext step: ${aiSummary.nextStep}\n\n— AI Hidden Leads (Reply STOP to opt out)`,
+            }),
+          });
+          const recapData = await recapResp.json().catch(() => ({}));
+          if (recapResp.ok && recapData?.success) {
+            autoRecapSent = true;
+            autoRecapSid = recapData.sid || null;
+            console.log('Auto recap sent:', autoRecapSid);
+          } else {
+            autoRecapWarning = recapData?.error || `recap send failed (${recapResp.status})`;
+            console.warn('Auto recap not sent:', autoRecapWarning);
+          }
+        } catch (recapErr) {
+          autoRecapWarning = recapErr instanceof Error ? recapErr.message : 'recap send error';
+          console.error('Auto recap failed (non-fatal):', recapErr);
+        }
+      } else if (!resolvedCallerPhone) {
+        autoRecapWarning = 'Caller phone not captured — recap not auto-sent.';
+      }
+
       return jsonResponse({
         success: true,
         callHistoryId,
@@ -1692,6 +1781,10 @@ Deno.serve(async (req) => {
         transferWarning,
         contactPersisted,
         contactPersistWarning,
+        autoRecapSent,
+        autoRecapSid,
+        autoRecapWarning,
+        captureFailed: !resolvedCallerEmail && !resolvedCallerPhone,
       });
     }
 
