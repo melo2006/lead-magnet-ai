@@ -1719,6 +1719,48 @@ Deno.serve(async (req) => {
         console.log('Email skipped (skipEmail flag set) — call history ID:', callHistoryId);
       }
 
+      // Auto-send WhatsApp/SMS recap when caller phone is verified E.164 +
+      // SMS-capable. Keeps the spam guard (sanitizeCallerPhone already
+      // rejects junk), removes the manual button step for clean leads.
+      let autoRecapSent = false;
+      let autoRecapWarning: string | null = null;
+      let autoRecapSid: string | null = null;
+      if (resolvedCallerPhone && supabaseUrl && supabaseServiceRoleKey) {
+        try {
+          const recapResp = await fetch(`${supabaseUrl}/functions/v1/send-demo-recap-whatsapp`, {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              Authorization: `Bearer ${supabaseServiceRoleKey}`,
+            },
+            body: JSON.stringify({
+              leadId: leadId || undefined,
+              phone: resolvedCallerPhone,
+              fullName: resolvedCallerName || '',
+              businessName,
+              websiteUrl,
+              customMessage:
+                `Hi ${(resolvedCallerName || 'there').split(' ')[0]}! Thanks for the Aspen demo for ${businessName}.\n\n` +
+                `${aiSummary.summary}\n\nNext step: ${aiSummary.nextStep}\n\n— AI Hidden Leads (Reply STOP to opt out)`,
+            }),
+          });
+          const recapData = await recapResp.json().catch(() => ({}));
+          if (recapResp.ok && recapData?.success) {
+            autoRecapSent = true;
+            autoRecapSid = recapData.sid || null;
+            console.log('Auto recap sent:', autoRecapSid);
+          } else {
+            autoRecapWarning = recapData?.error || `recap send failed (${recapResp.status})`;
+            console.warn('Auto recap not sent:', autoRecapWarning);
+          }
+        } catch (recapErr) {
+          autoRecapWarning = recapErr instanceof Error ? recapErr.message : 'recap send error';
+          console.error('Auto recap failed (non-fatal):', recapErr);
+        }
+      } else if (!resolvedCallerPhone) {
+        autoRecapWarning = 'Caller phone not captured — recap not auto-sent.';
+      }
+
       return jsonResponse({
         success: true,
         callHistoryId,
@@ -1739,6 +1781,10 @@ Deno.serve(async (req) => {
         transferWarning,
         contactPersisted,
         contactPersistWarning,
+        autoRecapSent,
+        autoRecapSid,
+        autoRecapWarning,
+        captureFailed: !resolvedCallerEmail && !resolvedCallerPhone,
       });
     }
 
