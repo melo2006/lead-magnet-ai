@@ -107,7 +107,140 @@ const isLikelyCallablePhoneNumber = (value?: string | null) => {
   return /^[2-9]\d{2}$/.test(areaCode) && /^[2-9]\d{2}$/.test(exchange);
 };
 
+const RecapDebugPanel = ({ call, enabled }: { call: CallRecord; enabled: boolean }) => {
+  const meta = (call.metadata ?? {}) as Record<string, any>;
+  const autoRecap: AutoRecapMeta = meta.autoRecap ?? {};
+  const captureFailed: boolean = Boolean(meta.captureFailed);
+  const captureReason: string | null = meta.captureFailedReason ?? null;
+  const rawPhone = call.caller_phone;
+  const normalized = normalizePhoneNumber(rawPhone);
+  const isCallable = isLikelyCallablePhoneNumber(rawPhone);
+
+  const { data: smsLogs, isLoading: smsLoading } = useQuery({
+    queryKey: ["sms-debug", normalized, call.id],
+    enabled: enabled && Boolean(normalized),
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from("sms_delivery_log")
+        .select("id,to_phone,body,status,message_sid,error_code,error_message,sent_at,delivered_at")
+        .eq("to_phone", normalized)
+        .order("sent_at", { ascending: false })
+        .limit(5);
+      if (error) throw error;
+      return (data ?? []) as SmsLogRow[];
+    },
+  });
+
+  let skipReason: string | null = null;
+  if (!rawPhone) skipReason = "No caller phone captured during the call.";
+  else if (!normalized) skipReason = `Phone "${rawPhone}" could not be normalized to E.164.`;
+  else if (!isCallable) skipReason = `Phone ${normalized} failed E.164 / SMS-capable validation (bad area code or exchange).`;
+  else if (autoRecap.warning && !autoRecap.sent) skipReason = autoRecap.warning;
+
+  const statusBadge = (status: string) => {
+    const s = status.toLowerCase();
+    if (["delivered", "sent", "queued", "accepted"].includes(s)) return "bg-green-500/20 text-green-400 border-green-500/30";
+    if (["failed", "undelivered"].includes(s)) return "bg-destructive/20 text-destructive border-destructive/30";
+    return "bg-muted text-muted-foreground border-border";
+  };
+
+  return (
+    <div className="border border-border/60 rounded-md bg-muted/20 p-3 space-y-2">
+      <div className="flex items-center gap-2">
+        <MessageSquare className="h-3.5 w-3.5 text-primary" />
+        <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-semibold">SMS / WhatsApp Debug</p>
+        {autoRecap.sent ? (
+          <Badge variant="outline" className="text-[9px] bg-green-500/20 text-green-400 border-green-500/30">
+            <CheckCircle2 className="h-2.5 w-2.5 mr-0.5" /> Auto-recap sent
+          </Badge>
+        ) : autoRecap.attempted ? (
+          <Badge variant="outline" className="text-[9px] bg-destructive/20 text-destructive border-destructive/30">
+            <XCircle className="h-2.5 w-2.5 mr-0.5" /> Auto-recap failed
+          </Badge>
+        ) : (
+          <Badge variant="outline" className="text-[9px] bg-amber-500/20 text-amber-400 border-amber-500/30">
+            Not attempted
+          </Badge>
+        )}
+      </div>
+
+      {captureFailed && (
+        <div className="flex items-start gap-1.5 text-[11px] bg-destructive/10 border border-destructive/30 rounded px-2 py-1.5 text-destructive">
+          <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
+          <span>{captureReason || "Voice agent failed to capture a valid email or phone."}</span>
+        </div>
+      )}
+
+      <div className="grid grid-cols-2 gap-2 text-[11px]">
+        <div>
+          <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Raw phone</p>
+          <p className="font-mono text-foreground/80 truncate">{rawPhone || <span className="italic text-muted-foreground">—</span>}</p>
+        </div>
+        <div>
+          <p className="text-[9px] uppercase tracking-wider text-muted-foreground">Normalized (E.164)</p>
+          <p className="font-mono text-foreground/80 truncate flex items-center gap-1">
+            {normalized || <span className="italic text-muted-foreground">invalid</span>}
+            {normalized && (isCallable
+              ? <CheckCircle2 className="h-3 w-3 text-green-400" />
+              : <XCircle className="h-3 w-3 text-destructive" />)}
+          </p>
+        </div>
+        <div>
+          <p className="text-[9px] uppercase tracking-wider text-muted-foreground">autoRecapSent</p>
+          <p className="font-mono">{String(autoRecap.sent ?? false)}</p>
+        </div>
+        <div>
+          <p className="text-[9px] uppercase tracking-wider text-muted-foreground">autoRecapSid</p>
+          <p className="font-mono truncate">{autoRecap.sid || <span className="italic text-muted-foreground">—</span>}</p>
+        </div>
+      </div>
+
+      {skipReason && !autoRecap.sent && (
+        <div className="flex items-start gap-1.5 text-[11px] bg-amber-500/10 border border-amber-500/30 rounded px-2 py-1.5 text-amber-300">
+          <AlertTriangle className="h-3 w-3 mt-0.5 shrink-0" />
+          <span><span className="font-semibold">Skip reason:</span> {skipReason}</span>
+        </div>
+      )}
+
+      <div>
+        <p className="text-[9px] uppercase tracking-wider text-muted-foreground mb-1">
+          Recent SMS/WhatsApp deliveries to this number
+        </p>
+        {!normalized ? (
+          <p className="text-[11px] italic text-muted-foreground">No normalized phone to look up.</p>
+        ) : smsLoading ? (
+          <p className="text-[11px] italic text-muted-foreground">Loading delivery log…</p>
+        ) : !smsLogs?.length ? (
+          <p className="text-[11px] italic text-muted-foreground">No delivery log entries found for {normalized}.</p>
+        ) : (
+          <div className="space-y-1">
+            {smsLogs.map((log) => (
+              <div key={log.id} className="flex items-start gap-2 bg-background/40 border border-border/40 rounded px-2 py-1.5">
+                <Badge variant="outline" className={`text-[9px] ${statusBadge(log.status)} shrink-0`}>
+                  {log.status}
+                </Badge>
+                <div className="min-w-0 flex-1">
+                  <p className="text-[10px] text-muted-foreground font-mono truncate">
+                    {log.message_sid || "no-sid"} · {new Date(log.sent_at).toLocaleString()}
+                  </p>
+                  {log.body && (
+                    <p className="text-[11px] text-foreground/70 line-clamp-2">{log.body}</p>
+                  )}
+                  {log.error_message && (
+                    <p className="text-[10px] text-destructive">⚠ {log.error_code ? `[${log.error_code}] ` : ""}{log.error_message}</p>
+                  )}
+                </div>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+    </div>
+  );
+};
+
 const CallRow = ({ call }: { call: CallRecord }) => {
+
   const [expanded, setExpanded] = useState(false);
   const [refreshing, setRefreshing] = useState(false);
   const navigate = useNavigate();
