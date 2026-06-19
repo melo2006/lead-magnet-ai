@@ -1549,6 +1549,11 @@ Deno.serve(async (req) => {
                 appointmentRequested: aiSummary.appointmentRequested,
                 appointmentTimeText: aiSummary.appointmentTimeText || null,
                 contactPersisted,
+                captureFailed: !resolvedCallerEmail && !resolvedCallerPhone,
+                captureFailedReason:
+                  !resolvedCallerEmail && !resolvedCallerPhone
+                    ? 'No valid caller email or phone could be extracted from the transcript.'
+                    : null,
               },
             })
             .select('id')
