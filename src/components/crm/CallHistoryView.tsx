@@ -1,11 +1,13 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "@/integrations/supabase/client";
-import { Phone, PhoneForwarded, Clock, User, Mail, Globe, ChevronDown, ChevronUp, Play, Zap, RefreshCw } from "lucide-react";
+import { Phone, PhoneForwarded, Clock, User, Mail, Globe, ChevronDown, ChevronUp, Play, Zap, RefreshCw, MessageSquare, AlertTriangle, CheckCircle2, XCircle } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { toast } from "sonner";
+
+
 
 
 interface CallRecord {
