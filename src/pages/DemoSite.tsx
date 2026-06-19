@@ -562,16 +562,14 @@ const DemoSite = () => {
   useEffect(() => {
     const pid = leadData?.prospectId || prospectIdParam;
     if (!pid) return;
-    supabase.from('prospects')
-      .select('owner_name, owner_email, owner_phone')
-      .eq('id', pid)
-      .maybeSingle()
+    supabase.rpc('get_demo_prospect_owner', { _id: pid })
       .then(({ data }) => {
-        if (data) {
+        const row = Array.isArray(data) ? data[0] : data;
+        if (row) {
           setProspectOwner({
-            name: data.owner_name || undefined,
-            email: data.owner_email || undefined,
-            phone: data.owner_phone || undefined,
+            name: row.owner_name || undefined,
+            email: row.owner_email || undefined,
+            phone: row.owner_phone || undefined,
           });
         }
       });
