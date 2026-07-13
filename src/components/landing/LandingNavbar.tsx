@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { Link } from "react-router-dom";
-import { Menu, X } from "lucide-react";
+import { Menu, X, FileText } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import LanguageSwitcher from "@/components/LanguageSwitcher";
@@ -42,6 +42,14 @@ const LandingNavbar = () => {
           <button onClick={() => scrollTo("faq")} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             {t("nav.faq", "Help / FAQ")}
           </button>
+          <Link
+            to="/transcript"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+            title="Video transcript"
+          >
+            <FileText className="h-3.5 w-3.5" />
+            Script
+          </Link>
           <LanguageSwitcher />
           <Button size="sm" onClick={() => scrollTo("demo-form")}>
             {t("nav.getFreeDemo")}
@@ -79,6 +87,13 @@ const LandingNavbar = () => {
               {item.label}
             </button>
           ))}
+          <Link
+            to="/transcript"
+            onClick={() => setOpen(false)}
+            className="block w-full text-left px-3 py-3 rounded-lg text-base font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
+          >
+            Script
+          </Link>
           <Button size="lg" className="w-full mt-2 text-base" onClick={() => scrollTo("demo-form")}>
             {t("nav.getFreeDemo")}
           </Button>
