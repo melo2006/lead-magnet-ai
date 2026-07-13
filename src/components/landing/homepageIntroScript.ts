@@ -3,23 +3,23 @@
 // and drop it into the PreRollVideo slot before Aspen takes over live.
 // NOTE: This is the VIDEO script only — it does NOT drive the live Retell agent.
 
-export const homepageIntroScript = `Hey! I'm Ron from AIHiddenLeads.com.
+export const homepageIntroScript = `Hey, thank you for stopping by! I'm Ron from A I Hidden Leads dot com. Quick question!
 
-Did you know that seventy-eight percent of customers buy from whoever answers first? Not the cheapest. Not the best. The fastest.
+Did you know that seventy-eight percent of leads buy from whoever answers first? Not the cheapest. Not the best. The fastest!
 
-Right now, while you're busy on a job, in a meeting, or asleep, potential customers are calling your competitors because nobody picked up your phone or replied fast enough. Every missed call is hundreds — sometimes thousands — of dollars walking out your door.
+Right now, while you're busy on a job, in a meeting, or asleep, potential customers are calling your competitors because nobody picked up your phone or replied fast enough. Every missed call is hundreds — sometimes thousands of dollars walking out your door, all because you did not answer your phone or respond to their questions on your website!
 
 That's exactly why we built AI Hidden Leads.
 
-We give you five powerful tools that work together:
+We can offer you at least five powerful tools that will help you grow your leads and increase your revenue. Our clients are seeing results within days or weeks.
 
-One — an AI Voice Agent that answers your phone twenty-four seven, books appointments, handles questions, and transfers hot leads straight to you.
+One — an AI Voice Agent that answers your phone twenty-four seven. It sounds completely natural, like a real person, and it can handle multiple calls at the same time — so your customers never get a busy signal or sit on hold. It books appointments, answers questions, and transfers hot leads straight to you. And it costs a fraction of what you'd pay an answering service or a full-time receptionist.
 
 Two — an AI Chat Widget on your website so visitors never leave without getting answers.
 
-Three — we reactivate your old contact database with AI calls and texts, bringing past customers back with new offers.
+Three — we reactivate your old contact database with outbound AI calls and texts, bringing past customers back with new offers.
 
-Four — we find you brand-new leads using hidden techniques across the internet and local directories, especially for B2B, so your pipeline never runs dry.
+Four — we find you brand-new leads using hidden techniques across the internet, social media, local directories, and by improving your review ratings and Google rankings — especially for B2B, so your pipeline never runs dry.
 
 Five — we create a custom AI Video Avatar intro, just like the one you're watching right now, to welcome visitors to your own website.
 
