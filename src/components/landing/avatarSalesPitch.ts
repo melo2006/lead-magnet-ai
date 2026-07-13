@@ -6,7 +6,7 @@ export const salesPitchSegments = [
 
   "Did you know that seventy-eight percent of customers buy from the first business that answers? Every missed call is money walking straight to your competitor.",
 
-  "Here are five ways AI Hidden Leads fixes that:",
+  "Here are five ways AI Hidden Leads helps you grow:",
 
   "One — our AI voice agent answers your phone twenty-four seven, books appointments, handles questions, and transfers hot leads straight to you.",
 
@@ -14,7 +14,7 @@ export const salesPitchSegments = [
 
   "Three — we reactivate your old, sleepy contact database with AI calls and texts offering new promotions.",
 
-  "Four — we find you brand-new leads by scanning Google Business, reviews, and local directories, then boost your reputation so customers choose you.",
+  "Four — we specialize in finding you brand-new leads. Using hidden techniques across the internet and local directories, we uncover high-quality B2B prospects — and B2C when it fits — with accurate emails and phone numbers, filtered exactly to who you sell to.",
 
   "Five — we can even put a custom AI video spokesperson like me right on your homepage to greet every visitor.",
 
