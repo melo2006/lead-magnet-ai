@@ -42,6 +42,14 @@ const LandingNavbar = () => {
           <button onClick={() => scrollTo("faq")} className="text-sm text-muted-foreground hover:text-foreground transition-colors">
             {t("nav.faq", "Help / FAQ")}
           </button>
+          <Link
+            to="/transcript"
+            className="text-sm text-muted-foreground hover:text-foreground transition-colors flex items-center gap-1"
+            title="Video transcript"
+          >
+            <FileText className="h-3.5 w-3.5" />
+            Script
+          </Link>
           <LanguageSwitcher />
           <Button size="sm" onClick={() => scrollTo("demo-form")}>
             {t("nav.getFreeDemo")}
