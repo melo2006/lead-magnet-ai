@@ -14,7 +14,7 @@ export const salesPitchSegments = [
 
   "Three — we reactivate your old, sleepy contact database with AI calls and texts offering new promotions.",
 
-  "Four — we specialize in finding you brand-new leads. Using hidden techniques across the internet and local directories, we uncover high-quality B2B prospects — and B2C when it fits — with accurate emails and phone numbers, filtered exactly to who you sell to.",
+  "Four — we find you brand-new leads using hidden techniques across the internet, social media, and local directories. We also help increase your review ratings and improve your Google rankings, especially for high-quality B2B prospects, so your pipeline never runs dry.",
 
   "Five — we can even put a custom AI video spokesperson like me right on your homepage to greet every visitor.",
 

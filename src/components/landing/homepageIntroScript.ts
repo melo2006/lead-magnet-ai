@@ -19,7 +19,7 @@ Two — an AI Chat Widget on your website that instantly engages visitors, answe
 
 Three — we reactivate your old, sleepy contact database with AI-powered outbound calls and texts, bringing past customers back with fresh offers and promotions.
 
-Four — we generate brand-new leads for you using hidden techniques across the internet, social media, and local directories — especially high-quality B2B prospects, and B2C when it fits — so your sales pipeline never runs dry.
+Four — we find you brand-new leads using hidden techniques across the internet, social media, and local directories. We also help increase your review ratings and improve your Google rankings, especially for high-quality B2B prospects, so your pipeline never runs dry.
 
 Five — we create a custom AI Video Avatar intro, just like the one you're watching right now, to personally welcome visitors to your own website and guide them to take action.
 
