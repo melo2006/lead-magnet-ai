@@ -87,6 +87,13 @@ const LandingNavbar = () => {
               {item.label}
             </button>
           ))}
+          <Link
+            to="/transcript"
+            onClick={() => setOpen(false)}
+            className="block w-full text-left px-3 py-3 rounded-lg text-base font-medium text-muted-foreground hover:text-foreground hover:bg-secondary transition-all"
+          >
+            Script
+          </Link>
           <Button size="lg" className="w-full mt-2 text-base" onClick={() => scrollTo("demo-form")}>
             {t("nav.getFreeDemo")}
           </Button>
