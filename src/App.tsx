@@ -52,6 +52,7 @@ const App = () => (
             <Route path="/marketing" element={<MarketingHub />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/checkout/return" element={<CheckoutReturn />} />
+            <Route path="/transcript" element={<TranscriptPage />} />
             <Route path="/d/:slug" element={<ShortLinkRedirect />} />
             <Route path="/dashboard/*" element={<CRM />} />
             {legacyCrmRedirects.map(({ path, to }) => (
