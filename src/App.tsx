@@ -17,6 +17,7 @@ import ShortLinkRedirect from "./pages/ShortLinkRedirect.tsx";
 
 const AdPreviews = lazy(() => import("./pages/AdPreviews.tsx"));
 const MarketingHub = lazy(() => import("./pages/MarketingHub.tsx"));
+const TranscriptPage = lazy(() => import("./pages/TranscriptPage.tsx"));
 
 const queryClient = new QueryClient();
 
@@ -51,6 +52,7 @@ const App = () => (
             <Route path="/marketing" element={<MarketingHub />} />
             <Route path="/checkout" element={<Checkout />} />
             <Route path="/checkout/return" element={<CheckoutReturn />} />
+            <Route path="/transcript" element={<TranscriptPage />} />
             <Route path="/d/:slug" element={<ShortLinkRedirect />} />
             <Route path="/dashboard/*" element={<CRM />} />
             {legacyCrmRedirects.map(({ path, to }) => (
