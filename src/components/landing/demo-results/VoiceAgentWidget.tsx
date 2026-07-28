@@ -343,14 +343,14 @@ const VoiceAgentWidget = ({
   }, []);
 
   const applyAudioOutputDevice = useCallback(async (deviceId: string) => {
-    if (!deviceId || !canChooseAudioOutput()) return;
+    if (!deviceId || !canChooseAudioOutput()) return false;
 
     const room = retellClientRef.current?.room;
 
     try {
       if (typeof room?.switchActiveDevice === "function") {
         await room.switchActiveDevice("audiooutput", deviceId);
-        return;
+        return true;
       }
     } catch (error) {
       console.warn("Could not switch live call audio output:", error);
@@ -366,8 +366,10 @@ const VoiceAgentWidget = ({
           return Promise.resolve();
         }),
       );
+      return elements.length > 0;
     } catch (error) {
       console.warn("Could not switch browser audio output:", error);
+      return false;
     }
   }, []);
 
@@ -389,7 +391,9 @@ const VoiceAgentWidget = ({
         }));
       setAudioDevices(outputs);
       if (!selectedDevice && outputs.length > 0) {
-        setSelectedDevice(outputs[0].deviceId);
+        const preferred = outputs.find((device) => device.kind === "bluetooth") ?? outputs.find((device) => device.kind === "speaker") ?? outputs[0];
+        setSelectedDevice(preferred.deviceId);
+        setSelectedAudioRoute(preferred.kind);
       }
     } catch {
       // Not all browsers support enumerateDevices for output
@@ -412,8 +416,55 @@ const VoiceAgentWidget = ({
 
   const switchAudioOutput = useCallback(async (deviceId: string) => {
     setSelectedDevice(deviceId);
-    await applyAudioOutputDevice(deviceId);
-  }, [applyAudioOutputDevice]);
+    const selected = audioDevices.find((device) => device.deviceId === deviceId);
+    if (selected) setSelectedAudioRoute(selected.kind);
+    setAudioOutputNotice(null);
+    const applied = await applyAudioOutputDevice(deviceId);
+    if (!applied) {
+      setAudioOutputNotice("Your browser did not expose that output. If Bluetooth is paired, choose it from Android's media output panel.");
+    }
+    return applied;
+  }, [applyAudioOutputDevice, audioDevices]);
+
+  const switchAudioRoute = useCallback(async (route: AudioDevice["kind"]) => {
+    setSelectedAudioRoute(route);
+    setAudioOutputNotice(null);
+    const matchingDevice =
+      audioDevices.find((device) => device.kind === route) ??
+      (route === "speaker" ? audioDevices.find((device) => device.deviceId === "default") : undefined);
+
+    if (matchingDevice) {
+      await switchAudioOutput(matchingDevice.deviceId);
+      return;
+    }
+
+    if (route === "bluetooth") {
+      const mediaDevices = navigator.mediaDevices as MediaDevices & {
+        selectAudioOutput?: () => Promise<MediaDeviceInfo>;
+      };
+      if (typeof mediaDevices.selectAudioOutput === "function") {
+        const selected = await mediaDevices.selectAudioOutput().catch(() => null);
+        if (selected?.deviceId) {
+          const classified = classifyDevice(selected);
+          setAudioDevices((prev) => [
+            ...prev.filter((device) => device.deviceId !== selected.deviceId),
+            { deviceId: selected.deviceId, label: selected.label || "Bluetooth", kind: classified },
+          ]);
+          setSelectedDevice(selected.deviceId);
+          setSelectedAudioRoute(classified);
+          const applied = await applyAudioOutputDevice(selected.deviceId);
+          if (!applied) setAudioOutputNotice("Bluetooth was selected, but this browser may still require Android's media output panel.");
+          return;
+        }
+      }
+    }
+
+    setAudioOutputNotice(
+      route === "bluetooth"
+        ? "Bluetooth was not exposed by this browser. Pair the speaker first, then use Android's media output panel if needed."
+        : "That phone output is controlled by Android for this call.",
+    );
+  }, [applyAudioOutputDevice, audioDevices, switchAudioOutput]);
 
   useEffect(() => {
     if (!selectedDevice || !canChooseAudioOutput()) return;
