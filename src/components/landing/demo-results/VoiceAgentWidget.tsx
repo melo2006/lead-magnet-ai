@@ -1212,10 +1212,26 @@ const VoiceAgentWidget = ({
                     <span className="text-[10px] text-muted-foreground w-8 text-right font-mono">{volume}%</span>
                   </div>
 
-                  {/* Audio output device selector */}
-                  {audioDevices.length > 1 && (
-                    <div className="space-y-1.5">
-                      <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{t("demo.audioOutput")}</p>
+                  {/* Audio output selector */}
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{t("demo.audioOutput")}</p>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {(["speaker", "bluetooth", "earpiece"] as AudioDevice["kind"][]).map((route) => (
+                        <button
+                          key={route}
+                          onClick={() => switchAudioRoute(route)}
+                          className={`flex min-w-0 flex-col items-center justify-center gap-1 rounded-lg border px-1.5 py-2 text-[10px] font-semibold transition-colors ${
+                            selectedAudioRoute === route
+                              ? "border-primary bg-primary/15 text-primary"
+                              : "border-border bg-background text-foreground hover:bg-accent"
+                          }`}
+                        >
+                          {deviceIcon(route)}
+                          <span className="truncate">{audioRouteLabel[route]}</span>
+                        </button>
+                      ))}
+                    </div>
+                    {audioDevices.length > 1 && (
                       <div className="flex flex-wrap gap-1.5">
                         {audioDevices.map((device) => (
                           <button
@@ -1232,8 +1248,9 @@ const VoiceAgentWidget = ({
                           </button>
                         ))}
                       </div>
-                    </div>
-                  )}
+                    )}
+                    {audioOutputNotice && <p className="text-[10px] leading-snug text-muted-foreground">{audioOutputNotice}</p>}
+                  </div>
                 </div>
               )}
 
