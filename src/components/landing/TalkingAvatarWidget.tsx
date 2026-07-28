@@ -1178,18 +1178,16 @@ const TalkingAvatarWidget = () => {
               >
                 {isMuted ? <MicOff className="h-3 w-3" /> : <Mic className="h-3 w-3" />}
               </button>
-              {!isAndroidBrowser() && (
-                <button
-                  onClick={toggleAudioRoute}
-                  disabled={isRoutingAudio}
-                  className={`rounded-full p-1.5 transition-all ${
-                    audioRoute !== "earpiece" ? "bg-primary/15 text-primary" : "bg-muted text-foreground"
-                  }`}
-                  title={audioRouteTitle}
-                >
-                  <AudioRouteIcon className="h-3 w-3" />
-                </button>
-              )}
+              <button
+                onClick={toggleAudioRoute}
+                disabled={isRoutingAudio}
+                className={`rounded-full p-1.5 transition-all ${
+                  audioRoute !== "earpiece" ? "bg-primary/15 text-primary" : "bg-muted text-foreground"
+                }`}
+                title={audioRouteTitle}
+              >
+                {isRoutingAudio ? <Loader2 className="h-3 w-3 animate-spin" /> : <AudioRouteIcon className="h-3 w-3" />}
+              </button>
               <button
                 onClick={endCall}
                 className="rounded-full bg-destructive p-1.5 text-destructive-foreground"
@@ -1332,18 +1330,16 @@ const TalkingAvatarWidget = () => {
               >
                 {isMuted ? <MicOff className="h-3.5 w-3.5" /> : <Mic className="h-3.5 w-3.5" />}
               </button>
-              {!isAndroidBrowser() && (
-                <button
-                  onClick={toggleAudioRoute}
-                  disabled={isRoutingAudio}
-                  className={`rounded-full p-2 transition-all flex items-center gap-1 ${
-                    audioRoute !== "earpiece" ? "bg-primary/15 text-primary" : "bg-muted text-foreground hover:bg-muted/80"
-                  }`}
-                  title={audioRouteTitle}
-                >
-                  <AudioRouteIcon className="h-3.5 w-3.5" />
-                </button>
-              )}
+              <button
+                onClick={toggleAudioRoute}
+                disabled={isRoutingAudio}
+                className={`rounded-full p-2 transition-all flex items-center gap-1 ${
+                  audioRoute !== "earpiece" ? "bg-primary/15 text-primary" : "bg-muted text-foreground hover:bg-muted/80"
+                }`}
+                title={audioRouteTitle}
+              >
+                {isRoutingAudio ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <AudioRouteIcon className="h-3.5 w-3.5" />}
+              </button>
               <button
                 onClick={handleMinimize}
                 className="rounded-full bg-muted p-2 text-foreground hover:bg-muted/80"
@@ -1359,6 +1355,7 @@ const TalkingAvatarWidget = () => {
                 <PhoneOff className="h-3.5 w-3.5" />
               </button>
             </div>
+            {audioRouteSelector}
           </div>
         )}
       </div>
