@@ -698,7 +698,9 @@ const TalkingAvatarWidget = () => {
         setAudioRouteState("bluetooth");
       }
 
-      if (isAndroidBrowser()) return;
+      // (Previously we early-returned on Android here, which prevented Bluetooth
+      // routing from being wired. Chrome for Android 105+ supports setSinkId,
+      // so we now register the same routing helpers on Android as on desktop.)
 
       // ── Android speakerphone fix ──
       // LiveKit (used by Retell) attaches the remote WebRTC track to a regular
