@@ -38,9 +38,15 @@ interface AudioDevice {
 
 const classifyDevice = (device: MediaDeviceInfo): AudioDevice["kind"] => {
   const label = device.label.toLowerCase();
-  if (label.includes("bluetooth") || label.includes("airpod") || label.includes("beats")) return "bluetooth";
-  if (label.includes("speaker") || label.includes("external")) return "speaker";
+  if (/bluetooth|airpod|beats|buds|headset|headphone|jbl|sony|bose|anker|soundcore/.test(label)) return "bluetooth";
+  if (/speaker|external|loudspeaker|built.?in|phone/.test(label) && !/earpiece|headset|headphone|bluetooth/.test(label)) return "speaker";
   return "earpiece";
+};
+
+const audioRouteLabel: Record<AudioDevice["kind"], string> = {
+  speaker: "Speaker",
+  bluetooth: "Bluetooth",
+  earpiece: "Phone",
 };
 
 const deviceIcon = (kind: AudioDevice["kind"]) => {
@@ -260,6 +266,8 @@ const VoiceAgentWidget = ({
   const [showAudioControls, setShowAudioControls] = useState(false);
   const [audioDevices, setAudioDevices] = useState<AudioDevice[]>([]);
   const [selectedDevice, setSelectedDevice] = useState<string>("");
+  const [selectedAudioRoute, setSelectedAudioRoute] = useState<AudioDevice["kind"]>("speaker");
+  const [audioOutputNotice, setAudioOutputNotice] = useState<string | null>(null);
   const [transferInProgress, setTransferInProgress] = useState(false);
   const [lastAgentMessage, setLastAgentMessage] = useState<string>("");
   const [isReplaying, setIsReplaying] = useState(false);
