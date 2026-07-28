@@ -43,12 +43,6 @@ const classifyDevice = (device: MediaDeviceInfo): AudioDevice["kind"] => {
   return "earpiece";
 };
 
-const audioRouteLabel: Record<AudioDevice["kind"], string> = {
-  speaker: "Speaker",
-  bluetooth: "Bluetooth",
-  earpiece: "Phone",
-};
-
 const deviceIcon = (kind: AudioDevice["kind"]) => {
   switch (kind) {
     case "bluetooth": return <Bluetooth className="h-3.5 w-3.5" />;
@@ -275,6 +269,11 @@ const VoiceAgentWidget = ({
   const [lastCallHistoryId, setLastCallHistoryId] = useState<string | null>(null);
   const [isSendingRecap, setIsSendingRecap] = useState(false);
   const [recapSent, setRecapSent] = useState(false);
+  const audioRouteLabel: Record<AudioDevice["kind"], string> = {
+    speaker: t("demo.outputSpeaker"),
+    bluetooth: t("demo.outputBluetooth"),
+    earpiece: t("demo.outputPhone"),
+  };
   const retellClientRef = useRef<any>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const callIdRef = useRef<string | null>(null);
