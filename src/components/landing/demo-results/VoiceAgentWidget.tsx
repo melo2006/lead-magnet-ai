@@ -38,8 +38,8 @@ interface AudioDevice {
 
 const classifyDevice = (device: MediaDeviceInfo): AudioDevice["kind"] => {
   const label = device.label.toLowerCase();
-  if (label.includes("bluetooth") || label.includes("airpod") || label.includes("beats")) return "bluetooth";
-  if (label.includes("speaker") || label.includes("external")) return "speaker";
+  if (/bluetooth|airpod|beats|buds|headset|headphone|jbl|sony|bose|anker|soundcore/.test(label)) return "bluetooth";
+  if (/speaker|external|loudspeaker|built.?in|phone/.test(label) && !/earpiece|headset|headphone|bluetooth/.test(label)) return "speaker";
   return "earpiece";
 };
 
@@ -260,6 +260,8 @@ const VoiceAgentWidget = ({
   const [showAudioControls, setShowAudioControls] = useState(false);
   const [audioDevices, setAudioDevices] = useState<AudioDevice[]>([]);
   const [selectedDevice, setSelectedDevice] = useState<string>("");
+  const [selectedAudioRoute, setSelectedAudioRoute] = useState<AudioDevice["kind"]>("speaker");
+  const [audioOutputNotice, setAudioOutputNotice] = useState<string | null>(null);
   const [transferInProgress, setTransferInProgress] = useState(false);
   const [lastAgentMessage, setLastAgentMessage] = useState<string>("");
   const [isReplaying, setIsReplaying] = useState(false);
@@ -267,6 +269,11 @@ const VoiceAgentWidget = ({
   const [lastCallHistoryId, setLastCallHistoryId] = useState<string | null>(null);
   const [isSendingRecap, setIsSendingRecap] = useState(false);
   const [recapSent, setRecapSent] = useState(false);
+  const audioRouteLabel: Record<AudioDevice["kind"], string> = {
+    speaker: t("demo.outputSpeaker"),
+    bluetooth: t("demo.outputBluetooth"),
+    earpiece: t("demo.outputPhone"),
+  };
   const retellClientRef = useRef<any>(null);
   const timerRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const callIdRef = useRef<string | null>(null);
@@ -335,14 +342,14 @@ const VoiceAgentWidget = ({
   }, []);
 
   const applyAudioOutputDevice = useCallback(async (deviceId: string) => {
-    if (!deviceId || !canChooseAudioOutput()) return;
+    if (!deviceId || !canChooseAudioOutput()) return false;
 
     const room = retellClientRef.current?.room;
 
     try {
       if (typeof room?.switchActiveDevice === "function") {
         await room.switchActiveDevice("audiooutput", deviceId);
-        return;
+        return true;
       }
     } catch (error) {
       console.warn("Could not switch live call audio output:", error);
@@ -358,8 +365,10 @@ const VoiceAgentWidget = ({
           return Promise.resolve();
         }),
       );
+      return elements.length > 0;
     } catch (error) {
       console.warn("Could not switch browser audio output:", error);
+      return false;
     }
   }, []);
 
@@ -381,7 +390,9 @@ const VoiceAgentWidget = ({
         }));
       setAudioDevices(outputs);
       if (!selectedDevice && outputs.length > 0) {
-        setSelectedDevice(outputs[0].deviceId);
+        const preferred = outputs.find((device) => device.kind === "bluetooth") ?? outputs.find((device) => device.kind === "speaker") ?? outputs[0];
+        setSelectedDevice(preferred.deviceId);
+        setSelectedAudioRoute(preferred.kind);
       }
     } catch {
       // Not all browsers support enumerateDevices for output
@@ -404,8 +415,55 @@ const VoiceAgentWidget = ({
 
   const switchAudioOutput = useCallback(async (deviceId: string) => {
     setSelectedDevice(deviceId);
-    await applyAudioOutputDevice(deviceId);
-  }, [applyAudioOutputDevice]);
+    const selected = audioDevices.find((device) => device.deviceId === deviceId);
+    if (selected) setSelectedAudioRoute(selected.kind);
+    setAudioOutputNotice(null);
+    const applied = await applyAudioOutputDevice(deviceId);
+    if (!applied) {
+      setAudioOutputNotice("Your browser did not expose that output. If Bluetooth is paired, choose it from Android's media output panel.");
+    }
+    return applied;
+  }, [applyAudioOutputDevice, audioDevices]);
+
+  const switchAudioRoute = useCallback(async (route: AudioDevice["kind"]) => {
+    setSelectedAudioRoute(route);
+    setAudioOutputNotice(null);
+    const matchingDevice =
+      audioDevices.find((device) => device.kind === route) ??
+      (route === "speaker" ? audioDevices.find((device) => device.deviceId === "default") : undefined);
+
+    if (matchingDevice) {
+      await switchAudioOutput(matchingDevice.deviceId);
+      return;
+    }
+
+    if (route === "bluetooth") {
+      const mediaDevices = navigator.mediaDevices as MediaDevices & {
+        selectAudioOutput?: () => Promise<MediaDeviceInfo>;
+      };
+      if (typeof mediaDevices.selectAudioOutput === "function") {
+        const selected = await mediaDevices.selectAudioOutput().catch(() => null);
+        if (selected?.deviceId) {
+          const classified = classifyDevice(selected);
+          setAudioDevices((prev) => [
+            ...prev.filter((device) => device.deviceId !== selected.deviceId),
+            { deviceId: selected.deviceId, label: selected.label || "Bluetooth", kind: classified },
+          ]);
+          setSelectedDevice(selected.deviceId);
+          setSelectedAudioRoute(classified);
+          const applied = await applyAudioOutputDevice(selected.deviceId);
+          if (!applied) setAudioOutputNotice("Bluetooth was selected, but this browser may still require Android's media output panel.");
+          return;
+        }
+      }
+    }
+
+    setAudioOutputNotice(
+      route === "bluetooth"
+        ? "Bluetooth was not exposed by this browser. Pair the speaker first, then use Android's media output panel if needed."
+        : "That phone output is controlled by Android for this call.",
+    );
+  }, [applyAudioOutputDevice, audioDevices, switchAudioOutput]);
 
   useEffect(() => {
     if (!selectedDevice || !canChooseAudioOutput()) return;
@@ -1153,10 +1211,26 @@ const VoiceAgentWidget = ({
                     <span className="text-[10px] text-muted-foreground w-8 text-right font-mono">{volume}%</span>
                   </div>
 
-                  {/* Audio output device selector */}
-                  {audioDevices.length > 1 && (
-                    <div className="space-y-1.5">
-                      <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{t("demo.audioOutput")}</p>
+                  {/* Audio output selector */}
+                  <div className="space-y-1.5">
+                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider">{t("demo.audioOutput")}</p>
+                    <div className="grid grid-cols-3 gap-1.5">
+                      {(["speaker", "bluetooth", "earpiece"] as AudioDevice["kind"][]).map((route) => (
+                        <button
+                          key={route}
+                          onClick={() => switchAudioRoute(route)}
+                          className={`flex min-w-0 flex-col items-center justify-center gap-1 rounded-lg border px-1.5 py-2 text-[10px] font-semibold transition-colors ${
+                            selectedAudioRoute === route
+                              ? "border-primary bg-primary/15 text-primary"
+                              : "border-border bg-background text-foreground hover:bg-accent"
+                          }`}
+                        >
+                          {deviceIcon(route)}
+                          <span className="truncate">{audioRouteLabel[route]}</span>
+                        </button>
+                      ))}
+                    </div>
+                    {audioDevices.length > 1 && (
                       <div className="flex flex-wrap gap-1.5">
                         {audioDevices.map((device) => (
                           <button
@@ -1173,8 +1247,9 @@ const VoiceAgentWidget = ({
                           </button>
                         ))}
                       </div>
-                    </div>
-                  )}
+                    )}
+                    {audioOutputNotice && <p className="text-[10px] leading-snug text-muted-foreground">{audioOutputNotice}</p>}
+                  </div>
                 </div>
               )}
 
