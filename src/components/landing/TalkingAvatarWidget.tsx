@@ -876,9 +876,7 @@ const TalkingAvatarWidget = () => {
           try { speakerCloneTrackRef.current?.stop(); } catch { /* noop */ }
           speakerCloneTrackRef.current = null;
 
-          const attachedElements = track.attach?.() ?? [];
-          const primaryAudio = Array.isArray(attachedElements) ? attachedElements[0] : attachedElements;
-          const bluetoothAudio = primaryAudio instanceof HTMLAudioElement ? primaryAudio : document.createElement("audio");
+          const bluetoothAudio = document.createElement("audio");
           bluetoothAudio.autoplay = true;
           bluetoothAudio.muted = false;
           (bluetoothAudio as any).playsInline = true;
@@ -895,12 +893,20 @@ const TalkingAvatarWidget = () => {
             bluetoothAudio.srcObject = new MediaStream([speakerCloneTrack]);
           } else {
             try { track.setVolume?.(1); } catch { /* noop */ }
+            bluetoothAudio.pause();
+            bluetoothAudio.remove();
+            const fallbackAudio = track.attach() as HTMLAudioElement;
+            fallbackAudio.autoplay = true;
+            fallbackAudio.muted = false;
+            (fallbackAudio as any).playsInline = true;
+            fallbackAudio.style.display = "none";
+            if (!document.body.contains(fallbackAudio)) document.body.appendChild(fallbackAudio);
+            speakerAudioRef.current = fallbackAudio;
+            await fallbackAudio.play().catch(() => {});
+            return;
           }
 
           await bluetoothAudio.play().catch(() => {});
-          if (!speakerAudioRef.current) {
-            speakerAudioRef.current = bluetoothAudio;
-          }
         } catch (e) {
           console.error("Failed to route audio to Bluetooth:", e);
           setAudioRouteNotice("Bluetooth output was not exposed by this browser. If your speaker is paired, Android may still route to it automatically from the system audio panel.");
