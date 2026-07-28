@@ -691,12 +691,14 @@ const TalkingAvatarWidget = () => {
         analyser.smoothingTimeConstant = 0.18;
       }
 
-      if (isAndroidBrowser()) return;
-
+      // Detect Bluetooth output on all platforms (Android included) so we can
+      // auto-route the call to an external speaker/headset when one is paired.
       const bluetoothAvailable = await refreshBluetoothOutput();
-      if (bluetoothAvailable && audioRouteRef.current === "speaker") {
+      if (bluetoothAvailable && audioRouteRef.current !== "bluetooth") {
         setAudioRouteState("bluetooth");
       }
+
+      if (isAndroidBrowser()) return;
 
       // ── Android speakerphone fix ──
       // LiveKit (used by Retell) attaches the remote WebRTC track to a regular
