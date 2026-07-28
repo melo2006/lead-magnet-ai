@@ -903,7 +903,7 @@ const TalkingAvatarWidget = () => {
             if (!document.body.contains(fallbackAudio)) document.body.appendChild(fallbackAudio);
             speakerAudioRef.current = fallbackAudio;
             await fallbackAudio.play().catch(() => {});
-            return;
+            throw new Error("Bluetooth output selection unavailable");
           }
 
           await bluetoothAudio.play().catch(() => {});
