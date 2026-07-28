@@ -23,9 +23,8 @@ const HAS_CALLED_KEY = "aspen_has_called_before";
 const isAndroidBrowser = () =>
   typeof navigator !== "undefined" && /Android/i.test(navigator.userAgent || "");
 
-// Chrome for Android supports setSinkId since v105 — allow Bluetooth routing there too.
-// (Older logic disabled it on Android; that blocked external Bluetooth speakers.)
 const supportsAudioOutputSelection = () =>
+  !isAndroidBrowser() &&
   typeof HTMLMediaElement !== "undefined" &&
   typeof (HTMLMediaElement.prototype as unknown as { setSinkId?: unknown }).setSinkId === "function";
 
@@ -873,8 +872,43 @@ const TalkingAvatarWidget = () => {
           remoteTrackRef.current = track;
           try { audioSourceRef.current?.disconnect(); } catch { /* noop */ }
           audioSourceRef.current = null;
+          try { await audioCtxRef.current?.close(); } catch { /* noop */ }
+          audioCtxRef.current = null;
           try { speakerCloneTrackRef.current?.stop(); } catch { /* noop */ }
           speakerCloneTrackRef.current = null;
+          if (silentSinkAudioRef.current) {
+            silentSinkAudioRef.current.pause();
+            silentSinkAudioRef.current.removeAttribute("src");
+            try { silentSinkAudioRef.current.load(); } catch { /* noop */ }
+          }
+          if (speakerAudioRef.current) {
+            speakerAudioRef.current.pause();
+            speakerAudioRef.current.srcObject = null;
+            speakerAudioRef.current.remove();
+            speakerAudioRef.current = null;
+          }
+          if (earpieceAudioRef.current) {
+            earpieceAudioRef.current.pause();
+            earpieceAudioRef.current.srcObject = null;
+            earpieceAudioRef.current.remove();
+            earpieceAudioRef.current = null;
+          }
+
+          if (isAndroidBrowser()) {
+            try { track.setVolume?.(1); } catch { /* noop */ }
+            detachTrackAudioElements(track);
+            const fallbackAudio = track.attach() as HTMLAudioElement;
+            fallbackAudio.autoplay = true;
+            fallbackAudio.muted = false;
+            (fallbackAudio as any).playsInline = true;
+            fallbackAudio.style.display = "none";
+            document.body.appendChild(fallbackAudio);
+            speakerAudioRef.current = fallbackAudio;
+            await fallbackAudio.play().catch(() => {});
+            routed = true;
+            setAudioRouteNotice("Bluetooth uses Android's system audio route. If it still plays from the phone, open the Android media output selector and choose your paired speaker.");
+            return;
+          }
 
           const bluetoothAudio = document.createElement("audio");
           bluetoothAudio.autoplay = true;
@@ -913,8 +947,8 @@ const TalkingAvatarWidget = () => {
         } finally {
           audioRoutingInProgressRef.current = false;
           setIsRoutingAudio(false);
+          setAudioRouteState("bluetooth");
         }
-        setAudioRouteState("bluetooth");
         if (!routed) {
           setAudioRouteNotice("Bluetooth requested. If it still plays from the phone, open Android's media output selector and choose the paired speaker.");
         }
