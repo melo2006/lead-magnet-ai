@@ -23,10 +23,11 @@ const HAS_CALLED_KEY = "aspen_has_called_before";
 const isAndroidBrowser = () =>
   typeof navigator !== "undefined" && /Android/i.test(navigator.userAgent || "");
 
+// Chrome for Android supports setSinkId since v105 — allow Bluetooth routing there too.
+// (Older logic disabled it on Android; that blocked external Bluetooth speakers.)
 const supportsAudioOutputSelection = () =>
   typeof HTMLMediaElement !== "undefined" &&
-  typeof (HTMLMediaElement.prototype as unknown as { setSinkId?: unknown }).setSinkId === "function" &&
-  !isAndroidBrowser();
+  typeof (HTMLMediaElement.prototype as unknown as { setSinkId?: unknown }).setSinkId === "function";
 
 const withTimeout = async <T,>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> => {
   let timeoutId: number | undefined;
@@ -690,12 +691,16 @@ const TalkingAvatarWidget = () => {
         analyser.smoothingTimeConstant = 0.18;
       }
 
-      if (isAndroidBrowser()) return;
-
+      // Detect Bluetooth output on all platforms (Android included) so we can
+      // auto-route the call to an external speaker/headset when one is paired.
       const bluetoothAvailable = await refreshBluetoothOutput();
-      if (bluetoothAvailable && audioRouteRef.current === "speaker") {
+      if (bluetoothAvailable && audioRouteRef.current !== "bluetooth") {
         setAudioRouteState("bluetooth");
       }
+
+      // (Previously we early-returned on Android here, which prevented Bluetooth
+      // routing from being wired. Chrome for Android 105+ supports setSinkId,
+      // so we now register the same routing helpers on Android as on desktop.)
 
       // ── Android speakerphone fix ──
       // LiveKit (used by Retell) attaches the remote WebRTC track to a regular
