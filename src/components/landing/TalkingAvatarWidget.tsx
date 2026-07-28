@@ -1,6 +1,6 @@
 import { useState, useCallback, useRef, useEffect } from "react";
 import { useTranslation } from "react-i18next";
-import { X, Mic, MicOff, Phone, PhoneOff, ExternalLink, Loader2, Minimize2, Maximize2, Volume2, Bluetooth } from "lucide-react";
+import { X, Mic, MicOff, Phone, PhoneOff, ExternalLink, Loader2, Minimize2, Maximize2, Volume2, Bluetooth, Speaker, Smartphone } from "lucide-react";
 import { RetellWebClient } from "retell-client-js-sdk";
 import { supabase } from "@/integrations/supabase/client";
 import realisticAvatar from "@/assets/aspen_blonde_avatar.jpg";
@@ -254,6 +254,7 @@ const TalkingAvatarWidget = () => {
   const [audioRoute, setAudioRoute] = useState<AudioRoute>("speaker");
   const [hasBluetoothOutput, setHasBluetoothOutput] = useState(false);
   const [isRoutingAudio, setIsRoutingAudio] = useState(false);
+  const [audioRouteNotice, setAudioRouteNotice] = useState<string | null>(null);
   const audioRouteRef = useRef<AudioRoute>("speaker");
   const hasUserChangedAudioRouteRef = useRef(false);
   const audioCtxRef = useRef<AudioContext | null>(null);
@@ -340,12 +341,28 @@ const TalkingAvatarWidget = () => {
   const pickOutputSinkId = useCallback(async (route: "speaker" | "bluetooth") => {
     if (!supportsAudioOutputSelection() || !navigator.mediaDevices?.enumerateDevices) return null;
     const outputs = (await navigator.mediaDevices.enumerateDevices()).filter((device) => device.kind === "audiooutput");
-    const isBluetooth = (label = "") => /bluetooth|airpods|buds|headset/i.test(label);
+    const isBluetooth = (label = "") => /bluetooth|airpods|buds|headset|headphone|beats|jbl|sony|bose|anker|soundcore/i.test(label);
     const isSpeaker = (label = "") => /speaker|loudspeaker|built.?in|phone/i.test(label) && !/earpiece|bluetooth|airpods|buds|headset|headphone/i.test(label);
     const bluetooth = outputs.find((device) => isBluetooth(device.label));
     setHasBluetoothOutput(Boolean(bluetooth));
 
-    if (route === "bluetooth") return bluetooth?.deviceId ?? null;
+    if (route === "bluetooth") {
+      if (bluetooth?.deviceId) return bluetooth.deviceId;
+
+      const mediaDevices = navigator.mediaDevices as MediaDevices & {
+        selectAudioOutput?: () => Promise<MediaDeviceInfo>;
+      };
+      if (typeof mediaDevices.selectAudioOutput === "function") {
+        const selected = await mediaDevices.selectAudioOutput().catch(() => null);
+        if (selected?.deviceId) {
+          setHasBluetoothOutput(true);
+          return selected.deviceId;
+        }
+      }
+
+      // Some browsers expose the active call route only as the communications sink.
+      return outputs.some((device) => device.deviceId === "communications") ? "communications" : null;
+    }
     return outputs.find((device) => isSpeaker(device.label))?.deviceId ?? "default";
   }, []);
 
