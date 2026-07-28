@@ -743,6 +743,7 @@ const TalkingAvatarWidget = () => {
         audioRoutingInProgressRef.current = true;
         try {
           setIsRoutingAudio(true);
+          setAudioRouteNotice(null);
           const track = remoteTrackRef.current ?? findRemoteTrack();
           if (!track) return;
           remoteTrackRef.current = track;
@@ -813,6 +814,7 @@ const TalkingAvatarWidget = () => {
         audioRoutingInProgressRef.current = true;
         try {
           setIsRoutingAudio(true);
+          setAudioRouteNotice(null);
           // Tear down Web Audio (speaker) route
           try { audioSourceRef.current?.disconnect(); } catch { /* noop */ }
           audioSourceRef.current = null;
@@ -862,38 +864,54 @@ const TalkingAvatarWidget = () => {
       const routeToBluetooth = async () => {
         if (audioRoutingInProgressRef.current) return;
         audioRoutingInProgressRef.current = true;
+        let routed = false;
         try {
           setIsRoutingAudio(true);
+          setAudioRouteNotice(null);
           const track = remoteTrackRef.current ?? findRemoteTrack();
           if (!track) return;
           remoteTrackRef.current = track;
-          try { track.setVolume?.(0); } catch { /* noop */ }
-          detachTrackAudioElements(track);
           try { audioSourceRef.current?.disconnect(); } catch { /* noop */ }
           audioSourceRef.current = null;
           try { speakerCloneTrackRef.current?.stop(); } catch { /* noop */ }
-          const speakerCloneTrack = track.mediaStreamTrack.clone();
-          speakerCloneTrackRef.current = speakerCloneTrack;
-          const stream = new MediaStream([speakerCloneTrack]);
+          speakerCloneTrackRef.current = null;
+
+          const attachedElements = track.attach?.() ?? [];
+          const primaryAudio = Array.isArray(attachedElements) ? attachedElements[0] : attachedElements;
+          const bluetoothAudio = primaryAudio instanceof HTMLAudioElement ? primaryAudio : document.createElement("audio");
+          bluetoothAudio.autoplay = true;
+          bluetoothAudio.muted = false;
+          (bluetoothAudio as any).playsInline = true;
+          bluetoothAudio.style.display = "none";
+          if (!document.body.contains(bluetoothAudio)) document.body.appendChild(bluetoothAudio);
+          speakerAudioRef.current = bluetoothAudio;
+
+          routed = await setSinkIfSupported(bluetoothAudio, "bluetooth");
+          if (routed) {
+            detachTrackAudioElements(track);
+            try { track.setVolume?.(0); } catch { /* noop */ }
+            const speakerCloneTrack = track.mediaStreamTrack.clone();
+            speakerCloneTrackRef.current = speakerCloneTrack;
+            bluetoothAudio.srcObject = new MediaStream([speakerCloneTrack]);
+          } else {
+            try { track.setVolume?.(1); } catch { /* noop */ }
+          }
+
+          await bluetoothAudio.play().catch(() => {});
           if (!speakerAudioRef.current) {
-            const bluetoothAudio = document.createElement("audio");
-            bluetoothAudio.autoplay = true;
-            bluetoothAudio.muted = false;
-            (bluetoothAudio as any).playsInline = true;
-            bluetoothAudio.style.display = "none";
-            document.body.appendChild(bluetoothAudio);
             speakerAudioRef.current = bluetoothAudio;
           }
-          speakerAudioRef.current.srcObject = stream;
-          await setSinkIfSupported(speakerAudioRef.current, "bluetooth");
-          await speakerAudioRef.current.play().catch(() => {});
         } catch (e) {
           console.error("Failed to route audio to Bluetooth:", e);
+          setAudioRouteNotice("Bluetooth output was not exposed by this browser. If your speaker is paired, Android may still route to it automatically from the system audio panel.");
         } finally {
           audioRoutingInProgressRef.current = false;
           setIsRoutingAudio(false);
         }
         setAudioRouteState("bluetooth");
+        if (!routed) {
+          setAudioRouteNotice("Bluetooth requested. If it still plays from the phone, open Android's media output selector and choose the paired speaker.");
+        }
       };
 
       retellClient.on("call_ended", () => {
