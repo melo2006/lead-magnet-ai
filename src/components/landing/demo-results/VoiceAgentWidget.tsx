@@ -162,10 +162,10 @@ const extractLatestAgentUtterance = (event: unknown) => {
 const isAndroidBrowser = () =>
   typeof navigator !== "undefined" && /Android/i.test(navigator.userAgent || "");
 
+// Chrome for Android supports setSinkId since v105 — allow Bluetooth routing there too.
 const canChooseAudioOutput = () =>
   typeof HTMLMediaElement !== "undefined" &&
-  typeof (HTMLMediaElement.prototype as unknown as { setSinkId?: unknown }).setSinkId === "function" &&
-  !isAndroidBrowser();
+  typeof (HTMLMediaElement.prototype as unknown as { setSinkId?: unknown }).setSinkId === "function";
 
 const withTimeout = async <T,>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> => {
   let timeoutId: number | undefined;
