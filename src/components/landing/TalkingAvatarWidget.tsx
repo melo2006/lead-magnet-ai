@@ -23,10 +23,11 @@ const HAS_CALLED_KEY = "aspen_has_called_before";
 const isAndroidBrowser = () =>
   typeof navigator !== "undefined" && /Android/i.test(navigator.userAgent || "");
 
+// Chrome for Android supports setSinkId since v105 — allow Bluetooth routing there too.
+// (Older logic disabled it on Android; that blocked external Bluetooth speakers.)
 const supportsAudioOutputSelection = () =>
   typeof HTMLMediaElement !== "undefined" &&
-  typeof (HTMLMediaElement.prototype as unknown as { setSinkId?: unknown }).setSinkId === "function" &&
-  !isAndroidBrowser();
+  typeof (HTMLMediaElement.prototype as unknown as { setSinkId?: unknown }).setSinkId === "function";
 
 const withTimeout = async <T,>(promise: Promise<T>, timeoutMs: number, message: string): Promise<T> => {
   let timeoutId: number | undefined;
