@@ -928,6 +928,13 @@ const TalkingAvatarWidget = () => {
       (retellClientRef.current as any)._routeSpeaker = routeToSpeaker;
       (retellClientRef.current as any)._routeEarpiece = routeToEarpiece;
       (retellClientRef.current as any)._routeBluetooth = routeToBluetooth;
+
+      window.setTimeout(() => {
+        const preferredRoute = audioRouteRef.current;
+        if (preferredRoute === "bluetooth") void routeToBluetooth();
+        else if (preferredRoute === "earpiece") void routeToEarpiece();
+        else void routeToSpeaker();
+      }, 500);
     } catch (err) {
       console.error("Failed to start spokesperson call:", err);
       setCallStatus("idle");
@@ -970,11 +977,7 @@ const TalkingAvatarWidget = () => {
     const client = retellClientRef.current as any;
     if (!client) return;
     if (isRoutingAudio) return;
-    if (!hasUserChangedAudioRouteRef.current) {
-      hasUserChangedAudioRouteRef.current = true;
-      await client._routeSpeaker?.();
-      return;
-    }
+    hasUserChangedAudioRouteRef.current = true;
     const nextRoute: AudioRoute =
       audioRoute === "bluetooth"
         ? "speaker"
