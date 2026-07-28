@@ -967,7 +967,6 @@ const TalkingAvatarWidget = () => {
   }, [isMuted]);
 
   const toggleAudioRoute = useCallback(async () => {
-    if (isAndroidBrowser()) return;
     const client = retellClientRef.current as any;
     if (!client) return;
     if (isRoutingAudio) return;
@@ -990,6 +989,15 @@ const TalkingAvatarWidget = () => {
     else await client._routeEarpiece?.();
   }, [audioRoute, hasBluetoothOutput, isRoutingAudio]);
 
+  const selectAudioRoute = useCallback(async (route: AudioRoute) => {
+    const client = retellClientRef.current as any;
+    if (!client || isRoutingAudio) return;
+    hasUserChangedAudioRouteRef.current = true;
+    if (route === "speaker") await client._routeSpeaker?.();
+    else if (route === "bluetooth") await client._routeBluetooth?.();
+    else await client._routeEarpiece?.();
+  }, [isRoutingAudio]);
+
   const audioRouteTitle =
     audioRoute === "speaker"
       ? "Speakerphone active (tap for earpiece)"
@@ -1000,6 +1008,37 @@ const TalkingAvatarWidget = () => {
           : "Earpiece active (tap for speakerphone)";
 
   const AudioRouteIcon = audioRoute === "bluetooth" ? Bluetooth : audioRoute === "speaker" ? Volume2 : Phone;
+
+  const audioRouteOptions: Array<{ route: AudioRoute; label: string; Icon: typeof Volume2 }> = [
+    { route: "speaker", label: "Speaker", Icon: Speaker },
+    { route: "bluetooth", label: "Bluetooth", Icon: Bluetooth },
+    { route: "earpiece", label: "Phone", Icon: Smartphone },
+  ];
+
+  const audioRouteSelector = callStatus === "active" ? (
+    <div className="space-y-1.5">
+      <div className="grid grid-cols-3 gap-1.5">
+        {audioRouteOptions.map(({ route, label, Icon }) => (
+          <button
+            key={route}
+            type="button"
+            onClick={() => selectAudioRoute(route)}
+            disabled={isRoutingAudio}
+            className={`flex min-w-0 flex-col items-center justify-center gap-1 rounded-lg border px-1.5 py-2 text-[9px] font-bold transition-colors ${
+              audioRoute === route
+                ? "border-primary bg-primary/15 text-primary"
+                : "border-border bg-muted text-foreground hover:bg-muted/80"
+            }`}
+            title={`Use ${label}`}
+          >
+            {isRoutingAudio && audioRoute === route ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Icon className="h-3.5 w-3.5" />}
+            <span className="truncate">{label}</span>
+          </button>
+        ))}
+      </div>
+      {audioRouteNotice && <p className="text-[9px] leading-snug text-muted-foreground">{audioRouteNotice}</p>}
+    </div>
+  ) : null;
 
 
 
