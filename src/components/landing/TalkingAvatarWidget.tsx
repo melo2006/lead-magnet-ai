@@ -1013,9 +1013,9 @@ const TalkingAvatarWidget = () => {
   const AudioRouteIcon = audioRoute === "bluetooth" ? Bluetooth : audioRoute === "speaker" ? Volume2 : Phone;
 
   const audioRouteOptions: Array<{ route: AudioRoute; label: string; Icon: typeof Volume2 }> = [
-    { route: "speaker", label: "Speaker", Icon: Speaker },
-    { route: "bluetooth", label: "Bluetooth", Icon: Bluetooth },
-    { route: "earpiece", label: "Phone", Icon: Smartphone },
+    { route: "speaker", label: t("demo.outputSpeaker"), Icon: Speaker },
+    { route: "bluetooth", label: t("demo.outputBluetooth"), Icon: Bluetooth },
+    { route: "earpiece", label: t("demo.outputPhone"), Icon: Smartphone },
   ];
 
   const audioRouteSelector = callStatus === "active" ? (
