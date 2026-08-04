@@ -33,6 +33,8 @@ const AdminLogin = ({ onSignedIn }: { onSignedIn: () => void }) => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  const inIframe = typeof window !== "undefined" && window.self !== window.top;
+
   const handleGoogleLogin = async () => {
     setLoading(true);
     const result = await lovable.auth.signInWithOAuth("google", {
@@ -42,7 +44,15 @@ const AdminLogin = ({ onSignedIn }: { onSignedIn: () => void }) => {
     setLoading(false);
 
     if (result.error) {
-      toast.error("Google sign-in failed", { description: result.error.message });
+      const message = result.error.message || "";
+      const canceled = /cancel|closed|popup|blocked/i.test(message);
+      toast.error(canceled ? "Google sign-in canceled" : "Google sign-in failed", {
+        description: canceled
+          ? inIframe
+            ? "The Google popup was blocked or closed. Open the app in its own browser tab and sign in there, or use the email + password form below."
+            : "The Google window was closed before finishing. Try again, or use the email + password form below."
+          : message,
+      });
       return;
     }
 
@@ -90,6 +100,16 @@ const AdminLogin = ({ onSignedIn }: { onSignedIn: () => void }) => {
             <Button type="button" className="w-full" onClick={handleGoogleLogin} disabled={loading}>
               Continue with Google
             </Button>
+            {inIframe && (
+              <a
+                href={`${window.location.origin}/dashboard`}
+                target="_blank"
+                rel="noreferrer"
+                className="block text-center text-xs text-primary underline"
+              >
+                Google popup blocked? Open sign-in in a new tab
+              </a>
+            )}
             <div className="flex items-center gap-3 text-[10px] uppercase tracking-wider text-muted-foreground">
               <div className="h-px flex-1 bg-border" />
               Or email
