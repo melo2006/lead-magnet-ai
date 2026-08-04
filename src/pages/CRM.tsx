@@ -33,6 +33,8 @@ const AdminLogin = ({ onSignedIn }: { onSignedIn: () => void }) => {
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
 
+  const inIframe = typeof window !== "undefined" && window.self !== window.top;
+
   const handleGoogleLogin = async () => {
     setLoading(true);
     const result = await lovable.auth.signInWithOAuth("google", {
@@ -42,7 +44,15 @@ const AdminLogin = ({ onSignedIn }: { onSignedIn: () => void }) => {
     setLoading(false);
 
     if (result.error) {
-      toast.error("Google sign-in failed", { description: result.error.message });
+      const message = result.error.message || "";
+      const canceled = /cancel|closed|popup|blocked/i.test(message);
+      toast.error(canceled ? "Google sign-in canceled" : "Google sign-in failed", {
+        description: canceled
+          ? inIframe
+            ? "The Google popup was blocked or closed. Open the app in its own browser tab and sign in there, or use the email + password form below."
+            : "The Google window was closed before finishing. Try again, or use the email + password form below."
+          : message,
+      });
       return;
     }
 
