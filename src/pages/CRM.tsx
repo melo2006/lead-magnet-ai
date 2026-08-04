@@ -25,21 +25,35 @@ import EngagementDashboard from "@/components/crm/EngagementDashboard";
 import SMSDashboard from "@/components/crm/SMSDashboard";
 import AdHijack from "@/pages/AdHijack";
 
-const AdminLogin = () => {
+const ADMIN_EMAIL = "melo2006@gmail.com";
+
+const AdminLogin = ({ onSignedIn }: { onSignedIn: () => void }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleGoogleLogin = async () => {
     setLoading(true);
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: `${window.location.origin}/dashboard/calls`,
+      redirect_uri: window.location.origin,
     });
     setLoading(false);
 
     if (result.error) {
       toast.error("Google sign-in failed", { description: result.error.message });
+      return;
     }
+
+    if (result.redirected) {
+      // Browser is redirecting to Google; nothing more to do here.
+      return;
+    }
+
+    // Tokens were returned directly (e.g., in the Lovable preview iframe).
+    toast.success("Signed in with Google");
+    onSignedIn();
+    navigate("/dashboard/calls", { replace: true });
   };
 
   const handleLogin = async (event: FormEvent) => {
@@ -54,6 +68,8 @@ const AdminLogin = () => {
     }
 
     toast.success("Signed in");
+    onSignedIn();
+    navigate("/dashboard/calls", { replace: true });
   };
 
   return (
