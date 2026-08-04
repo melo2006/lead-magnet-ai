@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useNavigate } from "react-router-dom";
 import { type FormEvent, useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
@@ -25,21 +25,35 @@ import EngagementDashboard from "@/components/crm/EngagementDashboard";
 import SMSDashboard from "@/components/crm/SMSDashboard";
 import AdHijack from "@/pages/AdHijack";
 
-const AdminLogin = () => {
+const ADMIN_EMAIL = "melo2006@gmail.com";
+
+const AdminLogin = ({ onSignedIn }: { onSignedIn: () => void }) => {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
+  const navigate = useNavigate();
 
   const handleGoogleLogin = async () => {
     setLoading(true);
     const result = await lovable.auth.signInWithOAuth("google", {
-      redirect_uri: `${window.location.origin}/dashboard/calls`,
+      redirect_uri: `${window.location.origin}/dashboard`,
     });
     setLoading(false);
 
     if (result.error) {
       toast.error("Google sign-in failed", { description: result.error.message });
+      return;
     }
+
+    if (result.redirected) {
+      // Browser is redirecting to Google; nothing more to do here.
+      return;
+    }
+
+    // Tokens were returned directly (e.g., in the Lovable preview iframe).
+    toast.success("Signed in with Google");
+    onSignedIn();
+    navigate("/dashboard/calls", { replace: true });
   };
 
   const handleLogin = async (event: FormEvent) => {
@@ -54,6 +68,8 @@ const AdminLogin = () => {
     }
 
     toast.success("Signed in");
+    onSignedIn();
+    navigate("/dashboard/calls", { replace: true });
   };
 
   return (
@@ -129,7 +145,35 @@ const CRM = () => {
   }
 
   if (!session) {
-    return <AdminLogin />;
+    return <AdminLogin onSignedIn={() => {}} />;
+  }
+
+  const userEmail = session.user.email?.toLowerCase();
+  if (userEmail !== ADMIN_EMAIL.toLowerCase()) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-sm border-border bg-card">
+          <CardHeader className="space-y-3">
+            <div className="flex items-center gap-2.5">
+              <img src="/logo.png" alt="AI Hidden Leads" className="h-10 w-10" />
+              <span className="text-base font-extrabold tracking-tight text-foreground">
+                AI <span className="text-primary">Hidden</span> Leads
+              </span>
+            </div>
+            <CardTitle className="text-lg">Access restricted</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              You signed in as <strong className="text-foreground">{userEmail}</strong>, but this admin console is only
+              authorized for <strong className="text-foreground">{ADMIN_EMAIL}</strong>.
+            </p>
+            <Button className="w-full" onClick={() => supabase.auth.signOut()}>
+              Sign out and try again
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
