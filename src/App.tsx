@@ -14,6 +14,7 @@ import TermsOfService from "./pages/TermsOfService.tsx";
 import Checkout from "./pages/Checkout.tsx";
 import CheckoutReturn from "./pages/CheckoutReturn.tsx";
 import ShortLinkRedirect from "./pages/ShortLinkRedirect.tsx";
+import AuthCallback from "./pages/AuthCallback.tsx";
 
 const AdPreviews = lazy(() => import("./pages/AdPreviews.tsx"));
 const MarketingHub = lazy(() => import("./pages/MarketingHub.tsx"));
@@ -54,6 +55,7 @@ const App = () => (
             <Route path="/checkout/return" element={<CheckoutReturn />} />
             <Route path="/transcript" element={<TranscriptPage />} />
             <Route path="/d/:slug" element={<ShortLinkRedirect />} />
+            <Route path="/auth/callback" element={<AuthCallback />} />
             <Route path="/dashboard/*" element={<CRM />} />
             {legacyCrmRedirects.map(({ path, to }) => (
               <Route key={path} path={path} element={<Navigate to={to} replace />} />
