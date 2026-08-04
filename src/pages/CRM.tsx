@@ -145,7 +145,35 @@ const CRM = () => {
   }
 
   if (!session) {
-    return <AdminLogin />;
+    return <AdminLogin onSignedIn={() => {}} />;
+  }
+
+  const userEmail = session.user.email?.toLowerCase();
+  if (userEmail !== ADMIN_EMAIL.toLowerCase()) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background p-4">
+        <Card className="w-full max-w-sm border-border bg-card">
+          <CardHeader className="space-y-3">
+            <div className="flex items-center gap-2.5">
+              <img src="/logo.png" alt="AI Hidden Leads" className="h-10 w-10" />
+              <span className="text-base font-extrabold tracking-tight text-foreground">
+                AI <span className="text-primary">Hidden</span> Leads
+              </span>
+            </div>
+            <CardTitle className="text-lg">Access restricted</CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <p className="text-sm text-muted-foreground">
+              You signed in as <strong className="text-foreground">{userEmail}</strong>, but this admin console is only
+              authorized for <strong className="text-foreground">{ADMIN_EMAIL}</strong>.
+            </p>
+            <Button className="w-full" onClick={() => supabase.auth.signOut()}>
+              Sign out and try again
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
+    );
   }
 
   return (
