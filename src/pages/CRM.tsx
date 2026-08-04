@@ -100,6 +100,16 @@ const AdminLogin = ({ onSignedIn }: { onSignedIn: () => void }) => {
             <Button type="button" className="w-full" onClick={handleGoogleLogin} disabled={loading}>
               Continue with Google
             </Button>
+            {inIframe && (
+              <a
+                href={`${window.location.origin}/dashboard`}
+                target="_blank"
+                rel="noreferrer"
+                className="block text-center text-xs text-primary underline"
+              >
+                Google popup blocked? Open sign-in in a new tab
+              </a>
+            )}
             <div className="flex items-center gap-3 text-[10px] uppercase tracking-wider text-muted-foreground">
               <div className="h-px flex-1 bg-border" />
               Or email
