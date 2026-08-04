@@ -1,4 +1,4 @@
-import { Routes, Route } from "react-router-dom";
+import { Routes, Route, useNavigate } from "react-router-dom";
 import { type FormEvent, useEffect, useState } from "react";
 import type { Session } from "@supabase/supabase-js";
 import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
