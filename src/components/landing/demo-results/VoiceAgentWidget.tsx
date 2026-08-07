@@ -807,13 +807,20 @@ const VoiceAgentWidget = ({
           callerEmail: callerEmail || "",
           callerPhone: isLikelyCallablePhoneNumber(callerPhone) ? normalizePhoneNumber(callerPhone || "") : "",
           language: callLanguage,
-
+          visitorKey: getVisitorKey(),
         },
       });
 
       if (error || !data?.access_token) {
+        if (data?.blocked) {
+          toast({ title: "Demo limit reached", description: data.error, variant: "destructive" });
+          setCallStatus("idle");
+          return;
+        }
         throw new Error(error?.message || data?.error || "Failed to create web call");
       }
+
+      const maxCallSeconds = Number(data.maxCallSeconds) > 0 ? Number(data.maxCallSeconds) : 0;
 
       callIdRef.current = data.call_id;
       const { RetellWebClient } = await import("retell-client-js-sdk");
@@ -825,7 +832,23 @@ const VoiceAgentWidget = ({
         setDuration(0);
         setIsMuted(false);
         clearTimer();
-        timerRef.current = setInterval(() => setDuration((prev) => prev + 1), 1000);
+        timerRef.current = setInterval(() => {
+          setDuration((prev) => {
+            const next = prev + 1;
+            if (maxCallSeconds && next >= maxCallSeconds) {
+              try {
+                retellClientRef.current?.stopCall?.();
+              } catch {
+                /* noop */
+              }
+              toast({
+                title: "Demo time limit reached",
+                description: "This live demo is capped. Start a new call or book a full walkthrough.",
+              });
+            }
+            return next;
+          });
+        }, 1000);
         setTimeout(() => {
           applyLiveCallVolume(volume);
           if (selectedDevice) {
@@ -833,6 +856,7 @@ const VoiceAgentWidget = ({
           }
         }, 250);
       });
+
 
       retellClient.on("call_ready", () => {
         applyLiveCallVolume(volume);
