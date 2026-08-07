@@ -439,6 +439,42 @@ export type Database = {
         }
         Relationships: []
       }
+      demo_call_attempts: {
+        Row: {
+          allowed: boolean
+          blocked_reason: string | null
+          business_name: string | null
+          created_at: string
+          id: string
+          ip_address: string | null
+          max_call_seconds: number | null
+          visitor_key: string | null
+          website_url: string | null
+        }
+        Insert: {
+          allowed?: boolean
+          blocked_reason?: string | null
+          business_name?: string | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          max_call_seconds?: number | null
+          visitor_key?: string | null
+          website_url?: string | null
+        }
+        Update: {
+          allowed?: boolean
+          blocked_reason?: string | null
+          business_name?: string | null
+          created_at?: string
+          id?: string
+          ip_address?: string | null
+          max_call_seconds?: number | null
+          visitor_key?: string | null
+          website_url?: string | null
+        }
+        Relationships: []
+      }
       demo_chat_interactions: {
         Row: {
           ai_interest_summary: string | null
@@ -1451,6 +1487,39 @@ export type Database = {
           stripe_subscription_id?: string
           updated_at?: string | null
           user_id?: string
+        }
+        Relationships: []
+      }
+      voice_guardrails: {
+        Row: {
+          created_at: string
+          enabled: boolean
+          estimated_cost_per_minute: number
+          id: string
+          max_call_seconds: number
+          max_calls_per_day_total: number
+          max_calls_per_visitor_per_day: number
+          updated_at: string
+        }
+        Insert: {
+          created_at?: string
+          enabled?: boolean
+          estimated_cost_per_minute?: number
+          id?: string
+          max_call_seconds?: number
+          max_calls_per_day_total?: number
+          max_calls_per_visitor_per_day?: number
+          updated_at?: string
+        }
+        Update: {
+          created_at?: string
+          enabled?: boolean
+          estimated_cost_per_minute?: number
+          id?: string
+          max_call_seconds?: number
+          max_calls_per_day_total?: number
+          max_calls_per_visitor_per_day?: number
+          updated_at?: string
         }
         Relationships: []
       }
