@@ -2322,7 +2322,9 @@ DEMO CONTEXT: This is a quick simulated demo based on what you learned from the 
       success: true,
       access_token: data.access_token,
       call_id: data.call_id,
+      maxCallSeconds: guardMaxCallSeconds,
     });
+
   } catch (error) {
     console.error('Error in retell-web-call:', error);
     return jsonResponse({
