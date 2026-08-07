@@ -17,6 +17,7 @@ import CampaignsView from "@/components/crm/CampaignsView";
 import CampaignDetailView from "@/components/crm/CampaignDetailView";
 import PipelinePageView from "@/components/crm/PipelinePageView";
 import TemplatesView from "@/components/crm/TemplatesView";
+import GuardrailsView from "@/components/crm/GuardrailsView";
 import CallHistoryView from "@/components/crm/CallHistoryView";
 import DemoSessionsView from "@/components/crm/DemoSessionsView";
 import ImportedListsView from "@/components/crm/ImportedListsView";
@@ -232,6 +233,7 @@ const CRM = () => {
               <Route path="follow-up" element={<FollowUpIntelligence />} />
               <Route path="templates" element={<TemplatesView />} />
               <Route path="ad-hijack" element={<AdHijack />} />
+              <Route path="guardrails" element={<GuardrailsView />} />
               <Route path="*" element={<CRMDashboard />} />
             </Routes>
           </main>

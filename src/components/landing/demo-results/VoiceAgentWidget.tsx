@@ -10,6 +10,18 @@ const RETELL_AGENT_ID = "agent_0dd08673d770e8adf08f920490";
 const DEFAULT_OWNER_NAME = "your dedicated specialist";
 const LIVE_TRANSFER_READY_PHRASE = "i'm starting the live transfer now. please stay on the line while i connect you.";
 
+const getVisitorKey = (): string => {
+  try {
+    const existing = localStorage.getItem("ahl_visitor_key");
+    if (existing) return existing;
+    const key = `v_${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
+    localStorage.setItem("ahl_visitor_key", key);
+    return key;
+  } catch {
+    return "";
+  }
+};
+
 interface VoiceAgentWidgetProps {
   leadId?: string;
   prospectId?: string;
@@ -795,13 +807,20 @@ const VoiceAgentWidget = ({
           callerEmail: callerEmail || "",
           callerPhone: isLikelyCallablePhoneNumber(callerPhone) ? normalizePhoneNumber(callerPhone || "") : "",
           language: callLanguage,
-
+          visitorKey: getVisitorKey(),
         },
       });
 
       if (error || !data?.access_token) {
+        if (data?.blocked) {
+          toast({ title: "Demo limit reached", description: data.error, variant: "destructive" });
+          setCallStatus("idle");
+          return;
+        }
         throw new Error(error?.message || data?.error || "Failed to create web call");
       }
+
+      const maxCallSeconds = Number(data.maxCallSeconds) > 0 ? Number(data.maxCallSeconds) : 0;
 
       callIdRef.current = data.call_id;
       const { RetellWebClient } = await import("retell-client-js-sdk");
@@ -813,7 +832,23 @@ const VoiceAgentWidget = ({
         setDuration(0);
         setIsMuted(false);
         clearTimer();
-        timerRef.current = setInterval(() => setDuration((prev) => prev + 1), 1000);
+        timerRef.current = setInterval(() => {
+          setDuration((prev) => {
+            const next = prev + 1;
+            if (maxCallSeconds && next >= maxCallSeconds) {
+              try {
+                retellClientRef.current?.stopCall?.();
+              } catch {
+                /* noop */
+              }
+              toast({
+                title: "Demo time limit reached",
+                description: "This live demo is capped. Start a new call or book a full walkthrough.",
+              });
+            }
+            return next;
+          });
+        }, 1000);
         setTimeout(() => {
           applyLiveCallVolume(volume);
           if (selectedDevice) {
@@ -821,6 +856,7 @@ const VoiceAgentWidget = ({
           }
         }, 250);
       });
+
 
       retellClient.on("call_ready", () => {
         applyLiveCallVolume(volume);

@@ -1991,6 +1991,77 @@ Deno.serve(async (req) => {
       return jsonResponse({ error: 'agentId is required' }, 400);
     }
 
+    // ---- Demo voice guardrails (max call length + rate limits) ----
+    let guardMaxCallSeconds = 300;
+    try {
+      const guardClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      );
+      const { data: guard } = await guardClient
+        .from('voice_guardrails')
+        .select('*')
+        .order('created_at', { ascending: true })
+        .limit(1)
+        .maybeSingle();
+
+      const visitorKey = String(body.visitorKey || '').slice(0, 120) || null;
+      const ipAddress = (req.headers.get('x-forwarded-for') || '').split(',')[0].trim() || null;
+
+      if (guard?.enabled) {
+        guardMaxCallSeconds = Number(guard.max_call_seconds) || 300;
+        const dayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000).toISOString();
+
+        const { count: totalToday } = await guardClient
+          .from('demo_call_attempts')
+          .select('id', { count: 'exact', head: true })
+          .eq('allowed', true)
+          .gte('created_at', dayAgo);
+
+        let visitorToday = 0;
+        const fingerprint = visitorKey || ipAddress;
+        if (fingerprint) {
+          const { count } = await guardClient
+            .from('demo_call_attempts')
+            .select('id', { count: 'exact', head: true })
+            .eq('allowed', true)
+            .gte('created_at', dayAgo)
+            .or(`visitor_key.eq.${fingerprint},ip_address.eq.${fingerprint}`);
+          visitorToday = count || 0;
+        }
+
+        let blockedReason: string | null = null;
+        if ((totalToday || 0) >= Number(guard.max_calls_per_day_total)) {
+          blockedReason = 'daily_total_limit';
+        } else if (fingerprint && visitorToday >= Number(guard.max_calls_per_visitor_per_day)) {
+          blockedReason = 'visitor_daily_limit';
+        }
+
+        await guardClient.from('demo_call_attempts').insert({
+          visitor_key: visitorKey,
+          ip_address: ipAddress,
+          business_name: body.businessName || null,
+          website_url: body.websiteUrl || null,
+          allowed: !blockedReason,
+          blocked_reason: blockedReason,
+          max_call_seconds: guardMaxCallSeconds,
+        });
+
+        if (blockedReason) {
+          return jsonResponse({
+            error: blockedReason === 'daily_total_limit'
+              ? 'Our live demo has reached its daily limit. Please try again tomorrow or book a walkthrough.'
+              : 'You have reached the daily demo call limit. Please try again tomorrow or book a walkthrough.',
+            blocked: true,
+            blockedReason,
+          }, 429);
+        }
+      }
+    } catch (guardErr) {
+      console.error('Guardrail check failed (allowing call):', guardErr);
+    }
+
+
     const language = typeof rawLanguage === 'string' && rawLanguage.toLowerCase().startsWith('pt')
       ? 'pt-BR'
       : typeof rawLanguage === 'string' && rawLanguage.toLowerCase().startsWith('es')
@@ -2251,7 +2322,9 @@ DEMO CONTEXT: This is a quick simulated demo based on what you learned from the 
       success: true,
       access_token: data.access_token,
       call_id: data.call_id,
+      maxCallSeconds: guardMaxCallSeconds,
     });
+
   } catch (error) {
     console.error('Error in retell-web-call:', error);
     return jsonResponse({

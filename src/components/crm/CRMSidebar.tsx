@@ -1,5 +1,5 @@
 import {
-  LayoutDashboard, Search, Megaphone, LayoutGrid, FileText, Radar, PhoneIncoming, FolderInput, Monitor, Play, Activity, Image, Brain, Target, MessageSquare, Presentation
+  LayoutDashboard, Search, Megaphone, LayoutGrid, FileText, Radar, PhoneIncoming, FolderInput, Monitor, Play, Activity, Image, Brain, Target, MessageSquare, Presentation, ShieldCheck
 } from "lucide-react";
 import { NavLink } from "@/components/NavLink";
 import {
@@ -22,6 +22,7 @@ const crmItems = [
   { title: "SMS Delivery", url: "/dashboard/sms", icon: MessageSquare },
   { title: "AI Follow-Up", url: "/dashboard/follow-up", icon: Brain },
   { title: "Templates", url: "/dashboard/templates", icon: FileText },
+  { title: "Voice Guardrails", url: "/dashboard/guardrails", icon: ShieldCheck },
 ];
 
 const marketingItems = [
