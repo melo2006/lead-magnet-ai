@@ -233,6 +233,7 @@ const CRM = () => {
               <Route path="follow-up" element={<FollowUpIntelligence />} />
               <Route path="templates" element={<TemplatesView />} />
               <Route path="ad-hijack" element={<AdHijack />} />
+              <Route path="guardrails" element={<GuardrailsView />} />
               <Route path="*" element={<CRMDashboard />} />
             </Routes>
           </main>
