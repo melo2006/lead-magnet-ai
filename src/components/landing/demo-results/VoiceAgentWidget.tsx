@@ -10,6 +10,18 @@ const RETELL_AGENT_ID = "agent_0dd08673d770e8adf08f920490";
 const DEFAULT_OWNER_NAME = "your dedicated specialist";
 const LIVE_TRANSFER_READY_PHRASE = "i'm starting the live transfer now. please stay on the line while i connect you.";
 
+const getVisitorKey = (): string => {
+  try {
+    const existing = localStorage.getItem("ahl_visitor_key");
+    if (existing) return existing;
+    const key = `v_${Math.random().toString(36).slice(2)}${Date.now().toString(36)}`;
+    localStorage.setItem("ahl_visitor_key", key);
+    return key;
+  } catch {
+    return "";
+  }
+};
+
 interface VoiceAgentWidgetProps {
   leadId?: string;
   prospectId?: string;
