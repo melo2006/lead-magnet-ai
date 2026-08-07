@@ -22,6 +22,7 @@ const crmItems = [
   { title: "SMS Delivery", url: "/dashboard/sms", icon: MessageSquare },
   { title: "AI Follow-Up", url: "/dashboard/follow-up", icon: Brain },
   { title: "Templates", url: "/dashboard/templates", icon: FileText },
+  { title: "Voice Guardrails", url: "/dashboard/guardrails", icon: ShieldCheck },
 ];
 
 const marketingItems = [
