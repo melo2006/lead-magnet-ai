@@ -1994,7 +1994,10 @@ Deno.serve(async (req) => {
     // ---- Demo voice guardrails (max call length + rate limits) ----
     let guardMaxCallSeconds = 300;
     try {
-      const guardClient = createClient(supabaseUrl, supabaseServiceRoleKey);
+      const guardClient = createClient(
+        Deno.env.get('SUPABASE_URL') ?? '',
+        Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      );
       const { data: guard } = await guardClient
         .from('voice_guardrails')
         .select('*')
