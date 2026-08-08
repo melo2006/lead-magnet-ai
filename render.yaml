@@ -1,0 +1,6 @@
+services:
+  - type: web
+    name: lead-magnet-ai
+    env: node
+    buildCommand: bun install && bun run build
+    startCommand: bun run start
