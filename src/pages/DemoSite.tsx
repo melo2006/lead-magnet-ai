@@ -806,8 +806,8 @@ const DemoSite = () => {
 
   return (
     <div className="relative min-h-[100dvh] bg-background">
-      <div className="pointer-events-none fixed inset-x-0 top-4 z-40 flex justify-center px-3 sm:px-4">
-        <div className="pointer-events-auto flex w-full max-w-4xl items-center justify-between gap-2 rounded-2xl border border-border/40 bg-card/80 px-3 py-2 shadow-2xl backdrop-blur-xl sm:gap-3 sm:px-4 sm:py-2.5">
+      <div className="pointer-events-none fixed inset-x-0 top-0 z-40">
+        <div className="pointer-events-auto flex min-h-16 w-full items-center justify-between gap-2 border-b border-border/60 bg-card/95 px-3 py-2 shadow-xl backdrop-blur-xl sm:min-h-[4.5rem] sm:gap-3 sm:px-5">
           {/* Left: Back to Homepage */}
           <button
             onClick={() => navigate("/")}
@@ -870,7 +870,7 @@ const DemoSite = () => {
 
         {/* Test phone override panel */}
         {showTestOverride && (
-          <div className="pointer-events-auto mt-2 mx-auto w-full max-w-md rounded-2xl border border-border bg-card/95 px-4 py-3 shadow-xl backdrop-blur-xl">
+          <div className="pointer-events-auto absolute left-1/2 top-full mt-2 w-[calc(100%-1.5rem)] max-w-md -translate-x-1/2 rounded-2xl border border-border bg-card/95 px-4 py-3 shadow-xl backdrop-blur-xl">
             <label className="block text-[10px] font-semibold uppercase tracking-[0.2em] text-muted-foreground mb-1.5">
               Transfer test to different number
             </label>
@@ -894,12 +894,12 @@ const DemoSite = () => {
 
       {/* Website — iframe first, screenshot fallback */}
       {hasAnyPreview && <DemoWatermark />}
-      <div className="relative min-h-[100dvh]">
+      <div className="relative min-h-[100dvh] pt-16 sm:pt-[4.5rem]">
         {canRenderInlineIframe && (
           <iframe
             src={livePreviewUrl}
             className="w-full border-0"
-            style={{ minHeight: '100vh' }}
+            style={{ minHeight: 'calc(100dvh - 4.5rem)' }}
             title={`${siteName} website`}
             onLoad={() => {
               setHasIframeLoaded(true);
@@ -912,7 +912,7 @@ const DemoSite = () => {
         )}
         {/* Iframe blocked → try Browserbase live view, then screenshot fallback */}
         {resolvedIframeUrl && (requiresBrowserFallback || shouldShowScreenshotFallback) && (
-          <div className="relative min-h-[100vh]">
+          <div className="relative min-h-[calc(100dvh-4.5rem)]">
             {shouldShowScreenshotFallback && (
               <div className="relative mx-auto w-full max-w-[1600px]">
                 <img
@@ -932,7 +932,7 @@ const DemoSite = () => {
               <iframe
                 src={liveViewUrl}
                 className={`absolute inset-0 h-full w-full border-0 transition-opacity duration-300 ${hasLiveViewLoaded ? "opacity-100" : "opacity-0"}`}
-                style={{ minHeight: '100vh' }}
+                style={{ minHeight: 'calc(100dvh - 4.5rem)' }}
                 title={`${siteName} website (live view)`}
                 allow="clipboard-read; clipboard-write"
                 onLoad={() => setHasLiveViewLoaded(true)}
