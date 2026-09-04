@@ -126,6 +126,38 @@ const pickRelevantLinks = (links: string[], rootUrl: string) => {
   return filtered.slice(0, 6);
 };
 
+/**
+ * For deep links (e.g. a single listing page), pick sibling/child pages that live under the
+ * same path branch so we learn about that specific agent/section — never the whole parent site.
+ */
+const pickDeepLinkChildren = (links: string[], targetUrl: string, limit: number) => {
+  let target: URL;
+  try {
+    target = new URL(targetUrl);
+  } catch {
+    return [];
+  }
+  const segments = target.pathname.replace(/\/+$/, '').split('/').filter(Boolean);
+  const branch = `/${segments.slice(0, Math.max(1, segments.length - 1)).join('/')}`;
+  const excluded = /(privacy|terms|login|signin|signup|cart|checkout|wp-admin|feed)/i;
+
+  return unique(
+    links
+      .map((link) => cleanText(link))
+      .filter((link) => /^https?:\/\//i.test(link))
+      .filter((link) => getHost(link) === getHost(targetUrl))
+      .filter((link) => !excluded.test(link))
+      .filter((link) => {
+        try {
+          const path = new URL(link).pathname.replace(/\/+$/, '');
+          return path !== target.pathname.replace(/\/+$/, '') && (branch === '/' ? true : path.startsWith(branch));
+        } catch {
+          return false;
+        }
+      }),
+  ).slice(0, limit);
+};
+
 type ViewportConfig = {
   width: number;
   height: number;
