@@ -1184,7 +1184,7 @@ Deno.serve(async (req) => {
 
     // === PHASE 2: Sub-pages (skip if running out of time) ===
     let successfulPages: { url: string; title: string; summary: string; markdown: string }[] = [];
-    if (!isOverBudget()) {
+    if (!isOverBudget() && !scanDeepLink) {
       const linkPool = new Set<string>();
       if (Array.isArray(homepage.links)) {
         homepage.links.forEach((link: string) => linkPool.add(cleanText(link)));
@@ -1206,6 +1206,7 @@ Deno.serve(async (req) => {
 
       const candidateLinks = pickRelevantLinks(Array.from(linkPool), formattedUrl);
       console.log('Relevant links selected:', candidateLinks.length);
+
 
       if (!isOverBudget()) {
         const pageResults = await Promise.allSettled(candidateLinks.map((link) => scrapeMarkdownPage(link, firecrawlKey)));
