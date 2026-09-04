@@ -17,6 +17,10 @@ import {
   Phone,
   ArrowLeft,
   Home,
+  FileText,
+  ChevronDown,
+  Upload,
+  X,
 } from "lucide-react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
