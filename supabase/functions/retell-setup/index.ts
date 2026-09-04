@@ -41,7 +41,12 @@ Deno.serve(async (req) => {
     if (action === 'get-agent') {
       const agentId = body.agent_id || 'agent_0dd08673d770e8adf08f920490';
       const agent = await retellFetch(`/get-agent/${agentId}`, apiKey);
-      return new Response(JSON.stringify({ success: true, agent }, null, 2), {
+      const llmId = agent?.response_engine?.llm_id;
+      let llm = null;
+      if (llmId) {
+        try { llm = await retellFetch(`/get-retell-llm/${llmId}`, apiKey); } catch {}
+      }
+      return new Response(JSON.stringify({ success: true, agent, llm }, null, 2), {
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
