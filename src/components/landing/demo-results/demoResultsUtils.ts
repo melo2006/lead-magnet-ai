@@ -19,6 +19,9 @@ export interface DemoLeadData {
   websiteContent?: string;
   colors?: DemoBrandColors;
   logo?: string;
+  secondaryUrls?: string[];
+  uploadedFiles?: string[];
+  crawlDepth?: 1 | 2;
 }
 
 const GENERIC_NAV_LABELS = new Set([

@@ -126,6 +126,38 @@ const pickRelevantLinks = (links: string[], rootUrl: string) => {
   return filtered.slice(0, 6);
 };
 
+/**
+ * For deep links (e.g. a single listing page), pick sibling/child pages that live under the
+ * same path branch so we learn about that specific agent/section — never the whole parent site.
+ */
+const pickDeepLinkChildren = (links: string[], targetUrl: string, limit: number) => {
+  let target: URL;
+  try {
+    target = new URL(targetUrl);
+  } catch {
+    return [];
+  }
+  const segments = target.pathname.replace(/\/+$/, '').split('/').filter(Boolean);
+  const branch = `/${segments.slice(0, Math.max(1, segments.length - 1)).join('/')}`;
+  const excluded = /(privacy|terms|login|signin|signup|cart|checkout|wp-admin|feed)/i;
+
+  return unique(
+    links
+      .map((link) => cleanText(link))
+      .filter((link) => /^https?:\/\//i.test(link))
+      .filter((link) => getHost(link) === getHost(targetUrl))
+      .filter((link) => !excluded.test(link))
+      .filter((link) => {
+        try {
+          const path = new URL(link).pathname.replace(/\/+$/, '');
+          return path !== target.pathname.replace(/\/+$/, '') && (branch === '/' ? true : path.startsWith(branch));
+        } catch {
+          return false;
+        }
+      }),
+  ).slice(0, limit);
+};
+
 type ViewportConfig = {
   width: number;
   height: number;
@@ -1042,7 +1074,22 @@ Deno.serve(async (req) => {
   const isOverBudget = () => Date.now() - startTime > HARD_DEADLINE_MS;
 
   try {
-    const { leadId: incomingLeadId, websiteUrl, businessName, secondaryUrl, uploadedFiles, initialNiche } = await req.json();
+    const {
+      leadId: incomingLeadId,
+      websiteUrl,
+      businessName,
+      secondaryUrl,
+      secondaryUrls,
+      uploadedFiles,
+      initialNiche,
+      crawlDepth: rawCrawlDepth,
+    } = await req.json();
+    const crawlDepth = Number(rawCrawlDepth) === 2 ? 2 : 1;
+    const extraUrls: string[] = unique(
+      [secondaryUrl, ...(Array.isArray(secondaryUrls) ? secondaryUrls : [])]
+        .filter((v): v is string => typeof v === 'string' && v.trim().length > 0)
+        .map((v) => normalizeUrl(v.trim())),
+    ).slice(0, 3);
     leadId = incomingLeadId;
     if (!leadId || !websiteUrl) {
       return new Response(
@@ -1183,8 +1230,10 @@ Deno.serve(async (req) => {
     }
 
     // === PHASE 2: Sub-pages (skip if running out of time) ===
+    // Depth 1 = the given page only (plus extra URLs). Depth 2 = also learn its key sub-pages.
     let successfulPages: { url: string; title: string; summary: string; markdown: string }[] = [];
-    if (!isOverBudget() && !scanDeepLink) {
+    const shouldCrawlChildren = !scanDeepLink || crawlDepth >= 2;
+    if (!isOverBudget() && shouldCrawlChildren) {
       const linkPool = new Set<string>();
       if (Array.isArray(homepage.links)) {
         homepage.links.forEach((link: string) => linkPool.add(cleanText(link)));
@@ -1194,7 +1243,7 @@ Deno.serve(async (req) => {
         try {
           const mapResponse = await firecrawlRequest('/map', firecrawlKey, {
             url: formattedUrl,
-            limit: 30,
+            limit: crawlDepth >= 2 ? 60 : 30,
             includeSubdomains: false,
           }, 0);
           const links = Array.isArray(mapResponse.links) ? mapResponse.links : [];
@@ -1204,8 +1253,11 @@ Deno.serve(async (req) => {
         }
       }
 
-      const candidateLinks = pickRelevantLinks(Array.from(linkPool), formattedUrl);
-      console.log('Relevant links selected:', candidateLinks.length);
+      const pool = Array.from(linkPool);
+      const candidateLinks = scanDeepLink
+        ? pickDeepLinkChildren(pool, formattedUrl, 6)
+        : pickRelevantLinks(pool, formattedUrl).slice(0, crawlDepth >= 2 ? 10 : 6);
+      console.log('Relevant links selected:', candidateLinks.length, 'depth:', crawlDepth, 'deepLink:', scanDeepLink);
 
 
       if (!isOverBudget()) {
@@ -1216,18 +1268,42 @@ Deno.serve(async (req) => {
           .filter((page) => page.markdown || page.summary);
       }
     } else {
-      console.warn('Time budget exceeded, skipping sub-page scraping');
+      console.warn('Skipping sub-page scraping (deep link at depth 1, or time budget exceeded)');
     }
 
-    // Secondary URL (skip if over budget)
+    // Extra / secondary URLs (skip if over budget)
     let secondaryContent = '';
-    if (!isOverBudget() && secondaryUrl && typeof secondaryUrl === 'string' && secondaryUrl.trim()) {
-      try {
-        const secondary = await scrapeMarkdownPage(normalizeUrl(secondaryUrl), firecrawlKey);
-        secondaryContent = secondary.markdown;
-      } catch (e) {
-        console.warn('Secondary URL scrape error:', e);
+    if (!isOverBudget() && extraUrls.length > 0) {
+      const extraResults = await Promise.allSettled(extraUrls.map((u) => scrapeMarkdownPage(u, firecrawlKey)));
+      const extraPages = extraResults
+        .filter((r): r is PromiseFulfilledResult<Awaited<ReturnType<typeof scrapeMarkdownPage>>> => r.status === 'fulfilled')
+        .map((r) => r.value)
+        .filter((p) => p.markdown || p.summary);
+
+      // At depth 2, also learn the key sub-pages of each extra URL
+      if (crawlDepth >= 2 && !isOverBudget()) {
+        for (const extra of extraUrls) {
+          if (isOverBudget()) break;
+          try {
+            const mapResponse = await firecrawlRequest('/map', firecrawlKey, { url: extra, limit: 30, includeSubdomains: false }, 0);
+            const links = Array.isArray(mapResponse.links) ? mapResponse.links.map(cleanText) : [];
+            const children = isDeepLink(extra)
+              ? pickDeepLinkChildren(links, extra, 3)
+              : pickRelevantLinks(links, extra).slice(0, 3);
+            const childResults = await Promise.allSettled(children.map((link) => scrapeMarkdownPage(link, firecrawlKey)));
+            childResults.forEach((r) => {
+              if (r.status === 'fulfilled' && (r.value.markdown || r.value.summary)) extraPages.push(r.value);
+            });
+          } catch (e) {
+            console.warn('Extra URL sub-crawl error:', e);
+          }
+        }
       }
+
+      secondaryContent = extraPages
+        .map((p) => [p.url ? `### ${p.url}` : '', p.title ? `## ${p.title}` : '', p.markdown].filter(Boolean).join('\n'))
+        .join('\n\n')
+        .slice(0, 30000);
     }
 
     // Uploaded files
@@ -1238,9 +1314,24 @@ Deno.serve(async (req) => {
           const { data: fileData, error: fileErr } = await supabase.storage.from('lead-uploads').download(filePath);
           if (fileErr || !fileData) continue;
           const ext = filePath.split('.').pop()?.toLowerCase();
-          if (ext === 'txt' || ext === 'md') {
+          if (ext === 'txt' || ext === 'md' || ext === 'csv') {
             const text = await fileData.text();
             filesContent += `\n--- Uploaded file: ${filePath} ---\n${truncate(text, 8000)}\n`;
+          } else if (ext === 'pdf') {
+            // Firecrawl can parse PDFs from a URL — hand it a short-lived signed link
+            let extracted = '';
+            try {
+              const { data: signed } = await supabase.storage.from('lead-uploads').createSignedUrl(filePath, 600);
+              if (signed?.signedUrl) {
+                const parsed = await scrapeMarkdownPage(signed.signedUrl, firecrawlKey);
+                extracted = parsed.markdown || parsed.summary || '';
+              }
+            } catch (pdfErr) {
+              console.warn('PDF parse error:', pdfErr);
+            }
+            filesContent += extracted
+              ? `\n--- Uploaded PDF: ${filePath} ---\n${truncate(extracted, 12000)}\n`
+              : `\n--- Uploaded PDF: ${filePath} (could not be parsed) ---\n`;
           } else {
             filesContent += `\n--- Uploaded file: ${filePath} (document provided) ---\n`;
           }

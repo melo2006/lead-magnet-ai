@@ -354,6 +354,9 @@ const DemoSite = () => {
             businessName: leadData.businessName || getSiteName(leadData.websiteUrl),
             initialNiche: leadData.niche || "general",
             language: i18n.resolvedLanguage || i18n.language || "en",
+            secondaryUrls: leadData.secondaryUrls || [],
+            uploadedFiles: leadData.uploadedFiles || [],
+            crawlDepth: leadData.crawlDepth || 1,
           },
         });
         if (error) throw error;

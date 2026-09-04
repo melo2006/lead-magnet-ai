@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
@@ -17,6 +17,10 @@ import {
   Phone,
   ArrowLeft,
   Home,
+  FileText,
+  ChevronDown,
+  Upload,
+  X,
 } from "lucide-react";
 import { z } from "zod";
 import { Button } from "@/components/ui/button";
@@ -29,6 +33,16 @@ import LanguageSwitcher from "@/components/LanguageSwitcher";
 import type { DemoLeadData } from "@/components/landing/demo-results/demoResultsUtils";
 
 const LAST_DEMO_STORAGE_KEY = "lastDemoLeadData";
+const MAX_FILES = 3;
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const ALLOWED_FILE_TYPES = [
+  "application/pdf",
+  "text/plain",
+  "text/markdown",
+  "text/csv",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+];
 
 const normalizeUrl = (raw: string): string => {
   let url = raw.trim().replace(/^["']+|["']+$/g, "").trim();
@@ -89,8 +103,45 @@ const TryDemo = () => {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [url, setUrl] = useState("");
+  const [secondaryUrl, setSecondaryUrl] = useState("");
+  const [crawlDepth, setCrawlDepth] = useState<1 | 2>(1);
+  const [files, setFiles] = useState<File[]>([]);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
+
+  const handleFileAdd = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const incoming = Array.from(e.target.files || []);
+    const valid = incoming.filter((f) => {
+      if (!ALLOWED_FILE_TYPES.includes(f.type)) {
+        toast({ title: "Unsupported file", description: `${f.name} must be a PDF, Word doc or text file.`, variant: "destructive" });
+        return false;
+      }
+      if (f.size > MAX_FILE_SIZE) {
+        toast({ title: "File too large", description: `${f.name} is over 10 MB.`, variant: "destructive" });
+        return false;
+      }
+      return true;
+    });
+    setFiles((prev) => [...prev, ...valid].slice(0, MAX_FILES));
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const uploadFiles = async (leadId: string) => {
+    const paths: string[] = [];
+    for (const file of files) {
+      const ext = file.name.split(".").pop() || "bin";
+      const filePath = `${leadId}/${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabase.storage.from("lead-uploads").upload(filePath, file);
+      if (error) {
+        console.error("File upload error:", error);
+        continue;
+      }
+      paths.push(filePath);
+    }
+    return paths;
+  };
   // Pre-fill form fields from URL params (e.g. coming from CRM prospect table)
   useEffect(() => {
     const urlParam = searchParams.get("url");
@@ -130,10 +181,23 @@ const TryDemo = () => {
         _email: em || null,
         _website_url: websiteUrl,
         _niche: "general",
+        _secondary_url: secondaryUrl.trim() ? normalizeUrl(secondaryUrl) : null,
       });
 
       if (error) throw error;
       if (!leadId) throw new Error("Demo lead was not created");
+
+      let filePaths: string[] = [];
+      if (files.length > 0) {
+        filePaths = await uploadFiles(leadId);
+        if (filePaths.length > 0) {
+          try {
+            await (supabase as any).rpc("set_demo_lead_uploads", { _lead_id: leadId, _uploaded_files: filePaths });
+          } catch (uploadErr) {
+            console.error("Could not attach uploads:", uploadErr);
+          }
+        }
+      }
 
       const leadData: DemoLeadData = {
         leadId,
@@ -144,6 +208,9 @@ const TryDemo = () => {
         businessName,
         websiteUrl,
         niche: "general",
+        secondaryUrls: secondaryUrl.trim() ? [normalizeUrl(secondaryUrl)] : [],
+        uploadedFiles: filePaths,
+        crawlDepth,
       };
 
       try { localStorage.setItem(LAST_DEMO_STORAGE_KEY, JSON.stringify(leadData)); } catch {}
@@ -334,6 +401,108 @@ const TryDemo = () => {
                 disabled={isSubmitting}
               />
             </div>
+          </div>
+
+          {/* Advanced: extra URL, crawl depth, documents */}
+          <div className="rounded-xl border border-border bg-card/40 text-left">
+            <button
+              type="button"
+              onClick={() => setShowAdvanced((v) => !v)}
+              className="w-full flex items-center justify-between px-4 py-3 text-xs font-semibold text-foreground/90"
+            >
+              <span className="flex items-center gap-2">
+                <FileText className="w-3.5 h-3.5 text-primary" />
+                Teach Aspen more (optional): extra page, deeper crawl, documents
+              </span>
+              <ChevronDown className={`w-4 h-4 transition-transform ${showAdvanced ? "rotate-180" : ""}`} />
+            </button>
+
+            {showAdvanced && (
+              <div className="px-4 pb-4 space-y-3">
+                {/* Secondary URL */}
+                <div className="relative">
+                  <Globe className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                  <Input
+                    placeholder="Additional page or second website (optional)"
+                    value={secondaryUrl}
+                    onChange={(e) => setSecondaryUrl(sanitizeUrlInput(e.target.value))}
+                    className="pl-9 h-11 text-sm bg-card border-border rounded-xl focus-visible:ring-primary"
+                    disabled={isSubmitting}
+                  />
+                </div>
+
+                {/* Crawl depth */}
+                <div>
+                  <p className="text-[11px] font-semibold text-foreground/80 mb-1.5">How deep should we learn?</p>
+                  <div className="grid grid-cols-2 gap-2">
+                    {[
+                      { value: 1 as const, label: "Level 1 — this page only", hint: "Fastest (~90s)" },
+                      { value: 2 as const, label: "Level 2 — + its sub-pages", hint: "Richer, slower" },
+                    ].map((opt) => (
+                      <button
+                        key={opt.value}
+                        type="button"
+                        onClick={() => setCrawlDepth(opt.value)}
+                        className={`rounded-xl border px-3 py-2 text-left transition-colors ${
+                          crawlDepth === opt.value
+                            ? "border-primary bg-primary/10"
+                            : "border-border bg-card/60 hover:border-primary/50"
+                        }`}
+                      >
+                        <span className="block text-[11px] font-semibold text-foreground leading-tight">{opt.label}</span>
+                        <span className="block text-[10px] text-muted-foreground">{opt.hint}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="text-[10px] text-muted-foreground mt-1.5">
+                    Level 2 stays inside the page you gave us (e.g. one agent's listings) — it never pulls in the parent
+                    company's other pages.
+                  </p>
+                </div>
+
+                {/* Documents */}
+                <div>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    multiple
+                    accept=".pdf,.txt,.md,.csv,.doc,.docx"
+                    onChange={handleFileAdd}
+                    className="hidden"
+                  />
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => fileInputRef.current?.click()}
+                    disabled={isSubmitting || files.length >= MAX_FILES}
+                    className="h-9 text-xs gap-1.5 rounded-xl"
+                  >
+                    <Upload className="w-3.5 h-3.5" /> Upload PDF / doc / text (max {MAX_FILES}, 10 MB each)
+                  </Button>
+                  {files.length > 0 && (
+                    <ul className="mt-2 space-y-1">
+                      {files.map((file, index) => (
+                        <li
+                          key={`${file.name}-${index}`}
+                          className="flex items-center justify-between gap-2 rounded-lg border border-border bg-card/60 px-2.5 py-1.5"
+                        >
+                          <span className="truncate text-[11px] text-foreground/90">{file.name}</span>
+                          <button
+                            type="button"
+                            onClick={() => setFiles((prev) => prev.filter((_, i) => i !== index))}
+                            className="text-muted-foreground hover:text-destructive"
+                            aria-label={`Remove ${file.name}`}
+                          >
+                            <X className="w-3.5 h-3.5" />
+                          </button>
+                        </li>
+                      ))}
+                    </ul>
+                  )}
+                </div>
+              </div>
+            )}
           </div>
 
           <Button
