@@ -1074,7 +1074,22 @@ Deno.serve(async (req) => {
   const isOverBudget = () => Date.now() - startTime > HARD_DEADLINE_MS;
 
   try {
-    const { leadId: incomingLeadId, websiteUrl, businessName, secondaryUrl, uploadedFiles, initialNiche } = await req.json();
+    const {
+      leadId: incomingLeadId,
+      websiteUrl,
+      businessName,
+      secondaryUrl,
+      secondaryUrls,
+      uploadedFiles,
+      initialNiche,
+      crawlDepth: rawCrawlDepth,
+    } = await req.json();
+    const crawlDepth = Number(rawCrawlDepth) === 2 ? 2 : 1;
+    const extraUrls: string[] = unique(
+      [secondaryUrl, ...(Array.isArray(secondaryUrls) ? secondaryUrls : [])]
+        .filter((v): v is string => typeof v === 'string' && v.trim().length > 0)
+        .map((v) => normalizeUrl(v.trim())),
+    ).slice(0, 3);
     leadId = incomingLeadId;
     if (!leadId || !websiteUrl) {
       return new Response(
