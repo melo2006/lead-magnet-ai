@@ -51,6 +51,18 @@ Deno.serve(async (req) => {
       });
     }
 
+    if (action === 'update-agent-settings') {
+      const agentId = body.agent_id || 'agent_0dd08673d770e8adf08f920490';
+      const updates = body.updates || {};
+      const updated = await retellFetch(`/update-agent/${agentId}`, apiKey, {
+        method: 'PATCH',
+        body: JSON.stringify(updates),
+      });
+      return new Response(JSON.stringify({ success: true, agent: updated }), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     if (action === 'rename_agent') {
       const agentId = body.agent_id;
       const newName = body.new_name;
