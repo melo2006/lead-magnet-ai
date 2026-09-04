@@ -1075,8 +1075,10 @@ Deno.serve(async (req) => {
     supabase = createClient(supabaseUrl, supabaseServiceKey);
     await supabase.from('leads').update({ scan_status: 'scanning' }).eq('id', leadId);
 
-    const formattedUrl = toHomepageUrl(websiteUrl);
-    console.log('Scanning website homepage:', formattedUrl, '(original:', websiteUrl, ')');
+    const formattedUrl = toTargetUrl(websiteUrl);
+    const scanDeepLink = isDeepLink(websiteUrl);
+    console.log('Scanning website page:', formattedUrl, '(original:', websiteUrl, ', deepLink:', scanDeepLink, ')');
+
 
     // === PHASE 1: Homepage scrape + Browserless screenshot (parallel) ===
     
