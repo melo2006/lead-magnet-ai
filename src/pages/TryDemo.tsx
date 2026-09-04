@@ -177,10 +177,23 @@ const TryDemo = () => {
         _email: em || null,
         _website_url: websiteUrl,
         _niche: "general",
+        _secondary_url: secondaryUrl.trim() ? normalizeUrl(secondaryUrl) : null,
       });
 
       if (error) throw error;
       if (!leadId) throw new Error("Demo lead was not created");
+
+      let filePaths: string[] = [];
+      if (files.length > 0) {
+        filePaths = await uploadFiles(leadId);
+        if (filePaths.length > 0) {
+          try {
+            await (supabase as any).rpc("set_demo_lead_uploads", { _lead_id: leadId, _uploaded_files: filePaths });
+          } catch (uploadErr) {
+            console.error("Could not attach uploads:", uploadErr);
+          }
+        }
+      }
 
       const leadData: DemoLeadData = {
         leadId,
@@ -191,6 +204,9 @@ const TryDemo = () => {
         businessName,
         websiteUrl,
         niche: "general",
+        secondaryUrls: secondaryUrl.trim() ? [normalizeUrl(secondaryUrl)] : [],
+        uploadedFiles: filePaths,
+        crawlDepth,
       };
 
       try { localStorage.setItem(LAST_DEMO_STORAGE_KEY, JSON.stringify(leadData)); } catch {}
