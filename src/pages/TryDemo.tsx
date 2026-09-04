@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
@@ -29,6 +29,16 @@ import LanguageSwitcher from "@/components/LanguageSwitcher";
 import type { DemoLeadData } from "@/components/landing/demo-results/demoResultsUtils";
 
 const LAST_DEMO_STORAGE_KEY = "lastDemoLeadData";
+const MAX_FILES = 3;
+const MAX_FILE_SIZE = 10 * 1024 * 1024;
+const ALLOWED_FILE_TYPES = [
+  "application/pdf",
+  "text/plain",
+  "text/markdown",
+  "text/csv",
+  "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
+];
 
 const normalizeUrl = (raw: string): string => {
   let url = raw.trim().replace(/^["']+|["']+$/g, "").trim();
