@@ -1230,8 +1230,10 @@ Deno.serve(async (req) => {
     }
 
     // === PHASE 2: Sub-pages (skip if running out of time) ===
+    // Depth 1 = the given page only (plus extra URLs). Depth 2 = also learn its key sub-pages.
     let successfulPages: { url: string; title: string; summary: string; markdown: string }[] = [];
-    if (!isOverBudget() && !scanDeepLink) {
+    const shouldCrawlChildren = !scanDeepLink || crawlDepth >= 2;
+    if (!isOverBudget() && shouldCrawlChildren) {
       const linkPool = new Set<string>();
       if (Array.isArray(homepage.links)) {
         homepage.links.forEach((link: string) => linkPool.add(cleanText(link)));
@@ -1241,7 +1243,7 @@ Deno.serve(async (req) => {
         try {
           const mapResponse = await firecrawlRequest('/map', firecrawlKey, {
             url: formattedUrl,
-            limit: 30,
+            limit: crawlDepth >= 2 ? 60 : 30,
             includeSubdomains: false,
           }, 0);
           const links = Array.isArray(mapResponse.links) ? mapResponse.links : [];
@@ -1251,8 +1253,11 @@ Deno.serve(async (req) => {
         }
       }
 
-      const candidateLinks = pickRelevantLinks(Array.from(linkPool), formattedUrl);
-      console.log('Relevant links selected:', candidateLinks.length);
+      const pool = Array.from(linkPool);
+      const candidateLinks = scanDeepLink
+        ? pickDeepLinkChildren(pool, formattedUrl, 6)
+        : pickRelevantLinks(pool, formattedUrl).slice(0, crawlDepth >= 2 ? 10 : 6);
+      console.log('Relevant links selected:', candidateLinks.length, 'depth:', crawlDepth, 'deepLink:', scanDeepLink);
 
 
       if (!isOverBudget()) {
@@ -1263,18 +1268,42 @@ Deno.serve(async (req) => {
           .filter((page) => page.markdown || page.summary);
       }
     } else {
-      console.warn('Time budget exceeded, skipping sub-page scraping');
+      console.warn('Skipping sub-page scraping (deep link at depth 1, or time budget exceeded)');
     }
 
-    // Secondary URL (skip if over budget)
+    // Extra / secondary URLs (skip if over budget)
     let secondaryContent = '';
-    if (!isOverBudget() && secondaryUrl && typeof secondaryUrl === 'string' && secondaryUrl.trim()) {
-      try {
-        const secondary = await scrapeMarkdownPage(normalizeUrl(secondaryUrl), firecrawlKey);
-        secondaryContent = secondary.markdown;
-      } catch (e) {
-        console.warn('Secondary URL scrape error:', e);
+    if (!isOverBudget() && extraUrls.length > 0) {
+      const extraResults = await Promise.allSettled(extraUrls.map((u) => scrapeMarkdownPage(u, firecrawlKey)));
+      const extraPages = extraResults
+        .filter((r): r is PromiseFulfilledResult<Awaited<ReturnType<typeof scrapeMarkdownPage>>> => r.status === 'fulfilled')
+        .map((r) => r.value)
+        .filter((p) => p.markdown || p.summary);
+
+      // At depth 2, also learn the key sub-pages of each extra URL
+      if (crawlDepth >= 2 && !isOverBudget()) {
+        for (const extra of extraUrls) {
+          if (isOverBudget()) break;
+          try {
+            const mapResponse = await firecrawlRequest('/map', firecrawlKey, { url: extra, limit: 30, includeSubdomains: false }, 0);
+            const links = Array.isArray(mapResponse.links) ? mapResponse.links.map(cleanText) : [];
+            const children = isDeepLink(extra)
+              ? pickDeepLinkChildren(links, extra, 3)
+              : pickRelevantLinks(links, extra).slice(0, 3);
+            const childResults = await Promise.allSettled(children.map((link) => scrapeMarkdownPage(link, firecrawlKey)));
+            childResults.forEach((r) => {
+              if (r.status === 'fulfilled' && (r.value.markdown || r.value.summary)) extraPages.push(r.value);
+            });
+          } catch (e) {
+            console.warn('Extra URL sub-crawl error:', e);
+          }
+        }
       }
+
+      secondaryContent = extraPages
+        .map((p) => [p.url ? `### ${p.url}` : '', p.title ? `## ${p.title}` : '', p.markdown].filter(Boolean).join('\n'))
+        .join('\n\n')
+        .slice(0, 30000);
     }
 
     // Uploaded files
