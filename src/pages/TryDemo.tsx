@@ -38,10 +38,15 @@ const normalizeUrl = (raw: string): string => {
   return `https://${url}`;
 };
 
-const looksLikeDomain = (value: string) =>
-  /^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z]{2,})+/.test(
-    value.replace(/^(?:https?:\/\/)/i, "").replace(/^www\./i, "")
-  );
+const looksLikeDomain = (value: string) => {
+  const host = value
+    .trim()
+    .replace(/^(?:https?:\/\/)/i, "")
+    .replace(/^www\./i, "")
+    .split(/[/?#]/)[0];
+  return /^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/.test(host);
+};
+
 
 const extractBusinessName = (url: string): string => {
   try {
