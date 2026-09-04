@@ -27,15 +27,24 @@ const isRecentlyScanning = (record: DemoLeadRecord) => {
   return Number.isFinite(updatedAt) && Date.now() - updatedAt < ACTIVE_SCAN_REUSE_MS;
 };
 
+const TRACKING_PARAMS = ["fbclid", "gclid", "msclkid", "igshid", "mc_cid", "mc_eid"];
+
+// Keep the EXACT page the user submitted (deep listing links included) — only strip tracking params.
 const getHomepageUrl = (websiteUrl: string) => {
   try {
     const normalizedUrl = websiteUrl.startsWith("http") ? websiteUrl : `https://${websiteUrl}`;
     const url = new URL(normalizedUrl);
-    return `${url.protocol}//${url.host}`;
+    TRACKING_PARAMS.forEach((param) => url.searchParams.delete(param));
+    Array.from(url.searchParams.keys())
+      .filter((key) => key.toLowerCase().startsWith("utm_"))
+      .forEach((key) => url.searchParams.delete(key));
+    url.hash = "";
+    return url.toString().replace(/\?$/, "");
   } catch {
     return websiteUrl;
   }
 };
+
 
 const isMixedContentPreview = (targetUrl: string, embedOrigin: string) => {
   if (!targetUrl || !embedOrigin) return false;

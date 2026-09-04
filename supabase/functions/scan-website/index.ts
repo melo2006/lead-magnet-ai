@@ -15,15 +15,33 @@ const normalizeUrl = (value: string) => {
   return trimmed.startsWith('http://') || trimmed.startsWith('https://') ? trimmed : `https://${trimmed}`;
 };
 
-/** Strip any path/query from a URL so we always scrape the homepage */
-const toHomepageUrl = (value: string) => {
+const TRACKING_PARAMS = ['fbclid', 'gclid', 'msclkid', 'igshid', 'mc_cid', 'mc_eid'];
+
+/** Keep the exact page the user gave us (deep listing links included); only drop tracking params */
+const toTargetUrl = (value: string) => {
   try {
     const url = new URL(normalizeUrl(value));
-    return `${url.protocol}//${url.host}`;
+    TRACKING_PARAMS.forEach((param) => url.searchParams.delete(param));
+    Array.from(url.searchParams.keys())
+      .filter((key) => key.toLowerCase().startsWith('utm_'))
+      .forEach((key) => url.searchParams.delete(key));
+    url.hash = '';
+    return url.toString().replace(/\?$/, '');
   } catch {
     return normalizeUrl(value);
   }
 };
+
+/** True when the URL points at a specific page rather than the site root */
+const isDeepLink = (value: string) => {
+  try {
+    const url = new URL(normalizeUrl(value));
+    return url.pathname.replace(/\/+$/, '') !== '';
+  } catch {
+    return false;
+  }
+};
+
 
 /** Extract phone numbers from text content */
 const extractPhones = (text: string): string[] => {
@@ -1057,8 +1075,10 @@ Deno.serve(async (req) => {
     supabase = createClient(supabaseUrl, supabaseServiceKey);
     await supabase.from('leads').update({ scan_status: 'scanning' }).eq('id', leadId);
 
-    const formattedUrl = toHomepageUrl(websiteUrl);
-    console.log('Scanning website homepage:', formattedUrl, '(original:', websiteUrl, ')');
+    const formattedUrl = toTargetUrl(websiteUrl);
+    const scanDeepLink = isDeepLink(websiteUrl);
+    console.log('Scanning website page:', formattedUrl, '(original:', websiteUrl, ', deepLink:', scanDeepLink, ')');
+
 
     // === PHASE 1: Homepage scrape + Browserless screenshot (parallel) ===
     
@@ -1164,7 +1184,7 @@ Deno.serve(async (req) => {
 
     // === PHASE 2: Sub-pages (skip if running out of time) ===
     let successfulPages: { url: string; title: string; summary: string; markdown: string }[] = [];
-    if (!isOverBudget()) {
+    if (!isOverBudget() && !scanDeepLink) {
       const linkPool = new Set<string>();
       if (Array.isArray(homepage.links)) {
         homepage.links.forEach((link: string) => linkPool.add(cleanText(link)));
@@ -1186,6 +1206,7 @@ Deno.serve(async (req) => {
 
       const candidateLinks = pickRelevantLinks(Array.from(linkPool), formattedUrl);
       console.log('Relevant links selected:', candidateLinks.length);
+
 
       if (!isOverBudget()) {
         const pageResults = await Promise.allSettled(candidateLinks.map((link) => scrapeMarkdownPage(link, firecrawlKey)));
