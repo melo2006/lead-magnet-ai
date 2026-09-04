@@ -38,6 +38,14 @@ Deno.serve(async (req) => {
     const body = await req.json().catch(() => ({}));
     const action = body.action || 'setup';
 
+    if (action === 'get-agent') {
+      const agentId = body.agent_id || 'agent_0dd08673d770e8adf08f920490';
+      const agent = await retellFetch(`/get-agent/${agentId}`, apiKey);
+      return new Response(JSON.stringify({ success: true, agent }, null, 2), {
+        headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+      });
+    }
+
     if (action === 'rename_agent') {
       const agentId = body.agent_id;
       const newName = body.new_name;
