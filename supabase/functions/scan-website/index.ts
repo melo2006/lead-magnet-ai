@@ -1314,9 +1314,24 @@ Deno.serve(async (req) => {
           const { data: fileData, error: fileErr } = await supabase.storage.from('lead-uploads').download(filePath);
           if (fileErr || !fileData) continue;
           const ext = filePath.split('.').pop()?.toLowerCase();
-          if (ext === 'txt' || ext === 'md') {
+          if (ext === 'txt' || ext === 'md' || ext === 'csv') {
             const text = await fileData.text();
             filesContent += `\n--- Uploaded file: ${filePath} ---\n${truncate(text, 8000)}\n`;
+          } else if (ext === 'pdf') {
+            // Firecrawl can parse PDFs from a URL — hand it a short-lived signed link
+            let extracted = '';
+            try {
+              const { data: signed } = await supabase.storage.from('lead-uploads').createSignedUrl(filePath, 600);
+              if (signed?.signedUrl) {
+                const parsed = await scrapeMarkdownPage(signed.signedUrl, firecrawlKey);
+                extracted = parsed.markdown || parsed.summary || '';
+              }
+            } catch (pdfErr) {
+              console.warn('PDF parse error:', pdfErr);
+            }
+            filesContent += extracted
+              ? `\n--- Uploaded PDF: ${filePath} ---\n${truncate(extracted, 12000)}\n`
+              : `\n--- Uploaded PDF: ${filePath} (could not be parsed) ---\n`;
           } else {
             filesContent += `\n--- Uploaded file: ${filePath} (document provided) ---\n`;
           }
