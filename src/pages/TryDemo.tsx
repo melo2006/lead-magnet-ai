@@ -89,8 +89,45 @@ const TryDemo = () => {
   const [phone, setPhone] = useState("");
   const [email, setEmail] = useState("");
   const [url, setUrl] = useState("");
+  const [secondaryUrl, setSecondaryUrl] = useState("");
+  const [crawlDepth, setCrawlDepth] = useState<1 | 2>(1);
+  const [files, setFiles] = useState<File[]>([]);
+  const [showAdvanced, setShowAdvanced] = useState(false);
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isScanning, setIsScanning] = useState(false);
+
+  const handleFileAdd = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const incoming = Array.from(e.target.files || []);
+    const valid = incoming.filter((f) => {
+      if (!ALLOWED_FILE_TYPES.includes(f.type)) {
+        toast({ title: "Unsupported file", description: `${f.name} must be a PDF, Word doc or text file.`, variant: "destructive" });
+        return false;
+      }
+      if (f.size > MAX_FILE_SIZE) {
+        toast({ title: "File too large", description: `${f.name} is over 10 MB.`, variant: "destructive" });
+        return false;
+      }
+      return true;
+    });
+    setFiles((prev) => [...prev, ...valid].slice(0, MAX_FILES));
+    if (fileInputRef.current) fileInputRef.current.value = "";
+  };
+
+  const uploadFiles = async (leadId: string) => {
+    const paths: string[] = [];
+    for (const file of files) {
+      const ext = file.name.split(".").pop() || "bin";
+      const filePath = `${leadId}/${crypto.randomUUID()}.${ext}`;
+      const { error } = await supabase.storage.from("lead-uploads").upload(filePath, file);
+      if (error) {
+        console.error("File upload error:", error);
+        continue;
+      }
+      paths.push(filePath);
+    }
+    return paths;
+  };
   // Pre-fill form fields from URL params (e.g. coming from CRM prospect table)
   useEffect(() => {
     const urlParam = searchParams.get("url");
