@@ -69,10 +69,16 @@ const normalizeUrl = (raw: string): string => {
   return `https://${url}`;
 };
 
-const looksLikeDomain = (value: string) =>
-  /^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z]{2,})+/.test(
-    value.replace(/^(?:https?:\/\/)/i, "").replace(/^www\./i, "")
-  );
+const looksLikeDomain = (value: string) => {
+  const host = value
+    .trim()
+    .replace(/^(?:https?:\/\/)/i, "")
+    .replace(/^www\./i, "")
+    .split(/[/?#]/)[0];
+  // Allow subdomains and labels containing digits/hyphens (e.g. media.p3mediatx.com)
+  return /^[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?(\.[a-zA-Z0-9]([a-zA-Z0-9-]*[a-zA-Z0-9])?)*\.[a-zA-Z]{2,}$/.test(host);
+};
+
 
 const leadFormSchema = z.object({
   name: z.string().trim().min(1, "Please enter your name").max(100, "Name is too long"),
