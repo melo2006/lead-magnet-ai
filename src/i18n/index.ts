@@ -9,20 +9,12 @@ import es from "./locales/es.json";
 const SUPPORTED = ["en", "pt-BR", "es"] as const;
 export type SupportedLang = (typeof SUPPORTED)[number];
 
-// Default to English unless the user previously chose a language OR the
-// browser explicitly prefers Portuguese/Spanish.
+// Always default to English. Only a language the user explicitly selected
+// (stored in localStorage) overrides the default.
 const getInitialLang = (): string => {
   try {
     const stored = localStorage.getItem("lang");
-    if (stored) return stored;
-    const navLangs = (navigator.languages && navigator.languages.length
-      ? navigator.languages
-      : [navigator.language || "en"]).map((l) => l.toLowerCase());
-    for (const l of navLangs) {
-      if (l.startsWith("pt")) return "pt-BR";
-      if (l.startsWith("es")) return "es";
-      if (l.startsWith("en")) return "en";
-    }
+    if (stored && (SUPPORTED as readonly string[]).includes(stored)) return stored;
   } catch {}
   return "en";
 };
