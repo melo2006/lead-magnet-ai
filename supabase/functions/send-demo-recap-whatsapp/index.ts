@@ -100,7 +100,21 @@ Deno.serve(async (req) => {
       );
     }
 
-    const from = Deno.env.get('TWILIO_WHATSAPP_FROM') || DEFAULT_WHATSAPP_FROM;
+    const configuredFrom = Deno.env.get('TWILIO_WHATSAPP_FROM');
+    if (!configuredFrom) {
+      console.warn('TWILIO_WHATSAPP_FROM is not configured; skipping WhatsApp recap');
+      return new Response(
+        JSON.stringify({
+          success: false,
+          skipped: true,
+          reason: 'whatsapp_sender_not_configured',
+          error:
+            'WhatsApp recaps are not enabled yet: no approved WhatsApp sender number is configured (TWILIO_WHATSAPP_FROM).',
+        }),
+        { status: 200, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+      );
+    }
+    const from = toE164(configuredFrom) || DEFAULT_WHATSAPP_FROM;
     const messageBody = buildBody(body);
 
     const twilioResp = await fetch(`${TWILIO_GATEWAY_URL}/Messages.json`, {
@@ -120,9 +134,21 @@ Deno.serve(async (req) => {
     const twilioData = await twilioResp.json();
     if (!twilioResp.ok) {
       console.error('Twilio WhatsApp error', twilioResp.status, twilioData);
+      const senderNotEnabled = twilioData?.code === 63007;
       return new Response(
-        JSON.stringify({ success: false, error: twilioData?.message || 'Twilio send failed', code: twilioData?.code }),
-        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        JSON.stringify({
+          success: false,
+          skipped: senderNotEnabled,
+          reason: senderNotEnabled ? 'whatsapp_sender_not_enabled' : undefined,
+          error: senderNotEnabled
+            ? `The WhatsApp sender ${from} is not an approved WhatsApp channel on the connected Twilio account.`
+            : twilioData?.message || 'Twilio send failed',
+          code: twilioData?.code,
+        }),
+        {
+          status: senderNotEnabled ? 200 : 502,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
       );
     }
 
