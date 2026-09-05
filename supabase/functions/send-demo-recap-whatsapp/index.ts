@@ -134,9 +134,21 @@ Deno.serve(async (req) => {
     const twilioData = await twilioResp.json();
     if (!twilioResp.ok) {
       console.error('Twilio WhatsApp error', twilioResp.status, twilioData);
+      const senderNotEnabled = twilioData?.code === 63007;
       return new Response(
-        JSON.stringify({ success: false, error: twilioData?.message || 'Twilio send failed', code: twilioData?.code }),
-        { status: 502, headers: { ...corsHeaders, 'Content-Type': 'application/json' } },
+        JSON.stringify({
+          success: false,
+          skipped: senderNotEnabled,
+          reason: senderNotEnabled ? 'whatsapp_sender_not_enabled' : undefined,
+          error: senderNotEnabled
+            ? `The WhatsApp sender ${from} is not an approved WhatsApp channel on the connected Twilio account.`
+            : twilioData?.message || 'Twilio send failed',
+          code: twilioData?.code,
+        }),
+        {
+          status: senderNotEnabled ? 200 : 502,
+          headers: { ...corsHeaders, 'Content-Type': 'application/json' },
+        },
       );
     }
 
