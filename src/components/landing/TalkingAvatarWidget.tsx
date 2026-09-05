@@ -14,7 +14,8 @@ const SILENT_WAV_DATA_URI =
 // hear Aspen's opening greeting without background noise interrupting her.
 // 30s covers noisy environments (cafés, cars, restaurants) where ambient
 // sound would otherwise trigger Retell's barge-in / VAD and cut her off.
-const INITIAL_MIC_MUTE_MS = 30000;
+// Safety cap only: the mic is unmuted as soon as Aspen finishes her opening line.
+const INITIAL_MIC_MUTE_MS = 8000;
 // Persist the visitor's name across calls so a re-connect feels like a
 // continuation, not a fresh introduction.
 const VISITOR_NAME_KEY = "aspen_visitor_name";
