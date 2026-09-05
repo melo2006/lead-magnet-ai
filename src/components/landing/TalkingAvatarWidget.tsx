@@ -675,7 +675,17 @@ const TalkingAvatarWidget = () => {
       });
 
       retellClient.on("agent_start_talking", () => setIsAgentSpeaking(true));
-      retellClient.on("agent_stop_talking", () => setIsAgentSpeaking(false));
+      retellClient.on("agent_stop_talking", () => {
+        setIsAgentSpeaking(false);
+        // Aspen finished her opening line — open the mic immediately so the
+        // visitor's reply is heard instead of being swallowed by the mute window.
+        if (initialMuteTimerRef.current) {
+          clearTimeout(initialMuteTimerRef.current);
+          initialMuteTimerRef.current = null;
+          try { retellClient.unmute(); } catch { /* noop */ }
+          setIsMuted(false);
+        }
+      });
 
       retellClient.on("error", (error: unknown) => {
         console.error("Retell error:", error);
